@@ -8,7 +8,7 @@ namespace Application.Features.Users
 
         public string? Search { get; set; }
 
-        public int Page { get; set; }
+        public int Page { get; set; } = 1;
 
         public int? PageSize { get; set; }
     }

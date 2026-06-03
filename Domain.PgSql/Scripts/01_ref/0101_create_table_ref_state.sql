@@ -1,7 +1,0 @@
-CREATE TABLE ref_state
-(
-	id				SMALLINT NOT NULL PRIMARY KEY,
-	short_name		VARCHAR(250) NOT NULL,
-	full_name		VARCHAR(250) NOT NULL,
-	created_date	TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
-);

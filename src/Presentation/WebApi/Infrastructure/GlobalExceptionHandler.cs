@@ -1,0 +1,24 @@
+﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApi.Infrastructure
+{
+    internal sealed class GlobalExceptionHandler : IExceptionHandler
+    {
+        public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+                Title = "Server failure",
+            };
+
+            httpContext.Response.StatusCode = problemDetails.Status.Value;
+
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
+            return true;
+        }
+    }
+}

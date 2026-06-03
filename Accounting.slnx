@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/database/" />
+  <Folder Name="/database/migrations/" />
+  <Folder Name="/database/seed/" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/Application/">
+    <Project Path="src/Application/Application.csproj" Id="0bd89d04-9b30-4141-863f-9fc23728cc88" />
+  </Folder>
+  <Folder Name="/src/Domain/">
+    <Project Path="src/Domain/Domain.csproj" Id="ff3c5458-6a95-4738-bbeb-8af03d910229" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/Infrastructure.csproj" Id="e617cec7-3792-4f38-8478-39c1b8fe574f" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="src/Presentation/WebApi/WebApi.csproj" Id="d277a49e-927e-4363-9149-e31d3cf5b2df" />
+  </Folder>
+  <Folder Name="/src/SharedKernel/">
+    <Project Path="src/SharedKernel/SharedKernel.csproj" Id="0a2b058a-a20e-4755-98a3-89b88c9d274d" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UnitTests/UnitTests.csproj" Id="7c5e5c2e-8820-4b54-945c-7b3e2925a054" />
+  </Folder>
+</Solution>

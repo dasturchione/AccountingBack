@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34607.119
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingBack.WebApi", "AccountingBack.WebApi\AccountingBack.WebApi.csproj", "{79E94772-0AE2-417A-88A9-F1C276D021CF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79E94772-0AE2-417A-88A9-F1C276D021CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79E94772-0AE2-417A-88A9-F1C276D021CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79E94772-0AE2-417A-88A9-F1C276D021CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79E94772-0AE2-417A-88A9-F1C276D021CF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5770BB1A-8571-4DE4-90E6-7586AD0EC0A9}
+	EndGlobalSection
+EndGlobal

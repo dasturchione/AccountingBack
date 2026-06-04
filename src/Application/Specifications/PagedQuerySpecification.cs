@@ -1,6 +1,6 @@
 ﻿namespace Application.Specifications
 {
-    public abstract class PagedQuerySpecification<TEntity> : QuerySpecification<TEntity> where TEntity : class
+    public class PagedQuerySpecification<TEntity> : QuerySpecification<TEntity> where TEntity : class
     {
         public int? Take { get; init; }
         public int Skip { get; init; } = 0;

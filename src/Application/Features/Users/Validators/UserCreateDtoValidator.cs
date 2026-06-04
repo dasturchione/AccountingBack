@@ -8,7 +8,7 @@ namespace Application.Features.Users.Validators
         {
             Include(new UserBaseDtoValidator());
 
-            RuleFor(x => x.Password).NotEmpty();
+            RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
         }
     }
 }

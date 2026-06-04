@@ -2,6 +2,6 @@
 {
     public class UserUpdateDto : UserBaseDto
     {
-        public int StateId { get; set; }
+        public short StateId { get; set; }
     }
 }

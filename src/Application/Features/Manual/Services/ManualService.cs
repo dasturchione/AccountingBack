@@ -1,0 +1,111 @@
+﻿using Application.Abstractions;
+using Application.Specifications;
+using Domain.Entities;
+using SharedKernel.Constants;
+
+namespace Application.Features.Manual;
+
+public class ManualService : IManualService
+{
+    private readonly IQueryRepository<Role> _roleQuery;
+    private readonly IQueryRepository<State> _stateQuery;
+    private readonly IQueryRepository<Region> _regionQuery;
+    private readonly IQueryRepository<District> _districtQuery;
+    private readonly IQueryRepository<User> _userQuery;
+
+    public ManualService(
+        IQueryRepository<Role> roleQuery,
+        IQueryRepository<State> stateQuery,
+        IQueryRepository<Region> regionQuery,
+        IQueryRepository<District> districtQuery,
+        IQueryRepository<User> userQuery)
+    {
+        _roleQuery = roleQuery;
+        _stateQuery = stateQuery;
+        _regionQuery = regionQuery;
+        _districtQuery = districtQuery;
+        _userQuery = userQuery;
+    }
+
+    public async Task<List<SelectListDto>> GetRegionAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<Region>
+        {
+            Criteria = r => r.StateId == StateIdConst.ACTIVE
+        };
+
+        var list = await _regionQuery.GetAllAsync(spec, ct);
+
+        return list.Select(r => new SelectListDto
+        {
+            Id = r.Id,
+            Name = r.FullName
+        }).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetDistrictAsync(int? regionId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<District>
+        {
+            Criteria = d => d.StateId == StateIdConst.ACTIVE &&
+                            (regionId == null || d.RegionId == regionId)
+        };
+
+        var list = await _districtQuery.GetAllAsync(spec, ct);
+
+        return list.Select(d => new SelectListDto
+        {
+            Id = d.Id,
+            Name = d.FullName
+        }).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetStateAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<State>
+        {
+            Criteria = _ => true
+        };
+
+        var list = await _stateQuery.GetAllAsync(spec, ct);
+
+        return list.Select(s => new SelectListDto
+        {
+            Id = s.Id,
+            Name = s.FullName
+        }).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<Role>
+        {
+            Criteria = r => r.StateId == StateIdConst.ACTIVE
+        };
+
+        var list = await _roleQuery.GetAllAsync(spec, ct);
+
+        return list.Select(r => new SelectListDto
+        {
+            Id = r.Id,
+            Name = r.FullName
+        }).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<User>
+        {
+            Criteria = u => u.StateId == StateIdConst.ACTIVE &&
+                            (roleId == null || u.RoleId == roleId)
+        };
+
+        var list = await _userQuery.GetAllAsync(spec, ct);
+
+        return list.Select(u => new SelectListDto
+        {
+            Id = u.Id,
+            Name = $"{u.FirstName} {u.LastName}"
+        }).ToList();
+    }
+}

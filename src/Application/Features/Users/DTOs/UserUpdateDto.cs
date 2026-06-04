@@ -1,6 +1,4 @@
-﻿namespace Application.Features.Users;
-
-public class UserUpdateDto : UserCreateDto
+﻿namespace Application.Features.Users
 {
     public class UserUpdateDto : UserBaseDto
     {

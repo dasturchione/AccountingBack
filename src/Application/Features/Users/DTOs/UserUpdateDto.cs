@@ -1,6 +1,7 @@
 ﻿namespace Application.Features.Users
 {
-    public class UserUpdateDto
+    public class UserUpdateDto : UserBaseDto
     {
+        public int StateId { get; set; }
     }
 }

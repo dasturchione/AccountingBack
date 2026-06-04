@@ -1,5 +1,5 @@
 ﻿using Application.Features.Users;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
@@ -8,6 +8,7 @@ namespace WebApi.Controllers
 {
     [Route("api/users")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;

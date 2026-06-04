@@ -1,6 +1,12 @@
-﻿namespace Application.Features.Users;
+﻿namespace Application.Features.Auth;
 
-public class UserListDto
+public class LoginResponseDto
+{
+    public string Token { get; set; } = default!;
+    public UserResponseDto User { get; set; } = default!;
+}
+
+public class UserResponseDto
 {
     public int Id { get; set; }
     public string UserName { get; set; } = null!;

@@ -2,16 +2,15 @@
 using Application.Specifications;
 using Domain.Entities;
 
-namespace Application.Features.Users.Queries
+namespace Application.Features.Users.Queries;
+
+public class GetByIdQueryBuilder : IQuerySpecificationBuilder<User, GetByIdOptions<int>>
 {
-    public class GetByIdQueryBuilder : IQuerySpecificationBuilder<User, GetByIdOptions<int>>
+    public QuerySpecification<User> Build(GetByIdOptions<int> filter)
     {
-        public QuerySpecification<User> Build(GetByIdOptions<int> filter)
+        return new QuerySpecification<User>
         {
-            return new QuerySpecification<User>
-            {
-                Criteria = user => user.Id == filter.Id
-            };
-        }
+            Criteria = user => user.Id == filter.Id
+        };
     }
 }

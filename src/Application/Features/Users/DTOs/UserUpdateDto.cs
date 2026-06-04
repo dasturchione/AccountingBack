@@ -1,6 +1,7 @@
-﻿namespace Application.Features.Users
+﻿namespace Application.Features.Users;
+
+public class UserUpdateDto : UserCreateDto
 {
-    public class UserUpdateDto
-    {
-    }
+    public int Id { get; set; }
+    public short StateId { get; set; }
 }

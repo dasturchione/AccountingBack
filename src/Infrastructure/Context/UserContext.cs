@@ -23,7 +23,14 @@ namespace Infrastructure.Context
             }
         }
 
-        public int? RoleId => throw new NotImplementedException();
+        public int? RoleId
+        {
+            get
+            {
+                var value = _accessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+                return int.TryParse(value, out var id) ? id : null;
+            }
+        }
 
         public short? LanguageId => GetLanguageId();
 

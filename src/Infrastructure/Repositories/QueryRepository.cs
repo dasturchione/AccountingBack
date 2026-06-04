@@ -58,6 +58,9 @@ namespace Infrastructure.Repositories
         {
             var query = _dbSet.AsQueryable();
 
+            if (specification.Includes.Any())
+                query = ApplyIncludes(query, specification.Includes);
+
             if (specification.Criteria is not null)
                 query = query.Where(specification.Criteria);
 

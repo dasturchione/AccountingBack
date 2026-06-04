@@ -2,6 +2,8 @@
 using Application.Abstractions.Authentication;
 using Application.Common.Factory;
 using Application.Common.Markers;
+using Application.Features.Auth;
+using Application.Features.Manual;
 using Application.Features.Users;
 using Application.Features.Users.Services;
 using Application.Specifications;
@@ -85,6 +87,8 @@ namespace WebApi.Configuration
         private static WebApplicationBuilder AddApplication(this WebApplicationBuilder builder)
         {
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IManualService, ManualService>();
 
             builder.Services.AddScoped(typeof(ISpecificationFactory<>), typeof(SpecificationFactory<>));
             builder.Services.Scan(scan => scan

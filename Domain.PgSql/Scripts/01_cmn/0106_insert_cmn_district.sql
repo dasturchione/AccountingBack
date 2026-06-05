@@ -1,5 +1,5 @@
--- Toshkent shahri
 insert into cmn_district (short_name, full_name, state_id, region_id)
+-- Toshkent shahri
 (select N'Bektemir', N'Bektemir', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
 (select N'Mirzo Ulug‘bek', N'Mirzo Ulug‘bek', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
 (select N'Mirobod', N'Mirobod', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
@@ -11,7 +11,7 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Shayxontohur', N'Shayxontohur', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
 (select N'Yunusobod', N'Yunusobod', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
 (select N'Yakkasaroy', N'Yakkasaroy', 1, id from cmn_region where full_name = N'Toshkent shahri' limit 1) union all
---Toshkent viloyati
+-- Toshkent viloyati
 (select N'Bo‘stonliq', N'Bo‘stonliq',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Oqqo‘rg‘on', N'Oqqo‘rg‘on',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Ohangaron', N'Ohangaron',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
@@ -29,17 +29,12 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Yangiyo‘l', N'Yangiyo‘l',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Olmaliq', N'Olmaliq',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Angren', N'Angren',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
-(select N'Ohangaron', N'Ohangaron',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
-(select N'Bekobod', N'Bekobod',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Chirchiq', N'Chirchiq',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
-(select N'Yangiyo‘l', N'Yangiyo‘l',1,id from cmn_region where full_name = N'Toshkent' limit 1) union all
 (select N'Nurafshon', N'Nurafshon',2,id from cmn_region where full_name = N'Toshkent' limit 1) union all
---Andijon viloyati
+-- Andijon viloyati
 (select N'Andijon', N'Andijon',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Asaka', N'Asaka',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Oltinko‘l', N'Oltinko‘l',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
-(select N'Andijon', N'Andijon',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
-(select N'Asaka', N'Asaka',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Baliqchi', N'Baliqchi',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Bo‘z', N'Bo‘z',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Buloqboshi', N'Buloqboshi',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
@@ -52,21 +47,19 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Xo‘jaobod', N'Xo‘jaobod',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Xonobod', N'Xonobod',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
 (select N'Shahrixon', N'Shahrixon',1,id from cmn_region where full_name = N'Andijon' limit 1) union all
---Buxoro viloyati
+-- Buxoro viloyati
 (select N'Buxoro', N'Buxoro', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Kogon', N'Kogon', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Olot', N'Olot', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
-(select N'Buxoro', N'Buxoro', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Vobkent', N'Vobkent', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'G‘ijduvon', N'G‘ijduvon', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Jondor', N'Jondor', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
-(select N'Kogon', N'Kogon', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Qorako‘l', N'Qorako‘l', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Peshku', N'Peshku', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Romitan', N'Romitan', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Qorovulbozor', N'Qorovulbozor', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
 (select N'Shofirkon', N'Shofirkon', 1,id from cmn_region where full_name = N'Buxoro' limit 1) union all
---Jizzax viloyati
+-- Jizzax viloyati
 (select N'Arnasoy', N'Arnasoy', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
 (select N'Yangiobod', N'Yangiobod', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
 (select N'Baxmal', N'Baxmal', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
@@ -79,8 +72,7 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Zafarobod', N'Zafarobod', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
 (select N'Mirzacho‘l', N'Mirzacho‘l', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
 (select N'Forish', N'Forish', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
-(select N'Jizzax', N'Jizzax', 1,id from cmn_region where full_name = N'Jizzax' limit 1) union all
---Qoraqalpog'iston Respublikasi
+-- Qoraqalpog'iston Respublikasi
 (select N'Amudaryo', N'Amudaryo', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Beruniy', N'Beruniy', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Qanliko‘l', N'Qanliko‘l', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
@@ -95,10 +87,9 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Chimboy', N'Chimboy', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Shumanay', N'Shumanay', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Ellikqal’a', N'Ellikqal’a', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
-(select N'Nuqus', N'Nuqus', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Taxiatosh', N'Taxiatosh', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
 (select N'Bo‘zatov', N'Bo‘zatov', 1,id from cmn_region where full_name = N'Qoraqalpog‘iston Respublikasi' limit 1) union all
---Qashqadaryo viloyati
+-- Qashqadaryo viloyati
 (select N'G‘uzor', N'G‘uzor', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Dehqonobod', N'Dehqonobod', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Qamashi', N'Qamashi', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
@@ -106,15 +97,13 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Koson', N'Koson', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Kasbi', N'Kasbi', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Kitob', N'Kitob', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
-(select N'Mиришkor', N'Mиришkor', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
+(select N'Mirishkor', N'Mirishkor', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Muborak', N'Muborak', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Nishon', N'Nishon', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Chiroqchi', N'Chiroqchi', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Shahrisabz', N'Shahrisabz', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
 (select N'Yakkabog‘', N'Yakkabog‘', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
-(select N'Qarshi', N'Qarshi', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
-(select N'Shahrisabz', N'Shahrisabz', 1,id from cmn_region where full_name = N'Qashqadaryo' limit 1) union all
---Navoiy viloyati
+-- Navoiy viloyati
 (select N'Konimex', N'Konimex', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
 (select N'Qiziltepa', N'Qiziltepa', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
 (select N'Navbahor', N'Navbahor', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
@@ -125,7 +114,7 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Xatirchi', N'Xatirchi', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
 (select N'Zarafshon', N'Zarafshon', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
 (select N'Navoiy', N'Navoiy', 1,id from cmn_region where full_name = N'Navoiy' limit 1) union all
---Namangan viloyati
+-- Namangan viloyati
 (select N'Kosonsoy', N'Kosonsoy', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
 (select N'Mingbuloq', N'Mingbuloq', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
 (select N'Namangan', N'Namangan', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
@@ -137,12 +126,10 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Chartak', N'Chartak', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
 (select N'Chust', N'Chust', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
 (select N'Yangiqo‘rg‘on', N'Yangiqo‘rg‘on', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
-(select N'Namangan', N'Namangan', 1,id from cmn_region where full_name = N'Namangan' limit 1) union all
---Samarqand viloyati
+-- Samarqand viloyati
 (select N'Ishtixon', N'Ishtixon', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Bulung‘ur', N'Bulung‘ur', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Jomboy', N'Jomboy', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
-(select N'Ishtixon', N'Ishtixon', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Kattaqo‘rg‘on', N'Kattaqo‘rg‘on', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Qo‘shrabot', N'Qo‘shrabot', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Narpay', N'Narpay', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
@@ -153,9 +140,7 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Samarqand', N'Samarqand', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Toyloq', N'Toyloq', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
 (select N'Urgut', N'Urgut', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
-(select N'Kattaqo‘rg‘on', N'Kattaqo‘rg‘on', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
-(select N'Samarqand', N'Samarqand', 1,id from cmn_region where full_name = N'Samarqand' limit 1) union all
--- Surxandaryo viloyati
+-- Surxondaryo viloyati
 (select N'Oltinsoy', N'Oltinsoy', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Angor', N'Angor', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Boysun', N'Boysun', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
@@ -167,10 +152,8 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Muzrabot', N'Muzrabot', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Sariosiyo', N'Sariosiyo', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Termiz', N'Termiz', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
-(select N'Oltinsoy', N'Oltinsoy', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Sherobod', N'Sherobod', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 (select N'Sho‘rchi', N'Sho‘rchi', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
-(select N'Termiz', N'Termiz', 1,id from cmn_region where full_name = N'Surxondaryo' limit 1) union all
 -- Sirdaryo viloyati
 (select N'Oqoltin', N'Oqoltin', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
 (select N'Bayaut', N'Bayaut', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
@@ -180,10 +163,9 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Sayxunobod', N'Sayxunobod', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
 (select N'Sirdaryo', N'Sirdaryo', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
 (select N'Xovos', N'Xovos', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
-(select N'Guliston', N'Guliston', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
 (select N'Shirin', N'Shirin', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
 (select N'Yangiyer', N'Yangiyer', 1,id from cmn_region where full_name = N'Sirdaryo' limit 1) union all
---Farg'ona viloyati
+-- Farg'ona viloyati
 (select N'Oltariq', N'Oltariq', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
 (select N'Qo‘shtepa', N'Qo‘shtepa', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
 (select N'Bag‘dod', N'Bag‘dod', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
@@ -202,8 +184,7 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Qo‘qon', N'Qo‘qon', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
 (select N'Quvasoy', N'Quvasoy', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
 (select N'Marg‘ilon', N'Marg‘ilon', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
-(select N'Farg‘ona', N'Farg‘ona', 1,id from cmn_region where full_name = N'Farg‘ona' limit 1) union all
---Xorazm viloyati
+-- Xorazm viloyati
 (select N'Bog‘ot', N'Bog‘ot', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
 (select N'Gurlan', N'Gurlan', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
 (select N'Qo‘shko‘pir', N'Qo‘shko‘pir', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
@@ -213,6 +194,4 @@ insert into cmn_district (short_name, full_name, state_id, region_id)
 (select N'Xiva', N'Xiva', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
 (select N'Shovot', N'Shovot', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
 (select N'Yangiariq', N'Yangiariq', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
-(select N'Yangibozor', N'Yangibozor', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
-(select N'Urgench', N'Urgench', 1,id from cmn_region where full_name = N'Xorazm' limit 1) union all
-(select N'Xiva', N'Xiva', 1,id from cmn_region where full_name = N'Xorazm' limit 1);
+(select N'Yangibozor', N'Yangibozor', 1,id from cmn_region where full_name = N'Xorazm' limit 1);

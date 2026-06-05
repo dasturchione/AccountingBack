@@ -45,100 +45,127 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<State> { Criteria = _ => true };
+        var spec = new QuerySpecification<State, SelectListDto>
+        {
+            Criteria = s => true,
+            OrderBy = q => q.OrderBy(s => s.Name),
+            Selector = s => new SelectListDto { Id = s.Id, Name = s.FullName }
+        };
         var list = await _stateQuery.GetAllAsync(spec, ct);
-        return list.Select(s => new SelectListDto { Id = s.Id, Name = s.FullName }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetRegionsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Region>
+        var spec = new QuerySpecification<Region, SelectListDto>
         {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE
+            Criteria = r => r.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(r => r.Name),
+            Selector = r => new SelectListDto { Id = r.Id, Name = r.FullName }
         };
         var list = await _regionQuery.GetAllAsync(spec, ct);
-        return list.Select(r => new SelectListDto { Id = r.Id, Name = r.FullName }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetDistrictsAsync(int? regionId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<District>
+        var spec = new QuerySpecification<District, SelectListDto>
         {
             Criteria = d => d.StateId == StateIdConst.ACTIVE &&
-                            (regionId == null || d.RegionId == regionId)
+                            (regionId == null || d.RegionId == regionId),
+            OrderBy = q => q.OrderBy(d => d.Name),
+            Selector = d => new SelectListDto { Id = d.Id, Name = d.FullName }
         };
         var list = await _districtQuery.GetAllAsync(spec, ct);
-        return list.Select(d => new SelectListDto { Id = d.Id, Name = d.FullName }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Currency>
+        var spec = new QuerySpecification<Currency, SelectListDto>
         {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE
+            Criteria = c => c.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(c => c.Name),
+            Selector = c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }
         };
         var list = await _currencyQuery.GetAllAsync(spec, ct);
-        return list.Select(c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetUnitsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Unit>
+        var spec = new QuerySpecification<Unit, SelectListDto>
         {
-            Criteria = u => u.StateId == StateIdConst.ACTIVE
+            Criteria = u => u.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(u => u.Name),
+            Selector = u => new SelectListDto { Id = u.Id, Name = u.Name, Code = u.Code }
         };
         var list = await _unitQuery.GetAllAsync(spec, ct);
-        return list.Select(u => new SelectListDto { Id = u.Id, Name = u.Name, Code = u.Code }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<DocumentStatus>
+        var spec = new QuerySpecification<DocumentStatus, SelectListDto>
         {
-            Criteria = d => d.StateId == StateIdConst.ACTIVE
+            Criteria = d => d.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(d => d.Name),
+            Selector = d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code }
         };
         var list = await _documentStatusQuery.GetAllAsync(spec, ct);
-        return list.Select(d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<CounterpartyType>
+        var spec = new QuerySpecification<CounterpartyType, SelectListDto>
         {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE
+            Criteria = c => c.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(c => c.Name),
+            Selector = c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }
         };
+
         var list = await _counterpartyTypeQuery.GetAllAsync(spec, ct);
-        return list.Select(c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }).ToList();
+
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<PaymentType>
+        var spec = new QuerySpecification<PaymentType, SelectListDto>
         {
-            Criteria = p => p.StateId == StateIdConst.ACTIVE
+            Criteria = p => p.StateId == StateIdConst.ACTIVE,
+            OrderBy = c => c.OrderBy(p => p.Name),
+            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         var list = await _paymentTypeQuery.GetAllAsync(spec, ct);
-        return list.Select(p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Role>
+        var spec = new QuerySpecification<Role, SelectListDto>
         {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE
+            Criteria = r => r.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(r => r.Name),
+            Selector = r => new SelectListDto { Id = r.Id, Name = r.FullName }
         };
         var list = await _roleQuery.GetAllAsync(spec, ct);
-        return list.Select(r => new SelectListDto { Id = r.Id, Name = r.FullName }).ToList();
+        return list.ToList();
     }
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<User>
+        var spec = new QuerySpecification<User, SelectListDto>
         {
             Criteria = u => u.StateId == StateIdConst.ACTIVE &&
-                            (roleId == null || u.RoleId == roleId)
+                            (roleId == null || u.RoleId == roleId),
+            OrderBy = q => q.OrderBy(u => u.Name),
+            Selector = u => new SelectListDto { Id = u.Id, Name = $"{u.FirstName} {u.LastName}" }
         };
+
         var list = await _userQuery.GetAllAsync(spec, ct);
-        return list.Select(u => new SelectListDto { Id = u.Id, Name = $"{u.FirstName} {u.LastName}" }).ToList();
+
+        return list.ToList();
     }
 }

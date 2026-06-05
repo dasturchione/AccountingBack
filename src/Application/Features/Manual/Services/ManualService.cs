@@ -83,9 +83,8 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
-        var spec = Query.Where<User>(u => u.StateId == StateIdConst.ACTIVE &&
-                                (roleId == null || u.RoleId == roleId),
-                                q => q.OrderBy(u => u.FirstName).ThenBy(u => u.LastName));
+        var spec = Query.Where<User>(u => u.StateId == StateIdConst.ACTIVE && (roleId == null || u.RoleId == roleId),
+                                     q => q.OrderBy(u => u.FirstName).ThenBy(u => u.LastName));
 
         var list = await _userQuery.GetAllAsync(spec, ct);
 

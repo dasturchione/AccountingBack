@@ -19,7 +19,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +29,6 @@
 
   <ItemGroup>
     <Folder Include="Authorization\" />
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

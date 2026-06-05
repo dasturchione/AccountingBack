@@ -1,4 +1,4 @@
-﻿using Application.Specifications;
+﻿using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using System.Linq.Expressions;
 

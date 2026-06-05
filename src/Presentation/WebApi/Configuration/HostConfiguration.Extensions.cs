@@ -1,20 +1,9 @@
-﻿using Application.Abstractions;
-using Application.Abstractions.Authentication;
-using Application.Common.Factory;
+﻿using Application;
 using Application.Common.Markers;
-using Application.Features.Auth;
-using Application.Features.Manual;
-using Application.Features.Organizations;
-using Application.Features.Roles;
-using Application.Features.Users;
-using Application.Features.Users.Services;
-using Application.Specifications;
 using FluentValidation;
-using Infrastructure.Authentication;
-using Infrastructure.Context;
+using Infrastructure;
 using Infrastructure.Options;
 using Infrastructure.Persistence;
-using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -88,42 +77,14 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddApplication(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IManualService, ManualService>();
-            builder.Services.AddScoped<IRoleService, RoleService>();
-            builder.Services.AddScoped<IOrganizationService, OrganizationService>();
-
-            builder.Services.AddScoped(typeof(ISpecificationFactory<>), typeof(SpecificationFactory<>));
-            builder.Services.Scan(scan => scan
-                        .FromAssemblyOf<ApplicationAssemblyMarker>()
-                        .AddClasses(c => c.AssignableTo(typeof(IQuerySpecificationBuilder<,>)))
-                        .AsImplementedInterfaces()
-                        .WithScopedLifetime()
-                        .AddClasses(c => c.AssignableTo(typeof(IQuerySpecificationBuilder<,,>)))
-                        .AsImplementedInterfaces()
-                        .WithScopedLifetime()
-                        .AddClasses(c => c.AssignableTo(typeof(IPagedQuerySpecificationBuilder<,>)))
-                        .AsImplementedInterfaces()
-                        .WithScopedLifetime()
-                        .AddClasses(c => c.AssignableTo(typeof(IPagedQuerySpecificationBuilder<,,>)))
-                        .AsImplementedInterfaces()
-                        .WithScopedLifetime());
-
+            builder.Services.AddApplication();
             return builder;
         }
 
         private static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
         {
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-            builder.Services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-            builder.Services.AddScoped<ITokenProvider, TokenProvider>();
-            builder.Services.AddScoped<IRequestContext, RequestContext>();
-            builder.Services.AddScoped<IUserContext, UserContext>();
-
+            builder.Services.AddInfrastructure();
             return builder;
         }
 

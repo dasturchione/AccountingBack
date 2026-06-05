@@ -1,7 +1,8 @@
 using Application.Abstractions;
-using Application.Specifications;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Query;
+using SharedKernel.Query.Specifications;
 
 namespace Application.Features.Manual;
 

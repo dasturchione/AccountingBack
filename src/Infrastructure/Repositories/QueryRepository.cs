@@ -1,7 +1,8 @@
 ﻿using Application.Abstractions;
-using Application.Specifications;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Query.Includes;
+using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using System.Linq.Expressions;
 

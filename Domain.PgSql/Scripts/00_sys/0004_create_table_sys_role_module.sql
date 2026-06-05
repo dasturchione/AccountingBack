@@ -1,4 +1,4 @@
-create table sys_role_module
+﻿create table sys_role_module
 (                   
 	role_id int not null references sys_role(id),                      
 	module_id int not null references sys_module(id), 

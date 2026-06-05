@@ -1,4 +1,4 @@
--- Toshkent shahri
+﻿-- Toshkent shahri
 insert into ref_district (short_name, full_name, state_id, region_id)
 (select N'Bektemir', N'Bektemir', 1, id from info_region where full_name = N'Toshkent shahri' limit 1) union all
 (select N'Mirzo Ulug‘bek', N'Mirzo Ulug‘bek', 1, id from info_region where full_name = N'Toshkent shahri' limit 1) union all

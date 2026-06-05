@@ -1,4 +1,4 @@
-create table sys_role 
+﻿create table sys_role 
 (
 	id serial primary key,
 	short_name varchar(100) not null,

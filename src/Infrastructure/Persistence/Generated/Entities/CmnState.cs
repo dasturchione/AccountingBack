@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
-public partial class RefState
+public partial class CmnState
 {
     public short Id { get; set; }
 
@@ -13,9 +13,9 @@ public partial class RefState
 
     public DateTime CreatedDate { get; set; }
 
-    public virtual ICollection<RefDistrict> RefDistricts { get; set; } = new List<RefDistrict>();
+    public virtual ICollection<CmnDistrict> CmnDistricts { get; set; } = new List<CmnDistrict>();
 
-    public virtual ICollection<RefRegion> RefRegions { get; set; } = new List<RefRegion>();
+    public virtual ICollection<CmnRegion> CmnRegions { get; set; } = new List<CmnRegion>();
 
     public virtual ICollection<SysModule> SysModules { get; set; } = new List<SysModule>();
 

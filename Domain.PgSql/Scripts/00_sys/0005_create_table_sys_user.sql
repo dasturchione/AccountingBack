@@ -10,7 +10,7 @@ create table sys_user
 	last_name varchar(100) not null,
 	role_id int not null references sys_role (id),
 	last_access_time timestamp without time zone null,
-	state_id smallint not null references enum_state (id),
+	state_id smallint not null references cmn_state (id),
 	created_date timestamp without time zone default now() not null
 );
 

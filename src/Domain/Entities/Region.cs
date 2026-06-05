@@ -12,6 +12,8 @@ public partial class Region
 
     public DateTime CreatedDate { get; set; }
 
+    public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
+
     public virtual ICollection<District> Districts { get; set; } = new List<District>();
 
     public virtual State State { get; set; } = null!;

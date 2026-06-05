@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Persistence.Generated.Entities;
@@ -19,7 +19,7 @@ public partial class SysModule
 
     public DateTime CreatedDate { get; set; }
 
-    public virtual RefState State { get; set; } = null!;
+    public virtual CmnState State { get; set; } = null!;
 
     public virtual SysModuleSubGroup SubGroup { get; set; } = null!;
 

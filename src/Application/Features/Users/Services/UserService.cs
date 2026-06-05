@@ -13,21 +13,21 @@ namespace Application.Features.Users.Services;
 public class UserService : IUserService
 {
     private readonly IUserContext _userContext;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
-    private readonly IPasswordHasher _passwordHasher;
     private readonly ISpecificationFactory<User> _userSpecification;
     public UserService(IUserContext userContext,
+                       IPasswordHasher passwordHasher,
                        IQueryRepository<User> userQuery,
                        ICommandRepository<User> userCommand,
-                       ISpecificationFactory<User> userSpecification,
-                       IPasswordHasher passwordHasher   )
+                       ISpecificationFactory<User> userSpecification)
     {
         _userQuery = userQuery;
         _userCommand = userCommand;
         _userContext = userContext;
-        _userSpecification = userSpecification;
         _passwordHasher = passwordHasher;
+        _userSpecification = userSpecification;
     }
 
     public async Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default)

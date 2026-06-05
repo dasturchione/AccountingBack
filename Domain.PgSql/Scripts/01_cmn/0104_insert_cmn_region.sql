@@ -1,4 +1,4 @@
-insert into ref_region (short_name, full_name, state_id)
+insert into cmn_region (short_name, full_name, state_id)
 select N'Toshkent shahri', N'Toshkent shahri', 1 union all
 select N'Toshkent viloyati', N'Toshkent viloyati', 1 union all
 select N'Andijon viloyati', N'Andijon viloyati', 1 union all

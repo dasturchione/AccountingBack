@@ -10,9 +10,21 @@ public partial class State
 
     public DateTime CreatedDate { get; set; }
 
+    public virtual ICollection<CounterpartyType> CounterpartyTypes { get; set; } = new List<CounterpartyType>();
+
+    public virtual ICollection<Currency> Currencies { get; set; } = new List<Currency>();
+
+    public virtual ICollection<DocumentStatus> DocumentStatuses { get; set; } = new List<DocumentStatus>();
+
     public virtual ICollection<District> Districts { get; set; } = new List<District>();
 
+    public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
+
+    public virtual ICollection<PaymentType> PaymentTypes { get; set; } = new List<PaymentType>();
+
     public virtual ICollection<Region> Regions { get; set; } = new List<Region>();
+
+    public virtual ICollection<Unit> Units { get; set; } = new List<Unit>();
 
     public virtual ICollection<Module> Modules { get; set; } = new List<Module>();
 

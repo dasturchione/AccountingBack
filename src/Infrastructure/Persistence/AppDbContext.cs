@@ -10,11 +10,23 @@ namespace Infrastructure.Persistence
         {
         }
 
+        public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
+
+        public virtual DbSet<Currency> Currencies { get; set; }
+
+        public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
+
         public virtual DbSet<District> Districts { get; set; }
+
+        public virtual DbSet<Organization> Organizations { get; set; }
+
+        public virtual DbSet<PaymentType> PaymentTypes { get; set; }
 
         public virtual DbSet<Region> Regions { get; set; }
 
         public virtual DbSet<State> States { get; set; }
+
+        public virtual DbSet<Unit> Units { get; set; }
 
         public virtual DbSet<Module> Modules { get; set; }
 
@@ -28,13 +40,76 @@ namespace Infrastructure.Persistence
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Organization>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("org_organization_pkey");
+
+                entity.ToTable("org_organization");
+
+                entity.HasIndex(e => e.ShortName, "idx_org_organization_short_name");
+
+                entity.HasIndex(e => e.FullName, "idx_org_organization_full_name");
+
+                entity.HasIndex(e => e.Inn, "idx_org_organization_inn");
+
+                entity.HasIndex(e => e.RegionId, "idx_org_organization_region_id");
+
+                entity.HasIndex(e => e.DistrictId, "idx_org_organization_district_id");
+
+                entity.HasIndex(e => e.StateId, "idx_org_organization_state_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Address)
+                    .HasMaxLength(1000)
+                    .HasColumnName("address");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.Director)
+                    .HasMaxLength(250)
+                    .HasColumnName("director");
+                entity.Property(e => e.DistrictId).HasColumnName("district_id");
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(500)
+                    .HasColumnName("full_name");
+                entity.Property(e => e.Inn)
+                    .HasMaxLength(20)
+                    .HasColumnName("inn");
+                entity.Property(e => e.IsParent)
+                    .HasDefaultValue(false)
+                    .HasColumnName("is_parent");
+                entity.Property(e => e.PhoneNumber)
+                    .HasMaxLength(50)
+                    .HasColumnName("phone_number");
+                entity.Property(e => e.RegionId).HasColumnName("region_id");
+                entity.Property(e => e.ShortName)
+                    .HasMaxLength(250)
+                    .HasColumnName("short_name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.District).WithMany(p => p.Organizations)
+                    .HasForeignKey(d => d.DistrictId)
+                    .HasConstraintName("org_organization_district_id_fkey");
+
+                entity.HasOne(d => d.Region).WithMany(p => p.Organizations)
+                    .HasForeignKey(d => d.RegionId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_organization_region_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Organizations)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_organization_state_id_fkey");
+            });
+
             modelBuilder.Entity<District>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("ref_district_pkey");
+                entity.HasKey(e => e.Id).HasName("cmn_district_pkey");
 
-                entity.ToTable("ref_district");
+                entity.ToTable("cmn_district");
 
-                entity.HasIndex(e => e.RegionId, "idx_info_district_region_id");
+                entity.HasIndex(e => e.RegionId, "idx_cmn_district_region_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.CreatedDate)
@@ -53,19 +128,19 @@ namespace Infrastructure.Persistence
                 entity.HasOne(d => d.Region).WithMany(p => p.Districts)
                     .HasForeignKey(d => d.RegionId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("ref_district_region_id_fkey");
+                    .HasConstraintName("cmn_district_region_id_fkey");
 
                 entity.HasOne(d => d.State).WithMany(p => p.Districts)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("ref_district_state_id_fkey");
+                    .HasConstraintName("cmn_district_state_id_fkey");
             });
 
             modelBuilder.Entity<Region>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("ref_region_pkey");
+                entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
 
-                entity.ToTable("ref_region");
+                entity.ToTable("cmn_region");
 
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.CreatedDate)
@@ -83,14 +158,14 @@ namespace Infrastructure.Persistence
                 entity.HasOne(d => d.State).WithMany(p => p.Regions)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("ref_region_state_id_fkey");
+                    .HasConstraintName("cmn_region_state_id_fkey");
             });
 
             modelBuilder.Entity<State>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("ref_state_pkey");
+                entity.HasKey(e => e.Id).HasName("cmn_state_pkey");
 
-                entity.ToTable("ref_state");
+                entity.ToTable("cmn_state");
 
                 entity.Property(e => e.Id)
                     .ValueGeneratedNever()
@@ -105,6 +180,124 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.ShortName)
                     .HasMaxLength(250)
                     .HasColumnName("short_name");
+            });
+
+            modelBuilder.Entity<Currency>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_currency_pkey");
+
+                entity.ToTable("cmn_currency");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_currency_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(10)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+                entity.Property(e => e.Symbol)
+                    .HasMaxLength(10)
+                    .HasColumnName("symbol");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Currencies)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_currency_state_id_fkey");
+            });
+
+            modelBuilder.Entity<Unit>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_unit_pkey");
+
+                entity.ToTable("cmn_unit");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_unit_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(20)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Units)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_unit_state_id_fkey");
+            });
+
+            modelBuilder.Entity<DocumentStatus>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_document_status_pkey");
+
+                entity.ToTable("cmn_document_status");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_document_status_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.DocumentStatuses)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_document_status_state_id_fkey");
+            });
+
+            modelBuilder.Entity<CounterpartyType>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_counterparty_type_pkey");
+
+                entity.ToTable("cmn_counterparty_type");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_counterparty_type_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.CounterpartyTypes)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_counterparty_type_state_id_fkey");
+            });
+
+            modelBuilder.Entity<PaymentType>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_payment_type_pkey");
+
+                entity.ToTable("cmn_payment_type");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_payment_type_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.PaymentTypes)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_payment_type_state_id_fkey");
             });
 
             modelBuilder.Entity<Module>(entity =>

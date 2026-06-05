@@ -1,4 +1,4 @@
-create table ref_state
+create table cmn_state
 (
 	id smallint not null primary key,
 	short_name varchar(250) not null,

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Persistence.Generated.Entities;
@@ -31,5 +31,5 @@ public partial class SysUser
 
     public virtual SysRole Role { get; set; } = null!;
 
-    public virtual RefState State { get; set; } = null!;
+    public virtual CmnState State { get; set; } = null!;
 }

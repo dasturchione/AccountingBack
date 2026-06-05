@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Generated.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +12,11 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public virtual DbSet<RefDistrict> RefDistricts { get; set; }
+    public virtual DbSet<CmnDistrict> CmnDistricts { get; set; }
 
-    public virtual DbSet<RefRegion> RefRegions { get; set; }
+    public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
-    public virtual DbSet<RefState> RefStates { get; set; }
+    public virtual DbSet<CmnState> CmnStates { get; set; }
 
     public virtual DbSet<SysModule> SysModules { get; set; }
 
@@ -30,13 +30,13 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<RefDistrict>(entity =>
+        modelBuilder.Entity<CmnDistrict>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("ref_district_pkey");
+            entity.HasKey(e => e.Id).HasName("cmn_district_pkey");
 
-            entity.ToTable("ref_district");
+            entity.ToTable("cmn_district");
 
-            entity.HasIndex(e => e.RegionId, "idx_info_district_region_id");
+            entity.HasIndex(e => e.RegionId, "idx_cmn_district_region_id");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedDate)
@@ -52,22 +52,22 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("short_name");
             entity.Property(e => e.StateId).HasColumnName("state_id");
 
-            entity.HasOne(d => d.Region).WithMany(p => p.RefDistricts)
+            entity.HasOne(d => d.Region).WithMany(p => p.CmnDistricts)
                 .HasForeignKey(d => d.RegionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("ref_district_region_id_fkey");
+                .HasConstraintName("cmn_district_region_id_fkey");
 
-            entity.HasOne(d => d.State).WithMany(p => p.RefDistricts)
+            entity.HasOne(d => d.State).WithMany(p => p.CmnDistricts)
                 .HasForeignKey(d => d.StateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("ref_district_state_id_fkey");
+                .HasConstraintName("cmn_district_state_id_fkey");
         });
 
-        modelBuilder.Entity<RefRegion>(entity =>
+        modelBuilder.Entity<CmnRegion>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("ref_region_pkey");
+            entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
 
-            entity.ToTable("ref_region");
+            entity.ToTable("cmn_region");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedDate)
@@ -82,17 +82,17 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("short_name");
             entity.Property(e => e.StateId).HasColumnName("state_id");
 
-            entity.HasOne(d => d.State).WithMany(p => p.RefRegions)
+            entity.HasOne(d => d.State).WithMany(p => p.CmnRegions)
                 .HasForeignKey(d => d.StateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("ref_region_state_id_fkey");
+                .HasConstraintName("cmn_region_state_id_fkey");
         });
 
-        modelBuilder.Entity<RefState>(entity =>
+        modelBuilder.Entity<CmnState>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("ref_state_pkey");
+            entity.HasKey(e => e.Id).HasName("cmn_state_pkey");
 
-            entity.ToTable("ref_state");
+            entity.ToTable("cmn_state");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()

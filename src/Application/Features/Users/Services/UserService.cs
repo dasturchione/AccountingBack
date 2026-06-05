@@ -79,7 +79,7 @@ public class UserService : IUserService
 
     public async Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var spec = _userSpecification.Build<UserDto, GetByIdOptions<int>>(new GetByIdOptions<int>(id));
+        var spec = _queryBuilder.Build<UserDto, GetByIdOptions<int>>(new GetByIdOptions<int>(id));
         var entity = await _userQuery.GetAsync(spec, ct);
         if (entity == null)
             return Result.Failure<UserDto>(UserErrors.NotFound(id, _userContext.LanguageId));

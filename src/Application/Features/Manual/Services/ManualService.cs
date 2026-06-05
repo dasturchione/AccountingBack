@@ -2,7 +2,6 @@
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 
 namespace Application.Features.Manual;
 

@@ -1,6 +1,7 @@
-﻿using System.Linq.Expressions;
+﻿using SharedKernel.Query.Includes;
+using System.Linq.Expressions;
 
-namespace Application.Specifications
+namespace SharedKernel.Query.Specifications
 {
     public class QuerySpecification<TEntity> where TEntity : class
     {

@@ -1,17 +1,17 @@
 ﻿using Application.Abstractions;
-using Application.Specifications;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Query.Specifications;
 
 namespace Application.Features.Manual;
 
 public class ManualService : IManualService
 {
+    private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<State> _stateQuery;
     private readonly IQueryRepository<Region> _regionQuery;
     private readonly IQueryRepository<District> _districtQuery;
-    private readonly IQueryRepository<User> _userQuery;
 
     public ManualService(
         IQueryRepository<Role> roleQuery,

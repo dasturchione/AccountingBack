@@ -1,10 +1,10 @@
-﻿using Application.Abstractions;
-using Domain.Entities;
+﻿using Domain.Entities;
+using SharedKernel.Query;
 using System.Linq.Expressions;
 
 namespace Application.Features.Users;
 
-public class UserListDtoMap : IProjectionMap<User, UserListDto>
+public class UserListDtoProjection : IProjectionBuilder<User, UserListDto>
 {
     public Expression<Func<User, UserListDto>> Build()
     {

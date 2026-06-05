@@ -1,22 +1,25 @@
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Specifications;
+using Application.Features.Users.Queries;
 using Domain.Entities;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.Auth;
 
 public class AuthService : IAuthService
 {
+    private readonly IUserContext _userContext;
     private readonly ITokenProvider _tokenProvider;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IQueryBuilder<User> _queryBuilder;
     private readonly IQueryRepository<User> _userQuery;
-    private readonly IUserContext _userContext;
     private readonly ICommandRepository<User> _userCommand;
 
     public AuthService(
         ITokenProvider tokenProvider,
         IPasswordHasher passwordHasher,
+        IQueryBuilder<User> queryBuilder,
         IQueryRepository<User> userQuery,
         ICommandRepository<User> userCommand,
         IUserContext userContext)
@@ -24,16 +27,14 @@ public class AuthService : IAuthService
         _tokenProvider = tokenProvider;
         _passwordHasher = passwordHasher;
         _userQuery = userQuery;
+        _queryBuilder = queryBuilder;
         _userCommand = userCommand;
         _userContext = userContext;
     }
 
     public async ValueTask<Result<LoginResponseDto>> LoginAsync(LoginDto dto, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<User>
-        {
-            Criteria = u => u.UserName == dto.UserName
-        };
+        var spec = _queryBuilder.Build(new GetUserByUserNameOptions(dto.UserName));
 
         spec.AddIncludes(b =>
         {

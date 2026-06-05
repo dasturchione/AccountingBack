@@ -1,4 +1,4 @@
-﻿namespace Application.Specifications
+﻿namespace SharedKernel.Query.Specifications
 {
     public class PagedQuerySpecification<TEntity> : QuerySpecification<TEntity> where TEntity : class
     {

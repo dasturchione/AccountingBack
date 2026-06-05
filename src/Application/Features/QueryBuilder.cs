@@ -87,7 +87,7 @@ namespace Application.Features
 
         private static (int Take, int Skip) CalculatePagination(IPaginationFilter filter)
         {
-            var take = filter.PageSize.GetValueOrDefault(10);
+            var take = filter.PageSize.GetValueOrDefault(50);
             var page = Math.Max(filter.Page, 1);
 
             return (take, (page - 1) * take);

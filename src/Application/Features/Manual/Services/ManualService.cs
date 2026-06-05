@@ -1,6 +1,7 @@
 ﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 
 namespace Application.Features.Manual;
@@ -29,10 +30,7 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetRegionAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Region>
-        {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE
-        };
+        var spec = Query.Where<Region>(r => r.StateId == StateIdConst.ACTIVE, q => q.OrderBy(r => r.FullName));
 
         var list = await _regionQuery.GetAllAsync(spec, ct);
 
@@ -45,11 +43,8 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetDistrictAsync(int? regionId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<District>
-        {
-            Criteria = d => d.StateId == StateIdConst.ACTIVE &&
-                            (regionId == null || d.RegionId == regionId)
-        };
+        var spec = Query.Where<District>(d => d.StateId == StateIdConst.ACTIVE && (regionId == null || d.RegionId == regionId),
+                                         q => q.OrderBy(d => d.FullName));
 
         var list = await _districtQuery.GetAllAsync(spec, ct);
 
@@ -62,10 +57,7 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetStateAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<State>
-        {
-            Criteria = _ => true
-        };
+        var spec = Query.Where<State>(s => true, q => q.OrderBy(s => s.FullName));
 
         var list = await _stateQuery.GetAllAsync(spec, ct);
 
@@ -78,10 +70,7 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Role>
-        {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE
-        };
+        var spec = Query.Where<Role>(r => r.StateId == StateIdConst.ACTIVE, q => q.OrderBy(r => r.FullName));
 
         var list = await _roleQuery.GetAllAsync(spec, ct);
 
@@ -94,11 +83,9 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<User>
-        {
-            Criteria = u => u.StateId == StateIdConst.ACTIVE &&
-                            (roleId == null || u.RoleId == roleId)
-        };
+        var spec = Query.Where<User>(u => u.StateId == StateIdConst.ACTIVE &&
+                                (roleId == null || u.RoleId == roleId),
+                                q => q.OrderBy(u => u.FirstName).ThenBy(u => u.LastName));
 
         var list = await _userQuery.GetAllAsync(spec, ct);
 

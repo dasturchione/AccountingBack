@@ -18,6 +18,8 @@ namespace Infrastructure.Persistence
 
         public virtual DbSet<District> Districts { get; set; }
 
+        public virtual DbSet<Language> Languages { get; set; }
+
         public virtual DbSet<Organization> Organizations { get; set; }
 
         public virtual DbSet<PaymentType> PaymentTypes { get; set; }
@@ -25,6 +27,8 @@ namespace Infrastructure.Persistence
         public virtual DbSet<Region> Regions { get; set; }
 
         public virtual DbSet<State> States { get; set; }
+
+        public virtual DbSet<Translation> Translations { get; set; }
 
         public virtual DbSet<Unit> Units { get; set; }
 
@@ -56,6 +60,8 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.DistrictId, "idx_org_organization_district_id");
 
+                entity.HasIndex(e => e.DefaultLanguageId, "idx_org_organization_default_language_id");
+
                 entity.HasIndex(e => e.StateId, "idx_org_organization_state_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
@@ -66,6 +72,7 @@ namespace Infrastructure.Persistence
                     .HasDefaultValueSql("now()")
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("created_date");
+                entity.Property(e => e.DefaultLanguageId).HasColumnName("default_language_id");
                 entity.Property(e => e.Director)
                     .HasMaxLength(250)
                     .HasColumnName("director");
@@ -91,6 +98,11 @@ namespace Infrastructure.Persistence
                 entity.HasOne(d => d.District).WithMany(p => p.Organizations)
                     .HasForeignKey(d => d.DistrictId)
                     .HasConstraintName("org_organization_district_id_fkey");
+
+                entity.HasOne<Language>()
+                    .WithMany()
+                    .HasForeignKey(d => d.DefaultLanguageId)
+                    .HasConstraintName("org_organization_default_language_id_fkey");
 
                 entity.HasOne(d => d.Region).WithMany(p => p.Organizations)
                     .HasForeignKey(d => d.RegionId)
@@ -300,6 +312,82 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("cmn_payment_type_state_id_fkey");
             });
 
+            modelBuilder.Entity<Language>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_language_pkey");
+
+                entity.ToTable("cmn_language");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_language_code").IsUnique();
+
+                entity.HasIndex(e => e.StateId, "idx_cmn_language_state_id");
+
+                entity.HasIndex(e => e.IsDefault, "idx_cmn_language_default")
+                    .IsUnique()
+                    .HasFilter("is_default = true");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(10)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.IsDefault)
+                    .HasDefaultValue(false)
+                    .HasColumnName("is_default");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.NativeName)
+                    .HasMaxLength(100)
+                    .HasColumnName("native_name");
+                entity.Property(e => e.SortOrder)
+                    .HasDefaultValue(0)
+                    .HasColumnName("sort_order");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Languages)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_language_state_id_fkey");
+            });
+
+            modelBuilder.Entity<Translation>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_translation_pkey");
+
+                entity.ToTable("cmn_translation");
+
+                entity.HasIndex(e => new { e.LanguageId, e.TableName, e.RecordId, e.ColumnName }, "idx_cmn_translation_unique")
+                    .IsUnique();
+
+                entity.HasIndex(e => new { e.TableName, e.RecordId, e.ColumnName }, "idx_cmn_translation_lookup");
+
+                entity.HasIndex(e => e.LanguageId, "idx_cmn_translation_language_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.ColumnName)
+                    .HasMaxLength(100)
+                    .HasColumnName("column_name");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.LanguageId).HasColumnName("language_id");
+                entity.Property(e => e.RecordId).HasColumnName("record_id");
+                entity.Property(e => e.TableName)
+                    .HasMaxLength(100)
+                    .HasColumnName("table_name");
+                entity.Property(e => e.Value).HasColumnName("value");
+
+                entity.HasOne(d => d.Language).WithMany(p => p.Translations)
+                    .HasForeignKey(d => d.LanguageId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_translation_language_id_fkey");
+            });
+
             modelBuilder.Entity<Module>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("sys_module_pkey");
@@ -420,6 +508,8 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
 
+                entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
+
                 entity.HasIndex(e => e.UserName, "uidx_sys_user_user_name").IsUnique();
 
                 entity.Property(e => e.Id).HasColumnName("id");
@@ -436,6 +526,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.LastAccessTime)
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("last_access_time");
+                entity.Property(e => e.LanguageId).HasColumnName("language_id");
                 entity.Property(e => e.LastName)
                     .HasMaxLength(100)
                     .HasColumnName("last_name");
@@ -458,6 +549,11 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.RoleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("sys_user_role_id_fkey");
+
+                entity.HasOne<Language>()
+                    .WithMany()
+                    .HasForeignKey(d => d.LanguageId)
+                    .HasConstraintName("sys_user_language_id_fkey");
 
                 entity.HasOne(d => d.State).WithMany(p => p.Users)
                     .HasForeignKey(d => d.StateId)

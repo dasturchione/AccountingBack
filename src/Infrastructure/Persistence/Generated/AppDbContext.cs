@@ -229,6 +229,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
 
+            entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
+
             entity.HasIndex(e => e.UserName, "uidx_sys_user_user_name").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
@@ -245,6 +247,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastAccessTime)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("last_access_time");
+            entity.Property(e => e.LanguageId).HasColumnName("language_id");
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .HasColumnName("last_name");

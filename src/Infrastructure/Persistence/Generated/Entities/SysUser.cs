@@ -25,6 +25,8 @@ public partial class SysUser
 
     public DateTime? LastAccessTime { get; set; }
 
+    public short? LanguageId { get; set; }
+
     public short StateId { get; set; }
 
     public DateTime CreatedDate { get; set; }

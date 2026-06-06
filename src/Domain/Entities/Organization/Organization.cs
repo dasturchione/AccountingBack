@@ -24,6 +24,8 @@ public partial class Organization
 
     public short StateId { get; set; }
 
+    public short? DefaultLanguageId { get; set; }
+
     public DateTime CreatedDate { get; set; }
 
     public virtual Region Region { get; set; } = null!;

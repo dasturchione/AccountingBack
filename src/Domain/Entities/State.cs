@@ -18,6 +18,8 @@ public partial class State
 
     public virtual ICollection<District> Districts { get; set; } = new List<District>();
 
+    public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
+
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
 
     public virtual ICollection<PaymentType> PaymentTypes { get; set; } = new List<PaymentType>();

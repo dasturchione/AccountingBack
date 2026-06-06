@@ -34,10 +34,7 @@ namespace WebApi.Configuration
     {
         private static WebApplicationBuilder AddDevTools(this WebApplicationBuilder builder)
         {
-            if (builder.Environment.IsDevelopment())
-            {
-                builder.Services.AddEndpointsApiExplorer();
-            }
+            builder.Services.AddEndpointsApiExplorer();
 
             return builder;
         }
@@ -191,15 +188,12 @@ namespace WebApi.Configuration
 
         private static WebApplication UseDevTools(this WebApplication app)
         {
-            if (app.Environment.IsDevelopment())
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-                    c.DisplayRequestDuration();
-                });
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+                c.DisplayRequestDuration();
+            });
 
             return app;
         }
@@ -207,6 +201,13 @@ namespace WebApi.Configuration
         private static WebApplication UseMiddlewares(this WebApplication app)
         {
             app.UseHttpsRedirection();
+
+            app.UseCors(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
 
             app.UseAuthentication();
             app.UseAuthorization();

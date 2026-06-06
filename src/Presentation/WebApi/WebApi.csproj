@@ -20,11 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\Acc\" />
-    <Folder Include="Controllers\Cash\" />
-    <Folder Include="Controllers\Sale\" />
     <Folder Include="Controllers\Register\" />
-    <Folder Include="Controllers\Pur\" />
   </ItemGroup>
 
 </Project>

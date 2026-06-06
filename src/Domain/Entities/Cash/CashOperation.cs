@@ -16,4 +16,13 @@ public partial class CashOperation
     public short StatusId { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
+
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual CashBox CashBox { get; set; } = null!;
+    public virtual OperationType OperationType { get; set; } = null!;
+    public virtual PaymentType? PaymentType { get; set; }
+    public virtual CounterpartyCard? Counterparty { get; set; }
+    public virtual Currency Currency { get; set; } = null!;
+    public virtual DocumentStatus Status { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 }

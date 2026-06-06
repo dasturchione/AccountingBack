@@ -365,10 +365,10 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.EndDate).HasColumnType("timestamp without time zone").HasColumnName("end_date");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_organization_id_fkey");
-                entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_product_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_currency_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_organization_id_fkey");
+                entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_product_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_currency_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_state_id_fkey");
             });
 
             modelBuilder.Entity<OrgBankAccount>(entity =>
@@ -387,10 +387,10 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.IsMain).HasDefaultValue(false).HasColumnName("is_main");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_organization_id_fkey");
-                entity.HasOne<Bank>().WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_bank_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_currency_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_organization_id_fkey");
+                entity.HasOne(e => e.Bank).WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_bank_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_currency_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_bank_account_state_id_fkey");
             });
 
             modelBuilder.Entity<BankOperation>(entity =>
@@ -418,14 +418,14 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.StatusId).HasColumnName("status_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_organization_id_fkey");
-                entity.HasOne<OrgBankAccount>().WithMany().HasForeignKey(e => e.BankAccountId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_bank_account_id_fkey");
-                entity.HasOne<OperationType>().WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_operation_type_id_fkey");
-                entity.HasOne<PaymentType>().WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("bank_operation_payment_type_id_fkey");
-                entity.HasOne<CounterpartyCard>().WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("bank_operation_counterparty_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_currency_id_fkey");
-                entity.HasOne<DocumentStatus>().WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_status_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_organization_id_fkey");
+                entity.HasOne(e => e.BankAccount).WithMany().HasForeignKey(e => e.BankAccountId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_bank_account_id_fkey");
+                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_operation_type_id_fkey");
+                entity.HasOne(e => e.PaymentType).WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("bank_operation_payment_type_id_fkey");
+                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("bank_operation_counterparty_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_currency_id_fkey");
+                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_status_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_state_id_fkey");
             });
 
             modelBuilder.Entity<CashBox>(entity =>
@@ -445,10 +445,10 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_organization_id_fkey");
-                entity.HasOne<Branch>().WithMany().HasForeignKey(e => e.BranchId).HasConstraintName("cash_box_branch_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_currency_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_organization_id_fkey");
+                entity.HasOne(e => e.Branch).WithMany().HasForeignKey(e => e.BranchId).HasConstraintName("cash_box_branch_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_currency_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_state_id_fkey");
             });
 
             modelBuilder.Entity<CashOperation>(entity =>
@@ -476,14 +476,14 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.StatusId).HasColumnName("status_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_organization_id_fkey");
-                entity.HasOne<CashBox>().WithMany().HasForeignKey(e => e.CashBoxId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_cash_box_id_fkey");
-                entity.HasOne<OperationType>().WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_operation_type_id_fkey");
-                entity.HasOne<PaymentType>().WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("cash_operation_payment_type_id_fkey");
-                entity.HasOne<CounterpartyCard>().WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("cash_operation_counterparty_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_currency_id_fkey");
-                entity.HasOne<DocumentStatus>().WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_status_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_organization_id_fkey");
+                entity.HasOne(e => e.CashBox).WithMany().HasForeignKey(e => e.CashBoxId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_cash_box_id_fkey");
+                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_operation_type_id_fkey");
+                entity.HasOne(e => e.PaymentType).WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("cash_operation_payment_type_id_fkey");
+                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("cash_operation_counterparty_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_currency_id_fkey");
+                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_status_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_state_id_fkey");
             });
 
             modelBuilder.Entity<PurchaseDoc>(entity =>
@@ -510,12 +510,12 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_organization_id_fkey");
-                entity.HasOne<CounterpartyCard>().WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_counterparty_id_fkey");
-                entity.HasOne<Warehouse>().WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_warehouse_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_currency_id_fkey");
-                entity.HasOne<DocumentStatus>().WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_status_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_organization_id_fkey");
+                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_counterparty_id_fkey");
+                entity.HasOne(e => e.Warehouse).WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_warehouse_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_currency_id_fkey");
+                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_status_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_state_id_fkey");
             });
 
             modelBuilder.Entity<PurchaseDocTable>(entity =>
@@ -534,9 +534,9 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
                 entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
                 entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.HasOne<PurchaseDoc>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("pur_doc_table_owner_id_fkey");
-                entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_table_product_id_fkey");
-                entity.HasOne<VatRate>().WithMany().HasForeignKey(e => e.VatRateId).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
+                entity.HasOne(e => e.Owner).WithMany(p => p.Lines).HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("pur_doc_table_owner_id_fkey");
+                entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_table_product_id_fkey");
+                entity.HasOne(e => e.VatRate).WithMany().HasForeignKey(e => e.VatRateId).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
             });
 
             modelBuilder.Entity<SaleDoc>(entity =>
@@ -563,12 +563,12 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_organization_id_fkey");
-                entity.HasOne<CounterpartyCard>().WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_counterparty_id_fkey");
-                entity.HasOne<Warehouse>().WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_warehouse_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_currency_id_fkey");
-                entity.HasOne<DocumentStatus>().WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_status_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_organization_id_fkey");
+                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_counterparty_id_fkey");
+                entity.HasOne(e => e.Warehouse).WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_warehouse_id_fkey");
+                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_currency_id_fkey");
+                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_status_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_state_id_fkey");
             });
 
             modelBuilder.Entity<SaleDocTable>(entity =>
@@ -587,9 +587,9 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
                 entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
                 entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.HasOne<SaleDoc>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("sale_doc_table_owner_id_fkey");
-                entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_table_product_id_fkey");
-                entity.HasOne<VatRate>().WithMany().HasForeignKey(e => e.VatRateId).HasConstraintName("sale_doc_table_vat_rate_id_fkey");
+                entity.HasOne(e => e.Owner).WithMany(p => p.Lines).HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("sale_doc_table_owner_id_fkey");
+                entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_table_product_id_fkey");
+                entity.HasOne(e => e.VatRate).WithMany().HasForeignKey(e => e.VatRateId).HasConstraintName("sale_doc_table_vat_rate_id_fkey");
             });
 
             modelBuilder.Entity<InventoryRegisterBalance>(entity =>
@@ -714,9 +714,9 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.IsGroup).HasDefaultValue(false).HasColumnName("is_group");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_chart_account_organization_id_fkey");
-                entity.HasOne<ChartAccount>().WithMany().HasForeignKey(e => e.ParentId).HasConstraintName("acc_chart_account_parent_id_fkey");
-                entity.HasOne<State>().WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_chart_account_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_chart_account_organization_id_fkey");
+                entity.HasOne(e => e.Parent).WithMany().HasForeignKey(e => e.ParentId).HasConstraintName("acc_chart_account_parent_id_fkey");
+                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_chart_account_state_id_fkey");
             });
         }
     }

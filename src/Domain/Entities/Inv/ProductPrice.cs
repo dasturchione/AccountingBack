@@ -11,4 +11,9 @@ public partial class ProductPrice
     public DateTime? EndDate { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
+
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual Product Product { get; set; } = null!;
+    public virtual Currency Currency { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 }

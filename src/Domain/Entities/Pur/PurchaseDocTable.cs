@@ -11,4 +11,8 @@ public partial class PurchaseDocTable
     public short? VatRateId { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
+
+    public virtual PurchaseDoc Owner { get; set; } = null!;
+    public virtual Product Product { get; set; } = null!;
+    public virtual VatRate? VatRate { get; set; }
 }

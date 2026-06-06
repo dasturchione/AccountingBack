@@ -1,0 +1,24 @@
+using Domain.Entities;
+using SharedKernel.Query;
+using System.Linq.Expressions;
+
+namespace Application.Features.PurchaseDocTables;
+
+public class PurchaseDocTableListDtoProjection : IProjectionBuilder<PurchaseDocTable, PurchaseDocTableListDto>
+{
+    public Expression<Func<PurchaseDocTable, PurchaseDocTableListDto>> Build() =>
+        x => new PurchaseDocTableListDto
+        {
+            Id = x.Id,
+            OwnerId = x.OwnerId,
+            ProductId = x.ProductId,
+            ProductName = x.Product.Name,
+            Quantity = x.Quantity,
+            Price = x.Price,
+            Amount = x.Amount,
+            VatRateId = x.VatRateId,
+            VatRateName = x.VatRate != null ? x.VatRate.Name : null,
+            VatAmount = x.VatAmount,
+            TotalAmount = x.TotalAmount
+        };
+}

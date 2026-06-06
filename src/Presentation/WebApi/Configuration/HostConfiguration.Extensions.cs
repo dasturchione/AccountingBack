@@ -1,17 +1,30 @@
 ﻿using Application.Common.Markers;
 using Application.Features.Auth;
-using Application.Features.Banks;
+using Application.Features.BankOperations;
 using Application.Features.Branches;
+using Application.Features.CashBoxes;
+using Application.Features.CashOperations;
+using Application.Features.ChartAccounts;
 using Application.Features.CounterpartyBankAccounts;
 using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyContacts;
 using Application.Features.Departments;
 using Application.Features.Manual;
 using Application.Features.Organizations;
+using Application.Features.OrgBankAccounts;
 using Application.Features.Positions;
 using Application.Features.ProductGroups;
+using Application.Features.ProductPrices;
 using Application.Features.Products;
+using Application.Features.PurchaseDocs;
+using Application.Features.PurchaseDocTables;
+using Application.Features.AccountingRegisterEntries;
+using Application.Features.CounterpartyRegisterBalances;
+using Application.Features.InventoryRegisterBalances;
+using Application.Features.MoneyRegisterBalances;
 using Application.Features.Roles;
+using Application.Features.SaleDocs;
+using Application.Features.SaleDocTables;
 using Application.Features.Users;
 using Application.Features.Users.Services;
 using Application.Features.Warehouses;
@@ -97,15 +110,32 @@ namespace WebApi.Configuration
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<IDepartmentService, DepartmentService>();
             builder.Services.AddScoped<IPositionService, PositionService>();
-            builder.Services.AddScoped<IBankService, BankService>();
             builder.Services.AddScoped<ICounterpartyCardService, CounterpartyCardService>();
             builder.Services.AddScoped<ICounterpartyBankAccountService, CounterpartyBankAccountService>();
             builder.Services.AddScoped<ICounterpartyContactService, CounterpartyContactService>();
             builder.Services.AddScoped<IProductGroupService, ProductGroupService>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+            builder.Services.AddScoped<IProductPriceService, ProductPriceService>();
+            builder.Services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
+            builder.Services.AddScoped<IBankOperationService, BankOperationService>();
+            builder.Services.AddScoped<ICashBoxService, CashBoxService>();
+            builder.Services.AddScoped<ICashOperationService, CashOperationService>();
+            builder.Services.AddScoped<IPurchaseDocService, PurchaseDocService>();
+            builder.Services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
+            builder.Services.AddScoped<ISaleDocService, SaleDocService>();
+            builder.Services.AddScoped<ISaleDocTableService, SaleDocTableService>();
+            builder.Services.AddScoped<IChartAccountService, ChartAccountService>();
+            builder.Services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
+            builder.Services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
+            builder.Services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
+            builder.Services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             builder.Services.AddScoped<IManualService, ManualService>();
-            
+            builder.Services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
+            builder.Services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
+            builder.Services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
+            builder.Services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
+
             builder.Services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
                 .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))

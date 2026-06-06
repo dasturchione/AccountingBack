@@ -10,4 +10,8 @@ public partial class ChartAccount
     public bool IsGroup { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
+
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual ChartAccount? Parent { get; set; }
+    public virtual State State { get; set; } = null!;
 }

@@ -1,15 +1,12 @@
-﻿using Domain.Entities;
+using Domain.Entities;
+﻿
 
-namespace Application.Abstractions.Authentication
+namespace Application.Abstractions.Authentication;
+
+public interface ITokenProvider
 {
-    public interface ITokenProvider
-    {
-        string GenerateAccessToken(User user);
-
-        string GenerateRefreshToken();
-
-        int GetRefreshTokenExpirationDays();
-
-        string GetRefreshTokenHash(string refreshToken);
-    }
+    string GenerateAccessToken(User user);
+    string GenerateRefreshToken();
+    int GetRefreshTokenExpirationDays();
+    string GetRefreshTokenHash(string refreshToken);
 }

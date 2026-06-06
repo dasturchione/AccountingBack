@@ -1,11 +1,8 @@
-﻿namespace Application.Abstractions.Authentication
+﻿namespace Application.Abstractions.Authentication;
+
+public interface IUserContext
 {
-    public interface IUserContext
-    {
-        int? Id { get; }
-
-        int? RoleId { get; }
-
-        short? LanguageId { get; }
-    }
+    int? Id { get; }
+    int? RoleId { get; }
+    short? LanguageId { get; }
 }

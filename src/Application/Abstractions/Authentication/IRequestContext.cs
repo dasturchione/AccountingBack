@@ -1,10 +1,9 @@
 ﻿using System.Net;
 
-namespace Application.Abstractions.Authentication
+namespace Application.Abstractions.Authentication;
+
+public interface IRequestContext
 {
-    public interface IRequestContext
-    {
-        IPAddress? Ip { get; }
-        string? UserAgent { get; }
-    }
+    IPAddress? Ip { get; }
+    string? UserAgent { get; }
 }

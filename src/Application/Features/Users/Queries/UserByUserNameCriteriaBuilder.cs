@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+using Domain.Entities;
+﻿
 using SharedKernel.Query;
 using System.Linq.Expressions;
 

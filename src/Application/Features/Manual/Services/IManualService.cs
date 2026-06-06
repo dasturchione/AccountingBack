@@ -11,8 +11,26 @@ public interface IManualService
     Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetBanksAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default);
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default);
+
+    // org
+    Task<List<SelectListDto>> GetBranchesAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetDepartmentsAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPositionsAsync(int? organizationId = null, CancellationToken ct = default);
+
+    // counterparty
+    Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default);
+
+    // inv
+    Task<List<SelectListDto>> GetProductGroupsAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetProductsAsync(int? organizationId = null, int? productGroupId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
 }

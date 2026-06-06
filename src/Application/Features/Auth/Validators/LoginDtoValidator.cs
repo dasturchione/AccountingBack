@@ -1,14 +1,13 @@
 ﻿using FluentValidation;
 
-namespace Application.Features.Auth
-{
-    public class LoginDtoValidator : AbstractValidator<LoginDto>
-    {
-        public LoginDtoValidator()
-        {
-            RuleFor(x => x.UserName).NotEmpty();
+namespace Application.Features.Auth;
 
-            RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
-        }
+public class LoginDtoValidator : AbstractValidator<LoginDto>
+{
+    public LoginDtoValidator()
+    {
+        RuleFor(x => x.UserName).NotEmpty();
+
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
     }
 }

@@ -1,7 +1,8 @@
+using Domain.Entities;
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Users.Queries;
-using Domain.Entities;
+
 using SharedKernel.Query;
 using SharedKernel.Results;
 

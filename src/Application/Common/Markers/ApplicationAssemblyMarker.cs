@@ -1,6 +1,3 @@
-﻿namespace Application.Common.Markers
-{
-    public sealed class ApplicationAssemblyMarker
-    {
-    }
-}
+﻿namespace Application.Common.Markers;
+
+public sealed class ApplicationAssemblyMarker { }

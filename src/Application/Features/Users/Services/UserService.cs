@@ -1,8 +1,9 @@
+using Domain.Entities;
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Options;
-using Domain.Entities;
+
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Query.Extensions;

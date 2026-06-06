@@ -1,5 +1,20 @@
-﻿using Application;
-using Application.Common.Markers;
+﻿using Application.Common.Markers;
+using Application.Features.Auth;
+using Application.Features.Banks;
+using Application.Features.Branches;
+using Application.Features.CounterpartyBankAccounts;
+using Application.Features.CounterpartyCards;
+using Application.Features.CounterpartyContacts;
+using Application.Features.Departments;
+using Application.Features.Manual;
+using Application.Features.Organizations;
+using Application.Features.Positions;
+using Application.Features.ProductGroups;
+using Application.Features.Products;
+using Application.Features.Roles;
+using Application.Features.Users;
+using Application.Features.Users.Services;
+using Application.Features.Warehouses;
 using FluentValidation;
 using Infrastructure;
 using Infrastructure.Options;
@@ -8,6 +23,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SharedKernel.Query;
 using System.Text;
 using System.Text.Json.Serialization;
 using WebApi.Infrastructure;
@@ -77,7 +93,32 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddApplication(this WebApplicationBuilder builder)
         {
-            builder.Services.AddApplication();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IRoleService, RoleService>();
+            builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+            builder.Services.AddScoped<IBranchService, BranchService>();
+            builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+            builder.Services.AddScoped<IPositionService, PositionService>();
+            builder.Services.AddScoped<IBankService, BankService>();
+            builder.Services.AddScoped<ICounterpartyCardService, CounterpartyCardService>();
+            builder.Services.AddScoped<ICounterpartyBankAccountService, CounterpartyBankAccountService>();
+            builder.Services.AddScoped<ICounterpartyContactService, CounterpartyContactService>();
+            builder.Services.AddScoped<IProductGroupService, ProductGroupService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+            builder.Services.AddScoped<IManualService, ManualService>();
+            
+            builder.Services.Scan(scan => scan
+                .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
+                .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
+                    .AsImplementedInterfaces()
+                    .WithScopedLifetime()
+                .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
+                    .AsImplementedInterfaces()
+                    .WithScopedLifetime()
+            );
+
             return builder;
         }
 

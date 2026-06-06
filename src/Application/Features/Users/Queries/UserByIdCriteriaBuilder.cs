@@ -1,5 +1,6 @@
-﻿using Application.Options;
 using Domain.Entities;
+﻿using Application.Options;
+
 using SharedKernel.Query;
 using System.Linq.Expressions;
 

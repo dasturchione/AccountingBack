@@ -21,9 +21,11 @@ public class OrganizationListDtoProjection : IProjectionBuilder<Organization, Or
             DistrictName = x.District != null ? x.District.FullName : null,
             Director     = x.Director,
             IsParent     = x.IsParent,
-            StateId      = x.StateId,
-            StateName    = x.State.FullName,
-            CreatedDate  = x.CreatedDate
+            StateId             = x.StateId,
+            StateName           = x.State.FullName,
+            DefaultLanguageId   = x.DefaultLanguageId,
+            DefaultLanguageName = x.DefaultLanguage != null ? x.DefaultLanguage.Name : null,
+            CreatedDate         = x.CreatedDate
         };
     }
 }

@@ -1,6 +1,8 @@
 using Application.Features.Branches;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class BranchController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.BranchView)]
     public async Task<IResult> GetAll([FromQuery] BranchListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class BranchController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.BranchViewDetail)]
     public async Task<IResult> GetById([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class BranchController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.BranchCreate)]
     public async Task<IResult> Create([FromBody] BranchCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class BranchController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.BranchUpdate)]
     public async Task<IResult> Update([FromRoute] int id, [FromBody] BranchUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class BranchController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.BranchDelete)]
     public async Task<IResult> Delete([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

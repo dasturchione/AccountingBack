@@ -1,12 +1,15 @@
 using Application.Features.Manual;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
+[ModuleAuthorize(PermissionCodeConst.ManualView)]
 public class ManualController : ControllerBase
 {
     private readonly IManualService _manualService;

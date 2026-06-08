@@ -11,4 +11,5 @@ public class OrganizationBaseDto
     public string? Address { get; set; }
     public string? Director { get; set; }
     public bool IsParent { get; set; }
+    public short? DefaultLanguageId { get; set; }
 }

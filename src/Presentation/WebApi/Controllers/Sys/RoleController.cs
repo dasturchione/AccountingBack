@@ -1,6 +1,8 @@
 using Application.Features.Roles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.RoleView)]
     public async Task<IResult> GetAllAsync([FromQuery] RoleListFilter filter, CancellationToken ct = default)
     {
         var response = await _roleService.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.RoleViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _roleService.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.RoleCreate)]
     public async Task<IResult> CreateAsync([FromBody] RoleCreateDto dto, CancellationToken ct = default)
     {
         var response = await _roleService.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.RoleUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] RoleUpdateDto dto, CancellationToken ct = default)
     {
         var response = await _roleService.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class RoleController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.RoleDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _roleService.DeleteAsync(id, ct);

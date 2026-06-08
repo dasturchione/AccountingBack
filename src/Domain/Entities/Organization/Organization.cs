@@ -18,4 +18,5 @@ public partial class Organization
     public virtual Region Region { get; set; } = null!;
     public virtual District? District { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual Language? DefaultLanguage { get; set; }
 }

@@ -1,6 +1,8 @@
 using Application.Features.ChartAccounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class ChartAccountController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
     public async Task<IResult> GetAllAsync([FromQuery] ChartAccountListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class ChartAccountController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class ChartAccountController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
     public async Task<IResult> CreateAsync([FromBody] ChartAccountCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class ChartAccountController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] ChartAccountUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class ChartAccountController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

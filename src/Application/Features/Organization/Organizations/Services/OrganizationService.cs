@@ -44,9 +44,10 @@ public class OrganizationService : IOrganizationService
             DistrictId  = dto.DistrictId,
             Address     = dto.Address,
             Director    = dto.Director,
-            IsParent    = dto.IsParent,
-            StateId     = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
+            IsParent          = dto.IsParent,
+            DefaultLanguageId = dto.DefaultLanguageId,
+            StateId           = StateIdConst.ACTIVE,
+            CreatedDate       = DateTime.Now
         };
 
         await _orgCommand.CreateAsync(org, ct);
@@ -103,8 +104,9 @@ public class OrganizationService : IOrganizationService
         org.DistrictId  = dto.DistrictId;
         org.Address     = dto.Address;
         org.Director    = dto.Director;
-        org.IsParent    = dto.IsParent;
-        org.StateId     = dto.StateId;
+        org.IsParent          = dto.IsParent;
+        org.DefaultLanguageId = dto.DefaultLanguageId;
+        org.StateId           = dto.StateId;
 
         await _orgCommand.UpdateAsync(org, ct);
         return Result.Success();

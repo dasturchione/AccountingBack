@@ -1,6 +1,8 @@
 using Application.Features.CashOperations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class CashOperationController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
     public async Task<IResult> GetAllAsync([FromQuery] CashOperationListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class CashOperationController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CashOperationViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class CashOperationController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.CashOperationCreate)]
     public async Task<IResult> CreateAsync([FromBody] CashOperationCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class CashOperationController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CashOperationUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] CashOperationUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class CashOperationController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CashOperationDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

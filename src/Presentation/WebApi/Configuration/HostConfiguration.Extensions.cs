@@ -1,4 +1,6 @@
-﻿using Application.Common.Markers;
+﻿using Application.Abstractions;
+using Application.Abstractions.Authentication;
+using Application.Common.Markers;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
@@ -30,8 +32,13 @@ using Application.Features.Users.Services;
 using Application.Features.Warehouses;
 using FluentValidation;
 using Infrastructure;
+using Infrastructure.Authentication;
+using Infrastructure.Context;
 using Infrastructure.Options;
 using Infrastructure.Persistence;
+using Infrastructure.Query;
+using Infrastructure.Repositories;
+using Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -151,8 +158,19 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
         {
+            builder.Services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
+            builder.Services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+            builder.Services.AddScoped<ITokenProvider, TokenProvider>();
+            builder.Services.AddScoped<IRequestContext, RequestContext>();
+            builder.Services.AddScoped<IUserContext, UserContext>();
+            builder.Services.AddScoped<IPermissionChecker, PermissionChecker>();
+
+            builder.Services.AddScoped(typeof(IQueryBuilder<>), typeof(QueryBuilder<>));
+            builder.Services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
+
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddInfrastructure();
             return builder;
         }
 

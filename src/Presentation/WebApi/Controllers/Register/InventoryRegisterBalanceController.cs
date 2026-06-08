@@ -1,6 +1,8 @@
 using Application.Features.InventoryRegisterBalances;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class InventoryRegisterBalanceController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.InventoryRegBalanceView)]
     public async Task<IResult> GetAllAsync([FromQuery] InventoryRegisterBalanceListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class InventoryRegisterBalanceController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.InventoryRegBalanceViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class InventoryRegisterBalanceController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.InventoryRegBalanceCreate)]
     public async Task<IResult> CreateAsync([FromBody] InventoryRegisterBalanceCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class InventoryRegisterBalanceController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.InventoryRegBalanceUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] InventoryRegisterBalanceUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class InventoryRegisterBalanceController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.InventoryRegBalanceDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

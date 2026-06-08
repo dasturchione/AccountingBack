@@ -1,6 +1,8 @@
 using Application.Features.BankOperations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationView)]
     public async Task<IResult> GetAllAsync([FromQuery] BankOperationListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationCreate)]
     public async Task<IResult> CreateAsync([FromBody] BankOperationCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] BankOperationUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

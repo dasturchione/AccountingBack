@@ -1,6 +1,8 @@
 using Application.Features.CounterpartyRegisterBalances;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class CounterpartyRegisterBalanceController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceView)]
     public async Task<IResult> GetAllAsync([FromQuery] CounterpartyRegisterBalanceListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class CounterpartyRegisterBalanceController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class CounterpartyRegisterBalanceController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceCreate)]
     public async Task<IResult> CreateAsync([FromBody] CounterpartyRegisterBalanceCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class CounterpartyRegisterBalanceController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] CounterpartyRegisterBalanceUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class CounterpartyRegisterBalanceController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

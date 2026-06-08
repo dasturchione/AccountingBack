@@ -100,7 +100,7 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.DistrictId)
                     .HasConstraintName("org_organization_district_id_fkey");
 
-                entity.HasOne<Language>()
+                entity.HasOne(d => d.DefaultLanguage)
                     .WithMany()
                     .HasForeignKey(d => d.DefaultLanguageId)
                     .HasConstraintName("org_organization_default_language_id_fkey");

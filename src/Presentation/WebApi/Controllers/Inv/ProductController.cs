@@ -1,6 +1,8 @@
 using Application.Features.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -19,6 +21,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.ProductView)]
     public async Task<IResult> GetAll([FromQuery] ProductListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -26,6 +29,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ProductViewDetail)]
     public async Task<IResult> GetById([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -33,6 +37,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.ProductCreate)]
     public async Task<IResult> Create([FromBody] ProductCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -40,6 +45,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ProductUpdate)]
     public async Task<IResult> Update([FromRoute] int id, [FromBody] ProductUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -47,6 +53,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ModuleAuthorize(PermissionCodeConst.ProductDelete)]
     public async Task<IResult> Delete([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

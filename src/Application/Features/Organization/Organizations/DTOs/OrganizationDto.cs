@@ -16,5 +16,7 @@ public class OrganizationDto
     public bool IsParent { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
+    public short? DefaultLanguageId { get; set; }
+    public string? DefaultLanguageName { get; set; }
     public DateTime CreatedDate { get; set; }
 }

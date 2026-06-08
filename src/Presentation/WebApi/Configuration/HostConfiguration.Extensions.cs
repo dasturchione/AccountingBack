@@ -43,6 +43,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
+using Serilog.Events;
 using SharedKernel.Query;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -104,6 +106,36 @@ namespace WebApi.Configuration
                     [new OpenApiSecuritySchemeReference("Bearer", document)] = []
                 });
             });
+
+            return builder;
+        }
+
+        private static WebApplicationBuilder AddLogger(this WebApplicationBuilder builder)
+        {
+            var logDirectory = "logs";
+            var logFileName = "log-.log";
+            var fullPath = Path.Combine(logDirectory, logFileName);
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft.AspNetCore.DataProtection", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Warning)
+                .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
+                .MinimumLevel.Override("System.Net.Http", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                )
+                .WriteTo.File(
+                    path: fullPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 40,
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                )
+                .CreateLogger();
+
+            builder.Host.UseSerilog();
 
             return builder;
         }
@@ -249,6 +281,8 @@ namespace WebApi.Configuration
         private static WebApplication UseMiddlewares(this WebApplication app)
         {
             app.UseHttpsRedirection();
+
+            app.UseSerilogRequestLogging();
 
             app.UseCors(policy =>
             {

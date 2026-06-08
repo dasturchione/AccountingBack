@@ -5,6 +5,7 @@
         public static ValueTask<WebApplicationBuilder> ConfigureAsync(this WebApplicationBuilder builder)
         {
             builder
+                .AddLogger()
                 .AddDevTools()
                 .AddPersistence()
                 .AddInfrastructure()

@@ -1,14 +1,8 @@
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Options;
 using System.Linq.Expressions;
 
 namespace Application.Features.InventoryRegisterBalances;
-
-public class InventoryRegisterBalanceByIdCriteriaBuilder : ICriteriaBuilder<InventoryRegisterBalance, GetByIdOptions<long>>
-{
-    public Expression<Func<InventoryRegisterBalance, bool>> Build(GetByIdOptions<long> options) => x => x.Id == options.Id;
-}
 
 public class InventoryRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<InventoryRegisterBalance, InventoryRegisterBalanceListFilter>
 {

@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.Departments;
@@ -12,16 +11,18 @@ namespace Application.Features.Departments;
 public class DepartmentService : IDepartmentService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Department> _query;
     private readonly ICommandRepository<Department> _command;
-    private readonly IQueryBuilder<Department> _queryBuilder;
 
-    public DepartmentService(IUserContext userContext, IQueryRepository<Department> query,
-        ICommandRepository<Department> command, IQueryBuilder<Department> queryBuilder)
+    public DepartmentService(IUserContext userContext,
+                             IQueryBuilder queryBuilder, 
+                             IQueryRepository<Department> query,
+                             ICommandRepository<Department> command)
     {
+        _query = query;
+        _command = command;
         _userContext  = userContext;
-        _query        = query;
-        _command      = command;
         _queryBuilder = queryBuilder;
     }
 
@@ -47,27 +48,29 @@ public class DepartmentService : IDepartmentService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById(id);
-        var entity = await _query.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Department>().Where(d => d.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
         if (entity == null)
             return Result.Failure(DepartmentErrors.NotFound(id, _userContext.LanguageId));
 
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<DepartmentListDto>>> GetAllAsync(DepartmentListFilter filter, CancellationToken ct = default)
     {
-        var spec      = _queryBuilder.BuildPaged<DepartmentListDto, DepartmentListFilter>(filter);
-        var pagedList = await _query.GetPagedAsync(spec, ct);
+        var query = _queryBuilder.BuildPaged<Department, DepartmentListDto, DepartmentListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<DepartmentDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById<Department, DepartmentDto>(id);
-        var entity = await _query.GetAsync(spec, ct);
+        var query   = _queryBuilder.For<Department>().Where(d => d.Id == id).As<DepartmentDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure<DepartmentDto>(DepartmentErrors.NotFound(id, _userContext.LanguageId));
         return entity;
@@ -75,8 +78,8 @@ public class DepartmentService : IDepartmentService
 
     public async Task<Result> UpdateAsync(int id, DepartmentUpdateDto dto, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById(id);
-        var entity = await _query.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Department>().Where(d => d.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure(DepartmentErrors.NotFound(id, _userContext.LanguageId));
 

@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.Roles;
@@ -12,19 +11,18 @@ namespace Application.Features.Roles;
 public class RoleService : IRoleService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly ICommandRepository<Role> _roleCommand;
-    private readonly IQueryBuilder<Role> _queryBuilder;
 
-    public RoleService(
-        IUserContext userContext,
-        IQueryRepository<Role> roleQuery,
-        ICommandRepository<Role> roleCommand,
-        IQueryBuilder<Role> queryBuilder)
+    public RoleService(IUserContext userContext,
+                       IQueryBuilder queryBuilder,
+                       IQueryRepository<Role> roleQuery,
+                       ICommandRepository<Role> roleCommand)
     {
+        _roleQuery = roleQuery;
+        _roleCommand = roleCommand;
         _userContext   = userContext;
-        _roleQuery     = roleQuery;
-        _roleCommand   = roleCommand;
         _queryBuilder  = queryBuilder;
     }
 
@@ -48,27 +46,28 @@ public class RoleService : IRoleService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById(id);
-        var entity = await _roleQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Role>().Where(r => r.Id == id).Build();
+        var entity = await _roleQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure(RoleErrors.NotFound(id, _userContext.LanguageId));
 
         entity.StateId = StateIdConst.PASSIVE;
+
         await _roleCommand.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<RoleListDto>>> GetAllAsync(RoleListFilter filter, CancellationToken ct = default)
     {
-        var spec      = _queryBuilder.BuildPaged<RoleListDto, RoleListFilter>(filter);
-        var pagedList = await _roleQuery.GetPagedAsync(spec, ct);
+        var query = _queryBuilder.BuildPaged<Role, RoleListDto, RoleListFilter>(filter);
+        var pagedList = await _roleQuery.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<RoleDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById<Role, RoleDto>(id);
-        var entity = await _roleQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Role>().Where(r => r.Id == id).As<RoleDto>().Build();
+        var entity = await _roleQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure<RoleDto>(RoleErrors.NotFound(id, _userContext.LanguageId));
         return entity;
@@ -76,8 +75,8 @@ public class RoleService : IRoleService
 
     public async Task<Result> UpdateAsync(int id, RoleUpdateDto dto, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.ById(id);
-        var role = await _roleQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Role>().Where(r => r.Id == id).Build();
+        var role = await _roleQuery.GetAsync(query, ct);
         if (role == null)
             return Result.Failure(RoleErrors.NotFound(id, _userContext.LanguageId));
 

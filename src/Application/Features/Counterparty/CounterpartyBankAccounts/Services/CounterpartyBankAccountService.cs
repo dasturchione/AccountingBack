@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.CounterpartyBankAccounts;
@@ -12,14 +11,19 @@ namespace Application.Features.CounterpartyBankAccounts;
 public class CounterpartyBankAccountService : ICounterpartyBankAccountService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CounterpartyBankAccount> _query;
     private readonly ICommandRepository<CounterpartyBankAccount> _command;
-    private readonly IQueryBuilder<CounterpartyBankAccount> _queryBuilder;
 
-    public CounterpartyBankAccountService(IUserContext userContext, IQueryRepository<CounterpartyBankAccount> query,
-        ICommandRepository<CounterpartyBankAccount> command, IQueryBuilder<CounterpartyBankAccount> queryBuilder)
+    public CounterpartyBankAccountService(IUserContext userContext,
+                                          IQueryBuilder queryBuilder, 
+                                          IQueryRepository<CounterpartyBankAccount> query,
+                                          ICommandRepository<CounterpartyBankAccount> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<int>> CreateAsync(CounterpartyBankAccountCreateDto dto, CancellationToken ct = default)
@@ -44,29 +48,38 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CounterpartyBankAccount>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
+        if (entity == null) 
+            return Result.Failure(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<CounterpartyBankAccountListDto>>> GetAllAsync(CounterpartyBankAccountListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<CounterpartyBankAccountListDto, CounterpartyBankAccountListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<CounterpartyBankAccount, CounterpartyBankAccountListDto, CounterpartyBankAccountListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<CounterpartyBankAccountDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<CounterpartyBankAccount, CounterpartyBankAccountDto>(id), ct);
-        if (entity == null) return Result.Failure<CounterpartyBankAccountDto>(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CounterpartyBankAccount>().Where(x => x.Id == id).As<CounterpartyBankAccountDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<CounterpartyBankAccountDto>(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(int id, CounterpartyBankAccountUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
+        var query = _queryBuilder.For<CounterpartyBankAccount>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.AccountNumber == dto.AccountNumber, ct))
@@ -79,6 +92,7 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
         entity.CurrencyId = dto.CurrencyId;
         entity.IsMain = dto.IsMain;
         entity.StateId = dto.StateId;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

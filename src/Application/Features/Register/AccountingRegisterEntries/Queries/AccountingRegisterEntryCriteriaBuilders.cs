@@ -1,14 +1,8 @@
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Options;
 using System.Linq.Expressions;
 
 namespace Application.Features.AccountingRegisterEntries;
-
-public class AccountingRegisterEntryByIdCriteriaBuilder : ICriteriaBuilder<AccountingRegisterEntry, GetByIdOptions<long>>
-{
-    public Expression<Func<AccountingRegisterEntry, bool>> Build(GetByIdOptions<long> options) => x => x.Id == options.Id;
-}
 
 public class AccountingRegisterEntryByListFilterCriteriaBuilder : ICriteriaBuilder<AccountingRegisterEntry, AccountingRegisterEntryListFilter>
 {

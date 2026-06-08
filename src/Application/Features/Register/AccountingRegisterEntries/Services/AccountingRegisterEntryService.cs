@@ -3,7 +3,6 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.AccountingRegisterEntries;
@@ -11,19 +10,18 @@ namespace Application.Features.AccountingRegisterEntries;
 public class AccountingRegisterEntryService : IAccountingRegisterEntryService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<AccountingRegisterEntry> _query;
     private readonly ICommandRepository<AccountingRegisterEntry> _command;
-    private readonly IQueryBuilder<AccountingRegisterEntry> _queryBuilder;
 
-    public AccountingRegisterEntryService(
-        IUserContext userContext,
-        IQueryRepository<AccountingRegisterEntry> query,
-        ICommandRepository<AccountingRegisterEntry> command,
-        IQueryBuilder<AccountingRegisterEntry> queryBuilder)
+    public AccountingRegisterEntryService(IUserContext userContext,
+                                          IQueryBuilder queryBuilder,
+                                          IQueryRepository<AccountingRegisterEntry> query,
+                                          ICommandRepository<AccountingRegisterEntry> command)
     {
-        _userContext = userContext;
         _query = query;
         _command = command;
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
     }
 
@@ -48,31 +46,37 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<AccountingRegisterEntry>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
 
-        await _command.DeleteAsync(entity, ct);
+        //await _command.DeleteAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<AccountingRegisterEntryListDto>>> GetAllAsync(AccountingRegisterEntryListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<AccountingRegisterEntryListDto, AccountingRegisterEntryListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<AccountingRegisterEntry, AccountingRegisterEntryListDto, AccountingRegisterEntryListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<AccountingRegisterEntryDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<AccountingRegisterEntry, AccountingRegisterEntryDto>(id), ct);
-        if (entity == null) return Result.Failure<AccountingRegisterEntryDto>(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
-
+        var query = _queryBuilder.For<AccountingRegisterEntry>().Where(x => x.Id == id).As<AccountingRegisterEntryDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<AccountingRegisterEntryDto>(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<AccountingRegisterEntry>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
 
         entity.OrganizationId = dto.OrganizationId;
         entity.DocumentTypeId = dto.DocumentTypeId;

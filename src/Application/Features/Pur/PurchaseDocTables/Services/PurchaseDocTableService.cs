@@ -3,7 +3,6 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.PurchaseDocTables;
@@ -11,14 +10,19 @@ namespace Application.Features.PurchaseDocTables;
 public class PurchaseDocTableService : IPurchaseDocTableService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<PurchaseDocTable> _query;
     private readonly ICommandRepository<PurchaseDocTable> _command;
-    private readonly IQueryBuilder<PurchaseDocTable> _queryBuilder;
 
-    public PurchaseDocTableService(IUserContext userContext, IQueryRepository<PurchaseDocTable> query,
-        ICommandRepository<PurchaseDocTable> command, IQueryBuilder<PurchaseDocTable> queryBuilder)
+    public PurchaseDocTableService(IUserContext userContext,
+                                   IQueryBuilder queryBuilder, 
+                                   IQueryRepository<PurchaseDocTable> query,
+                                   ICommandRepository<PurchaseDocTable> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<long>> CreateAsync(PurchaseDocTableCreateDto dto, CancellationToken ct = default)
@@ -42,29 +46,37 @@ public class PurchaseDocTableService : IPurchaseDocTableService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
-        await _command.DeleteAsync(entity, ct);
+        var query = _queryBuilder.For<PurchaseDocTable>().Where(e => e.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
+
+        //await _command.DeleteAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<PurchaseDocTableListDto>>> GetAllAsync(PurchaseDocTableListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<PurchaseDocTableListDto, PurchaseDocTableListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<PurchaseDocTable, PurchaseDocTableListDto, PurchaseDocTableListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<PurchaseDocTableDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<PurchaseDocTable, PurchaseDocTableDto>(id), ct);
-        if (entity == null) return Result.Failure<PurchaseDocTableDto>(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<PurchaseDocTable>().Where(e => e.Id == id).As<PurchaseDocTableDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<PurchaseDocTableDto>(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, PurchaseDocTableUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<PurchaseDocTable>().Where(e => e.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
 
         var amount = dto.Quantity * dto.Price;
         var vatAmount = 0m;
@@ -76,6 +88,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         entity.VatRateId = dto.VatRateId;
         entity.VatAmount = vatAmount;
         entity.TotalAmount = amount + vatAmount;
+        
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

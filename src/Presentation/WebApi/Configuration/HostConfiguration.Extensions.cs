@@ -167,7 +167,7 @@ namespace WebApi.Configuration
             builder.Services.AddScoped<IUserContext, UserContext>();
             builder.Services.AddScoped<IPermissionChecker, PermissionChecker>();
 
-            builder.Services.AddScoped(typeof(IQueryBuilder<>), typeof(QueryBuilder<>));
+            builder.Services.AddScoped<IQueryBuilder, QueryBuilder>();
             builder.Services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
 
             builder.Services.AddHttpContextAccessor();

@@ -1,14 +1,8 @@
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Options;
 using System.Linq.Expressions;
 
 namespace Application.Features.MoneyRegisterBalances;
-
-public class MoneyRegisterBalanceByIdCriteriaBuilder : ICriteriaBuilder<MoneyRegisterBalance, GetByIdOptions<long>>
-{
-    public Expression<Func<MoneyRegisterBalance, bool>> Build(GetByIdOptions<long> options) => x => x.Id == options.Id;
-}
 
 public class MoneyRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<MoneyRegisterBalance, MoneyRegisterBalanceListFilter>
 {

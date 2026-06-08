@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.Organizations;
@@ -12,19 +11,18 @@ namespace Application.Features.Organizations;
 public class OrganizationService : IOrganizationService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Organization> _orgQuery;
     private readonly ICommandRepository<Organization> _orgCommand;
-    private readonly IQueryBuilder<Organization> _queryBuilder;
 
-    public OrganizationService(
-        IUserContext userContext,
-        IQueryRepository<Organization> orgQuery,
-        ICommandRepository<Organization> orgCommand,
-        IQueryBuilder<Organization> queryBuilder)
+    public OrganizationService(IUserContext userContext,
+                               IQueryBuilder queryBuilder,
+                               IQueryRepository<Organization> orgQuery,
+                               ICommandRepository<Organization> orgCommand)
     {
+        _orgQuery = orgQuery;
+        _orgCommand = orgCommand;
         _userContext  = userContext;
-        _orgQuery     = orgQuery;
-        _orgCommand   = orgCommand;
         _queryBuilder = queryBuilder;
     }
 
@@ -56,27 +54,28 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById(id);
-        var entity = await _orgQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Organization>().Where(o => o.Id == id).Build();
+        var entity = await _orgQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure(OrganizationErrors.NotFound(id, _userContext.LanguageId));
 
         entity.StateId = StateIdConst.PASSIVE;
+
         await _orgCommand.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<OrganizationListDto>>> GetAllAsync(OrganizationListFilter filter, CancellationToken ct = default)
     {
-        var spec      = _queryBuilder.BuildPaged<OrganizationListDto, OrganizationListFilter>(filter);
-        var pagedList = await _orgQuery.GetPagedAsync(spec, ct);
+        var query = _queryBuilder.BuildPaged<Organization, OrganizationListDto, OrganizationListFilter>(filter);
+        var pagedList = await _orgQuery.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<OrganizationDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var spec   = _queryBuilder.ById<Organization, OrganizationDto>(id);
-        var entity = await _orgQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Organization>().Where(o => o.Id == id).As<OrganizationDto>().Build();
+        var entity = await _orgQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure<OrganizationDto>(OrganizationErrors.NotFound(id, _userContext.LanguageId));
         return entity;
@@ -84,8 +83,8 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result> UpdateAsync(int id, OrganizationUpdateDto dto, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.ById(id);
-        var org  = await _orgQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<Organization>().Where(o => o.Id == id).Build();
+        var org  = await _orgQuery.GetAsync(query, ct);
         if (org == null)
             return Result.Failure(OrganizationErrors.NotFound(id, _userContext.LanguageId));
 

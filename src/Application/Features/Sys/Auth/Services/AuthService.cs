@@ -1,8 +1,6 @@
 using Domain.Entities;
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Features.Users.Queries;
-
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -11,39 +9,38 @@ namespace Application.Features.Auth;
 public class AuthService : IAuthService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly ITokenProvider _tokenProvider;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IQueryBuilder<User> _queryBuilder;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
 
-    public AuthService(
-        ITokenProvider tokenProvider,
-        IPasswordHasher passwordHasher,
-        IQueryBuilder<User> queryBuilder,
-        IQueryRepository<User> userQuery,
-        ICommandRepository<User> userCommand,
-        IUserContext userContext)
+    public AuthService(IUserContext userContext,
+                       IQueryBuilder queryBuilder,
+                       ITokenProvider tokenProvider,
+                       IPasswordHasher passwordHasher,
+                       IQueryRepository<User> userQuery,
+                       ICommandRepository<User> userCommand)
     {
-        _tokenProvider = tokenProvider;
-        _passwordHasher = passwordHasher;
         _userQuery = userQuery;
-        _queryBuilder = queryBuilder;
         _userCommand = userCommand;
         _userContext = userContext;
+        _queryBuilder = queryBuilder;
+        _tokenProvider = tokenProvider;
+        _passwordHasher = passwordHasher;
     }
 
     public async ValueTask<Result<LoginResponseDto>> LoginAsync(LoginDto dto, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.Build(new GetUserByUserNameOptions(dto.UserName));
+        var query = _queryBuilder.For<User>().Where(x => x.UserName == dto.UserName).Build();
 
-        spec.AddIncludes(b =>
+        query.AddIncludes(b =>
         {
             b.Include(u => u.Role);
             b.Include(u => u.State);
         });
 
-        var user = await _userQuery.GetAsync(spec, ct);
+        var user = await _userQuery.GetAsync(query, ct);
 
         if (user is null || !_passwordHasher.Verify(dto.Password, user.PasswordSalt, user.PasswordHash))
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));

@@ -1,14 +1,9 @@
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Options;
 using System.Linq.Expressions;
 
 namespace Application.Features.CounterpartyRegisterBalances;
 
-public class CounterpartyRegisterBalanceByIdCriteriaBuilder : ICriteriaBuilder<CounterpartyRegisterBalance, GetByIdOptions<long>>
-{
-    public Expression<Func<CounterpartyRegisterBalance, bool>> Build(GetByIdOptions<long> options) => x => x.Id == options.Id;
-}
 
 public class CounterpartyRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<CounterpartyRegisterBalance, CounterpartyRegisterBalanceListFilter>
 {

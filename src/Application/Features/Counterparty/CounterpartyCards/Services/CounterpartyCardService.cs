@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.CounterpartyCards;
@@ -12,14 +11,19 @@ namespace Application.Features.CounterpartyCards;
 public class CounterpartyCardService : ICounterpartyCardService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CounterpartyCard> _query;
     private readonly ICommandRepository<CounterpartyCard> _command;
-    private readonly IQueryBuilder<CounterpartyCard> _queryBuilder;
 
-    public CounterpartyCardService(IUserContext userContext, IQueryRepository<CounterpartyCard> query,
-        ICommandRepository<CounterpartyCard> command, IQueryBuilder<CounterpartyCard> queryBuilder)
+    public CounterpartyCardService(IUserContext userContext,
+                                   IQueryBuilder queryBuilder, 
+                                   IQueryRepository<CounterpartyCard> query,
+                                   ICommandRepository<CounterpartyCard> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<int>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default)
@@ -48,29 +52,38 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
+        if (entity == null) 
+            return Result.Failure(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<CounterpartyCardListDto>>> GetAllAsync(CounterpartyCardListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<CounterpartyCardListDto, CounterpartyCardListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<CounterpartyCard, CounterpartyCardListDto, CounterpartyCardListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<CounterpartyCardDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<CounterpartyCard, CounterpartyCardDto>(id), ct);
-        if (entity == null) return Result.Failure<CounterpartyCardDto>(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).As<CounterpartyCardDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<CounterpartyCardDto>(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(int id, CounterpartyCardUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
+        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.ShortName != dto.ShortName && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.ShortName == dto.ShortName, ct))
@@ -87,6 +100,7 @@ public class CounterpartyCardService : ICounterpartyCardService
         entity.DistrictId = dto.DistrictId;
         entity.Address = dto.Address;
         entity.StateId = dto.StateId;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

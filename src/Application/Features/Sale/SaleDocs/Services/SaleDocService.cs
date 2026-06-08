@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.SaleDocs;
@@ -12,14 +11,19 @@ namespace Application.Features.SaleDocs;
 public class SaleDocService : ISaleDocService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<SaleDoc> _query;
     private readonly ICommandRepository<SaleDoc> _command;
-    private readonly IQueryBuilder<SaleDoc> _queryBuilder;
 
-    public SaleDocService(IUserContext userContext, IQueryRepository<SaleDoc> query,
-        ICommandRepository<SaleDoc> command, IQueryBuilder<SaleDoc> queryBuilder)
+    public SaleDocService(IUserContext userContext,
+                          IQueryBuilder queryBuilder, 
+                          IQueryRepository<SaleDoc> query,
+                          ICommandRepository<SaleDoc> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<long>> CreateAsync(SaleDocCreateDto dto, CancellationToken ct = default)
@@ -49,30 +53,39 @@ public class SaleDocService : ISaleDocService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+        
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<SaleDocListDto>>> GetAllAsync(SaleDocListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<SaleDocListDto, SaleDocListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<SaleDoc, SaleDocListDto, SaleDocListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<SaleDocDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<SaleDoc, SaleDocDto>(id), ct);
-        if (entity == null) return Result.Failure<SaleDocDto>(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<SaleDocDto>(SaleDocErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, SaleDocUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.DocNumber != dto.DocNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
             return Result.Failure(SaleDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
@@ -86,6 +99,7 @@ public class SaleDocService : ISaleDocService
         entity.StatusId = dto.StatusId;
         entity.Comment = dto.Comment;
         entity.StateId = dto.StateId;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

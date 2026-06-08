@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.CashOperations;
@@ -12,14 +11,19 @@ namespace Application.Features.CashOperations;
 public class CashOperationService : ICashOperationService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CashOperation> _query;
     private readonly ICommandRepository<CashOperation> _command;
-    private readonly IQueryBuilder<CashOperation> _queryBuilder;
 
-    public CashOperationService(IUserContext userContext, IQueryRepository<CashOperation> query,
-        ICommandRepository<CashOperation> command, IQueryBuilder<CashOperation> queryBuilder)
+    public CashOperationService(IUserContext userContext,
+                                IQueryBuilder queryBuilder, 
+                                IQueryRepository<CashOperation> query,
+                                ICommandRepository<CashOperation> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<long>> CreateAsync(CashOperationCreateDto dto, CancellationToken ct = default)
@@ -46,30 +50,41 @@ public class CashOperationService : ICashOperationService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
+        if (entity == null) 
+            return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<CashOperationListDto>>> GetAllAsync(CashOperationListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<CashOperationListDto, CashOperationListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<CashOperation, CashOperationListDto, CashOperationListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<CashOperationDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<CashOperation, CashOperationDto>(id), ct);
-        if (entity == null) return Result.Failure<CashOperationDto>(CashOperationErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).As<CashOperationDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<CashOperationDto>(CashOperationErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, CashOperationUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
+        if (entity == null) 
+            return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
 
         entity.OrganizationId = dto.OrganizationId;
         entity.CashBoxId = dto.CashBoxId;

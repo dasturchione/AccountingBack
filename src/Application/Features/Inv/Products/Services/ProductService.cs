@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.Products;
@@ -12,14 +11,19 @@ namespace Application.Features.Products;
 public class ProductService : IProductService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Product> _query;
     private readonly ICommandRepository<Product> _command;
-    private readonly IQueryBuilder<Product> _queryBuilder;
 
-    public ProductService(IUserContext userContext, IQueryRepository<Product> query,
-        ICommandRepository<Product> command, IQueryBuilder<Product> queryBuilder)
+    public ProductService(IUserContext userContext,
+                          IQueryBuilder queryBuilder, 
+                          IQueryRepository<Product> query,
+                          ICommandRepository<Product> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<int>> CreateAsync(ProductCreateDto dto, CancellationToken ct = default)
@@ -40,36 +44,47 @@ public class ProductService : IProductService
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };
+        
         await _command.CreateAsync(entity, ct);
         return entity.Id;
     }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<Product>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+
+        if (entity == null) 
+            return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<ProductListDto>>> GetAllAsync(ProductListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<ProductListDto, ProductListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<Product, ProductListDto, ProductListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<ProductDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<Product, ProductDto>(id), ct);
-        if (entity == null) return Result.Failure<ProductDto>(ProductErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<Product>().Where(x => x.Id == id).As<ProductDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<ProductDto>(ProductErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(int id, ProductUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<Product>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.Code != dto.Code && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
             return Result.Failure(ProductErrors.CodeConflict(dto.Code, _userContext.LanguageId));
@@ -83,6 +98,7 @@ public class ProductService : IProductService
         entity.Description = dto.Description;
         entity.IsService = dto.IsService;
         entity.StateId = dto.StateId;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

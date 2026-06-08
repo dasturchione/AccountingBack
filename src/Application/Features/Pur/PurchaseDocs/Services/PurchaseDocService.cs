@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.PurchaseDocs;
@@ -12,14 +11,19 @@ namespace Application.Features.PurchaseDocs;
 public class PurchaseDocService : IPurchaseDocService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly ICommandRepository<PurchaseDoc> _command;
-    private readonly IQueryBuilder<PurchaseDoc> _queryBuilder;
 
-    public PurchaseDocService(IUserContext userContext, IQueryRepository<PurchaseDoc> query,
-        ICommandRepository<PurchaseDoc> command, IQueryBuilder<PurchaseDoc> queryBuilder)
+    public PurchaseDocService(IUserContext userContext,
+                              IQueryBuilder queryBuilder, 
+                              IQueryRepository<PurchaseDoc> query,
+                              ICommandRepository<PurchaseDoc> command)
     {
-        _userContext = userContext; _query = query; _command = command; _queryBuilder = queryBuilder;
+        _query = query;
+        _command = command;
+        _userContext = userContext; 
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default)
@@ -49,30 +53,39 @@ public class PurchaseDocService : IPurchaseDocService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
         entity.StateId = StateIdConst.PASSIVE;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<PurchaseDocListDto, PurchaseDocListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<PurchaseDoc, PurchaseDocListDto, PurchaseDocListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<PurchaseDocDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<PurchaseDoc, PurchaseDocDto>(id), ct);
-        if (entity == null) return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, PurchaseDocUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.DocNumber != dto.DocNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
             return Result.Failure(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
@@ -86,6 +99,7 @@ public class PurchaseDocService : IPurchaseDocService
         entity.StatusId = dto.StatusId;
         entity.Comment = dto.Comment;
         entity.StateId = dto.StateId;
+
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }

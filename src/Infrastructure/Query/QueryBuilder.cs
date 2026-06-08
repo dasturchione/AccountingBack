@@ -1,11 +1,12 @@
 ﻿using SharedKernel.Filters;
 using SharedKernel.Query;
+using SharedKernel.Query.Builders;
 using SharedKernel.Query.Specifications;
 using System.Linq.Expressions;
 
 namespace Infrastructure.Query
 {
-    public class QueryBuilder<TEntity> : IQueryBuilder<TEntity> where TEntity : class
+    public class QueryBuilder : IQueryBuilder
     {
         private readonly IQueryBuilderResolver _resolver;
         public QueryBuilder(IQueryBuilderResolver resolver)
@@ -13,7 +14,11 @@ namespace Infrastructure.Query
             _resolver = resolver;
         }
 
-        public QuerySpecification<TEntity> Build<TOptions>(TOptions options)
+        public EntityQueryBuilder<TEntity> For<TEntity>() where TEntity : class =>
+            new(new QueryState<TEntity> { Resolver = _resolver });
+
+        public QuerySpecification<TEntity> Build<TEntity, TOptions>(TOptions options)
+            where TEntity : class
         {
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
 
@@ -23,7 +28,8 @@ namespace Infrastructure.Query
             };
         }
 
-        public QuerySpecification<TEntity, TResult> Build<TResult, TOptions>(TOptions options)
+        public QuerySpecification<TEntity, TResult> Build<TEntity, TResult, TOptions>(TOptions options)
+            where TEntity : class
         {
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
             var resultFilterBuilder = _resolver.GetCriteriaBuilder<TResult, TOptions>();
@@ -37,7 +43,9 @@ namespace Infrastructure.Query
             };
         }
 
-        public PagedQuerySpecification<TEntity> BuildPaged<TOptions>(TOptions options) where TOptions : IPaginationFilter
+        public PagedQuerySpecification<TEntity> BuildPaged<TEntity, TOptions>(TOptions options)
+            where TEntity : class
+            where TOptions : IPaginationFilter
         {
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
             var (take, skip) = CalculatePagination(options);
@@ -50,12 +58,13 @@ namespace Infrastructure.Query
             };
         }
 
-        public PagedQuerySpecification<TEntity, TResult> BuildPaged<TResult, TOptions>(TOptions options) where TOptions : IPaginationFilter
+        public PagedQuerySpecification<TEntity, TResult> BuildPaged<TEntity, TResult, TOptions>(TOptions options)
+                    where TEntity : class
+                    where TOptions : IPaginationFilter
         {
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
             var resultFilterBuilder = _resolver.GetCriteriaBuilder<TResult, TOptions>();
             var projectionBuilder = _resolver.GetProjectionBuilder<TEntity, TResult>();
-
             var (take, skip) = CalculatePagination(options);
 
             return new PagedQuerySpecification<TEntity, TResult>
@@ -73,13 +82,13 @@ namespace Infrastructure.Query
             var defaultPageSize = 50;
             var take = filter.PageSize.GetValueOrDefault(defaultPageSize);
             var page = Math.Max(filter.Page, 1);
-
             return (take, (page - 1) * take);
         }
 
-        private Expression<Func<T, bool>> SafeBuild<T, TFilter>(ICriteriaBuilder<T, TFilter>? builder, TFilter filter)
+        private Expression<Func<T, bool>> SafeBuild<T, TFilter>(
+            ICriteriaBuilder<T, TFilter>? builder, TFilter filter)
         {
-            return builder?.Build(filter) ?? (_ => true);
+            return builder?.Build(filter) ?? (_ => false);
         }
     }
 }

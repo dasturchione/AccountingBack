@@ -1,12 +1,9 @@
 using Domain.Entities;
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
-using Application.Options;
-
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.Users.Services;
@@ -14,21 +11,21 @@ namespace Application.Features.Users.Services;
 public class UserService : IUserService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
-    private readonly IQueryBuilder<User> _queryBuilder;
     public UserService(IUserContext userContext,
+                       IQueryBuilder queryBuilder,
                        IPasswordHasher passwordHasher,
                        IQueryRepository<User> userQuery,
-                       ICommandRepository<User> userCommand,
-                       IQueryBuilder<User> queryBuilder)
+                       ICommandRepository<User> userCommand)
     {
         _userQuery = userQuery;
         _userCommand = userCommand;
         _userContext = userContext;
-        _passwordHasher = passwordHasher;
         _queryBuilder = queryBuilder;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default)
@@ -60,8 +57,8 @@ public class UserService : IUserService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.ById(id);
-        var entity = await _userQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<User>().Where(x => x.Id == id).Build();
+        var entity = await _userQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure(UserErrors.NotFound(id, _userContext.LanguageId));
 
@@ -73,15 +70,15 @@ public class UserService : IUserService
 
     public async Task<Result<PagedResponse<UserListDto>>> GetAllAsync(UserListFilter filter, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.BuildPaged<UserListDto, UserListFilter>(filter);
-        var pagedList = await _userQuery.GetPagedAsync(spec, ct);
+        var query = _queryBuilder.BuildPaged<User, UserListDto, UserListFilter>(filter);
+        var pagedList = await _userQuery.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.Build<UserDto, GetByIdOptions<int>>(new GetByIdOptions<int>(id));
-        var entity = await _userQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<User>().Where(x => id == x.Id).As<UserDto>().Build();
+        var entity = await _userQuery.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure<UserDto>(UserErrors.NotFound(id, _userContext.LanguageId));
         return entity;
@@ -89,8 +86,8 @@ public class UserService : IUserService
 
     public async Task<Result> UpdateAsync(int id, UserUpdateDto dto, CancellationToken ct = default)
     {
-        var spec = _queryBuilder.ById(id);
-        var user = await _userQuery.GetAsync(spec, ct);
+        var query = _queryBuilder.For<User>().Where(x => id == x.Id).Build();
+        var user = await _userQuery.GetAsync(query, ct);
 
         if (user is null)
             return Result.Failure(UserErrors.NotFound(id, _userContext.LanguageId));

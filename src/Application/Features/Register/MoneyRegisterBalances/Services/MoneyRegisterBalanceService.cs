@@ -3,7 +3,6 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Query;
-using SharedKernel.Query.Extensions;
 using SharedKernel.Results;
 
 namespace Application.Features.MoneyRegisterBalances;
@@ -11,19 +10,18 @@ namespace Application.Features.MoneyRegisterBalances;
 public class MoneyRegisterBalanceService : IMoneyRegisterBalanceService
 {
     private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
-    private readonly IQueryBuilder<MoneyRegisterBalance> _queryBuilder;
 
-    public MoneyRegisterBalanceService(
-        IUserContext userContext,
-        IQueryRepository<MoneyRegisterBalance> query,
-        ICommandRepository<MoneyRegisterBalance> command,
-        IQueryBuilder<MoneyRegisterBalance> queryBuilder)
+    public MoneyRegisterBalanceService(IUserContext userContext,
+                                       IQueryBuilder queryBuilder,
+                                       IQueryRepository<MoneyRegisterBalance> query,
+                                       ICommandRepository<MoneyRegisterBalance> command)
     {
-        _userContext = userContext;
         _query = query;
         _command = command;
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
     }
 
@@ -49,31 +47,37 @@ public class MoneyRegisterBalanceService : IMoneyRegisterBalanceService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<MoneyRegisterBalance>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
 
-        await _command.DeleteAsync(entity, ct);
+        //await _command.DeleteAsync(entity, ct);
         return Result.Success();
     }
 
     public async Task<Result<PagedResponse<MoneyRegisterBalanceListDto>>> GetAllAsync(MoneyRegisterBalanceListFilter filter, CancellationToken ct = default)
     {
-        var pagedList = await _query.GetPagedAsync(_queryBuilder.BuildPaged<MoneyRegisterBalanceListDto, MoneyRegisterBalanceListFilter>(filter), ct);
+        var query = _queryBuilder.BuildPaged<MoneyRegisterBalance, MoneyRegisterBalanceListDto, MoneyRegisterBalanceListFilter>(filter);
+        var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<MoneyRegisterBalanceDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById<MoneyRegisterBalance, MoneyRegisterBalanceDto>(id), ct);
-        if (entity == null) return Result.Failure<MoneyRegisterBalanceDto>(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
-
+        var query = _queryBuilder.For<MoneyRegisterBalance>().Where(x => x.Id == id).As<MoneyRegisterBalanceDto>().Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure<MoneyRegisterBalanceDto>(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
         return entity;
     }
 
     public async Task<Result> UpdateAsync(long id, MoneyRegisterBalanceUpdateDto dto, CancellationToken ct = default)
     {
-        var entity = await _query.GetAsync(_queryBuilder.ById(id), ct);
-        if (entity == null) return Result.Failure(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<MoneyRegisterBalance>().Where(x => x.Id == id).Build();
+        var entity = await _query.GetAsync(query, ct);
+        if (entity == null) 
+            return Result.Failure(MoneyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
 
         entity.OrganizationId = dto.OrganizationId;
         entity.DocumentTypeId = dto.DocumentTypeId;

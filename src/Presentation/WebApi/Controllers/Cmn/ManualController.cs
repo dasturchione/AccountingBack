@@ -169,4 +169,39 @@ public class ManualController : ControllerBase
         var result = await _manualService.GetWarehousesAsync(organizationId, branchId, ct);
         return Ok(result);
     }
+
+    [HttpGet("chart-accounts")]
+    public async Task<IActionResult> GetChartAccounts([FromQuery] int? organizationId, CancellationToken ct)
+    {
+        var result = await _manualService.GetChartAccountsAsync(organizationId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("org-bank-accounts")]
+    public async Task<IActionResult> GetOrgBankAccounts([FromQuery] int? organizationId, CancellationToken ct)
+    {
+        var result = await _manualService.GetOrgBankAccountsAsync(organizationId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("cash-boxes")]
+    public async Task<IActionResult> GetCashBoxes([FromQuery] int? organizationId, [FromQuery] int? branchId, CancellationToken ct)
+    {
+        var result = await _manualService.GetCashBoxesAsync(organizationId, branchId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("cash-operations")]
+    public async Task<IActionResult> GetCashOperations([FromQuery] int? organizationId, [FromQuery] int? cashBoxId, CancellationToken ct)
+    {
+        var result = await _manualService.GetCashOperationsAsync(organizationId, cashBoxId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("languages")]
+    public async Task<IActionResult> GetLanguages(CancellationToken ct)
+    {
+        var result = await _manualService.GetLanguagesAsync(ct);
+        return Ok(result);
+    }
 }

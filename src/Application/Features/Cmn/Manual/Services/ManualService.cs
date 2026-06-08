@@ -30,6 +30,11 @@ public class ManualService : IManualService
     private readonly IQueryRepository<ProductGroup> _productGroupQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
+    private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
+    private readonly IQueryRepository<OrgBankAccount> _orgBankAccountQuery;
+    private readonly IQueryRepository<CashBox> _cashBoxQuery;
+    private readonly IQueryRepository<CashOperation> _cashOperationQuery;
+    private readonly IQueryRepository<Language> _languageQuery;
 
     public ManualService(
         IQueryRepository<Role> roleQuery,
@@ -53,7 +58,12 @@ public class ManualService : IManualService
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<ProductGroup> productGroupQuery,
         IQueryRepository<Product> productQuery,
-        IQueryRepository<Warehouse> warehouseQuery)
+        IQueryRepository<Warehouse> warehouseQuery,
+        IQueryRepository<ChartAccount> chartAccountQuery,
+        IQueryRepository<OrgBankAccount> orgBankAccountQuery,
+        IQueryRepository<CashBox> cashBoxQuery,
+        IQueryRepository<CashOperation> cashOperationQuery,
+        IQueryRepository<Language> languageQuery)
     {
         _roleQuery             = roleQuery;
         _stateQuery            = stateQuery;
@@ -77,6 +87,11 @@ public class ManualService : IManualService
         _productGroupQuery     = productGroupQuery;
         _productQuery          = productQuery;
         _warehouseQuery        = warehouseQuery;
+        _chartAccountQuery     = chartAccountQuery;
+        _orgBankAccountQuery   = orgBankAccountQuery;
+        _cashBoxQuery          = cashBoxQuery;
+        _cashOperationQuery    = cashOperationQuery;
+        _languageQuery         = languageQuery;
     }
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
@@ -325,5 +340,66 @@ public class ManualService : IManualService
             Selector = w => new SelectListDto { Id = w.Id, Name = w.Name, Code = w.Code }
         };
         return (await _warehouseQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetChartAccountsAsync(int? organizationId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<ChartAccount, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (organizationId == null || x.OrganizationId == organizationId),
+            OrderBy  = q => q.OrderBy(x => x.Code),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _chartAccountQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetOrgBankAccountsAsync(int? organizationId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<OrgBankAccount, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (organizationId == null || x.OrganizationId == organizationId),
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.AccountNumber, Code = x.AccountNumber }
+        };
+        return (await _orgBankAccountQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetCashBoxesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<CashBox, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (organizationId == null || x.OrganizationId == organizationId) &&
+                            (branchId == null || x.BranchId == branchId),
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _cashBoxQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetCashOperationsAsync(int? organizationId = null, int? cashBoxId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<CashOperation, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (organizationId == null || x.OrganizationId == organizationId) &&
+                            (cashBoxId == null || x.CashBoxId == cashBoxId),
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.DocNumber, Code = x.DocNumber }
+        };
+        return (await _cashOperationQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetLanguagesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<Language, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _languageQuery.GetAllAsync(spec, ct)).ToList();
     }
 }

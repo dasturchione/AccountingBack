@@ -33,4 +33,17 @@ public interface IManualService
     Task<List<SelectListDto>> GetProductGroupsAsync(int? organizationId = null, CancellationToken ct = default);
     Task<List<SelectListDto>> GetProductsAsync(int? organizationId = null, int? productGroupId = null, CancellationToken ct = default);
     Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
+
+    // acc
+    Task<List<SelectListDto>> GetChartAccountsAsync(int? organizationId = null, CancellationToken ct = default);
+
+    // bank
+    Task<List<SelectListDto>> GetOrgBankAccountsAsync(int? organizationId = null, CancellationToken ct = default);
+
+    // cash
+    Task<List<SelectListDto>> GetCashBoxesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetCashOperationsAsync(int? organizationId = null, int? cashBoxId = null, CancellationToken ct = default);
+
+    // languages
+    Task<List<SelectListDto>> GetLanguagesAsync(CancellationToken ct = default);
 }

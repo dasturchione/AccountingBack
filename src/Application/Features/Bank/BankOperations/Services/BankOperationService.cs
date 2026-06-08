@@ -60,6 +60,7 @@ public class BankOperationService : IBankOperationService
         entity.StateId = StateIdConst.PASSIVE;
 
         await _command.UpdateAsync(entity, ct);
+
         return Result.Success();
     }
 

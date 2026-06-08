@@ -20,6 +20,7 @@ public interface IManualService
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default);
+    Task<List<ModuleSubGroupSelectListDto>> GetModuleSubGroupSelectListAsync(CancellationToken ct = default);
 
     // org
     Task<List<SelectListDto>> GetBranchesAsync(int? organizationId = null, CancellationToken ct = default);

@@ -207,4 +207,11 @@ public class ManualController : ControllerBase
         var result = await _manualService.GetLanguagesAsync(ct);
         return Ok(result);
     }
+
+    [HttpGet("module-sub-groups")]
+    public async Task<IActionResult> GetModuleSubGroups(CancellationToken ct)
+    {
+        var result = await _manualService.GetModuleSubGroupSelectListAsync(ct);
+        return Ok(result);
+    }
 }

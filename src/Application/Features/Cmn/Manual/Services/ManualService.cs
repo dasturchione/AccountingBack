@@ -35,6 +35,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Language> _languageQuery;
+    private readonly IQueryRepository<Module>   _moduleQuery;
 
     public ManualService(
         IQueryRepository<Role> roleQuery,
@@ -63,7 +64,8 @@ public class ManualService : IManualService
         IQueryRepository<OrgBankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
-        IQueryRepository<Language> languageQuery)
+        IQueryRepository<Language> languageQuery,
+        IQueryRepository<Module>   moduleQuery)
     {
         _roleQuery             = roleQuery;
         _stateQuery            = stateQuery;
@@ -92,6 +94,7 @@ public class ManualService : IManualService
         _cashBoxQuery          = cashBoxQuery;
         _cashOperationQuery    = cashOperationQuery;
         _languageQuery         = languageQuery;
+        _moduleQuery           = moduleQuery;
     }
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
@@ -401,5 +404,63 @@ public class ManualService : IManualService
             Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
         };
         return (await _languageQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    // ------------------------------------------------------------------
+    //  Module sub-groups with their modules (permission tree for UI)
+    // ------------------------------------------------------------------
+    public async Task<List<ModuleSubGroupSelectListDto>> GetModuleSubGroupSelectListAsync(CancellationToken ct = default)
+    {
+        // Load all active modules with sub-group info as a flat projection
+        var spec = new QuerySpecification<Module, ModuleFlatDto>
+        {
+            Criteria = m => m.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(m => m.SubGroupFullName).ThenBy(m => m.ModuleId),
+            Selector = m => new ModuleFlatDto
+            {
+                SubGroupId        = m.SubGroupId,
+                SubGroupCode      = m.SubGroup.Code,
+                SubGroupShortName = m.SubGroup.ShortName,
+                SubGroupFullName  = m.SubGroup.FullName,
+                ModuleId          = m.Id,
+                ModuleCode        = m.Code,
+                ModuleShortName   = m.ShortName,
+                ModuleFullName    = m.FullName
+            }
+        };
+
+        var flat = await _moduleQuery.GetAllAsync(spec, ct);
+
+        return flat
+            .GroupBy(x => new { x.SubGroupId, x.SubGroupCode, x.SubGroupShortName, x.SubGroupFullName })
+            .Select(g => new ModuleSubGroupSelectListDto
+            {
+                Id        = g.Key.SubGroupId,
+                Code      = g.Key.SubGroupCode,
+                ShortName = g.Key.SubGroupShortName,
+                FullName  = g.Key.SubGroupFullName,
+                Modules   = g.Select(m => new ModuleSelectListDto
+                {
+                    Id        = m.ModuleId,
+                    Code      = m.ModuleCode,
+                    ShortName = m.ModuleShortName,
+                    FullName  = m.ModuleFullName
+                }).ToList()
+            })
+            .OrderBy(sg => sg.FullName)
+            .ToList();
+    }
+
+    // Private flat projection DTO (only used inside ManualService)
+    private sealed class ModuleFlatDto
+    {
+        public int    SubGroupId        { get; init; }
+        public string SubGroupCode      { get; init; } = null!;
+        public string SubGroupShortName { get; init; } = null!;
+        public string SubGroupFullName  { get; init; } = null!;
+        public int    ModuleId          { get; init; }
+        public string ModuleCode        { get; init; } = null!;
+        public string ModuleShortName   { get; init; } = null!;
+        public string ModuleFullName    { get; init; } = null!;
     }
 }

@@ -10,6 +10,7 @@ public class CounterpartyCardListDto
     public string ShortName { get; set; } = null!;
     public string? FullName { get; set; }
     public string? Inn { get; set; }
+    public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public int? RegionId { get; set; }
     public string? RegionName { get; set; }

@@ -17,6 +17,7 @@ public class CounterpartyCardListDtoProjection : IProjectionBuilder<Counterparty
             ShortName = x.ShortName,
             FullName = x.FullName,
             Inn = x.Inn,
+            Email = x.Email,
             PhoneNumber = x.PhoneNumber,
             RegionId = x.RegionId,
             RegionName = x.Region != null ? x.Region.FullName : null,

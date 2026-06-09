@@ -29,6 +29,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<ProductGroup> _productGroupQuery;
     private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
     private readonly IQueryRepository<OrgBankAccount> _orgBankAccountQuery;
@@ -65,6 +66,7 @@ public class ManualService : IManualService
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
         IQueryRepository<Language> languageQuery,
+        IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Module>   moduleQuery)
     {
         _roleQuery             = roleQuery;
@@ -94,6 +96,7 @@ public class ManualService : IManualService
         _cashBoxQuery          = cashBoxQuery;
         _cashOperationQuery    = cashOperationQuery;
         _languageQuery         = languageQuery;
+        _organizationQuery     = organizationQuery;
         _moduleQuery           = moduleQuery;
     }
 
@@ -340,6 +343,8 @@ public class ManualService : IManualService
             OrderBy = q => q.OrderBy(p => p.Name),
             Selector = p => new SelectListDto { Id = p.Id, Name = p.FullName, }
         };
+
+        return await _organizationQuery.GetAllAsync(spec, ct);
     }
 
     public async Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)

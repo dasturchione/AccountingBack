@@ -124,6 +124,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("organizations")]
+    public async Task<IActionResult> GetOrganizations(CancellationToken ct)
+    {
+        var result = await _manualService.GetOrganizationsAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("branches")]
     public async Task<IActionResult> GetBranches([FromQuery] int? organizationId, CancellationToken ct)
     {

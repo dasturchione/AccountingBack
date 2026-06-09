@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Persistence.Generated.Entities;
@@ -25,11 +25,15 @@ public partial class SysUser
 
     public DateTime? LastAccessTime { get; set; }
 
-    public short? LanguageId { get; set; }
-
     public short StateId { get; set; }
 
     public DateTime CreatedDate { get; set; }
+
+    public short? LanguageId { get; set; }
+
+    public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
+
+    public virtual CmnLanguage? Language { get; set; }
 
     public virtual SysRole Role { get; set; } = null!;
 

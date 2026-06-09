@@ -84,4 +84,8 @@ public partial class OrgOrganization
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     public virtual CmnState State { get; set; } = null!;
+
+    public virtual ICollection<SysRole> SysRoles { get; set; } = new List<SysRole>();
+
+    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

@@ -2287,13 +2287,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.FullName)
                 .HasMaxLength(255)
                 .HasColumnName("full_name");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.ShortName)
                 .HasMaxLength(100)
                 .HasColumnName("short_name");
-            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.StateId).HasColumnName("state_id");
 
-            entity.HasOne(d => d.Organization).WithMany()
+            entity.HasOne(d => d.Organization).WithMany(p => p.SysRoles)
                 .HasForeignKey(d => d.OrganizationId)
                 .HasConstraintName("sys_role_organization_id_fkey");
 
@@ -2360,13 +2360,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .HasColumnName("last_name");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(250)
                 .HasColumnName("password_hash");
             entity.Property(e => e.PasswordSalt)
                 .HasMaxLength(250)
                 .HasColumnName("password_salt");
-            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(50)
                 .HasColumnName("phone_number");
@@ -2380,7 +2380,7 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.LanguageId)
                 .HasConstraintName("sys_user_language_id_fkey");
 
-            entity.HasOne(d => d.Organization).WithMany()
+            entity.HasOne(d => d.Organization).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.OrganizationId)
                 .HasConstraintName("sys_user_organization_id_fkey");
 

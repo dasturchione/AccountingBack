@@ -7,8 +7,6 @@ public partial class SysUser
 {
     public int Id { get; set; }
 
-    public int? OrganizationId { get; set; }
-
     public string UserName { get; set; } = null!;
 
     public string PasswordHash { get; set; } = null!;
@@ -32,6 +30,8 @@ public partial class SysUser
     public DateTime CreatedDate { get; set; }
 
     public short? LanguageId { get; set; }
+
+    public int? OrganizationId { get; set; }
 
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 

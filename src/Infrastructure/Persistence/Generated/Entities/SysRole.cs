@@ -7,8 +7,6 @@ public partial class SysRole
 {
     public int Id { get; set; }
 
-    public int? OrganizationId { get; set; }
-
     public string ShortName { get; set; } = null!;
 
     public string FullName { get; set; } = null!;
@@ -16,6 +14,8 @@ public partial class SysRole
     public short StateId { get; set; }
 
     public DateTime CreatedDate { get; set; }
+
+    public int? OrganizationId { get; set; }
 
     public virtual OrgOrganization? Organization { get; set; }
 

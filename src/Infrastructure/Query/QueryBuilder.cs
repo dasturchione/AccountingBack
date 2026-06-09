@@ -88,7 +88,7 @@ namespace Infrastructure.Query
         private Expression<Func<T, bool>> SafeBuild<T, TFilter>(
             ICriteriaBuilder<T, TFilter>? builder, TFilter filter)
         {
-            return builder?.Build(filter) ?? (_ => false);
+            return builder?.Build(filter) ?? (_ => true);
         }
     }
 }

@@ -54,6 +54,7 @@ using SharedKernel.Query;
 using System.Text;
 using System.Text.Json.Serialization;
 using WebApi.Infrastructure;
+using Application;
 
 namespace WebApi.Configuration
 {
@@ -147,72 +148,17 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddApplication(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IRoleService, RoleService>();
-            builder.Services.AddScoped<IOrganizationService, OrganizationService>();
-            builder.Services.AddScoped<IBranchService, BranchService>();
-            builder.Services.AddScoped<IDepartmentService, DepartmentService>();
-            builder.Services.AddScoped<IPositionService, PositionService>();
-            builder.Services.AddScoped<ICounterpartyCardService, CounterpartyCardService>();
-            builder.Services.AddScoped<ICounterpartyBankAccountService, CounterpartyBankAccountService>();
-            builder.Services.AddScoped<ICounterpartyContactService, CounterpartyContactService>();
-            builder.Services.AddScoped<IProductGroupService, ProductGroupService>();
-            builder.Services.AddScoped<IProductService, ProductService>();
-            builder.Services.AddScoped<IWarehouseService, WarehouseService>();
-            builder.Services.AddScoped<IProductPriceService, ProductPriceService>();
-            builder.Services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
-            builder.Services.AddScoped<IBankOperationService, BankOperationService>();
-            builder.Services.AddScoped<ICashBoxService, CashBoxService>();
-            builder.Services.AddScoped<ICashOperationService, CashOperationService>();
-            builder.Services.AddScoped<IPurchaseDocService, PurchaseDocService>();
-            builder.Services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
-            builder.Services.AddScoped<ISaleDocService, SaleDocService>();
-            builder.Services.AddScoped<ISaleDocTableService, SaleDocTableService>();
-            builder.Services.AddScoped<IChartAccountService, ChartAccountService>();
-            builder.Services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
-            builder.Services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
-            builder.Services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
-            builder.Services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
-            builder.Services.AddScoped<IManualService, ManualService>();
-            builder.Services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
-            builder.Services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
-            builder.Services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
-            builder.Services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
-
-            builder.Services.Scan(scan => scan
-                .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
-                .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-                .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-            );
+            builder.Services.AddApplication();
 
             return builder;
         }
 
         private static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-            builder.Services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-            builder.Services.AddScoped<ITokenProvider, TokenProvider>();
-            builder.Services.AddScoped<IRequestContext, RequestContext>();
-            builder.Services.AddScoped<IUserContext, UserContext>();
-            builder.Services.AddScoped<IPermissionChecker, PermissionChecker>();
-
-            builder.Services.AddScoped<IQueryBuilder, QueryBuilder>();
-            builder.Services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
-
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddMemoryCache();
 
-            builder.Services.AddFaktura(builder.Configuration);
-            builder.Services.AddGoogleDriveIntegration(builder.Configuration);
-
+            builder.Services.AddInfrastructure(builder.Configuration);
+            
             return builder;
         }
 

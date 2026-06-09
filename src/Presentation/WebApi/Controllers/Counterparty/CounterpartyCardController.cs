@@ -8,7 +8,7 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/counterparty-cards")]
 [ApiController]
 [Authorize]
 public class CounterpartyCardController : ControllerBase

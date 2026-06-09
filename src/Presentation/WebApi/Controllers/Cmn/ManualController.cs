@@ -6,7 +6,7 @@ using WebApi.Authorization;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/manuals")]
 [ApiController]
 [Authorize]
 [ModuleAuthorize(PermissionCodeConst.ManualView)]

@@ -8,7 +8,7 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/product-groups")]
 [ApiController]
 [Authorize]
 public class ProductGroupController : ControllerBase

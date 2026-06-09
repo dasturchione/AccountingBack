@@ -8,7 +8,7 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/counterparty-contacts")]
 [ApiController]
 [Authorize]
 public class CounterpartyContactController : ControllerBase

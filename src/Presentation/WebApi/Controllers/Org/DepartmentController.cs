@@ -8,7 +8,7 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/departments")]
 [ApiController]
 [Authorize]
 public class DepartmentController : ControllerBase

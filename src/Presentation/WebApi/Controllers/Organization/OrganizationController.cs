@@ -20,6 +20,15 @@ public class OrganizationController : ControllerBase
         _organizationService = organizationService;
     }
 
+    /// <summary>INN bo'yicha faktura.uz dan kompaniya ma'lumotlarini olish (anonymous)</summary>
+    [HttpGet("by-inn")]
+    [AllowAnonymous]
+    public async Task<IResult> GetByInnAsync([FromQuery] string companyInn, CancellationToken ct = default)
+    {
+        var response = await _organizationService.GetByInnAsync(companyInn, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpGet]
     [ModuleAuthorize(PermissionCodeConst.OrganizationView)]
     public async Task<IResult> GetAllAsync([FromQuery] OrganizationListFilter filter, CancellationToken ct = default)

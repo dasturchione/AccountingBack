@@ -10,6 +10,7 @@
                 .AddInfrastructure()
                 .AddApplication()
                 .AddJwtToken()
+                .AddQuartz()
                 .AddExposers()
                 .AddSwagger();
 

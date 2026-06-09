@@ -1,3 +1,4 @@
+using Application.Abstractions.Integration.Models;
 using Application.Common.Pagination;
 using SharedKernel.Results;
 
@@ -10,4 +11,7 @@ public interface IOrganizationService
     Task<Result<int>> CreateAsync(OrganizationCreateDto dto, CancellationToken ct = default);
     Task<Result> UpdateAsync(int id, OrganizationUpdateDto dto, CancellationToken ct = default);
     Task<Result> DeleteAsync(int id, CancellationToken ct = default);
+
+    /// <summary>INN bo'yicha faktura.uz dan kompaniya ma'lumotlarini olish</summary>
+    Task<Result<CompanyBasicDetailsDto>> GetByInnAsync(string companyInn, CancellationToken ct = default);
 }

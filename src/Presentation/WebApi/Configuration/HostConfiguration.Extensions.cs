@@ -1,5 +1,10 @@
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Common.Settings;
+using Infrastructure.BackgroundServices;
+using Integration.Faktura.Configs;
+using Integration.GoogleDrive.Extensions;
+using Quartz;
 using Application.Common.Markers;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.Auth;
@@ -171,6 +176,40 @@ namespace WebApi.Configuration
             builder.Services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
 
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddMemoryCache();
+
+            builder.Services.AddFaktura(builder.Configuration);
+            builder.Services.AddGoogleDriveIntegration(builder.Configuration);
+
+            return builder;
+        }
+
+        private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
+        {
+            builder.Services.AddQuartz(q =>
+            {
+                // Backup Job — har kuni 04:05 da
+                var backupJobKey = new JobKey("BackupJob");
+                q.AddJob<BackupJob>(opts => opts.WithIdentity(backupJobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(backupJobKey)
+                    .WithIdentity("BackupJobTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(04, 05)));
+
+                // AdjustBalance Job — har kuni 02:30 da
+                var adjustJobKey = new JobKey("AdjustBalanceJob");
+                q.AddJob<AdjustBalanceJob>(opts => opts.WithIdentity(adjustJobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(adjustJobKey)
+                    .WithIdentity("AdjustBalanceJobTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 30)));
+            });
+
+            builder.Services.Configure<BackupJobSettings>(
+                builder.Configuration.GetSection("BackupJob"));
+
+            builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
             return builder;
         }
 

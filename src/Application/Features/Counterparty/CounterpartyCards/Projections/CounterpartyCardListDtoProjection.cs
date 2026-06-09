@@ -24,6 +24,7 @@ public class CounterpartyCardListDtoProjection : IProjectionBuilder<Counterparty
             DistrictId = x.DistrictId,
             DistrictName = x.District != null ? x.District.FullName : null,
             StateId = x.StateId,
+            Address = x.Address,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate
         };

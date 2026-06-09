@@ -7,6 +7,8 @@ public partial class SysUser
 {
     public int Id { get; set; }
 
+    public int? OrganizationId { get; set; }
+
     public string UserName { get; set; } = null!;
 
     public string PasswordHash { get; set; } = null!;
@@ -34,6 +36,8 @@ public partial class SysUser
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
     public virtual CmnLanguage? Language { get; set; }
+
+    public virtual OrgOrganization? Organization { get; set; }
 
     public virtual SysRole Role { get; set; } = null!;
 

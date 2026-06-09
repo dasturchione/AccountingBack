@@ -2277,6 +2277,8 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("sys_role");
 
+            entity.HasIndex(e => e.OrganizationId, "idx_sys_role_organization_id");
+
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
@@ -2288,7 +2290,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ShortName)
                 .HasMaxLength(100)
                 .HasColumnName("short_name");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.StateId).HasColumnName("state_id");
+
+            entity.HasOne(d => d.Organization).WithMany()
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_role_organization_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.SysRoles)
                 .HasForeignKey(d => d.StateId)
@@ -2327,6 +2334,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
 
+            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
+
             entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
 
             entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
@@ -2357,6 +2366,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PasswordSalt)
                 .HasMaxLength(250)
                 .HasColumnName("password_salt");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(50)
                 .HasColumnName("phone_number");
@@ -2369,6 +2379,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Language).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.LanguageId)
                 .HasConstraintName("sys_user_language_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany()
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_user_organization_id_fkey");
 
             entity.HasOne(d => d.Role).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.RoleId)

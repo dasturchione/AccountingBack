@@ -457,6 +457,8 @@ namespace Infrastructure.Persistence
 
                 entity.ToTable("sys_role");
 
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_role_organization_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.CreatedDate)
                     .HasDefaultValueSql("now()")
@@ -468,7 +470,12 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.ShortName)
                     .HasMaxLength(100)
                     .HasColumnName("short_name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.Organization).WithMany()
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_role_organization_id_fkey");
 
                 entity.HasOne(d => d.State).WithMany(p => p.Roles)
                     .HasForeignKey(d => d.StateId)
@@ -507,6 +514,8 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
 
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
+
                 entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
 
                 entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
@@ -537,6 +546,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.PasswordSalt)
                     .HasMaxLength(250)
                     .HasColumnName("password_salt");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.PhoneNumber)
                     .HasMaxLength(50)
                     .HasColumnName("phone_number");
@@ -550,6 +560,10 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.RoleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("sys_user_role_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany()
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_user_organization_id_fkey");
 
                 entity.HasOne<Language>()
                     .WithMany()

@@ -55,6 +55,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using WebApi.Infrastructure;
 using Application;
+using WebApi.Middlewares;
 
 namespace WebApi.Configuration
 {
@@ -130,14 +131,15 @@ namespace WebApi.Configuration
                 .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
                 .MinimumLevel.Override("System.Net.Http", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
+                .Enrich.FromLogContext()
                 .WriteTo.Console(
-                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}"
                 )
                 .WriteTo.File(
                     path: fullPath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 40,
-                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}"
                 )
                 .CreateLogger();
 
@@ -266,6 +268,8 @@ namespace WebApi.Configuration
         private static WebApplication UseMiddlewares(this WebApplication app)
         {
             app.UseHttpsRedirection();
+
+            app.UseMiddleware<CorrelationIdMiddleware>();
 
             app.UseSerilogRequestLogging();
 

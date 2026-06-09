@@ -332,6 +332,16 @@ public class ManualService : IManualService
         return (await _productQuery.GetAllAsync(spec, ct)).ToList();
     }
 
+    public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<Organization, SelectListDto>
+        {
+            Criteria = p => p.StateId == StateIdConst.ACTIVE,
+            OrderBy = q => q.OrderBy(p => p.Name),
+            Selector = p => new SelectListDto { Id = p.Id, Name = p.FullName, }
+        };
+    }
+
     public async Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Warehouse, SelectListDto>

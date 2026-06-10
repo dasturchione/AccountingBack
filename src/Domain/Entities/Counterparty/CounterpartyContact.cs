@@ -13,5 +13,6 @@ public partial class CounterpartyContact
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
     public virtual State State { get; set; } = null!;
 }

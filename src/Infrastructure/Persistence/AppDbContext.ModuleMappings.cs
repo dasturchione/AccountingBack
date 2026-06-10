@@ -129,44 +129,98 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<PostingRule>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("acc_posting_rule_pkey");
+
                 entity.ToTable("acc_posting_rule");
-                entity.HasIndex(e => new { e.OrganizationId, e.DocumentTypeId, e.OperationTypeId, e.Code }, "idx_acc_posting_rule_unique").IsUnique();
+
                 entity.HasIndex(e => e.DocumentTypeId, "idx_acc_posting_rule_document_type_id");
+
                 entity.HasIndex(e => e.OperationTypeId, "idx_acc_posting_rule_operation_type_id");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.DocumentTypeId, e.OperationTypeId, e.Code }, "idx_acc_posting_rule_unique").IsUnique();
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(100)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(250)
+                    .HasColumnName("name");
                 entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
-                entity.Property(e => e.Code).HasMaxLength(100).HasColumnName("code");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.DocumentType).WithMany().HasForeignKey(e => e.DocumentTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_posting_rule_document_type_id_fkey");
-                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).HasConstraintName("acc_posting_rule_operation_type_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_posting_rule_state_id_fkey");
+
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.PostingRules)
+                    .HasForeignKey(d => d.DocumentTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_posting_rule_document_type_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.PostingRules)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .HasConstraintName("acc_posting_rule_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.PostingRules)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("acc_posting_rule_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.PostingRules)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_posting_rule_state_id_fkey");
             });
 
             modelBuilder.Entity<PostingRuleLine>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
+
                 entity.ToTable("acc_posting_rule_line");
-                entity.HasIndex(e => e.RuleId, "idx_acc_posting_rule_line_rule_id");
-                entity.HasIndex(e => e.DebitAccountId, "idx_acc_posting_rule_line_debit_account_id");
+
                 entity.HasIndex(e => e.CreditAccountId, "idx_acc_posting_rule_line_credit_account_id");
+
+                entity.HasIndex(e => e.DebitAccountId, "idx_acc_posting_rule_line_debit_account_id");
+
+                entity.HasIndex(e => e.RuleId, "idx_acc_posting_rule_line_rule_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.RuleId).HasColumnName("rule_id");
-                entity.Property(e => e.SortOrder).HasDefaultValue(0).HasColumnName("sort_order");
-                entity.Property(e => e.DebitAccountId).HasColumnName("debit_account_id");
+                entity.Property(e => e.AmountSource)
+                    .HasMaxLength(100)
+                    .HasColumnName("amount_source");
+                entity.Property(e => e.ContentTemplate)
+                    .HasMaxLength(1000)
+                    .HasColumnName("content_template");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CreditAccountId).HasColumnName("credit_account_id");
-                entity.Property(e => e.AmountSource).HasMaxLength(100).HasColumnName("amount_source");
-                entity.Property(e => e.QuantitySource).HasMaxLength(100).HasColumnName("quantity_source");
-                entity.Property(e => e.ContentTemplate).HasMaxLength(1000).HasColumnName("content_template");
+                entity.Property(e => e.DebitAccountId).HasColumnName("debit_account_id");
+                entity.Property(e => e.QuantitySource)
+                    .HasMaxLength(100)
+                    .HasColumnName("quantity_source");
+                entity.Property(e => e.RuleId).HasColumnName("rule_id");
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Rule).WithMany().HasForeignKey(e => e.RuleId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("acc_posting_rule_line_rule_id_fkey");
-                entity.HasOne(e => e.DebitAccount).WithMany().HasForeignKey(e => e.DebitAccountId).HasConstraintName("acc_posting_rule_line_debit_account_id_fkey");
-                entity.HasOne(e => e.CreditAccount).WithMany().HasForeignKey(e => e.CreditAccountId).HasConstraintName("acc_posting_rule_line_credit_account_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_posting_rule_line_state_id_fkey");
+
+                entity.HasOne(d => d.CreditAccount).WithMany(p => p.PostingRuleLinesCreditAccount)
+                    .HasForeignKey(d => d.CreditAccountId)
+                    .HasConstraintName("acc_posting_rule_line_credit_account_id_fkey");
+
+                entity.HasOne(d => d.DebitAccount).WithMany(p => p.PostingRulesLineDebitAccount)
+                    .HasForeignKey(d => d.DebitAccountId)
+                    .HasConstraintName("acc_posting_rule_line_debit_account_id_fkey");
+
+                entity.HasOne(d => d.Rule).WithMany(p => p.PostingRuleLines)
+                    .HasForeignKey(d => d.RuleId)
+                    .HasConstraintName("acc_posting_rule_line_rule_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.PostingRuleLines)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_posting_rule_line_state_id_fkey");
             });
 
             modelBuilder.Entity<RegisterEntrySubkonto>(entity =>
@@ -815,35 +869,82 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<AccountingRegisterEntry>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("acc_reg_entry_pkey");
+
                 entity.ToTable("acc_reg_entry");
-                entity.HasIndex(e => e.OrganizationId, "idx_acc_reg_entry_organization_id");
-                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_acc_reg_entry_document");
-                entity.HasIndex(e => e.DebitAccountId, "idx_acc_reg_entry_debit_account_id");
+
                 entity.HasIndex(e => e.CreditAccountId, "idx_acc_reg_entry_credit_account_id");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_acc_reg_entry_currency_id");
+
+                entity.HasIndex(e => e.DebitAccountId, "idx_acc_reg_entry_debit_account_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_acc_reg_entry_doc_date");
-                entity.HasIndex(e => e.OperationTypeId, "idx_acc_reg_entry_operation_type_id");
+
+                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_acc_reg_entry_document");
+
                 entity.HasIndex(e => e.JournalNumber, "idx_acc_reg_entry_journal_number");
+
+                entity.HasIndex(e => e.OperationTypeId, "idx_acc_reg_entry_operation_type_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_acc_reg_entry_organization_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
-                entity.Property(e => e.DocumentId).HasColumnName("document_id");
-                entity.Property(e => e.DebitAccountId).HasColumnName("debit_account_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
+                entity.Property(e => e.Content)
+                    .HasMaxLength(1000)
+                    .HasColumnName("content");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CreditAccountId).HasColumnName("credit_account_id");
-                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.CreditQuantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("credit_quantity");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.DebitQuantity).HasPrecision(18, 3).HasColumnName("debit_quantity");
-                entity.Property(e => e.CreditQuantity).HasPrecision(18, 3).HasColumnName("credit_quantity");
-                entity.Property(e => e.Content).HasMaxLength(1000).HasColumnName("content");
-                entity.Property(e => e.JournalNumber).HasMaxLength(100).HasColumnName("journal_number");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.DocumentType).WithMany().HasForeignKey(e => e.DocumentTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_reg_entry_document_type_id_fkey");
-                entity.HasOne(e => e.DebitAccount).WithMany().HasForeignKey(e => e.DebitAccountId).HasConstraintName("acc_reg_entry_debit_account_id_fkey");
-                entity.HasOne(e => e.CreditAccount).WithMany().HasForeignKey(e => e.CreditAccountId).HasConstraintName("acc_reg_entry_credit_account_id_fkey");
-                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).HasConstraintName("acc_reg_entry_operation_type_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_reg_entry_currency_id_fkey");
+                entity.Property(e => e.DebitAccountId).HasColumnName("debit_account_id");
+                entity.Property(e => e.DebitQuantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("debit_quantity");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocumentId).HasColumnName("document_id");
+                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(e => e.JournalNumber)
+                    .HasMaxLength(100)
+                    .HasColumnName("journal_number");
+                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+
+                entity.HasOne(d => d.CreditAccount).WithMany(p => p.AccountingRegisterEntriesCreditAccount)
+                    .HasForeignKey(d => d.CreditAccountId)
+                    .HasConstraintName("acc_reg_entry_credit_account_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.AccountingRegisterEntries)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_reg_entry_currency_id_fkey");
+
+                entity.HasOne(d => d.DebitAccount).WithMany(p => p.AccountingRegisterEntriesDebitAccount)
+                    .HasForeignKey(d => d.DebitAccountId)
+                    .HasConstraintName("acc_reg_entry_debit_account_id_fkey");
+
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.AccountingRegisterEntries)
+                    .HasForeignKey(d => d.DocumentTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_reg_entry_document_type_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.AccountingRegisterEntries)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .HasConstraintName("acc_reg_entry_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.AccountingRegisterEntries)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_reg_entry_organization_id_fkey");
             });
 
             modelBuilder.Entity<ChartAccount>(entity =>

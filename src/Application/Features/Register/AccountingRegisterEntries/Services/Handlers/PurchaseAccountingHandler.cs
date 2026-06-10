@@ -101,6 +101,8 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE)
                 .Build();
 
+            query.AddIncludes(e => e.Include(i => i.PostingRuleLines));
+
             return await _postingRuleQuery.GetAsync(query, ct);
         }
     }

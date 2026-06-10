@@ -9,4 +9,5 @@ public partial class AccountType
     public DateTime CreatedDate { get; set; }
 
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
 }

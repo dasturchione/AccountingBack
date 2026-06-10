@@ -14,4 +14,7 @@ public partial class Warehouse
     public virtual Branch? Branch { get; set; }
     public virtual User? ResponsibleUser { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<InventoryRegisterBalance> InventoryRegisterBalances { get; set; } = new List<InventoryRegisterBalance>();
+    public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
+    public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 }

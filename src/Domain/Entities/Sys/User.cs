@@ -16,7 +16,6 @@ public partial class User
     public short? LanguageId { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public virtual Organization? Organization { get; set; }
     public virtual Role Role { get; set; } = null!;
     public virtual State State { get; set; } = null!;
 }

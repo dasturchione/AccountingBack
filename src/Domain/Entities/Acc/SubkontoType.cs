@@ -10,4 +10,6 @@ public partial class SubkontoType
     public DateTime CreatedDate { get; set; }
 
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
+    public virtual ICollection<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; } = new List<RegisterEntrySubkonto>();
 }

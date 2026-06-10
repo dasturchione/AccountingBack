@@ -18,4 +18,10 @@ public partial class ChartAccount
     public virtual ChartAccount? Parent { get; set; }
     public virtual AccountType? AccountType { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<ChartAccount> InverseParent { get; set; } = new List<ChartAccount>();
+    public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
+    public virtual ICollection<PostingRuleLine> PostingRuleLinesCreditAccount { get; set; } = new List<PostingRuleLine>();
+    public virtual ICollection<PostingRuleLine> PostingRulesLineDebitAccount { get; set; } = new List<PostingRuleLine>();
+    public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntriesCreditAccount { get; set; } = new List<AccountingRegisterEntry>();
+    public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntriesDebitAccount { get; set; } = new List<AccountingRegisterEntry>();
 }

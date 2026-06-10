@@ -16,4 +16,7 @@ public partial class Branch
     public virtual Region? Region { get; set; }
     public virtual District? District { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
+    public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
+    public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
 }

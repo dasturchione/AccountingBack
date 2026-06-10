@@ -15,4 +15,5 @@ public partial class CashBox
     public virtual Branch? Branch { get; set; }
     public virtual Currency Currency { get; set; } = null!;
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 }

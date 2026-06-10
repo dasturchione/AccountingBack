@@ -15,4 +15,5 @@ public partial class PostingRule
     public virtual DocumentType DocumentType { get; set; } = null!;
     public virtual OperationType? OperationType { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<PostingRuleLine> PostingRuleLines { get; set; } = new List<PostingRuleLine>();
 }

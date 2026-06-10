@@ -1,106 +1,209 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.PurchaseDocTables;
 using Domain.Entities;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.PurchaseDocs;
 
-public class PurchaseDocService : IPurchaseDocService
+public class PurchaseDocService : BaseService, IPurchaseDocService
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly ICommandRepository<PurchaseDoc> _command;
+    private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
+    private readonly IQueryRepository<VatRate> _vatRateQuery;
 
-    public PurchaseDocService(IUserContext userContext,
-                              IQueryBuilder queryBuilder, 
+    public PurchaseDocService(IUnitOfWork unitOfWork,
+                              IUserContext userContext,
+                              IQueryBuilder queryBuilder,
                               IQueryRepository<PurchaseDoc> query,
-                              ICommandRepository<PurchaseDoc> command)
+                              ICommandRepository<PurchaseDoc> command,
+                              ICommandRepository<PurchaseDocTable> lineCommand,
+                              IQueryRepository<VatRate> vatRateQuery,
+                              ILogger<PurchaseDocService> logger) : base(logger)
     {
-        _query = query;
-        _command = command;
-        _userContext = userContext; 
+        _unitOfWork   = unitOfWork;
+        _userContext  = userContext;
         _queryBuilder = queryBuilder;
+        _query        = query;
+        _command      = command;
+        _lineCommand  = lineCommand;
+        _vatRateQuery = vatRateQuery;
     }
 
-    public async Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default)
-    {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-            return Result.Failure<long>(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
-
-        var entity = new PurchaseDoc
+    public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetAllAsync), async () =>
         {
-            OrganizationId = dto.OrganizationId,
-            DocNumber = dto.DocNumber,
-            DocDate = dto.DocDate,
-            CounterpartyId = dto.CounterpartyId,
-            WarehouseId = dto.WarehouseId,
-            CurrencyId = dto.CurrencyId,
-            TotalAmount = 0,
-            VatAmount = 0,
-            FinalAmount = 0,
-            StatusId = dto.StatusId,
-            Comment = dto.Comment,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
-        };
-        await _command.CreateAsync(entity, ct);
-        return entity.Id;
-    }
+            var query     = _queryBuilder.BuildPaged<PurchaseDoc, PurchaseDocListDto, PurchaseDocListFilter>(filter);
+            var pagedList = await _query.GetPagedAsync(query, ct);
+            return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
+        });
 
-    public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
+    public Task<Result<PurchaseDocDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetByIdAsync), async () =>
+        {
+            var query  = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+            var entity = await _query.GetAsync(query, ct);
+
+            if (entity == null)
+                return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
+            return Result.Success(entity);
+        });
+
+    public Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(CreateAsync), _unitOfWork, async () =>
+        {
+            if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
+                return Result.Failure<long>(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
+
+            // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
+            var linesResult = await BuildLinesAsync(dto.Lines, ct);
+            if (!linesResult.IsSuccess)
+                return Result.Failure<long>(linesResult.Error);
+
+            var lines = linesResult.Value;
+
+            var doc = new PurchaseDoc
+            {
+                OrganizationId = dto.OrganizationId,
+                DocNumber      = dto.DocNumber,
+                DocDate        = dto.DocDate,
+                CounterpartyId = dto.CounterpartyId,
+                WarehouseId    = dto.WarehouseId,
+                CurrencyId     = dto.CurrencyId,
+                TotalAmount    = lines.Sum(l => l.Amount),
+                VatAmount      = lines.Sum(l => l.VatAmount),
+                FinalAmount    = lines.Sum(l => l.TotalAmount),
+                StatusId       = DocumentStatusIdConst.DRAFT,
+                Comment        = dto.Comment,
+                StateId        = StateIdConst.ACTIVE,
+                CreatedDate    = DateTime.Now
+            };
+
+            await _command.CreateAsync(doc, ct);
+
+            // Har bir qatorga hujjat id sini bog'laymiz
+            foreach (var line in lines)
+                line.OwnerId = doc.Id;
+
+            await _lineCommand.CreateAsync(lines, ct);
+
+            return Result.Success(doc.Id);
+        }, ct);
+
+    public Task<Result> UpdateAsync(long id, PurchaseDocUpdateDto dto, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(UpdateAsync), _unitOfWork, async () =>
+        {
+            var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
+            var doc   = await _query.GetAsync(query, ct);
+
+            if (doc == null)
+                return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+                return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+
+            if (doc.DocNumber != dto.DocNumber &&
+                await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
+                return Result.Failure(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
+
+            // Yangi qatorlarni hisoblaymiz
+            var linesResult = await BuildLinesAsync(dto.Lines, ct);
+            if (!linesResult.IsSuccess)
+                return Result.Failure(linesResult.Error);
+
+            var newLines = linesResult.Value;
+
+            // Eski qatorlarni o'chirib, yangilarini yozamiz
+            await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+
+            foreach (var line in newLines)
+                line.OwnerId = id;
+
+            await _lineCommand.CreateAsync(newLines, ct);
+
+            doc.OrganizationId = dto.OrganizationId;
+            doc.DocNumber      = dto.DocNumber;
+            doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
+            doc.CounterpartyId = dto.CounterpartyId;
+            doc.WarehouseId    = dto.WarehouseId;
+            doc.CurrencyId     = dto.CurrencyId;
+            doc.TotalAmount    = newLines.Sum(l => l.Amount);
+            doc.VatAmount      = newLines.Sum(l => l.VatAmount);
+            doc.FinalAmount    = newLines.Sum(l => l.TotalAmount);
+            doc.Comment        = dto.Comment;
+            doc.StateId        = dto.StateId;
+
+            await _command.UpdateAsync(doc, ct);
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(DeleteAsync), _unitOfWork, async () =>
+        {
+            var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
+            var doc   = await _query.GetAsync(query, ct);
+
+            if (doc == null)
+                return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+                return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+
+            // Avval barcha qatorlarni o'chiramiz, keyin hujjatni
+            await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+
+            doc.StateId = StateIdConst.PASSIVE;
+            await _command.UpdateAsync(doc, ct);
+
+            return Result.Success();
+        }, ct);
+
+    // dto.Lines dan PurchaseDocTable entity larini yaratib beradi
+    // VatRate DB dan olinadi — agar topilmasa xato qaytaradi
+    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(
+        List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
     {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+        var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
-        entity.StateId = StateIdConst.PASSIVE;
+        foreach (var dto in lineDtos)
+        {
+            var amount    = dto.Quantity * dto.Price;
+            var vatAmount = 0m;
 
-        await _command.UpdateAsync(entity, ct);
-        return Result.Success();
-    }
+            if (dto.VatRateId.HasValue)
+            {
+                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == dto.VatRateId.Value).Build();
+                var vatRate  = await _vatRateQuery.GetAsync(vatQuery, ct);
 
-    public async Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.BuildPaged<PurchaseDoc, PurchaseDocListDto, PurchaseDocListFilter>(filter);
-        var pagedList = await _query.GetPagedAsync(query, ct);
-        return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
-    }
+                if (vatRate == null)
+                    return Result.Failure<List<PurchaseDocTable>>(
+                        PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
 
-    public async Task<Result<PurchaseDocDto>> GetByIdAsync(long id, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
-        return entity;
-    }
+                vatAmount = Math.Round(amount * vatRate.Rate / 100, 2);
+            }
 
-    public async Task<Result> UpdateAsync(long id, PurchaseDocUpdateDto dto, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+            lines.Add(new PurchaseDocTable
+            {
+                ProductId   = dto.ProductId,
+                Quantity    = dto.Quantity,
+                Price       = dto.Price,
+                Amount      = amount,
+                VatRateId   = dto.VatRateId,
+                VatAmount   = vatAmount,
+                TotalAmount = amount + vatAmount
+            });
+        }
 
-        if (entity.DocNumber != dto.DocNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-            return Result.Failure(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
-        entity.DocNumber = dto.DocNumber;
-        entity.DocDate = dto.DocDate;
-        entity.CounterpartyId = dto.CounterpartyId;
-        entity.WarehouseId = dto.WarehouseId;
-        entity.CurrencyId = dto.CurrencyId;
-        entity.StatusId = dto.StatusId;
-        entity.Comment = dto.Comment;
-        entity.StateId = dto.StateId;
-
-        await _command.UpdateAsync(entity, ct);
-        return Result.Success();
+        return Result.Success(lines);
     }
 }

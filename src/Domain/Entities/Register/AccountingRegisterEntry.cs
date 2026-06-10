@@ -24,4 +24,5 @@ public partial class AccountingRegisterEntry
     public virtual ChartAccount? CreditAccount { get; set; }
     public virtual OperationType? OperationType { get; set; }
     public virtual Currency Currency { get; set; } = null!;
+    public virtual ICollection<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; } = new List<RegisterEntrySubkonto>();
 }

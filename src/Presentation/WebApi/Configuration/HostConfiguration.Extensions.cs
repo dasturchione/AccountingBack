@@ -202,12 +202,20 @@ namespace WebApi.Configuration
                 throw new InvalidOperationException("Connection string 'Default' is not configured.");
             }
 
+            // Npgsql ga UTC DateTime ni "timestamp without time zone" ga yozishga ruxsat beradi
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(connectionString, npgsql =>
                 {
                     npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                 });
+
+                // Helpful during development: show EF Core SQL and detailed errors.
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+                options.LogTo(System.Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Debug);
             });
 
             return builder;

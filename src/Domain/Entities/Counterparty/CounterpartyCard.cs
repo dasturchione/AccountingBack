@@ -20,4 +20,11 @@ public partial class CounterpartyCard
     public virtual Region? Region { get; set; }
     public virtual District? District { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+    public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
+    public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
+    public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
+    public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
+    public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
+    public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 }

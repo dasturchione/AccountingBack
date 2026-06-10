@@ -22,9 +22,9 @@ namespace Application.Features.Register.AccountingRegisterEntries
             _postingRuleQuery = postingRuleQuery;
         }
 
-        public async Task<Result<List<AccountingRegisterEntry>>> HandleAsync(PurchaseDoc purchase)
+        public async Task<Result<List<AccountingRegisterEntry>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
         {
-            var rule = await GetRuleAsync();
+            var rule = await GetRuleAsync(ct);
             if (rule is null)
                 return Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.PostingRuleNotFound(_userContext.LanguageId));
 
@@ -94,14 +94,14 @@ namespace Application.Features.Register.AccountingRegisterEntries
             };
         }
 
-        private async Task<PostingRule?> GetRuleAsync()
+        private async Task<PostingRule?> GetRuleAsync(CancellationToken ct = default)
         {
             var query = _queryBuilder
                 .For<PostingRule>()
                 .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE)
                 .Build();
 
-            return await _postingRuleQuery.GetAsync(query);
+            return await _postingRuleQuery.GetAsync(query, ct);
         }
     }
 }

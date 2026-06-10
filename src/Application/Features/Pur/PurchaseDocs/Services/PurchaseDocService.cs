@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.PurchaseDocTables;
+using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -15,26 +16,29 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IAccountingDispatcher _dispatcher;
     private readonly IQueryRepository<PurchaseDoc> _query;
+    private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
-    private readonly IQueryRepository<VatRate> _vatRateQuery;
 
     public PurchaseDocService(IUnitOfWork unitOfWork,
                               IUserContext userContext,
                               IQueryBuilder queryBuilder,
+                              IAccountingDispatcher dispatcher,
                               IQueryRepository<PurchaseDoc> query,
+                              IQueryRepository<VatRate> vatRateQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocTable> lineCommand,
-                              IQueryRepository<VatRate> vatRateQuery,
                               ILogger<PurchaseDocService> logger) : base(logger)
     {
+        _query = query;
+        _command = command;
+        _dispatcher = dispatcher;
+        _lineCommand = lineCommand;
         _unitOfWork   = unitOfWork;
         _userContext  = userContext;
         _queryBuilder = queryBuilder;
-        _query        = query;
-        _command      = command;
-        _lineCommand  = lineCommand;
         _vatRateQuery = vatRateQuery;
     }
 
@@ -79,22 +83,24 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 CounterpartyId = dto.CounterpartyId,
                 WarehouseId    = dto.WarehouseId,
                 CurrencyId     = dto.CurrencyId,
+                Lines          = lines,
                 TotalAmount    = lines.Sum(l => l.Amount),
                 VatAmount      = lines.Sum(l => l.VatAmount),
                 FinalAmount    = lines.Sum(l => l.TotalAmount),
                 StatusId       = DocumentStatusIdConst.DRAFT,
                 Comment        = dto.Comment,
                 StateId        = StateIdConst.ACTIVE,
-                CreatedDate    = DateTime.Now
+                CreatedDate    = DateTime.Now,
             };
 
             await _command.CreateAsync(doc, ct);
 
-            // Har bir qatorga hujjat id sini bog'laymiz
-            foreach (var line in lines)
-                line.OwnerId = doc.Id;
+            await _command.ReloadAsync(doc, ct);
 
-            await _lineCommand.CreateAsync(lines, ct);
+            var dispatch = await _dispatcher.ProcessAsync(doc, ct);
+
+            if (!dispatch.IsSuccess)
+                return Result.Failure<long>(dispatch.Error);
 
             return Result.Success(doc.Id);
         }, ct);
@@ -170,8 +176,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
     // dto.Lines dan PurchaseDocTable entity larini yaratib beradi
     // VatRate DB dan olinadi — agar topilmasa xato qaytaradi
-    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(
-        List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
+    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
     {
         var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
@@ -186,8 +191,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 var vatRate  = await _vatRateQuery.GetAsync(vatQuery, ct);
 
                 if (vatRate == null)
-                    return Result.Failure<List<PurchaseDocTable>>(
-                        PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
+                    return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
 
                 vatAmount = Math.Round(amount * vatRate.Rate / 100, 2);
             }
@@ -204,6 +208,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             });
         }
 
-        return Result.Success(lines);
+        return lines;
     }
 }

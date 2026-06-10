@@ -9,31 +9,31 @@
         /// <summary>
         /// Purchase document for goods or services.
         /// </summary>
-        public const short Purchase = 1;
+        public const short PURCHASE = 1;
 
         /// <summary>
         /// Sales document for goods or services.
         /// </summary>
-        public const short Sale = 2;
+        public const short SALE = 2;
 
         /// <summary>
         /// Bank transaction document.
         /// </summary>
-        public const short BankOperation = 3;
+        public const short BANKOPERATION = 3;
 
         /// <summary>
         /// Cash transaction document.
         /// </summary>
-        public const short CashOperation = 4;
+        public const short CASHOPERATION = 4;
 
         /// <summary>
         /// Payroll document.
         /// </summary>
-        public const short Salary = 5;
+        public const short SALARY = 5;
 
         /// <summary>
         /// Expense document.
         /// </summary>
-        public const short Expense = 6;
+        public const short EXPENSE = 6;
     }
 }

@@ -929,24 +929,58 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<ProductPrice>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("inv_product_price_pkey");
+
                 entity.ToTable("inv_product_price");
-                entity.HasIndex(e => e.OrganizationId, "idx_inv_product_price_organization_id");
-                entity.HasIndex(e => e.ProductId, "idx_inv_product_price_product_id");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_inv_product_price_currency_id");
+
                 entity.HasIndex(e => new { e.StartDate, e.EndDate }, "idx_inv_product_price_dates");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_inv_product_price_organization_id");
+
+                entity.HasIndex(e => e.ProductId, "idx_inv_product_price_product_id");
+
                 entity.HasIndex(e => e.StateId, "idx_inv_product_price_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
-                entity.Property(e => e.StartDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("start_date");
-                entity.Property(e => e.EndDate).HasColumnType("timestamp without time zone").HasColumnName("end_date");
+                entity.Property(e => e.EndDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("end_date");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.StartDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("start_date");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Product).WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_product_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_currency_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_product_price_state_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.ProductPrices)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_price_currency_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.ProductPrices)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_price_organization_id_fkey");
+
+                entity.HasOne(d => d.Product).WithMany(p => p.ProductPrices)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_price_product_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.ProductPrices)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_price_state_id_fkey");
             });
 
             modelBuilder.Entity<OrgBankAccount>(entity =>
@@ -1001,273 +1035,654 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<BankOperation>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("bank_operation_pkey");
+
                 entity.ToTable("bank_operation");
-                entity.HasIndex(e => e.OrganizationId, "idx_bank_operation_organization_id");
+
                 entity.HasIndex(e => e.BankAccountId, "idx_bank_operation_bank_account_id");
-                entity.HasIndex(e => e.OperationTypeId, "idx_bank_operation_operation_type_id");
+
                 entity.HasIndex(e => e.CounterpartyId, "idx_bank_operation_counterparty_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_bank_operation_doc_date");
-                entity.HasIndex(e => e.StatusId, "idx_bank_operation_status_id");
+
+                entity.HasIndex(e => e.OperationTypeId, "idx_bank_operation_operation_type_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_bank_operation_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_bank_operation_state_id");
+
+                entity.HasIndex(e => e.StatusId, "idx_bank_operation_status_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.BankAccountId).HasColumnName("bank_account_id");
-                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
-                entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+                entity.Property(e => e.Comment)
+                    .HasMaxLength(1000)
+                    .HasColumnName("comment");
                 entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
-                entity.Property(e => e.DocNumber).HasMaxLength(100).HasColumnName("doc_number");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
-                entity.Property(e => e.StatusId).HasColumnName("status_id");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocNumber)
+                    .HasMaxLength(100)
+                    .HasColumnName("doc_number");
+                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.BankAccount).WithMany().HasForeignKey(e => e.BankAccountId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_bank_account_id_fkey");
-                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_operation_type_id_fkey");
-                entity.HasOne(e => e.PaymentType).WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("bank_operation_payment_type_id_fkey");
-                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("bank_operation_counterparty_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_currency_id_fkey");
-                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_status_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("bank_operation_state_id_fkey");
+                entity.Property(e => e.StatusId).HasColumnName("status_id");
+
+                entity.HasOne(d => d.BankAccount).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.BankAccountId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_bank_account_id_fkey");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .HasConstraintName("bank_operation_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_currency_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_organization_id_fkey");
+
+                entity.HasOne(d => d.PaymentType).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.PaymentTypeId)
+                    .HasConstraintName("bank_operation_payment_type_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_state_id_fkey");
+
+                entity.HasOne(d => d.Status).WithMany(p => p.BankOperations)
+                    .HasForeignKey(d => d.StatusId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("bank_operation_status_id_fkey");
             });
 
             modelBuilder.Entity<CashBox>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("cash_box_pkey");
+
                 entity.ToTable("cash_box");
-                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_cash_box_org_code").IsUnique();
-                entity.HasIndex(e => e.OrganizationId, "idx_cash_box_organization_id");
+
                 entity.HasIndex(e => e.BranchId, "idx_cash_box_branch_id");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_cash_box_currency_id");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_cash_box_org_code").IsUnique();
+
+                entity.HasIndex(e => e.OrganizationId, "idx_cash_box_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_cash_box_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.BranchId).HasColumnName("branch_id");
-                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(250)
+                    .HasColumnName("name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Branch).WithMany().HasForeignKey(e => e.BranchId).HasConstraintName("cash_box_branch_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_currency_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_box_state_id_fkey");
+
+                entity.HasOne(d => d.Branch).WithMany(p => p.CashBoxes)
+                    .HasForeignKey(d => d.BranchId)
+                    .HasConstraintName("cash_box_branch_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.CashBoxes)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_box_currency_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.CashBoxes)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_box_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.CashBoxes)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_box_state_id_fkey");
             });
 
             modelBuilder.Entity<CashOperation>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("cash_operation_pkey");
+
                 entity.ToTable("cash_operation");
-                entity.HasIndex(e => e.OrganizationId, "idx_cash_operation_organization_id");
+
                 entity.HasIndex(e => e.CashBoxId, "idx_cash_operation_cash_box_id");
-                entity.HasIndex(e => e.OperationTypeId, "idx_cash_operation_operation_type_id");
+
                 entity.HasIndex(e => e.CounterpartyId, "idx_cash_operation_counterparty_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_cash_operation_doc_date");
-                entity.HasIndex(e => e.StatusId, "idx_cash_operation_status_id");
+
+                entity.HasIndex(e => e.OperationTypeId, "idx_cash_operation_operation_type_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_cash_operation_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_cash_operation_state_id");
+
+                entity.HasIndex(e => e.StatusId, "idx_cash_operation_status_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.CashBoxId).HasColumnName("cash_box_id");
-                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
-                entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+                entity.Property(e => e.Comment)
+                    .HasMaxLength(1000)
+                    .HasColumnName("comment");
                 entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
-                entity.Property(e => e.DocNumber).HasMaxLength(100).HasColumnName("doc_number");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
-                entity.Property(e => e.StatusId).HasColumnName("status_id");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocNumber)
+                    .HasMaxLength(100)
+                    .HasColumnName("doc_number");
+                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.CashBox).WithMany().HasForeignKey(e => e.CashBoxId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_cash_box_id_fkey");
-                entity.HasOne(e => e.OperationType).WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_operation_type_id_fkey");
-                entity.HasOne(e => e.PaymentType).WithMany().HasForeignKey(e => e.PaymentTypeId).HasConstraintName("cash_operation_payment_type_id_fkey");
-                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).HasConstraintName("cash_operation_counterparty_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_currency_id_fkey");
-                entity.HasOne(e => e.Status).WithMany().HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_status_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("cash_operation_state_id_fkey");
+                entity.Property(e => e.StatusId).HasColumnName("status_id");
+
+                entity.HasOne(d => d.CashBox).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.CashBoxId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_cash_box_id_fkey");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .HasConstraintName("cash_operation_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_currency_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_organization_id_fkey");
+
+                entity.HasOne(d => d.PaymentType).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.PaymentTypeId)
+                    .HasConstraintName("cash_operation_payment_type_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_state_id_fkey");
+
+                entity.HasOne(d => d.Status).WithMany(p => p.CashOperations)
+                    .HasForeignKey(d => d.StatusId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cash_operation_status_id_fkey");
             });
 
             modelBuilder.Entity<PurchaseDoc>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("pur_doc_pkey");
+
                 entity.ToTable("pur_doc");
-                entity.HasIndex(e => e.OrganizationId, "idx_pur_doc_organization_id");
+
                 entity.HasIndex(e => e.CounterpartyId, "idx_pur_doc_counterparty_id");
-                entity.HasIndex(e => e.WarehouseId, "idx_pur_doc_warehouse_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_pur_doc_doc_date");
-                entity.HasIndex(e => e.StatusId, "idx_pur_doc_status_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_pur_doc_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_pur_doc_state_id");
+
+                entity.HasIndex(e => e.StatusId, "idx_pur_doc_status_id");
+
+                entity.HasIndex(e => e.WarehouseId, "idx_pur_doc_warehouse_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocNumber).HasMaxLength(100).HasColumnName("doc_number");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
+                entity.Property(e => e.Comment)
+                    .HasMaxLength(1000)
+                    .HasColumnName("comment");
                 entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
-                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
-                entity.Property(e => e.FinalAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("final_amount");
-                entity.Property(e => e.StatusId).HasColumnName("status_id");
-                entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocNumber)
+                    .HasMaxLength(100)
+                    .HasColumnName("doc_number");
+                entity.Property(e => e.FinalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("final_amount");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Organization).WithMany(o => o.PurchaseDocs).HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_organization_id_fkey");
-                entity.HasOne(e => e.Counterparty).WithMany(c => c.PurchaseDocs).HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_counterparty_id_fkey");
-                entity.HasOne(e => e.Warehouse).WithMany(w => w.PurchaseDocs).HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_warehouse_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany(c => c.PurchaseDocs).HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_currency_id_fkey");
-                entity.HasOne(e => e.Status).WithMany(s => s.PurchaseDocs).HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_status_id_fkey");
-                entity.HasOne(e => e.State).WithMany(s => s.PurchaseDocs).HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_state_id_fkey");
+                entity.Property(e => e.StatusId).HasColumnName("status_id");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
+                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_currency_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_state_id_fkey");
+
+                entity.HasOne(d => d.Status).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.StatusId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_status_id_fkey");
+
+                entity.HasOne(d => d.Warehouse).WithMany(p => p.PurchaseDocs)
+                    .HasForeignKey(d => d.WarehouseId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_warehouse_id_fkey");
             });
 
             modelBuilder.Entity<PurchaseDocTable>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("pur_doc_table_pkey");
+
                 entity.ToTable("pur_doc_table");
+
                 entity.HasIndex(e => e.OwnerId, "idx_pur_doc_table_owner_id");
+
                 entity.HasIndex(e => e.ProductId, "idx_pur_doc_table_product_id");
+
                 entity.HasIndex(e => e.VatRateId, "idx_pur_doc_table_vat_rate_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductId).HasColumnName("product_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.HasOne(e => e.Owner).WithMany(p => p.Lines).HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("pur_doc_table_owner_id_fkey");
-                entity.HasOne(e => e.Product).WithMany(p => p.PurchaseDocTables).HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("pur_doc_table_product_id_fkey");
-                entity.HasOne(e => e.VatRate).WithMany(v => v.PurchaseDocTables).HasForeignKey(e => e.VatRateId).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
+
+                entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
+                    .HasForeignKey(d => d.OwnerId)
+                    .HasConstraintName("pur_doc_table_owner_id_fkey");
+
+                entity.HasOne(d => d.Product).WithMany(p => p.PurchaseDocTables)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("pur_doc_table_product_id_fkey");
+
+                entity.HasOne(d => d.VatRate).WithMany(p => p.PurchaseDocTables)
+                    .HasForeignKey(d => d.VatRateId)
+                    .HasConstraintName("pur_doc_table_vat_rate_id_fkey");
             });
 
             modelBuilder.Entity<SaleDoc>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("sale_doc_pkey");
+
                 entity.ToTable("sale_doc");
-                entity.HasIndex(e => e.OrganizationId, "idx_sale_doc_organization_id");
+
                 entity.HasIndex(e => e.CounterpartyId, "idx_sale_doc_counterparty_id");
-                entity.HasIndex(e => e.WarehouseId, "idx_sale_doc_warehouse_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_sale_doc_doc_date");
-                entity.HasIndex(e => e.StatusId, "idx_sale_doc_status_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_sale_doc_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_sale_doc_state_id");
+
+                entity.HasIndex(e => e.StatusId, "idx_sale_doc_status_id");
+
+                entity.HasIndex(e => e.WarehouseId, "idx_sale_doc_warehouse_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocNumber).HasMaxLength(100).HasColumnName("doc_number");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
+                entity.Property(e => e.Comment)
+                    .HasMaxLength(1000)
+                    .HasColumnName("comment");
                 entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
-                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
-                entity.Property(e => e.FinalAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("final_amount");
-                entity.Property(e => e.StatusId).HasColumnName("status_id");
-                entity.Property(e => e.Comment).HasMaxLength(1000).HasColumnName("comment");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocNumber)
+                    .HasMaxLength(100)
+                    .HasColumnName("doc_number");
+                entity.Property(e => e.FinalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("final_amount");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Organization).WithMany(o => o.SaleDocs).HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_organization_id_fkey");
-                entity.HasOne(e => e.Counterparty).WithMany(c => c.SaleDocs).HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_counterparty_id_fkey");
-                entity.HasOne(e => e.Warehouse).WithMany(w => w.SaleDocs).HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_warehouse_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany(c => c.SaleDocs).HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_currency_id_fkey");
-                entity.HasOne(e => e.Status).WithMany(s => s.SaleDocs).HasForeignKey(e => e.StatusId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_status_id_fkey");
-                entity.HasOne(e => e.State).WithMany(s => s.SaleDocs).HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_state_id_fkey");
+                entity.Property(e => e.StatusId).HasColumnName("status_id");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
+                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_currency_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_state_id_fkey");
+
+                entity.HasOne(d => d.Status).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.StatusId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_status_id_fkey");
+
+                entity.HasOne(d => d.Warehouse).WithMany(p => p.SaleDocs)
+                    .HasForeignKey(d => d.WarehouseId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_warehouse_id_fkey");
             });
 
             modelBuilder.Entity<SaleDocTable>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("sale_doc_table_pkey");
+
                 entity.ToTable("sale_doc_table");
+
                 entity.HasIndex(e => e.OwnerId, "idx_sale_doc_table_owner_id");
+
                 entity.HasIndex(e => e.ProductId, "idx_sale_doc_table_product_id");
+
                 entity.HasIndex(e => e.VatRateId, "idx_sale_doc_table_vat_rate_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductId).HasColumnName("product_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasDefaultValue(0).HasColumnName("vat_amount");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.HasOne(e => e.Owner).WithMany(p => p.Lines).HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("sale_doc_table_owner_id_fkey");
-                entity.HasOne(e => e.Product).WithMany(p => p.SaleDocTables).HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("sale_doc_table_product_id_fkey");
-                entity.HasOne(e => e.VatRate).WithMany(v => v.SaleDocTables).HasForeignKey(e => e.VatRateId).HasConstraintName("sale_doc_table_vat_rate_id_fkey");
+
+                entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
+                    .HasForeignKey(d => d.OwnerId)
+                    .HasConstraintName("sale_doc_table_owner_id_fkey");
+
+                entity.HasOne(d => d.Product).WithMany(p => p.SaleDocTables)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sale_doc_table_product_id_fkey");
+
+                entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocTables)
+                    .HasForeignKey(d => d.VatRateId)
+                    .HasConstraintName("sale_doc_table_vat_rate_id_fkey");
             });
 
             modelBuilder.Entity<InventoryRegisterBalance>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
+
                 entity.ToTable("inv_reg_balance");
-                entity.HasIndex(e => e.OrganizationId, "idx_inv_reg_balance_organization_id");
-                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_inv_reg_balance_document");
-                entity.HasIndex(e => e.WarehouseId, "idx_inv_reg_balance_warehouse_id");
-                entity.HasIndex(e => e.ProductId, "idx_inv_reg_balance_product_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_inv_reg_balance_doc_date");
+
+                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_inv_reg_balance_document");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_inv_reg_balance_organization_id");
+
+                entity.HasIndex(e => e.ProductId, "idx_inv_reg_balance_product_id");
+
+                entity.HasIndex(e => e.WarehouseId, "idx_inv_reg_balance_warehouse_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
                 entity.Property(e => e.DocumentId).HasColumnName("document_id");
-                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
-                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
                 entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<DocumentType>().WithMany().HasForeignKey(e => e.DocumentTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_reg_balance_document_type_id_fkey");
-                entity.HasOne<Warehouse>().WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_reg_balance_warehouse_id_fkey");
-                entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_reg_balance_product_id_fkey");
-                entity.HasOne<OperationType>().WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("inv_reg_balance_operation_type_id_fkey");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.InventoryRegisterBalances)
+                    .HasForeignKey(d => d.DocumentTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_reg_balance_document_type_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.InventoryRegisterBalances)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_reg_balance_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.InventoryRegisterBalances)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_reg_balance_organization_id_fkey");
+
+                entity.HasOne(d => d.Product).WithMany(p => p.InventoryRegisterBalances)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_reg_balance_product_id_fkey");
+
+                entity.HasOne(d => d.Warehouse).WithMany(p => p.InventoryRegisterBalances)
+                    .HasForeignKey(d => d.WarehouseId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
             });
 
             modelBuilder.Entity<MoneyRegisterBalance>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("money_reg_balance_pkey");
+
                 entity.ToTable("money_reg_balance");
-                entity.HasIndex(e => e.OrganizationId, "idx_money_reg_balance_organization_id");
-                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_money_reg_balance_document");
-                entity.HasIndex(e => new { e.SourceType, e.SourceId }, "idx_money_reg_balance_source");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_money_reg_balance_currency_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_money_reg_balance_doc_date");
+
+                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_money_reg_balance_document");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_money_reg_balance_organization_id");
+
+                entity.HasIndex(e => new { e.SourceType, e.SourceId }, "idx_money_reg_balance_source");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
-                entity.Property(e => e.DocumentId).HasColumnName("document_id");
-                entity.Property(e => e.SourceType).HasMaxLength(20).HasColumnName("source_type");
-                entity.Property(e => e.SourceId).HasColumnName("source_id");
-                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<DocumentType>().WithMany().HasForeignKey(e => e.DocumentTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("money_reg_balance_document_type_id_fkey");
-                entity.HasOne<OperationType>().WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("money_reg_balance_operation_type_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("money_reg_balance_currency_id_fkey");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocumentId).HasColumnName("document_id");
+                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.SourceId).HasColumnName("source_id");
+                entity.Property(e => e.SourceType)
+                    .HasMaxLength(20)
+                    .HasColumnName("source_type");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.MoneyRegisterBalances)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("money_reg_balance_currency_id_fkey");
+
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.MoneyRegisterBalances)
+                    .HasForeignKey(d => d.DocumentTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("money_reg_balance_document_type_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.MoneyRegisterBalances)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("money_reg_balance_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.MoneyRegisterBalances)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("money_reg_balance_organization_id_fkey");
             });
 
             modelBuilder.Entity<CounterpartyRegisterBalance>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("counterparty_reg_balance_pkey");
+
                 entity.ToTable("counterparty_reg_balance");
-                entity.HasIndex(e => e.OrganizationId, "idx_counterparty_reg_balance_organization_id");
-                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_counterparty_reg_balance_document");
+
                 entity.HasIndex(e => e.CounterpartyId, "idx_counterparty_reg_balance_counterparty_id");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_counterparty_reg_balance_currency_id");
+
                 entity.HasIndex(e => e.DocDate, "idx_counterparty_reg_balance_doc_date");
+
+                entity.HasIndex(e => new { e.DocumentTypeId, e.DocumentId }, "idx_counterparty_reg_balance_document");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_counterparty_reg_balance_organization_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
-                entity.Property(e => e.DocumentId).HasColumnName("document_id");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
-                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
-                entity.Property(e => e.DocDate).HasColumnType("timestamp without time zone").HasColumnName("doc_date");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne<DocumentType>().WithMany().HasForeignKey(e => e.DocumentTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_reg_balance_document_type_id_fkey");
-                entity.HasOne<CounterpartyCard>().WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_reg_balance_counterparty_id_fkey");
-                entity.HasOne<OperationType>().WithMany().HasForeignKey(e => e.OperationTypeId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_reg_balance_operation_type_id_fkey");
-                entity.HasOne<Currency>().WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_reg_balance_currency_id_fkey");
+                entity.Property(e => e.DocDate)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("doc_date");
+                entity.Property(e => e.DocumentId).HasColumnName("document_id");
+                entity.Property(e => e.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.CounterpartyRegisterBalances)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_reg_balance_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.CounterpartyRegisterBalances)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_reg_balance_currency_id_fkey");
+
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.CounterpartyRegisterBalances)
+                    .HasForeignKey(d => d.DocumentTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_reg_balance_document_type_id_fkey");
+
+                entity.HasOne(d => d.OperationType).WithMany(p => p.CounterpartyRegisterBalances)
+                    .HasForeignKey(d => d.OperationTypeId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_reg_balance_operation_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.CounterpartyRegisterBalances)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_reg_balance_organization_id_fkey");
             });
 
             modelBuilder.Entity<AccountingRegisterEntry>(entity =>
@@ -1354,26 +1769,55 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<ChartAccount>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("acc_chart_account_pkey");
+
                 entity.ToTable("acc_chart_account");
-                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_acc_chart_account_org_code").IsUnique();
-                entity.HasIndex(e => e.OrganizationId, "idx_acc_chart_account_organization_id");
-                entity.HasIndex(e => e.ParentId, "idx_acc_chart_account_parent_id");
+
                 entity.HasIndex(e => e.AccountTypeId, "idx_acc_chart_account_account_type_id");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_acc_chart_account_org_code").IsUnique();
+
+                entity.HasIndex(e => e.OrganizationId, "idx_acc_chart_account_organization_id");
+
+                entity.HasIndex(e => e.ParentId, "idx_acc_chart_account_parent_id");
+
                 entity.HasIndex(e => e.StateId, "idx_acc_chart_account_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.AccountTypeId).HasColumnName("account_type_id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.IsCurrency).HasColumnName("is_currency");
+                entity.Property(e => e.IsGroup).HasColumnName("is_group");
+                entity.Property(e => e.IsQuantity).HasColumnName("is_quantity");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(250)
+                    .HasColumnName("name");
                 entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.ParentId).HasColumnName("parent_id");
-                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
-                entity.Property(e => e.IsGroup).HasDefaultValue(false).HasColumnName("is_group");
-                entity.Property(e => e.AccountTypeId).HasColumnName("account_type_id");
-                entity.Property(e => e.IsQuantity).HasDefaultValue(false).HasColumnName("is_quantity");
-                entity.Property(e => e.IsCurrency).HasDefaultValue(false).HasColumnName("is_currency");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Parent).WithMany().HasForeignKey(e => e.ParentId).HasConstraintName("acc_chart_account_parent_id_fkey");
-                entity.HasOne(e => e.AccountType).WithMany().HasForeignKey(e => e.AccountTypeId).HasConstraintName("acc_chart_account_account_type_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("acc_chart_account_state_id_fkey");
+
+                entity.HasOne(d => d.AccountType).WithMany(p => p.ChartAccounts)
+                    .HasForeignKey(d => d.AccountTypeId)
+                    .HasConstraintName("acc_chart_account_account_type_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.ChartAccounts)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_chart_account_organization_id_fkey");
+
+                entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent)
+                    .HasForeignKey(d => d.ParentId)
+                    .HasConstraintName("acc_chart_account_parent_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.ChartAccounts)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("acc_chart_account_state_id_fkey");
             });
         }
     }

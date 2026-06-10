@@ -4,10 +4,10 @@
     {
         public const short UZ = 1;
 
-        public const short UZ_CYRL = 2;
+        public const short RU = 2;
 
-        public const short RU = 3;
+        public const short EN = 3;
 
-        public const short EN = 4;
+        public const short UZ_CYRL = 999;
     }
 }

@@ -15,4 +15,5 @@ public partial class CounterpartyBankAccount
     public virtual Bank Bank { get; set; } = null!;
     public virtual Currency Currency { get; set; } = null!;
     public virtual State State { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 }

@@ -353,25 +353,58 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<CounterpartyBankAccount>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("counterparty_bank_account_pkey");
+
                 entity.ToTable("counterparty_bank_account");
-                entity.HasIndex(e => e.OrganizationId, "idx_counterparty_bank_account_organization_id");
-                entity.HasIndex(e => e.CounterpartyId, "idx_counterparty_bank_account_counterparty_id");
+
                 entity.HasIndex(e => e.BankId, "idx_counterparty_bank_account_bank_id");
+
+                entity.HasIndex(e => e.CounterpartyId, "idx_counterparty_bank_account_counterparty_id");
+
                 entity.HasIndex(e => e.CurrencyId, "idx_counterparty_bank_account_currency_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_counterparty_bank_account_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_counterparty_bank_account_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
+                entity.Property(e => e.AccountNumber)
+                    .HasMaxLength(50)
+                    .HasColumnName("account_number");
                 entity.Property(e => e.BankId).HasColumnName("bank_id");
-                entity.Property(e => e.AccountNumber).HasMaxLength(50).HasColumnName("account_number");
+                entity.Property(e => e.CounterpartyId).HasColumnName("counterparty_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
                 entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
-                entity.Property(e => e.IsMain).HasDefaultValue(false).HasColumnName("is_main");
+                entity.Property(e => e.IsMain).HasColumnName("is_main");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Counterparty).WithMany().HasForeignKey(e => e.CounterpartyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_bank_account_counterparty_id_fkey");
-                entity.HasOne(e => e.Bank).WithMany().HasForeignKey(e => e.BankId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_bank_account_bank_id_fkey");
-                entity.HasOne(e => e.Currency).WithMany().HasForeignKey(e => e.CurrencyId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_bank_account_currency_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("counterparty_bank_account_state_id_fkey");
+
+                entity.HasOne(d => d.Bank).WithMany(p => p.CounterpartyBankAccounts)
+                    .HasForeignKey(d => d.BankId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_bank_account_bank_id_fkey");
+
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.CounterpartyBankAccounts)
+                    .HasForeignKey(d => d.CounterpartyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_bank_account_counterparty_id_fkey");
+
+                entity.HasOne(d => d.Currency).WithMany(p => p.CounterpartyBankAccounts)
+                    .HasForeignKey(d => d.CurrencyId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_bank_account_currency_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.CounterpartyBankAccounts)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_bank_account_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.CounterpartyBankAccounts)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("counterparty_bank_account_state_id_fkey");
             });
 
             modelBuilder.Entity<CounterpartyContact>(entity =>

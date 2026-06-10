@@ -11,11 +11,13 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IQueryRepository<PostingRule> _postingRuleQuery;
     private readonly IQueryRepository<AccountingRegisterEntry> _query;
     private readonly ICommandRepository<AccountingRegisterEntry> _command;
 
     public AccountingRegisterEntryService(IUserContext userContext,
                                           IQueryBuilder queryBuilder,
+                                          IQueryRepository<PostingRule> postingRuleQuery,
                                           IQueryRepository<AccountingRegisterEntry> query,
                                           ICommandRepository<AccountingRegisterEntry> command)
     {
@@ -23,6 +25,7 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
         _command = command;
         _userContext = userContext;
         _queryBuilder = queryBuilder;
+        _postingRuleQuery = postingRuleQuery;
     }
 
     public async Task<Result<long>> CreateAsync(AccountingRegisterEntryCreateDto dto, CancellationToken ct = default)

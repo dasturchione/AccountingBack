@@ -22,12 +22,14 @@ using Application.Features.ProductPrices;
 using Application.Features.Products;
 using Application.Features.PurchaseDocs;
 using Application.Features.PurchaseDocTables;
+using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.Roles;
 using Application.Features.SaleDocs;
 using Application.Features.SaleDocTables;
 using Application.Features.Users;
 using Application.Features.Users.Services;
 using Application.Features.Warehouses;
+using Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Query;
 
@@ -69,6 +71,8 @@ namespace Application
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
+
+            services.AddScoped<IAccountingDocumentHandler<PurchaseDoc>, PurchaseAccountingHandler>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

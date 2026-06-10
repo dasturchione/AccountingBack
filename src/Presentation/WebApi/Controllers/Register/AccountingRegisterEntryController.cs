@@ -36,27 +36,27 @@ public class AccountingRegisterEntryController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryCreate)]
-    public async Task<IResult> CreateAsync([FromBody] AccountingRegisterEntryCreateDto dto, CancellationToken ct = default)
-    {
-        var result = await _service.CreateAsync(dto, ct);
-        return result.Match(Results.Ok, CustomResults.Problem);
-    }
+    //[HttpPost]
+    //[ModuleAuthorize(PermissionCodeConst.AccRegEntryCreate)]
+    //public async Task<IResult> CreateAsync([FromBody] AccountingRegisterEntryCreateDto dto, CancellationToken ct = default)
+    //{
+    //    var result = await _service.CreateAsync(dto, ct);
+    //    return result.Match(Results.Ok, CustomResults.Problem);
+    //}
 
-    [HttpPut("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryUpdate)]
-    public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default)
-    {
-        var result = await _service.UpdateAsync(id, dto, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
+    //[HttpPut("{id:long}")]
+    //[ModuleAuthorize(PermissionCodeConst.AccRegEntryUpdate)]
+    //public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default)
+    //{
+    //    var result = await _service.UpdateAsync(id, dto, ct);
+    //    return result.Match(Results.NoContent, CustomResults.Problem);
+    //}
 
-    [HttpDelete("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryDelete)]
-    public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
-    {
-        var result = await _service.DeleteAsync(id, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
+    //[HttpDelete("{id:long}")]
+    //[ModuleAuthorize(PermissionCodeConst.AccRegEntryDelete)]
+    //public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
+    //{
+    //    var result = await _service.DeleteAsync(id, ct);
+    //    return result.Match(Results.NoContent, CustomResults.Problem);
+    //}
 }

@@ -71,6 +71,7 @@ namespace Application
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
+            services.AddScoped<IAccountingDispatcher, AccountingDispatcher>();
 
             services.AddScoped<IAccountingDocumentHandler<PurchaseDoc>, PurchaseAccountingHandler>();
 

@@ -85,6 +85,7 @@ namespace WebApi.Configuration
             builder.Services.AddScoped<FluentValidationFilter>();
 
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
 
             builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -275,6 +276,8 @@ namespace WebApi.Configuration
 
         private static WebApplication UseMiddlewares(this WebApplication app)
         {
+            app.UseExceptionHandler();
+
             app.UseHttpsRedirection();
 
             app.UseMiddleware<CorrelationIdMiddleware>();

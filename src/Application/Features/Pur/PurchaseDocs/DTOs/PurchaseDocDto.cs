@@ -1,3 +1,5 @@
+using Application.Features.PurchaseDocTables;
+
 namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocDto
@@ -22,4 +24,5 @@ public class PurchaseDocDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+    public List<PurchaseDocTableDto> Lines { get; set; } = new();
 }

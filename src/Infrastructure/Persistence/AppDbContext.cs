@@ -473,10 +473,6 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
 
-                entity.HasOne(d => d.Organization).WithMany()
-                    .HasForeignKey(d => d.OrganizationId)
-                    .HasConstraintName("sys_role_organization_id_fkey");
-
                 entity.HasOne(d => d.State).WithMany(p => p.Roles)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
@@ -560,15 +556,6 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.RoleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("sys_user_role_id_fkey");
-
-                entity.HasOne(d => d.Organization).WithMany()
-                    .HasForeignKey(d => d.OrganizationId)
-                    .HasConstraintName("sys_user_organization_id_fkey");
-
-                entity.HasOne<Language>()
-                    .WithMany()
-                    .HasForeignKey(d => d.LanguageId)
-                    .HasConstraintName("sys_user_language_id_fkey");
 
                 entity.HasOne(d => d.State).WithMany(p => p.Users)
                     .HasForeignKey(d => d.StateId)

@@ -22,7 +22,7 @@ namespace Infrastructure.Repositories
             try
             {
                 await _dbSet.AddAsync(entity, ct);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(ct);
             }
             catch (Exception ex)
             {

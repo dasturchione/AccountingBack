@@ -125,9 +125,69 @@ namespace Infrastructure.Repositories
         #region Apply Includes
         private static IQueryable<TEntity> ApplyIncludes(IQueryable<TEntity> query, IReadOnlyList<IncludeEntry<TEntity>> includes)
         {
+            var efType = typeof(Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions);
+
             foreach (var include in includes)
             {
-                query = query.Include(BuildPath(include));
+                var includeExpr = include.NavigationExpression;
+
+                var includeMethod = efType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .First(m => m.Name == "Include" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
+
+                var genericInclude = includeMethod.MakeGenericMethod(typeof(TEntity), includeExpr.ReturnType);
+                var current = genericInclude.Invoke(null, new object[] { query, includeExpr });
+
+                var next = include.Next;
+                // Walk ThenIncludes and try appropriate overloads for collection vs reference navigations
+                while (next is not null)
+                {
+                    var thenExpr = next.NavigationExpression;
+
+                    var thenCandidates = efType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                        .Where(m => m.Name == "ThenInclude" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2)
+                        .ToArray();
+
+                    var invoked = false;
+
+                    foreach (var candidate in thenCandidates)
+                    {
+                        var genArgs = candidate.GetGenericArguments().Length;
+
+                        try
+                        {
+                            // Try to infer generic arguments: (TEntity, TPrevious, TNext)
+                            Type prevType = includeExpr.ReturnType;
+
+                            // If previous is a collection, extract the element type for ThenInclude's TPrevious generic
+                            if (prevType != typeof(string))
+                            {
+                                var ienum = prevType.GetInterfaces()
+                                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+                                if (ienum is not null)
+                                    prevType = ienum.GetGenericArguments()[0];
+                            }
+
+                            var genericThen = candidate.MakeGenericMethod(typeof(TEntity), prevType, thenExpr.ReturnType);
+                            current = genericThen.Invoke(null, new object[] { current, thenExpr });
+                            invoked = true;
+                            break;
+                        }
+                        catch
+                        {
+                            // try next candidate
+                        }
+                    }
+
+                    if (!invoked)
+                        break;
+
+                    includeExpr = thenExpr;
+                    next = next.Next;
+                }
+
+                if (current is IQueryable<TEntity> q)
+                    query = q;
             }
 
             return query;

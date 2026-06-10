@@ -9,5 +9,5 @@ public class PurchaseDocBaseDto
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
     public string? Comment { get; set; }
-    public short StatusId { get; set; }
+    public List<PurchaseDocLineDto> Lines { get; set; } = new();
 }

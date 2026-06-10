@@ -1,4 +1,4 @@
-﻿namespace SharedKernel.Constants
+namespace SharedKernel.Constants
 {
     public class DocumentStatusIdConst
     {

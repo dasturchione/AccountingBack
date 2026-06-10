@@ -169,7 +169,7 @@ namespace Infrastructure.Repositories
                             }
 
                             var genericThen = candidate.MakeGenericMethod(typeof(TEntity), prevType, thenExpr.ReturnType);
-                            current = genericThen.Invoke(null, new object[] { current, thenExpr });
+                            current = genericThen.Invoke(null, new object[] { current!, thenExpr });
                             invoked = true;
                             break;
                         }

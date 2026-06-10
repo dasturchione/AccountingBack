@@ -2,7 +2,13 @@
 
 public interface IUserContext
 {
-    int? Id { get; }
-    int? RoleId { get; }
-    short? LanguageId { get; }
+    int? Id { get; } 
+
+    int? RoleId { get; } 
+
+    short? LanguageId { get; } 
+
+    int? OrganizationId { get; } 
+
+    int? BranchId { get; } 
 }

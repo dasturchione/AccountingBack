@@ -32,7 +32,27 @@ namespace Infrastructure.Context
             }
         }
 
+        public int? OrganizationId => GetOrganizationId();
+
+        public int? BranchId => GetBranchId();
+
         public short? LanguageId => GetLanguageId();
+
+        private int? GetOrganizationId() => GetHeaderInt("X-OrganizationId");
+
+        private int? GetBranchId() => GetHeaderInt("X-BranchId");
+
+        private int? GetHeaderInt(string key)
+        {
+            var value = _accessor.HttpContext?.Request.Headers[key].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return int.TryParse(value, out var result)
+                ? result
+                : null;
+        }
 
         private short? GetLanguageId()
         {

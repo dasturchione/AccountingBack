@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -37,6 +38,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Language> _languageQuery;
     private readonly IQueryRepository<Module>   _moduleQuery;
+    private readonly IUserContext               _userContext;
 
     public ManualService(
         IQueryRepository<Role> roleQuery,
@@ -67,7 +69,8 @@ public class ManualService : IManualService
         IQueryRepository<CashOperation> cashOperationQuery,
         IQueryRepository<Language> languageQuery,
         IQueryRepository<Organization> organizationQuery,
-        IQueryRepository<Module>   moduleQuery)
+        IQueryRepository<Module>   moduleQuery,
+        IUserContext               userContext)
     {
         _roleQuery             = roleQuery;
         _stateQuery            = stateQuery;
@@ -98,6 +101,7 @@ public class ManualService : IManualService
         _languageQuery         = languageQuery;
         _organizationQuery     = organizationQuery;
         _moduleQuery           = moduleQuery;
+        _userContext           = userContext;
     }
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
@@ -201,9 +205,13 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId;
+
         var spec = new QuerySpecification<User, SelectListDto>
         {
-            Criteria = u => u.StateId == StateIdConst.ACTIVE && (roleId == null || u.RoleId == roleId),
+            Criteria = u => u.StateId == StateIdConst.ACTIVE
+                         && (roleId == null || u.RoleId == roleId)
+                         && (orgId == null || u.UserOrganizations.Any(uo => uo.OrganizationId == orgId && uo.StateId == StateIdConst.ACTIVE)),
             OrderBy  = q => q.OrderBy(u => u.Name),
             Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
         };

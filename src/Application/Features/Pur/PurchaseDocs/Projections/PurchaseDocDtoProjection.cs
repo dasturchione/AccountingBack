@@ -34,8 +34,8 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             {
                 Id          = l.Id,
                 OwnerId     = l.OwnerId,
-                ProductId   = l.ProductId,
-                ProductName = l.Product.Name,
+                ProductTableId = l.ProductTableId,
+                ProductName = l.ProductTable.Product.Name,
                 Quantity    = l.Quantity,
                 Price       = l.Price,
                 Amount      = l.Amount,

@@ -15,7 +15,7 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
             DocumentTypeId  = DocumentTypeIdConst.PURCHASE,
             DocumentId      = purchase.Id,
             WarehouseId     = purchase.WarehouseId,
-            ProductId       = line.ProductId,
+            ProductId       = line.ProductTable.ProductId,
             OperationTypeId = OperationTypeIdConst.IN,
             Quantity        = line.Quantity,
             Amount          = line.TotalAmount,

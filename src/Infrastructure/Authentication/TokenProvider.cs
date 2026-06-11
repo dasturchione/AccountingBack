@@ -18,12 +18,12 @@ namespace Infrastructure.Authentication
             _jwt = options.Value;
         }
 
-        public string GenerateAccessToken(User user)
+        public string GenerateAccessToken(User user, int organizationId)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = GetClaims(user);
+            var claims = GetClaims(user, organizationId);
 
             var token = new JwtSecurityToken(
                                     issuer: _jwt.Issuer,
@@ -55,12 +55,13 @@ namespace Infrastructure.Authentication
             return Convert.ToBase64String(hash);
         }
 
-        private List<Claim> GetClaims(User user)
+        private List<Claim> GetClaims(User user, int organizationId)
         {
             return new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user.RoleId.ToString()),
+                new Claim("OrganizationId", organizationId.ToString()),
             };
         }
     }

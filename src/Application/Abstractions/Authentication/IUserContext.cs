@@ -2,13 +2,17 @@
 
 public interface IUserContext
 {
-    int? Id { get; } 
+    int? Id { get; }
 
-    int? RoleId { get; } 
+    int? RoleId { get; }
 
-    short? LanguageId { get; } 
+    short? LanguageId { get; }
 
-    int? OrganizationId { get; } 
+    // Header berilgan bo'lsa — o'sha org; berilmasa null
+    int? OrganizationId { get; }
 
-    int? BranchId { get; } 
+    // User ruxsat berilgan barcha org IDlar (middleware tomonidan to'ldiriladi)
+    List<int> AllowedOrganizationIds { get; }
+
+    int? BranchId { get; }
 }

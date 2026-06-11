@@ -68,7 +68,7 @@ public class RoleService : IRoleService
                 ModuleFullName  = rm.Module.FullName
             }
         };
-        dto.RoleModules = await _roleModuleQuery.GetAllAsync(moduleSpec, ct);
+        dto.Modules = await _roleModuleQuery.GetAllAsync(moduleSpec, ct);
 
         return dto;
     }
@@ -93,9 +93,9 @@ public class RoleService : IRoleService
         await _roleCommand.CreateAsync(role, ct);
 
         // Assign modules
-        if (dto.ModuleIds.Count > 0)
+        if (dto.Modules.Count > 0)
         {
-            var roleModules = dto.ModuleIds
+            var roleModules = dto.Modules
                 .Distinct()
                 .Select(moduleId => new RoleModule
                 {
@@ -135,9 +135,9 @@ public class RoleService : IRoleService
         // Sync modules: delete old → insert new
         await _roleModuleCommand.DeleteAsync(rm => rm.RoleId == id, ct);
 
-        if (dto.ModuleIds.Count > 0)
+        if (dto.Modules.Count > 0)
         {
-            var roleModules = dto.ModuleIds
+            var roleModules = dto.Modules
                 .Distinct()
                 .Select(moduleId => new RoleModule
                 {

@@ -45,8 +45,12 @@ namespace Infrastructure.Persistence
 
         public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
 
+        public virtual DbSet<ProductTable> ProductTables { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            ApplyOrganizationFilters(modelBuilder);
+
             modelBuilder.Entity<State>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("cmn_state_pkey");
@@ -1011,6 +1015,44 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("inv_product_unit_id_fkey");
             });
 
+            modelBuilder.Entity<ProductTable>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("inv_product_table_pkey");
+
+                entity.ToTable("inv_product_table");
+
+                entity.HasIndex(e => e.ProductId, "idx_inv_product_table_product_id");
+                entity.HasIndex(e => e.OrganizationId, "idx_inv_product_table_organization_id");
+                entity.HasIndex(e => e.StateId, "idx_inv_product_table_state_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
+                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
+                entity.Property(e => e.Barcode).HasMaxLength(100).HasColumnName("barcode");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+
+                entity.HasOne(d => d.Product).WithMany(p => p.ProductTables)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_table_product_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany()
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_table_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany()
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_table_state_id_fkey");
+            });
+
             modelBuilder.Entity<Organization>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("org_organization_pkey");
@@ -1772,39 +1814,27 @@ namespace Infrastructure.Persistence
                 entity.ToTable("pur_doc_table");
 
                 entity.HasIndex(e => e.OwnerId, "idx_pur_doc_table_owner_id");
-
-                entity.HasIndex(e => e.ProductId, "idx_pur_doc_table_product_id");
-
+                entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_table_id");
                 entity.HasIndex(e => e.VatRateId, "idx_pur_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("amount");
+                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("price");
-                entity.Property(e => e.ProductId).HasColumnName("product_id");
-                entity.Property(e => e.Quantity)
-                    .HasPrecision(18, 3)
-                    .HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("vat_amount");
+                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
+                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
                     .HasForeignKey(d => d.OwnerId)
                     .HasConstraintName("pur_doc_table_owner_id_fkey");
 
-                entity.HasOne(d => d.Product).WithMany(p => p.PurchaseDocTables)
-                    .HasForeignKey(d => d.ProductId)
+                entity.HasOne(d => d.ProductTable).WithMany(p => p.PurchaseDocTables)
+                    .HasForeignKey(d => d.ProductTableId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("pur_doc_table_product_id_fkey");
+                    .HasConstraintName("pur_doc_table_product_table_id_fkey");
 
                 entity.HasOne(d => d.VatRate).WithMany(p => p.PurchaseDocTables)
                     .HasForeignKey(d => d.VatRateId)
@@ -1898,38 +1928,28 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.OwnerId, "idx_sale_doc_table_owner_id");
 
-                entity.HasIndex(e => e.ProductId, "idx_sale_doc_table_product_id");
+                entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_table_id");
 
                 entity.HasIndex(e => e.VatRateId, "idx_sale_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("amount");
+                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("price");
-                entity.Property(e => e.ProductId).HasColumnName("product_id");
-                entity.Property(e => e.Quantity)
-                    .HasPrecision(18, 3)
-                    .HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount)
-                    .HasPrecision(18, 2)
-                    .HasColumnName("vat_amount");
+                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
+                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
                     .HasForeignKey(d => d.OwnerId)
                     .HasConstraintName("sale_doc_table_owner_id_fkey");
 
-                entity.HasOne(d => d.Product).WithMany(p => p.SaleDocTables)
-                    .HasForeignKey(d => d.ProductId)
+                entity.HasOne(d => d.ProductTable).WithMany(p => p.SaleDocTables)
+                    .HasForeignKey(d => d.ProductTableId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("sale_doc_table_product_id_fkey");
+                    .HasConstraintName("sale_doc_table_product_table_id_fkey");
 
                 entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocTables)
                     .HasForeignKey(d => d.VatRateId)

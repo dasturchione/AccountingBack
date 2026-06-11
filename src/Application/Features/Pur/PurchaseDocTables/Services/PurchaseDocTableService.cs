@@ -71,7 +71,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         var entity = new PurchaseDocTable
         {
             OwnerId     = dto.OwnerId,
-            ProductId   = dto.ProductId,
+            ProductTableId = dto.ProductTableId,
             Quantity    = dto.Quantity,
             Price       = dto.Price,
             Amount      = amount,
@@ -116,7 +116,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         doc.VatAmount   += newVatAmount   - entity.VatAmount;
         doc.FinalAmount += newTotalAmount - entity.TotalAmount;
 
-        entity.ProductId   = dto.ProductId;
+        entity.ProductTableId = dto.ProductTableId;
         entity.Quantity    = dto.Quantity;
         entity.Price       = dto.Price;
         entity.Amount      = newAmount;

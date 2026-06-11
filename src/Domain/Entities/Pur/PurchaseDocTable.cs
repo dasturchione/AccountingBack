@@ -4,7 +4,7 @@ public partial class PurchaseDocTable
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
-    public int ProductId { get; set; }
+    public int ProductTableId { get; set; }
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }
     public decimal Amount { get; set; }
@@ -13,6 +13,6 @@ public partial class PurchaseDocTable
     public decimal TotalAmount { get; set; }
 
     public virtual PurchaseDoc Owner { get; set; } = null!;
-    public virtual Product Product { get; set; } = null!;
+    public virtual ProductTable ProductTable { get; set; } = null!;
     public virtual VatRate? VatRate { get; set; }
 }

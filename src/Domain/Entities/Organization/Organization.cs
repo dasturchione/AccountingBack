@@ -43,5 +43,5 @@ public partial class Organization
     public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 }

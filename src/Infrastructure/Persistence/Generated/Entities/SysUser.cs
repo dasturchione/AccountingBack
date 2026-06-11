@@ -31,15 +31,13 @@ public partial class SysUser
 
     public short? LanguageId { get; set; }
 
-    public int? OrganizationId { get; set; }
-
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
     public virtual CmnLanguage? Language { get; set; }
 
-    public virtual OrgOrganization? Organization { get; set; }
-
     public virtual SysRole Role { get; set; } = null!;
 
     public virtual CmnState State { get; set; } = null!;
+
+    public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
 }

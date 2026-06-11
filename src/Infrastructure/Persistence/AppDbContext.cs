@@ -43,6 +43,8 @@ namespace Infrastructure.Persistence
 
         public virtual DbSet<User> Users { get; set; }
 
+        public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Organization>(entity =>
@@ -473,6 +475,10 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
 
+                entity.HasOne(d => d.Organization).WithMany(p => p.Roles)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_role_organization_id_fkey");
+
                 entity.HasOne(d => d.State).WithMany(p => p.Roles)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
@@ -502,6 +508,54 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("sys_role_module_role_id_fkey");
             });
 
+            modelBuilder.Entity<UserOrganization>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.OrganizationId }).HasName("sys_user_organization_pkey");
+
+                entity.ToTable("sys_user_organization");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_organization_id");
+
+                entity.HasIndex(e => e.RoleId, "idx_sys_user_organization_role_id");
+
+                entity.HasIndex(e => e.StateId, "idx_sys_user_organization_state_id");
+
+                entity.HasIndex(e => e.UserId, "idx_sys_user_organization_default_user")
+                    .IsUnique()
+                    .HasFilter("is_default = true");
+
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.RoleId).HasColumnName("role_id");
+                entity.Property(e => e.IsDefault)
+                    .HasDefaultValue(false)
+                    .HasColumnName("is_default");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+
+                entity.HasOne(d => d.User).WithMany(p => p.UserOrganizations)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("sys_user_organization_user_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.UserOrganizations)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("sys_user_organization_organization_id_fkey");
+
+                entity.HasOne(d => d.Role).WithMany(p => p.UserOrganizations)
+                    .HasForeignKey(d => d.RoleId)
+                    .HasConstraintName("sys_user_organization_role_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany()
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sys_user_organization_state_id_fkey");
+            });
+
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("sys_user_pkey");
@@ -509,8 +563,6 @@ namespace Infrastructure.Persistence
                 entity.ToTable("sys_user");
 
                 entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
-
-                entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
 
                 entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
 
@@ -542,7 +594,6 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.PasswordSalt)
                     .HasMaxLength(250)
                     .HasColumnName("password_salt");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.PhoneNumber)
                     .HasMaxLength(50)
                     .HasColumnName("phone_number");

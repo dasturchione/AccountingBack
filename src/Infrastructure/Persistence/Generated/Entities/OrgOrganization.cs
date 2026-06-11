@@ -87,5 +87,5 @@ public partial class OrgOrganization
 
     public virtual ICollection<SysRole> SysRoles { get; set; } = new List<SysRole>();
 
-    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
+    public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
 }

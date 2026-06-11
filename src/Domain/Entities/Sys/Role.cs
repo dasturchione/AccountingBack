@@ -12,4 +12,5 @@ public partial class Role
     public virtual State State { get; set; } = null!;
     public virtual ICollection<RoleModule> RoleModules { get; set; } = new List<RoleModule>();
     public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 }

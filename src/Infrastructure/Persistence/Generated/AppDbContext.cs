@@ -112,6 +112,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SysUser> SysUsers { get; set; }
 
+    public virtual DbSet<SysUserOrganization> SysUserOrganizations { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AccAccountType>(entity =>
@@ -2326,6 +2328,52 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sys_role_module_role_id_fkey");
         });
 
+        modelBuilder.Entity<SysUserOrganization>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.OrganizationId }).HasName("sys_user_organization_pkey");
+
+            entity.ToTable("sys_user_organization");
+
+            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_organization_id");
+
+            entity.HasIndex(e => e.RoleId, "idx_sys_user_organization_role_id");
+
+            entity.HasIndex(e => e.StateId, "idx_sys_user_organization_state_id");
+
+            entity.HasIndex(e => e.UserId, "idx_sys_user_organization_default_user")
+                .IsUnique()
+                .HasFilter("is_default = true");
+
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.IsDefault)
+                .HasDefaultValue(false)
+                .HasColumnName("is_default");
+            entity.Property(e => e.StateId).HasColumnName("state_id");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_date");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_user_organization_organization_id_fkey");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("sys_user_organization_role_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany()
+                .HasForeignKey(d => d.StateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_user_organization_state_id_fkey");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("sys_user_organization_user_id_fkey");
+        });
+
         modelBuilder.Entity<SysUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("sys_user_pkey");
@@ -2333,8 +2381,6 @@ public partial class AppDbContext : DbContext
             entity.ToTable("sys_user");
 
             entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
-
-            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
 
             entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
 
@@ -2360,7 +2406,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .HasColumnName("last_name");
-            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(250)
                 .HasColumnName("password_hash");
@@ -2379,10 +2424,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Language).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.LanguageId)
                 .HasConstraintName("sys_user_language_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.SysUsers)
-                .HasForeignKey(d => d.OrganizationId)
-                .HasConstraintName("sys_user_organization_id_fkey");
 
             entity.HasOne(d => d.Role).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.RoleId)

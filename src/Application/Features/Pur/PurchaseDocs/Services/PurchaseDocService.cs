@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.InventoryRegisterBalances;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
@@ -17,6 +18,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAccountingDispatcher _dispatcher;
+    private readonly IInventoryDispatcher _inventoryDispatcher;
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
@@ -26,20 +28,22 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IUserContext userContext,
                               IQueryBuilder queryBuilder,
                               IAccountingDispatcher dispatcher,
+                              IInventoryDispatcher inventoryDispatcher,
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocTable> lineCommand,
                               ILogger<PurchaseDocService> logger) : base(logger)
     {
-        _query = query;
-        _command = command;
-        _dispatcher = dispatcher;
-        _lineCommand = lineCommand;
-        _unitOfWork   = unitOfWork;
-        _userContext  = userContext;
-        _queryBuilder = queryBuilder;
-        _vatRateQuery = vatRateQuery;
+        _query               = query;
+        _command             = command;
+        _dispatcher          = dispatcher;
+        _inventoryDispatcher = inventoryDispatcher;
+        _lineCommand         = lineCommand;
+        _unitOfWork          = unitOfWork;
+        _userContext         = userContext;
+        _queryBuilder        = queryBuilder;
+        _vatRateQuery        = vatRateQuery;
     }
 
     public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
@@ -98,9 +102,12 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             await _command.ReloadAsync(doc, ct);
 
             var dispatch = await _dispatcher.ProcessAsync(doc, ct);
-
             if (!dispatch.IsSuccess)
                 return Result.Failure<long>(dispatch.Error);
+
+            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct);
+            if (!inventoryDispatch.IsSuccess)
+                return Result.Failure<long>(inventoryDispatch.Error);
 
             return Result.Success(doc.Id);
         }, ct);

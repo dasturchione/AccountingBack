@@ -5,6 +5,9 @@ namespace Application.Features.InventoryRegisterBalances;
 
 public static class InventoryRegisterBalanceErrors
 {
+    public static Error UnsupportedDocumentType() =>
+        Error.Business("InventoryRegisterBalance.UnsupportedDocumentType", "Unsupported document type.");
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("InventoryRegisterBalance.NotFound", languageId switch
         {

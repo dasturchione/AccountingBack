@@ -45,6 +45,139 @@ namespace Infrastructure.Persistence
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<State>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_state_pkey");
+
+                entity.ToTable("cmn_state");
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedNever()
+                    .HasColumnName("id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(250)
+                    .HasColumnName("full_name");
+                entity.Property(e => e.ShortName)
+                    .HasMaxLength(250)
+                    .HasColumnName("short_name");
+            });
+
+            modelBuilder.Entity<Region>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
+
+                entity.ToTable("cmn_region");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(250)
+                    .HasColumnName("full_name");
+                entity.Property(e => e.ShortName)
+                    .HasMaxLength(250)
+                    .HasColumnName("short_name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Regions)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_region_state_id_fkey");
+            });
+
+            modelBuilder.Entity<District>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_district_pkey");
+
+                entity.ToTable("cmn_district");
+
+                entity.HasIndex(e => e.RegionId, "idx_cmn_district_region_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(250)
+                    .HasColumnName("full_name");
+                entity.Property(e => e.RegionId).HasColumnName("region_id");
+                entity.Property(e => e.ShortName)
+                    .HasMaxLength(250)
+                    .HasColumnName("short_name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+            });
+
+            modelBuilder.Entity<Currency>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_currency_pkey");
+
+                entity.ToTable("cmn_currency");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_currency_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(10)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+                entity.Property(e => e.Symbol)
+                    .HasMaxLength(10)
+                    .HasColumnName("symbol");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Currencies)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_currency_state_id_fkey");
+            });
+
+            modelBuilder.Entity<Language>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_language_pkey");
+
+                entity.ToTable("cmn_language");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_language_code").IsUnique();
+
+                entity.HasIndex(e => e.IsDefault, "idx_cmn_language_default")
+                    .IsUnique()
+                    .HasFilter("(is_default = true)");
+
+                entity.HasIndex(e => e.StateId, "idx_cmn_language_state_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(10)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.IsDefault).HasColumnName("is_default");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.NativeName)
+                    .HasMaxLength(100)
+                    .HasColumnName("native_name");
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Languages)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_language_state_id_fkey");
+            });
+
             modelBuilder.Entity<AccountType>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("acc_account_type_pkey");
@@ -104,6 +237,38 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("acc_subkonto_type_state_id_fkey");
+            });
+
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("sys_role_pkey");
+
+                entity.ToTable("sys_role");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_role_organization_id");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(255)
+                    .HasColumnName("full_name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.ShortName)
+                    .HasMaxLength(100)
+                    .HasColumnName("short_name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.Roles)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_role_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Roles)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sys_role_state_id_fkey");
             });
 
             modelBuilder.Entity<ChartAccountSubkonto>(entity =>
@@ -1046,6 +1211,75 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_warehouse_state_id_fkey");
+            });
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("sys_user_pkey");
+
+                entity.ToTable("sys_user");
+
+                entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
+
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
+
+                entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
+
+                entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
+
+                entity.HasIndex(e => e.UserName, "uidx_sys_user_user_name").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.Email)
+                    .HasMaxLength(200)
+                    .HasColumnName("email");
+                entity.Property(e => e.FirstName)
+                    .HasMaxLength(100)
+                    .HasColumnName("first_name");
+                entity.Property(e => e.LanguageId).HasColumnName("language_id");
+                entity.Property(e => e.LastAccessTime)
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("last_access_time");
+                entity.Property(e => e.LastName)
+                    .HasMaxLength(100)
+                    .HasColumnName("last_name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.PasswordHash)
+                    .HasMaxLength(250)
+                    .HasColumnName("password_hash");
+                entity.Property(e => e.PasswordSalt)
+                    .HasMaxLength(250)
+                    .HasColumnName("password_salt");
+                entity.Property(e => e.PhoneNumber)
+                    .HasMaxLength(50)
+                    .HasColumnName("phone_number");
+                entity.Property(e => e.RoleId).HasColumnName("role_id");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+                entity.Property(e => e.UserName)
+                    .HasMaxLength(250)
+                    .HasColumnName("user_name");
+
+                entity.HasOne(d => d.Language).WithMany(p => p.Users)
+                    .HasForeignKey(d => d.LanguageId)
+                    .HasConstraintName("sys_user_language_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.Users)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_user_organization_id_fkey");
+
+                entity.HasOne(d => d.Role).WithMany(p => p.Users)
+                    .HasForeignKey(d => d.RoleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sys_user_role_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Users)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("sys_user_state_id_fkey");
             });
 
             modelBuilder.Entity<ProductPrice>(entity =>

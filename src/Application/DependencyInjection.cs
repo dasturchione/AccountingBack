@@ -72,8 +72,10 @@ namespace Application
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IAccountingDispatcher, AccountingDispatcher>();
-
             services.AddScoped<IAccountingDocumentHandler<PurchaseDoc>, PurchaseAccountingHandler>();
+
+            services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
+            services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

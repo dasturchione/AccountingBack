@@ -72,6 +72,29 @@ namespace Infrastructure.Persistence
                     .HasColumnName("short_name");
             });
 
+            modelBuilder.Entity<Unit>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_unit_pkey");
+
+                entity.ToTable("cmn_unit");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_unit_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(20)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Units)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_unit_state_id_fkey");
+            });
+
             modelBuilder.Entity<Region>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
@@ -522,21 +545,49 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<Department>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("org_department_pkey");
+
                 entity.ToTable("org_department");
-                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_org_department_org_code").IsUnique();
-                entity.HasIndex(e => e.OrganizationId, "idx_org_department_organization_id");
+
                 entity.HasIndex(e => e.BranchId, "idx_org_department_branch_id");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_org_department_org_code").IsUnique();
+
+                entity.HasIndex(e => e.OrganizationId, "idx_org_department_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_org_department_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.BranchId).HasColumnName("branch_id");
-                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(250)
+                    .HasColumnName("name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Organization).WithMany(o => o.Departments).HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_organization_id_fkey");
-                entity.HasOne(e => e.Branch).WithMany(b => b.Departments).HasForeignKey(e => e.BranchId).HasConstraintName("org_department_branch_id_fkey");
-                entity.HasOne(e => e.State).WithMany(s => s.Departments).HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_state_id_fkey");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+
+                entity.HasOne(d => d.Branch).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.BranchId)
+                    .HasConstraintName("org_department_branch_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_department_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_department_state_id_fkey");
             });
 
             modelBuilder.Entity<Position>(entity =>
@@ -1836,17 +1887,29 @@ namespace Infrastructure.Persistence
                 entity.ToTable("pur_doc_table");
 
                 entity.HasIndex(e => e.OwnerId, "idx_pur_doc_table_owner_id");
-                entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_table_id");
+
+                entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_id");
+
                 entity.HasIndex(e => e.VatRateId, "idx_pur_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.PurchaseDocTables)
@@ -1950,18 +2013,28 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.OwnerId, "idx_sale_doc_table_owner_id");
 
-                entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_table_id");
+                entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_id");
 
                 entity.HasIndex(e => e.VatRateId, "idx_sale_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocTables)

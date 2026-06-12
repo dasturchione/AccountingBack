@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using SharedKernel.Query;
 using SharedKernel.Results;
@@ -72,6 +73,17 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
         if (entity == null) 
             return Result.Failure<AccountingRegisterEntryDto>(AccountingRegisterEntryErrors.NotFound(id, _userContext.LanguageId));
         return entity;
+    }
+
+    public async Task<Result<List<AccountingPostingDto>>> GetPostingAsync(short documentTypeId, long documentId, CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<AccountingRegisterEntry>()
+                                    .Where(x => x.DocumentTypeId == documentTypeId && x.DocumentId == documentId)
+                                    .As<AccountingPostingDto>()
+                                    .Build();
+        var items = await _query.GetAllAsync(query, ct);
+        //if (!items.Any())
+        return items;
     }
 
     public async Task<Result> UpdateAsync(long id, AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default)

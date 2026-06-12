@@ -1,9 +1,11 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.CounterpartyCards;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
+using Application.Features.Warehouses;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -23,6 +25,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
+    private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<Warehouse> _warehouseQuery;
+    private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
 
     public PurchaseDocService(IUnitOfWork unitOfWork,
                               IUserContext userContext,
@@ -33,17 +38,23 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<VatRate> vatRateQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocTable> lineCommand,
+                              IQueryRepository<Warehouse> warehouseQuery,
+                              IQueryRepository<Product> productQuery,
+                              IQueryRepository<CounterpartyCard> counterpartyQuery,
                               ILogger<PurchaseDocService> logger) : base(logger)
     {
         _query               = query;
         _command             = command;
         _dispatcher          = dispatcher;
-        _inventoryDispatcher = inventoryDispatcher;
-        _lineCommand         = lineCommand;
         _unitOfWork          = unitOfWork;
+        _lineCommand         = lineCommand;
         _userContext         = userContext;
         _queryBuilder        = queryBuilder;
         _vatRateQuery        = vatRateQuery;
+        _productQuery        = productQuery;
+        _warehouseQuery      = warehouseQuery;
+        _counterpartyQuery   = counterpartyQuery;
+        _inventoryDispatcher = inventoryDispatcher;
     }
 
     public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
@@ -72,6 +83,16 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
                 return Result.Failure<long>(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
 
+            var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
+            var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
+            if (warehouse is null)
+                return Result.Failure<long>(WarehouseErrors.NotFound(dto.WarehouseId, _userContext.LanguageId));
+
+            var counterpartyQuery = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == dto.CounterpartyId).Build();
+            var counterparty = await _counterpartyQuery.GetAsync(counterpartyQuery, ct);
+            if (counterparty is null)
+                return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
+
             // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
             var linesResult = await BuildLinesAsync(dto.Lines, ct);
             if (!linesResult.IsSuccess)
@@ -84,8 +105,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 OrganizationId = dto.OrganizationId,
                 DocNumber      = dto.DocNumber,
                 DocDate        = dto.DocDate,
-                CounterpartyId = dto.CounterpartyId,
-                WarehouseId    = dto.WarehouseId,
                 CurrencyId     = dto.CurrencyId,
                 Lines          = lines,
                 TotalAmount    = lines.Sum(l => l.Amount),
@@ -95,6 +114,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 Comment        = dto.Comment,
                 StateId        = StateIdConst.ACTIVE,
                 CreatedDate    = DateTime.Now,
+                Warehouse      = warehouse,
+                Counterparty   = counterparty,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -187,6 +208,16 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     {
         var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
+        var productIds = lineDtos.Select(s => s.ProductId).Distinct();
+        var productQuery = _queryBuilder.For<Product>().Where(x => productIds.Contains(x.Id)).Build();
+        var products = await _productQuery.GetAllAsync(productQuery);
+        if (productIds.Count() != products.Count())
+        {
+
+        }
+
+
+
         foreach (var dto in lineDtos)
         {
             var amount    = dto.Quantity * dto.Price;
@@ -205,7 +236,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             lines.Add(new PurchaseDocTable
             {
-                ProductId   = dto.ProductId,
+                Product     = products.First(f => f.Id == dto.ProductId),
                 Quantity    = dto.Quantity,
                 Price       = dto.Price,
                 Amount      = amount,

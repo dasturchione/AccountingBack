@@ -1,3 +1,4 @@
+using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
@@ -37,5 +38,40 @@ public class AccountingRegisterEntryListDtoProjection : IProjectionBuilder<Accou
             Amount = x.Amount,
             DocDate = x.DocDate,
             CreatedDate = x.CreatedDate
+        };
+}
+
+public class AccountingPostingDtoProjection : IProjectionBuilder<AccountingRegisterEntry, AccountingPostingDto>
+{
+    public Expression<Func<AccountingRegisterEntry, AccountingPostingDto>> Build() =>
+        x => new AccountingPostingDto
+        {
+            Id = x.Id, 
+            OrganizationId = x.OrganizationId,
+            DebitAccountId = x.DebitAccountId,
+            CreditAccountId = x.CreditAccountId,
+            CreatedDate = x.CreatedDate,
+            Amount = x.Amount,
+            CurrencyId = x.CurrencyId,
+            DocDate = x.DocDate, 
+            DocumentId = x.DocumentId,
+            DocumentTypeId = x.DocumentTypeId,
+            CreditAccountCode = x.CreditAccount != null ? x.CreditAccount.Code : null,
+            CreditAccountName = x.CreditAccount != null ? x.CreditAccount.Name : null,
+            DebitAccountCode = x.DebitAccount != null ? x.DebitAccount.Code : null,
+            DebitAccountName = x.DebitAccount != null ? x.DebitAccount.Name : null,
+            CurrencyCode = x.Currency.Code,
+            CurrencyName = x.Currency.Name,
+            Tables = x.RegisterEntrySubkontos.OrderBy(o => o.SortOrder).Select(s => new AccountingPostingTableDto
+            {
+                Id = s.Id,
+                EntityId = s.EntityId,
+                SubkontoTypeId = s.SubkontoTypeId,
+                Side = s.Side,
+                CreatedDate = s.CreatedDate,
+                EntryId = s.EntryId,
+                DisplayValue = s.DisplayValue,
+                SortOrder = s.SortOrder
+            }).ToList()
         };
 }

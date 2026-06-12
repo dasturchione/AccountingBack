@@ -66,8 +66,67 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 CurrencyId = purchase.CurrencyId,
                 DocumentId = purchase.Id,
 
-                Content = ruleLine.ContentTemplate
+                Content = ruleLine.ContentTemplate,
+
+                RegisterEntrySubkontos = BuildSubkontos(purchase, line)
             };
+        }
+
+        private List<RegisterEntrySubkonto> BuildSubkontos(PurchaseDoc purchase, PurchaseDocTable line)
+        {
+            var list = new List<RegisterEntrySubkonto>();
+
+            list.Add(new RegisterEntrySubkonto
+            {
+                SortOrder = list.Count + 1,
+                EntityId = line.ProductId,
+                DisplayValue = line.Product.Name,
+                SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                Side = SubkontoSideConst.DEBIT,
+                CreatedDate = DateTime.Now,
+            });
+
+            list.Add(new RegisterEntrySubkonto
+            {
+                SortOrder = list.Count + 1,
+                EntityId = purchase.Warehouse.Id,
+                DisplayValue = purchase.Warehouse.Name,
+                SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
+                Side = SubkontoSideConst.DEBIT,
+                CreatedDate = DateTime.Now,
+            });
+
+            list.Add(new RegisterEntrySubkonto
+            {
+                SortOrder = list.Count + 1,
+                EntityId = purchase.Id,
+                DisplayValue = $"number: {purchase.DocNumber}; date: {purchase.DocDate}",
+                SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
+                Side = SubkontoSideConst.DEBIT,
+                CreatedDate = DateTime.Now,
+            });
+
+            list.Add(new RegisterEntrySubkonto
+            {
+                SortOrder = list.Count + 1,
+                EntityId = purchase.CounterpartyId,
+                DisplayValue = purchase.Counterparty.FullName,
+                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                Side = SubkontoSideConst.CREDIT,
+                CreatedDate = DateTime.Now,
+            });
+
+            list.Add(new RegisterEntrySubkonto
+            {
+                SortOrder = list.Count + 1,
+                EntityId = purchase.CounterpartyId,
+                DisplayValue = purchase.Counterparty.FullName,
+                SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                Side = SubkontoSideConst.CREDIT,
+                CreatedDate = DateTime.Now,
+            });
+
+            return list;
         }
 
         private decimal GetAmount(PurchaseDocTable line, string source)

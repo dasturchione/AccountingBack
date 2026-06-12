@@ -71,8 +71,6 @@ public class UserService : BaseService, IUserService
                 {
                     UserId = user.Id,
                     OrganizationId = o.OrganizationId,
-                    RoleId = o.RoleId,
-                    IsDefault = o.IsDefault,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });
@@ -164,8 +162,6 @@ public class UserService : BaseService, IUserService
                 {
                     UserId = id,
                     OrganizationId = o.OrganizationId,
-                    RoleId = o.RoleId,
-                    IsDefault = o.IsDefault,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });

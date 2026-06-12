@@ -1094,33 +1094,41 @@ namespace Infrastructure.Persistence
 
                 entity.ToTable("inv_product_table");
 
-                entity.HasIndex(e => e.ProductId, "idx_inv_product_table_product_id");
-                entity.HasIndex(e => e.OrganizationId, "idx_inv_product_table_organization_id");
-                entity.HasIndex(e => e.StateId, "idx_inv_product_table_state_id");
+                entity.HasIndex(e => new { e.OrganizationId, e.MarkingNumber }, "ux_inv_product_table_org_marking")
+                    .IsUnique()
+                    .HasFilter("(marking_number IS NOT NULL)");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }, "ux_inv_product_table_org_serial")
+                    .IsUnique()
+                    .HasFilter("(serial_number IS NOT NULL)");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.ProductId).HasColumnName("product_id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
-                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
-                entity.Property(e => e.Barcode).HasMaxLength(100).HasColumnName("barcode");
-                entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate)
                     .HasDefaultValueSql("now()")
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("created_date");
+                entity.Property(e => e.MarkingNumber)
+                    .HasMaxLength(250)
+                    .HasColumnName("marking_number");
+                
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+                entity.Property(e => e.SerialNumber)
+                    .HasMaxLength(250)
+                    .HasColumnName("serial_number");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.ProductTables)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("inv_product_table_organization_id_fkey");
 
                 entity.HasOne(d => d.Product).WithMany(p => p.ProductTables)
                     .HasForeignKey(d => d.ProductId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_product_table_product_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany()
-                    .HasForeignKey(d => d.OrganizationId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("inv_product_table_organization_id_fkey");
-
-                entity.HasOne(d => d.State).WithMany()
+                entity.HasOne(d => d.State).WithMany(p => p.ProductTables)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_product_table_state_id_fkey");

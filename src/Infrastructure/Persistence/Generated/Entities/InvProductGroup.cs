@@ -11,8 +11,6 @@ public partial class InvProductGroup
 
     public int? ParentId { get; set; }
 
-    public string Code { get; set; } = null!;
-
     public string Name { get; set; } = null!;
 
     public short StateId { get; set; }

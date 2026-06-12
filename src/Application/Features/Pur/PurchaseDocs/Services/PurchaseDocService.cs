@@ -249,9 +249,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 ProductTable = new ProductTable
                 {
                     Product = product,
-                    Name = product.Name,
-                    Barcode = product.Barcode,
-                    Code = s.MarkingNumber,
+                    SerialNumber = s.SerialNumber,
+                    MarkingNumber = s.MarkingNumber,
                     CreatedDate = DateTime.Now,
                     OrganizationId = organizationid,
                     StateId = StateIdConst.ACTIVE

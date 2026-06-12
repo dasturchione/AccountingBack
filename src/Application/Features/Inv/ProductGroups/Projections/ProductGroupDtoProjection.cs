@@ -18,6 +18,23 @@ public class ProductGroupDtoProjection : IProjectionBuilder<ProductGroup, Produc
             Name = x.Name,
             StateId = x.StateId,
             StateName = x.State.FullName,
-            CreatedDate = x.CreatedDate
+            CreatedDate = x.CreatedDate,
+            Products = x.Products.Select(s => new ProductGroupTableDto
+            {
+                Id = s.Id,
+                Code = s.Code,
+                Barcode = s.Barcode,
+                CreatedDate = s.CreatedDate,
+                Description = s.Description,
+                Name = s.Name,
+                IsService = s.IsService,
+                OrganizationId = s.OrganizationId,
+                OrganizationName = s.Organization.FullName,
+                StateName = s.State.FullName,
+                StateId = s.StateId,
+                UnitCode = s.Unit.Code,
+                UnitId = s.Unit.Id,
+                UnitName = s.Unit.Name
+            }).ToList(),
         };
 }

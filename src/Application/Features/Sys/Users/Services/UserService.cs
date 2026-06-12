@@ -64,8 +64,6 @@ public class UserService : BaseService, IUserService
                 CreatedDate = DateTime.Now
             };
 
-            await _unitOfWork.BeginAsync(ct);
-
             await _userCommand.CreateAsync(user, ct);
 
             if (dto.Organizations.Count > 0)
@@ -82,8 +80,6 @@ public class UserService : BaseService, IUserService
 
                 await _userOrgCommand.CreateAsync(userOrgs, ct);
             }
-
-            await _unitOfWork.CommitAsync(ct);
 
             return user.Id;
         });
@@ -151,8 +147,6 @@ public class UserService : BaseService, IUserService
                     return Result.Failure(UserErrors.Conflict(dto.UserName, _userContext.LanguageId));
             }
 
-            await _unitOfWork.BeginAsync(ct);
-
             user.UserName = dto.UserName;
             user.PhoneNumber = dto.PhoneNumber;
             user.Email = dto.Email;
@@ -179,8 +173,6 @@ public class UserService : BaseService, IUserService
 
                 await _userOrgCommand.CreateAsync(userOrgs, ct);
             }
-
-            await _unitOfWork.CommitAsync(ct);
 
             return Result.Success();
         });

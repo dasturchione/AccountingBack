@@ -72,6 +72,29 @@ namespace Infrastructure.Persistence
                     .HasColumnName("short_name");
             });
 
+            modelBuilder.Entity<Unit>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_unit_pkey");
+
+                entity.ToTable("cmn_unit");
+
+                entity.HasIndex(e => e.Code, "idx_cmn_unit_code").IsUnique();
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(20)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(100)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Units)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_unit_state_id_fkey");
+            });
+
             modelBuilder.Entity<Region>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("cmn_region_pkey");

@@ -14,4 +14,14 @@ public class UserDto
     public DateTime CreatedDate { get; set; }
     public string RoleName { get; set; } = null!;
     public string StateName { get; set; } = null!;
+    public List<UserOrganizationItemDto> Organizations { get; set; } = [];
+}
+
+public class UserOrganizationItemDto
+{
+    public int OrganizationId { get; set; }
+    public string OrganizationName { get; set; } = null!;
+    public int? RoleId { get; set; }
+    public string? RoleName { get; set; }
+    public bool IsDefault { get; set; }
 }

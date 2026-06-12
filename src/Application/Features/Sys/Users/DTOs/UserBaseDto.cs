@@ -13,5 +13,7 @@
         public string LastName { get; set; } = null!;
 
         public int RoleId { get; set; }
+
+        public List<UserOrganizationAssignDto> Organizations { get; set; } = [];
     }
 }

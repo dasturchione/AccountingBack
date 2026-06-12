@@ -4,6 +4,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using SharedKernel.Constants;
 using SharedKernel.Query;
+using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using Microsoft.Extensions.Logging;
 
@@ -17,12 +18,16 @@ public class UserService : BaseService, IUserService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
+    private readonly IQueryRepository<UserOrganization> _userOrgQuery;
+    private readonly ICommandRepository<UserOrganization> _userOrgCommand;
     public UserService(IUnitOfWork unitOfWork,
                        IUserContext userContext,
                        IQueryBuilder queryBuilder,
                        IPasswordHasher passwordHasher,
                        IQueryRepository<User> userQuery,
                        ICommandRepository<User> userCommand,
+                       IQueryRepository<UserOrganization> userOrgQuery,
+                       ICommandRepository<UserOrganization> userOrgCommand,
                        ILogger<UserService> logger) : base(logger)
     {
         _userQuery = userQuery;
@@ -31,6 +36,8 @@ public class UserService : BaseService, IUserService
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _passwordHasher = passwordHasher;
+        _userOrgQuery = userOrgQuery;
+        _userOrgCommand = userOrgCommand;
     }
 
     public Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default) =>
@@ -57,7 +64,27 @@ public class UserService : BaseService, IUserService
                 CreatedDate = DateTime.Now
             };
 
+            await _unitOfWork.BeginAsync(ct);
+
             await _userCommand.CreateAsync(user, ct);
+
+            if (dto.Organizations.Count > 0)
+            {
+                var userOrgs = dto.Organizations.Select(o => new UserOrganization
+                {
+                    UserId = user.Id,
+                    OrganizationId = o.OrganizationId,
+                    RoleId = o.RoleId,
+                    IsDefault = o.IsDefault,
+                    StateId = StateIdConst.ACTIVE,
+                    CreatedDate = DateTime.Now
+                });
+
+                await _userOrgCommand.CreateAsync(userOrgs, ct);
+            }
+
+            await _unitOfWork.CommitAsync(ct);
+
             return user.Id;
         });
 
@@ -90,6 +117,21 @@ public class UserService : BaseService, IUserService
             var entity = await _userQuery.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure<UserDto>(UserErrors.NotFound(id, _userContext.LanguageId));
+
+            var orgSpec = new QuerySpecification<UserOrganization, UserOrganizationItemDto>
+            {
+                Criteria = uo => uo.UserId == id && uo.StateId == StateIdConst.ACTIVE,
+                Selector = uo => new UserOrganizationItemDto
+                {
+                    OrganizationId = uo.OrganizationId,
+                    OrganizationName = uo.Organization.ShortName,
+                    RoleId = uo.RoleId,
+                    RoleName = uo.Role != null ? uo.Role.FullName : null,
+                    IsDefault = uo.IsDefault
+                }
+            };
+            entity.Organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
+
             return entity;
         });
 
@@ -109,6 +151,8 @@ public class UserService : BaseService, IUserService
                     return Result.Failure(UserErrors.Conflict(dto.UserName, _userContext.LanguageId));
             }
 
+            await _unitOfWork.BeginAsync(ct);
+
             user.UserName = dto.UserName;
             user.PhoneNumber = dto.PhoneNumber;
             user.Email = dto.Email;
@@ -118,6 +162,26 @@ public class UserService : BaseService, IUserService
             user.StateId = dto.StateId;
 
             await _userCommand.UpdateAsync(user, ct);
+
+            await _userOrgCommand.DeleteAsync(uo => uo.UserId == id, ct);
+
+            if (dto.Organizations.Count > 0)
+            {
+                var userOrgs = dto.Organizations.Select(o => new UserOrganization
+                {
+                    UserId = id,
+                    OrganizationId = o.OrganizationId,
+                    RoleId = o.RoleId,
+                    IsDefault = o.IsDefault,
+                    StateId = StateIdConst.ACTIVE,
+                    CreatedDate = DateTime.Now
+                });
+
+                await _userOrgCommand.CreateAsync(userOrgs, ct);
+            }
+
+            await _unitOfWork.CommitAsync(ct);
+
             return Result.Success();
         });
 }

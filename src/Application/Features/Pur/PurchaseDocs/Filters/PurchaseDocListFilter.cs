@@ -4,7 +4,6 @@ namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocListFilter : ISearchFilter, IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public int? CounterpartyId { get; set; }
     public int? WarehouseId { get; set; }
     public short? StatusId { get; set; }

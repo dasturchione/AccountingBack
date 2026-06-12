@@ -2,6 +2,7 @@ using Application.Features.AccountingRegisterEntries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
+using System.ComponentModel.DataAnnotations;
 using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
@@ -20,21 +21,32 @@ public class AccountingRegisterEntryController : ControllerBase
         _service = service;
     }
 
-    [HttpGet]
+    //[HttpGet]
+    //[ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    //public async Task<IResult> GetAllAsync([FromQuery] AccountingRegisterEntryListFilter filter, CancellationToken ct = default)
+    //{
+    //    var result = await _service.GetAllAsync(filter, ct);
+    //    return result.Match(Results.Ok, CustomResults.Problem);
+    //}
+
+    //[HttpGet("{id:long}")]
+    //[ModuleAuthorize(PermissionCodeConst.AccRegEntryViewDetail)]
+    //public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
+    //{
+    //    var result = await _service.GetByIdAsync(id, ct);
+    //    return result.Match(Results.Ok, CustomResults.Problem);
+    //}
+
+    [HttpGet("postings")]
     [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
-    public async Task<IResult> GetAllAsync([FromQuery] AccountingRegisterEntryListFilter filter, CancellationToken ct = default)
+    public async Task<IResult> GetPostingsAsync([Required] [FromQuery] short documentTypeId, 
+                                                [Required] [FromQuery] long documentId, CancellationToken ct = default)
     {
-        var result = await _service.GetAllAsync(filter, ct);
+        var result = await _service.GetPostingAsync(documentTypeId, documentId, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryViewDetail)]
-    public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
-    {
-        var result = await _service.GetByIdAsync(id, ct);
-        return result.Match(Results.Ok, CustomResults.Problem);
-    }
+    
 
     //[HttpPost]
     //[ModuleAuthorize(PermissionCodeConst.AccRegEntryCreate)]

@@ -7,7 +7,6 @@ public class WarehouseListDto
     public string OrganizationName { get; set; } = null!;
     public int? BranchId { get; set; }
     public string? BranchName { get; set; }
-    public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public int? ResponsibleUserId { get; set; }
     public string? ResponsibleUserName { get; set; }

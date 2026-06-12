@@ -16,7 +16,6 @@ public class ProductDtoProjection : IProjectionBuilder<Product, ProductDto>
             ProductGroupName = x.ProductGroup != null ? x.ProductGroup.Name : null,
             UnitId = x.UnitId,
             UnitName = x.Unit.Name,
-            Code = x.Code,
             Barcode = x.Barcode,
             Name = x.Name,
             Description = x.Description,

@@ -26,6 +26,8 @@ namespace Infrastructure
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
 
+            services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
+
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
 

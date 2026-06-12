@@ -1382,8 +1382,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.Name, "idx_inv_product_name");
 
-            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_inv_product_org_code").IsUnique();
-
             entity.HasIndex(e => e.OrganizationId, "idx_inv_product_organization_id");
 
             entity.HasIndex(e => e.ProductGroupId, "idx_inv_product_product_group_id");
@@ -1396,9 +1394,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Barcode)
                 .HasMaxLength(100)
                 .HasColumnName("barcode");
-            entity.Property(e => e.Code)
-                .HasMaxLength(50)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
@@ -1441,8 +1436,6 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("inv_product_group");
 
-            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_inv_product_group_org_code").IsUnique();
-
             entity.HasIndex(e => e.OrganizationId, "idx_inv_product_group_organization_id");
 
             entity.HasIndex(e => e.ParentId, "idx_inv_product_group_parent_id");
@@ -1450,9 +1443,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.StateId, "idx_inv_product_group_state_id");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Code)
-                .HasMaxLength(50)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
@@ -1546,9 +1536,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Barcode)
                 .HasMaxLength(100)
                 .HasColumnName("barcode");
-            entity.Property(e => e.Code)
-                .HasMaxLength(100)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
@@ -1647,8 +1634,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.BranchId, "idx_inv_warehouse_branch_id");
 
-            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_inv_warehouse_org_code").IsUnique();
-
             entity.HasIndex(e => e.OrganizationId, "idx_inv_warehouse_organization_id");
 
             entity.HasIndex(e => e.ResponsibleUserId, "idx_inv_warehouse_responsible_user_id");
@@ -1657,9 +1642,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
-            entity.Property(e => e.Code)
-                .HasMaxLength(50)
-                .HasColumnName("code");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")

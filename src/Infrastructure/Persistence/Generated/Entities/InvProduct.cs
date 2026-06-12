@@ -13,8 +13,6 @@ public partial class InvProduct
 
     public short UnitId { get; set; }
 
-    public string Code { get; set; } = null!;
-
     public string? Barcode { get; set; }
 
     public string Name { get; set; } = null!;

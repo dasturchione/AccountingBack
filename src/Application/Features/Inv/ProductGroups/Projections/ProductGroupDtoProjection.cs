@@ -14,7 +14,6 @@ public class ProductGroupDtoProjection : IProjectionBuilder<ProductGroup, Produc
             OrganizationName = x.Organization.ShortName,
             ParentId = x.ParentId,
             ParentName = x.Parent != null ? x.Parent.Name : null,
-            Code = x.Code,
             Name = x.Name,
             StateId = x.StateId,
             StateName = x.State.FullName,
@@ -22,7 +21,6 @@ public class ProductGroupDtoProjection : IProjectionBuilder<ProductGroup, Produc
             Products = x.Products.Select(s => new ProductGroupTableDto
             {
                 Id = s.Id,
-                Code = s.Code,
                 Barcode = s.Barcode,
                 CreatedDate = s.CreatedDate,
                 Description = s.Description,

@@ -325,7 +325,7 @@ public class ManualService : IManualService
         {
             Criteria = g => g.StateId == StateIdConst.ACTIVE && (organizationId == null || g.OrganizationId == organizationId),
             OrderBy  = q => q.OrderBy(g => g.Name),
-            Selector = g => new SelectListDto { Id = g.Id, Name = g.Name, Code = g.Code }
+            Selector = g => new SelectListDto { Id = g.Id, Name = g.Name }
         };
         return (await _productGroupQuery.GetAllAsync(spec, ct)).ToList();
     }
@@ -338,7 +338,7 @@ public class ManualService : IManualService
                             (organizationId == null || p.OrganizationId == organizationId) &&
                             (productGroupId == null || p.ProductGroupId == productGroupId),
             OrderBy  = q => q.OrderBy(p => p.Name),
-            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
+            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name }
         };
         return (await _productQuery.GetAllAsync(spec, ct)).ToList();
     }
@@ -363,7 +363,7 @@ public class ManualService : IManualService
                             (organizationId == null || w.OrganizationId == organizationId) &&
                             (branchId == null || w.BranchId == branchId),
             OrderBy  = q => q.OrderBy(w => w.Name),
-            Selector = w => new SelectListDto { Id = w.Id, Name = w.Name, Code = w.Code }
+            Selector = w => new SelectListDto { Id = w.Id, Name = w.Name }
         };
         return (await _warehouseQuery.GetAllAsync(spec, ct)).ToList();
     }

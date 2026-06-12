@@ -1532,19 +1532,30 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("inv_product_table");
 
+            entity.HasIndex(e => new { e.OrganizationId, e.MarkingNumber }, "ux_inv_product_table_org_marking")
+                .IsUnique()
+                .HasFilter("(marking_number IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }, "ux_inv_product_table_org_serial")
+                .IsUnique()
+                .HasFilter("(serial_number IS NOT NULL)");
+
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Barcode)
-                .HasMaxLength(100)
-                .HasColumnName("barcode");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_date");
+            entity.Property(e => e.MarkingNumber)
+                .HasMaxLength(250)
+                .HasColumnName("marking_number");
             entity.Property(e => e.Name)
                 .HasMaxLength(300)
                 .HasColumnName("name");
             entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.SerialNumber)
+                .HasMaxLength(250)
+                .HasColumnName("serial_number");
             entity.Property(e => e.StateId).HasColumnName("state_id");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvProductTables)

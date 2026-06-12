@@ -13,11 +13,13 @@ public partial class InvProductTable
 
     public string Name { get; set; } = null!;
 
-    public string? Barcode { get; set; }
-
     public short StateId { get; set; }
 
     public DateTime CreatedDate { get; set; }
+
+    public string? SerialNumber { get; set; }
+
+    public string? MarkingNumber { get; set; }
 
     public virtual OrgOrganization Organization { get; set; } = null!;
 

@@ -522,20 +522,45 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<Department>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("org_department_pkey");
+
                 entity.ToTable("org_department");
-                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_org_department_org_code").IsUnique();
-                entity.HasIndex(e => e.OrganizationId, "idx_org_department_organization_id");
+
                 entity.HasIndex(e => e.BranchId, "idx_org_department_branch_id");
+
+                entity.HasIndex(e => new { e.OrganizationId, e.Code }, "idx_org_department_org_code").IsUnique();
+
+                entity.HasIndex(e => e.OrganizationId, "idx_org_department_organization_id");
+
                 entity.HasIndex(e => e.StateId, "idx_org_department_state_id");
+
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.BranchId).HasColumnName("branch_id");
-                entity.Property(e => e.Code).HasMaxLength(50).HasColumnName("code");
-                entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.CreatedDate)
+                    .HasDefaultValueSql("now()")
+                    .HasColumnType("timestamp without time zone")
+                    .HasColumnName("created_date");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(250)
+                    .HasColumnName("name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
-                entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Branch).WithMany().HasForeignKey(e => e.BranchId).HasConstraintName("org_department_branch_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_state_id_fkey");
+
+                entity.HasOne(d => d.Branch).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.BranchId)
+                    .HasConstraintName("org_department_branch_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_department_organization_id_fkey");
+
+                entity.HasOne(d => d.State).WithMany(p => p.Departments)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("org_department_state_id_fkey");
             });
 
             modelBuilder.Entity<Position>(entity =>

@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.CounterpartyCards;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Products;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.Warehouses;
@@ -94,7 +95,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
             // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
-            var linesResult = await BuildLinesAsync(dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(dto.OrganizationId, dto.Lines, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
@@ -153,7 +154,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
 
             // Yangi qatorlarni hisoblaymiz
-            var linesResult = await BuildLinesAsync(dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(dto.OrganizationId, dto.Lines, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure(linesResult.Error);
 
@@ -207,7 +208,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
     // dto.Lines dan PurchaseDocTable entity larini yaratib beradi
     // VatRate DB dan olinadi — agar topilmasa xato qaytaradi
-    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
+    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(int organizationid, List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
     {
         var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
@@ -216,38 +217,75 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         var products = await _productQuery.GetAllAsync(productQuery);
         if (productIds.Count() != products.Count())
         {
-
+            return Result.Failure<List<PurchaseDocTable>>(ProductErrors.NotFound(1, _userContext.LanguageId));
         }
 
-
-
-        foreach (var dto in lineDtos)
+        foreach (var productsGroup in lineDtos.GroupBy(g => g.ProductId))
         {
-            var amount    = dto.Quantity * dto.Price;
+            var product = products.First(f => f.Id == productsGroup.Key);
+            var vatRateId = productsGroup.First().VatRateId;
+            var productPrice = productsGroup.First().Price;
             var vatAmount = 0m;
 
-            if (dto.VatRateId.HasValue)
+            if (vatRateId.HasValue)
             {
-                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == dto.VatRateId.Value).Build();
-                var vatRate  = await _vatRateQuery.GetAsync(vatQuery, ct);
+                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == vatRateId.Value).Build();
+                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
 
                 if (vatRate == null)
-                    return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
+                    return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId));
 
-                vatAmount = Math.Round(amount * vatRate.Rate / 100, 2);
+                vatAmount = Math.Round(productPrice * vatRate.Rate / 100, 2);
             }
 
-            lines.Add(new PurchaseDocTable
+            lines.AddRange(productsGroup.Select(s => new PurchaseDocTable()
             {
-                ProductTableId = dto.ProductTableId,
-                Quantity    = dto.Quantity,
-                Price       = dto.Price,
-                Amount      = amount,
-                VatRateId   = dto.VatRateId,
-                VatAmount   = vatAmount,
-                TotalAmount = amount + vatAmount
-            });
+                Amount = productPrice,
+                Price = productPrice,
+                Quantity = 1,
+                TotalAmount = productPrice + vatAmount,
+                VatRateId = vatRateId,
+                VatAmount = vatAmount,
+                ProductTable = new ProductTable
+                {
+                    Product = product,
+                    Name = product.Name,
+                    Barcode = product.Barcode,
+                    Code = s.MarkingNumber,
+                    CreatedDate = DateTime.Now,
+                    OrganizationId = organizationid,
+                    StateId = StateIdConst.ACTIVE
+                }
+            }));
         }
+
+        //foreach (var dto in lineDtos)
+        //{
+        //    var amount    = dto.Quantity * dto.Price;
+        //    var vatAmount = 0m;
+
+        //    if (dto.VatRateId.HasValue)
+        //    {
+        //        var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == dto.VatRateId.Value).Build();
+        //        var vatRate  = await _vatRateQuery.GetAsync(vatQuery, ct);
+
+        //        if (vatRate == null)
+        //            return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
+
+        //        vatAmount = Math.Round(amount * vatRate.Rate / 100, 2);
+        //    }
+
+        //    lines.Add(new PurchaseDocTable
+        //    {
+        //        ProductTableId = dto.ProductTableId,
+        //        Quantity    = dto.Quantity,
+        //        Price       = dto.Price,
+        //        Amount      = amount,
+        //        VatRateId   = dto.VatRateId,
+        //        VatAmount   = vatAmount,
+        //        TotalAmount = amount + vatAmount
+        //    });
+        //}
 
         return lines;
     }

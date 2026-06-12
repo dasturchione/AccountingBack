@@ -7,7 +7,6 @@ public partial class AccountType
     public string Name { get; set; } = null!;
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual State State { get; set; } = null!;
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
+    public virtual State State { get; set; } = null!;
 }

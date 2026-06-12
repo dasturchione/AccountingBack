@@ -33,7 +33,7 @@ namespace Infrastructure.Persistence
         private void ApplyOrganizationFilters(ModelBuilder modelBuilder)
         {
             // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
-            ApplyScopedFilter<OrgBankAccount>(modelBuilder);
+            ApplyScopedFilter<BankAccount>(modelBuilder);
             ApplyScopedFilter<Warehouse>(modelBuilder);
             ApplyScopedFilter<BankOperation>(modelBuilder);
             ApplyScopedFilter<ProductPrice>(modelBuilder);
@@ -50,7 +50,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<CounterpartyContact>(modelBuilder);
             ApplyScopedFilter<AccountingRegisterEntry>(modelBuilder);
             ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
-            ApplyScopedFilter<InventoryRegisterBalance>(modelBuilder);
+            ApplyScopedFilter<RegisterBalance>(modelBuilder);
             ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
             ApplyScopedFilter<CashOperation>(modelBuilder);
             ApplyScopedFilter<Position>(modelBuilder);

@@ -61,6 +61,8 @@ public partial class OrgOrganization
 
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
+    public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
+
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
@@ -88,4 +90,6 @@ public partial class OrgOrganization
     public virtual ICollection<SysRole> SysRoles { get; set; } = new List<SysRole>();
 
     public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
+
+    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

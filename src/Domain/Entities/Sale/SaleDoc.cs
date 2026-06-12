@@ -16,12 +16,11 @@ public partial class SaleDoc
     public string? Comment { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual Organization Organization { get; set; } = null!;
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
-    public virtual Warehouse Warehouse { get; set; } = null!;
     public virtual Currency Currency { get; set; } = null!;
-    public virtual DocumentStatus Status { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
     public virtual State State { get; set; } = null!;
-    public virtual ICollection<SaleDocTable> Lines { get; set; } = new List<SaleDocTable>();
+    public virtual DocumentStatus Status { get; set; } = null!;
+    public virtual Warehouse Warehouse { get; set; } = null!;
 }

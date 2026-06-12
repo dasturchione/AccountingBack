@@ -1,6 +1,6 @@
 namespace Domain.Entities;
 
-public partial class InventoryRegisterBalance
+public partial class RegisterBalance
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -13,14 +13,9 @@ public partial class InventoryRegisterBalance
     public decimal Amount { get; set; }
     public DateTime DocDate { get; set; }
     public DateTime CreatedDate { get; set; }
-
     public virtual DocumentType DocumentType { get; set; } = null!;
-
     public virtual OperationType OperationType { get; set; } = null!;
-
     public virtual Organization Organization { get; set; } = null!;
-
     public virtual Product Product { get; set; } = null!;
-
     public virtual Warehouse Warehouse { get; set; } = null!;
 }

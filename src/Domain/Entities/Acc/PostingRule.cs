@@ -10,10 +10,9 @@ public partial class PostingRule
     public string Name { get; set; } = null!;
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual Organization? Organization { get; set; }
+    public virtual ICollection<PostingRuleLine> PostingRuleLines { get; set; } = new List<PostingRuleLine>();
     public virtual DocumentType DocumentType { get; set; } = null!;
     public virtual OperationType? OperationType { get; set; }
+    public virtual Organization? Organization { get; set; }
     public virtual State State { get; set; } = null!;
-    public virtual ICollection<PostingRuleLine> PostingRuleLines { get; set; } = new List<PostingRuleLine>();
 }

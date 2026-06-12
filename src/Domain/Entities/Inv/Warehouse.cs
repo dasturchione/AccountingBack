@@ -10,11 +10,11 @@ public partial class Warehouse
     public int? ResponsibleUserId { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public virtual Organization Organization { get; set; } = null!;
     public virtual Branch? Branch { get; set; }
+    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
     public virtual User? ResponsibleUser { get; set; }
-    public virtual State State { get; set; } = null!;
-    public virtual ICollection<InventoryRegisterBalance> InventoryRegisterBalances { get; set; } = new List<InventoryRegisterBalance>();
-    public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
+    public virtual State State { get; set; } = null!;
 }

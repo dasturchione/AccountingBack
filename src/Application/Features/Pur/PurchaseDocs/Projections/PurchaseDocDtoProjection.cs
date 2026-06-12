@@ -30,7 +30,7 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,
-            Lines = x.Lines.Select(l => new PurchaseDocTableDto
+            Lines = x.PurchaseDocTables.Select(l => new PurchaseDocTableDto
             {
                 Id          = l.Id,
                 OwnerId     = l.OwnerId,

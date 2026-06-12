@@ -13,11 +13,11 @@ public partial class Product
     public bool IsService { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
+    public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
+    public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
+    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
     public virtual Organization Organization { get; set; } = null!;
     public virtual ProductGroup? ProductGroup { get; set; }
-    public virtual Unit Unit { get; set; } = null!;
     public virtual State State { get; set; } = null!;
-    public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
-    public virtual ICollection<InventoryRegisterBalance> InventoryRegisterBalances { get; set; } = new List<InventoryRegisterBalance>();
-    public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
+    public virtual Unit Unit { get; set; } = null!;
 }

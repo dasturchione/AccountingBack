@@ -12,13 +12,13 @@ public class OrgBankAccountService : IOrgBankAccountService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
-    private readonly IQueryRepository<OrgBankAccount> _query;
-    private readonly ICommandRepository<OrgBankAccount> _command;
+    private readonly IQueryRepository<BankAccount> _query;
+    private readonly ICommandRepository<BankAccount> _command;
 
     public OrgBankAccountService(IUserContext userContext,
                                  IQueryBuilder queryBuilder, 
-                                 IQueryRepository<OrgBankAccount> query,
-                                 ICommandRepository<OrgBankAccount> command)
+                                 IQueryRepository<BankAccount> query,
+                                 ICommandRepository<BankAccount> command)
     {
         _query = query;
         _command = command;
@@ -31,7 +31,7 @@ public class OrgBankAccountService : IOrgBankAccountService
         if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure<int>(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
 
-        var entity = new OrgBankAccount
+        var entity = new BankAccount
         {
             OrganizationId = dto.OrganizationId,
             BankId = dto.BankId,
@@ -47,7 +47,7 @@ public class OrgBankAccountService : IOrgBankAccountService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<OrgBankAccount>().Where(x => x.Id == id).Build();
+        var query = _queryBuilder.For<BankAccount>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
 
         if (entity == null) 
@@ -61,14 +61,14 @@ public class OrgBankAccountService : IOrgBankAccountService
 
     public async Task<Result<PagedResponse<OrgBankAccountListDto>>> GetAllAsync(OrgBankAccountListFilter filter, CancellationToken ct = default)
     {
-        var query = _queryBuilder.BuildPaged<OrgBankAccount, OrgBankAccountListDto, OrgBankAccountListFilter>(filter);
+        var query = _queryBuilder.BuildPaged<BankAccount, OrgBankAccountListDto, OrgBankAccountListFilter>(filter);
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
     }
 
     public async Task<Result<OrgBankAccountDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<OrgBankAccount>().Where(x => x.Id == id).As<OrgBankAccountDto>().Build();
+        var query = _queryBuilder.For<BankAccount>().Where(x => x.Id == id).As<OrgBankAccountDto>().Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure<OrgBankAccountDto>(OrgBankAccountErrors.NotFound(id, _userContext.LanguageId));
@@ -77,7 +77,7 @@ public class OrgBankAccountService : IOrgBankAccountService
 
     public async Task<Result> UpdateAsync(int id, OrgBankAccountUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<OrgBankAccount>().Where(x => x.Id == id).Build();
+        var query = _queryBuilder.For<BankAccount>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(OrgBankAccountErrors.NotFound(id, _userContext.LanguageId));
 

@@ -10,9 +10,8 @@ public partial class ChartAccountSubkonto
     public bool IsRequired { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual Organization Organization { get; set; } = null!;
     public virtual ChartAccount Account { get; set; } = null!;
-    public virtual SubkontoType SubkontoType { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
     public virtual State State { get; set; } = null!;
+    public virtual SubkontoType SubkontoType { get; set; } = null!;
 }

@@ -31,7 +31,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
             var entries = new List<AccountingRegisterEntry>();
 
-            var groupedByProduct = purchase.Lines.GroupBy(g => g.ProductTable.ProductId);
+            var groupedByProduct = purchase.PurchaseDocTables.GroupBy(g => g.ProductTable.ProductId);
 
             foreach (var productLine in groupedByProduct)
             {

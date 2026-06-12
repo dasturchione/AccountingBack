@@ -29,15 +29,13 @@ public partial class InvProduct
 
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
+    public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
+
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
 
     public virtual OrgOrganization Organization { get; set; } = null!;
 
     public virtual InvProductGroup? ProductGroup { get; set; }
-
-    public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
-
-    public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
     public virtual CmnState State { get; set; } = null!;
 

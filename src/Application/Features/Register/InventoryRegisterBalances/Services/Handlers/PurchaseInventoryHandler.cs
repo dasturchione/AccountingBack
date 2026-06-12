@@ -7,9 +7,9 @@ namespace Application.Features.InventoryRegisterBalances;
 
 public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
 {
-    public Task<Result<List<InventoryRegisterBalance>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
+    public Task<Result<List<RegisterBalance>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
     {
-        var entries = purchase.Lines.Select(line => new InventoryRegisterBalance
+        var entries = purchase.PurchaseDocTables.Select(line => new RegisterBalance
         {
             OrganizationId  = purchase.OrganizationId,
             DocumentTypeId  = DocumentTypeIdConst.PURCHASE,

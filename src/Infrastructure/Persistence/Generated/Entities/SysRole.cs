@@ -23,7 +23,7 @@ public partial class SysRole
 
     public virtual ICollection<SysRoleModule> SysRoleModules { get; set; } = new List<SysRoleModule>();
 
-    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
-
     public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
+
+    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

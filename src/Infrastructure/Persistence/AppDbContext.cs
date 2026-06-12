@@ -309,7 +309,7 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.AccountId)
                     .HasConstraintName("acc_chart_account_subkonto_account_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany(p => p.ChartAccountSubkontos)
+                entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccountSubkontos)
                     .HasForeignKey(d => d.OrganizationId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("acc_chart_account_subkonto_organization_id_fkey");
@@ -362,7 +362,7 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.OperationTypeId)
                     .HasConstraintName("acc_posting_rule_operation_type_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany(p => p.PostingRules)
+                entity.HasOne(d => d.Organization).WithMany(p => p.AccPostingRules)
                     .HasForeignKey(d => d.OrganizationId)
                     .HasConstraintName("acc_posting_rule_organization_id_fkey");
 
@@ -404,11 +404,11 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.SortOrder).HasColumnName("sort_order");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
 
-                entity.HasOne(d => d.CreditAccount).WithMany(p => p.PostingRuleLinesCreditAccount)
+                entity.HasOne(d => d.CreditAccount).WithMany(p => p.PostingRuleLineCreditAccounts)
                     .HasForeignKey(d => d.CreditAccountId)
                     .HasConstraintName("acc_posting_rule_line_credit_account_id_fkey");
 
-                entity.HasOne(d => d.DebitAccount).WithMany(p => p.PostingRulesLineDebitAccount)
+                entity.HasOne(d => d.DebitAccount).WithMany(p => p.PostingRuleLineDebitAccounts)
                     .HasForeignKey(d => d.DebitAccountId)
                     .HasConstraintName("acc_posting_rule_line_debit_account_id_fkey");
 
@@ -452,7 +452,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.SortOrder).HasColumnName("sort_order");
                 entity.Property(e => e.SubkontoTypeId).HasColumnName("subkonto_type_id");
 
-                entity.HasOne(d => d.Entry).WithMany(p => p.RegisterEntrySubkontos)
+                entity.HasOne(d => d.AccountingRegisterEntry).WithMany(p => p.RegisterEntrySubkontos)
                     .HasForeignKey(d => d.EntryId)
                     .HasConstraintName("acc_reg_entry_subkonto_entry_id_fkey");
 
@@ -534,8 +534,9 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.Name).HasMaxLength(250).HasColumnName("name");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()").HasColumnType("timestamp without time zone").HasColumnName("created_date");
-                entity.HasOne(e => e.Branch).WithMany().HasForeignKey(e => e.BranchId).HasConstraintName("org_department_branch_id_fkey");
-                entity.HasOne(e => e.State).WithMany().HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_state_id_fkey");
+                entity.HasOne(e => e.Organization).WithMany(o => o.Departments).HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_organization_id_fkey");
+                entity.HasOne(e => e.Branch).WithMany(b => b.Departments).HasForeignKey(e => e.BranchId).HasConstraintName("org_department_branch_id_fkey");
+                entity.HasOne(e => e.State).WithMany(s => s.Departments).HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("org_department_state_id_fkey");
             });
 
             modelBuilder.Entity<Position>(entity =>
@@ -1339,8 +1340,8 @@ namespace Infrastructure.Persistence
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("created_date");
 
-                entity.HasOne(d => d.User).WithMany(p => p.UserOrganizations)
-                    .HasForeignKey(d => d.UserId)
+                entity.HasOne(d => d.User).WithOne(p => p.UserOrganization)
+                    .HasForeignKey<UserOrganization>(d => d.UserId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .HasConstraintName("sys_user_organization_user_id_fkey");
 
@@ -1478,7 +1479,7 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("inv_product_price_state_id_fkey");
             });
 
-            modelBuilder.Entity<OrgBankAccount>(entity =>
+            modelBuilder.Entity<BankAccount>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("org_bank_account_pkey");
 
@@ -1506,22 +1507,22 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.StateId).HasColumnName("state_id");
 
-                entity.HasOne(d => d.Bank).WithMany(p => p.OrgBankAccounts)
+                entity.HasOne(d => d.Bank).WithMany(p => p.BankAccounts)
                     .HasForeignKey(d => d.BankId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("org_bank_account_bank_id_fkey");
 
-                entity.HasOne(d => d.Currency).WithMany(p => p.OrgBankAccounts)
+                entity.HasOne(d => d.Currency).WithMany(p => p.BankAccounts)
                     .HasForeignKey(d => d.CurrencyId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("org_bank_account_currency_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany(p => p.OrgBankAccounts)
+                entity.HasOne(d => d.Organization).WithMany(p => p.BankAccounts)
                     .HasForeignKey(d => d.OrganizationId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("org_bank_account_organization_id_fkey");
 
-                entity.HasOne(d => d.State).WithMany(p => p.OrgBankAccounts)
+                entity.HasOne(d => d.State).WithMany(p => p.BankAccounts)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("org_bank_account_state_id_fkey");
@@ -1797,7 +1798,7 @@ namespace Infrastructure.Persistence
                     .HasColumnName("vat_amount");
                 entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
 
-                entity.HasOne(d => d.Counterparty).WithMany(p => p.PurchaseDocs)
+                entity.HasOne(d => d.Counterparty).WithMany(p => p.PurDocs)
                     .HasForeignKey(d => d.CounterpartyId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pur_doc_counterparty_id_fkey");
@@ -1812,7 +1813,7 @@ namespace Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pur_doc_organization_id_fkey");
 
-                entity.HasOne(d => d.State).WithMany(p => p.PurchaseDocs)
+                entity.HasOne(d => d.State).WithMany(p => p.PurDocs)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pur_doc_state_id_fkey");
@@ -1822,7 +1823,7 @@ namespace Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pur_doc_status_id_fkey");
 
-                entity.HasOne(d => d.Warehouse).WithMany(p => p.PurchaseDocs)
+                entity.HasOne(d => d.Warehouse).WithMany(p => p.PurDocs)
                     .HasForeignKey(d => d.WarehouseId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("pur_doc_warehouse_id_fkey");
@@ -1848,7 +1849,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
-                entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
+                entity.HasOne(d => d.Owner).WithMany(p => p.PurchaseDocTables)
                     .HasForeignKey(d => d.OwnerId)
                     .HasConstraintName("pur_doc_table_owner_id_fkey");
 
@@ -1963,7 +1964,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
-                entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
+                entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocTables)
                     .HasForeignKey(d => d.OwnerId)
                     .HasConstraintName("sale_doc_table_owner_id_fkey");
 
@@ -1977,7 +1978,7 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("sale_doc_table_vat_rate_id_fkey");
             });
 
-            modelBuilder.Entity<InventoryRegisterBalance>(entity =>
+            modelBuilder.Entity<RegisterBalance>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
 
@@ -2014,27 +2015,27 @@ namespace Infrastructure.Persistence
                     .HasColumnName("quantity");
                 entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
 
-                entity.HasOne(d => d.DocumentType).WithMany(p => p.InventoryRegisterBalances)
+                entity.HasOne(d => d.DocumentType).WithMany(p => p.RegisterBalances)
                     .HasForeignKey(d => d.DocumentTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_reg_balance_document_type_id_fkey");
 
-                entity.HasOne(d => d.OperationType).WithMany(p => p.InventoryRegisterBalances)
+                entity.HasOne(d => d.OperationType).WithMany(p => p.RegisterBalances)
                     .HasForeignKey(d => d.OperationTypeId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_reg_balance_operation_type_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany(p => p.InventoryRegisterBalances)
+                entity.HasOne(d => d.Organization).WithMany(p => p.RegisterBalances)
                     .HasForeignKey(d => d.OrganizationId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_reg_balance_organization_id_fkey");
 
-                entity.HasOne(d => d.Product).WithMany(p => p.InventoryRegisterBalances)
+                entity.HasOne(d => d.Product).WithMany(p => p.RegisterBalances)
                     .HasForeignKey(d => d.ProductId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_reg_balance_product_id_fkey");
 
-                entity.HasOne(d => d.Warehouse).WithMany(p => p.InventoryRegisterBalances)
+                entity.HasOne(d => d.Warehouse).WithMany(p => p.RegisterBalances)
                     .HasForeignKey(d => d.WarehouseId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
@@ -2211,7 +2212,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.OperationTypeId).HasColumnName("operation_type_id");
                 entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
 
-                entity.HasOne(d => d.CreditAccount).WithMany(p => p.AccountingRegisterEntriesCreditAccount)
+                entity.HasOne(d => d.CreditAccount).WithMany(p => p.AccRegEntryCreditAccounts)
                     .HasForeignKey(d => d.CreditAccountId)
                     .HasConstraintName("acc_reg_entry_credit_account_id_fkey");
 
@@ -2220,7 +2221,7 @@ namespace Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("acc_reg_entry_currency_id_fkey");
 
-                entity.HasOne(d => d.DebitAccount).WithMany(p => p.AccountingRegisterEntriesDebitAccount)
+                entity.HasOne(d => d.DebitAccount).WithMany(p => p.AccRegEntryDebitAccounts)
                     .HasForeignKey(d => d.DebitAccountId)
                     .HasConstraintName("acc_reg_entry_debit_account_id_fkey");
 
@@ -2278,7 +2279,7 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.AccountTypeId)
                     .HasConstraintName("acc_chart_account_account_type_id_fkey");
 
-                entity.HasOne(d => d.Organization).WithMany(p => p.ChartAccounts)
+                entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccounts)
                     .HasForeignKey(d => d.OrganizationId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("acc_chart_account_organization_id_fkey");

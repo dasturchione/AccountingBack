@@ -4,9 +4,9 @@ using System.Linq.Expressions;
 
 namespace Application.Features.InventoryRegisterBalances;
 
-public class InventoryRegisterBalanceDtoProjection : IProjectionBuilder<InventoryRegisterBalance, InventoryRegisterBalanceDto>
+public class InventoryRegisterBalanceDtoProjection : IProjectionBuilder<RegisterBalance, InventoryRegisterBalanceDto>
 {
-    public Expression<Func<InventoryRegisterBalance, InventoryRegisterBalanceDto>> Build() =>
+    public Expression<Func<RegisterBalance, InventoryRegisterBalanceDto>> Build() =>
         x => new InventoryRegisterBalanceDto
         {
             Id = x.Id,
@@ -23,9 +23,9 @@ public class InventoryRegisterBalanceDtoProjection : IProjectionBuilder<Inventor
         };
 }
 
-public class InventoryRegisterBalanceListDtoProjection : IProjectionBuilder<InventoryRegisterBalance, InventoryRegisterBalanceListDto>
+public class InventoryRegisterBalanceListDtoProjection : IProjectionBuilder<RegisterBalance, InventoryRegisterBalanceListDto>
 {
-    public Expression<Func<InventoryRegisterBalance, InventoryRegisterBalanceListDto>> Build() =>
+    public Expression<Func<RegisterBalance, InventoryRegisterBalanceListDto>> Build() =>
         x => new InventoryRegisterBalanceListDto
         {
             Id = x.Id,

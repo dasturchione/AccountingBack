@@ -4,9 +4,9 @@ using System.Linq.Expressions;
 
 namespace Application.Features.InventoryRegisterBalances;
 
-public class InventoryRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<InventoryRegisterBalance, InventoryRegisterBalanceListFilter>
+public class InventoryRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<RegisterBalance, InventoryRegisterBalanceListFilter>
 {
-    public Expression<Func<InventoryRegisterBalance, bool>> Build(InventoryRegisterBalanceListFilter options) =>
+    public Expression<Func<RegisterBalance, bool>> Build(InventoryRegisterBalanceListFilter options) =>
         x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
              (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
              (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&

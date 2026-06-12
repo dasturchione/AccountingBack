@@ -12,9 +12,8 @@ public partial class PostingRuleLine
     public string? ContentTemplate { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual PostingRule Rule { get; set; } = null!;
-    public virtual ChartAccount? DebitAccount { get; set; }
     public virtual ChartAccount? CreditAccount { get; set; }
+    public virtual ChartAccount? DebitAccount { get; set; }
+    public virtual PostingRule Rule { get; set; } = null!;
     public virtual State State { get; set; } = null!;
 }

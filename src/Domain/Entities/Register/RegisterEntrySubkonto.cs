@@ -1,4 +1,4 @@
-namespace Domain.Entities;
+﻿namespace Domain.Entities;
 
 public partial class RegisterEntrySubkonto
 {
@@ -10,7 +10,6 @@ public partial class RegisterEntrySubkonto
     public long? EntityId { get; set; }
     public string? DisplayValue { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual AccountingRegisterEntry Entry { get; set; } = null!;
+    public virtual AccountingRegisterEntry AccountingRegisterEntry { get; set; } = null!;
     public virtual SubkontoType SubkontoType { get; set; } = null!;
 }

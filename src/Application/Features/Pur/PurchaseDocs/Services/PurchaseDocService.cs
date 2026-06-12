@@ -107,7 +107,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 DocNumber      = dto.DocNumber,
                 DocDate        = dto.DocDate,
                 CurrencyId     = dto.CurrencyId,
-                Lines          = lines,
+                PurchaseDocTables = lines,
                 TotalAmount    = lines.Sum(l => l.Amount),
                 VatAmount      = lines.Sum(l => l.VatAmount),
                 FinalAmount    = lines.Sum(l => l.TotalAmount),
@@ -123,7 +123,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             // Inventory handler uchun ProductTable navigation kerak
             var fullDocQuery = _queryBuilder.For<PurchaseDoc>().Where(d => d.Id == doc.Id).Build();
-            fullDocQuery.AddIncludes(b => b.Include(d => d.Lines).ThenInclude(l => l.ProductTable));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocTables).ThenInclude(l => l.ProductTable));
             var fullDoc = await _query.GetAsync(fullDocQuery, ct) ?? doc;
 
             var dispatch = await _dispatcher.ProcessAsync(fullDoc, ct);

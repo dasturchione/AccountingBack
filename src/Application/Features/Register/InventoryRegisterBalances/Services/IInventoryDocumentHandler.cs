@@ -5,5 +5,5 @@ namespace Application.Features.InventoryRegisterBalances;
 
 public interface IInventoryDocumentHandler<T>
 {
-    Task<Result<List<InventoryRegisterBalance>>> HandleAsync(T document, CancellationToken ct = default);
+    Task<Result<List<RegisterBalance>>> HandleAsync(T document, CancellationToken ct = default);
 }

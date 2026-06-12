@@ -16,13 +16,12 @@ public partial class BankOperation
     public short StatusId { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-
-    public virtual Organization Organization { get; set; } = null!;
-    public virtual OrgBankAccount BankAccount { get; set; } = null!;
-    public virtual OperationType OperationType { get; set; } = null!;
-    public virtual PaymentType? PaymentType { get; set; }
+    public virtual BankAccount BankAccount { get; set; } = null!;
     public virtual CounterpartyCard? Counterparty { get; set; }
     public virtual Currency Currency { get; set; } = null!;
-    public virtual DocumentStatus Status { get; set; } = null!;
+    public virtual OperationType OperationType { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual PaymentType? PaymentType { get; set; }
     public virtual State State { get; set; } = null!;
+    public virtual DocumentStatus Status { get; set; } = null!;
 }

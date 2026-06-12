@@ -8,7 +8,7 @@ public partial class VatRate
     public decimal Rate { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public virtual State State { get; set; } = null!;
     public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
+    public virtual State State { get; set; } = null!;
 }

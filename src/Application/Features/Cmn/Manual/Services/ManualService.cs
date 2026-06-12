@@ -33,7 +33,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
-    private readonly IQueryRepository<OrgBankAccount> _orgBankAccountQuery;
+    private readonly IQueryRepository<BankAccount> _orgBankAccountQuery;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Language> _languageQuery;
@@ -64,7 +64,7 @@ public class ManualService : IManualService
         IQueryRepository<Product> productQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
-        IQueryRepository<OrgBankAccount> orgBankAccountQuery,
+        IQueryRepository<BankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
         IQueryRepository<Language> languageQuery,
@@ -211,7 +211,7 @@ public class ManualService : IManualService
         {
             Criteria = u => u.StateId == StateIdConst.ACTIVE
                          && (roleId == null || u.RoleId == roleId)
-                         && (orgId == null || u.UserOrganizations.Any(uo => uo.OrganizationId == orgId && uo.StateId == StateIdConst.ACTIVE)),
+                         && (orgId == null || u.OrganizationId == orgId),
             OrderBy  = q => q.OrderBy(u => u.Name),
             Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
         };
@@ -382,7 +382,7 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetOrgBankAccountsAsync(int? organizationId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<OrgBankAccount, SelectListDto>
+        var spec = new QuerySpecification<BankAccount, SelectListDto>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
                             (organizationId == null || x.OrganizationId == organizationId),

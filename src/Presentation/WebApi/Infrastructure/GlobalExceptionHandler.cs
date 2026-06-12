@@ -14,6 +14,7 @@ namespace WebApi.Infrastructure
                 Status = StatusCodes.Status500InternalServerError,
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.6.1",
                 Title = "Server failure",
+                Detail = exception.InnerException?.Message ?? exception.Message
             };
 
             httpContext.Response.StatusCode = problemDetails.Status.Value;

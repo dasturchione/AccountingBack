@@ -7,21 +7,21 @@ namespace Application.Features.InventoryRegisterBalances;
 public class InventoryDispatcher : IInventoryDispatcher
 {
     private readonly IInventoryDocumentHandler<PurchaseDoc> _purchaseHandler;
-    private readonly ICommandRepository<InventoryRegisterBalance> _command;
+    private readonly ICommandRepository<RegisterBalance> _command;
 
     public InventoryDispatcher(IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
-                               ICommandRepository<InventoryRegisterBalance> command)
+                               ICommandRepository<RegisterBalance> command)
     {
         _purchaseHandler = purchaseHandler;
         _command         = command;
     }
 
-    public async Task<Result<List<InventoryRegisterBalance>>> ProcessAsync(object document, CancellationToken ct = default)
+    public async Task<Result<List<RegisterBalance>>> ProcessAsync(object document, CancellationToken ct = default)
     {
         var result = document switch
         {
             PurchaseDoc p => await _purchaseHandler.HandleAsync(p, ct),
-            _             => Result.Failure<List<InventoryRegisterBalance>>(InventoryRegisterBalanceErrors.UnsupportedDocumentType())
+            _             => Result.Failure<List<RegisterBalance>>(InventoryRegisterBalanceErrors.UnsupportedDocumentType())
         };
 
         if (!result.IsSuccess)

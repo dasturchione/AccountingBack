@@ -12,12 +12,14 @@ public partial class User
     public string LastName { get; set; } = null!;
     public int RoleId { get; set; }
     public DateTime? LastAccessTime { get; set; }
-    public short? LanguageId { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
+    public short? LanguageId { get; set; }
+    public int? OrganizationId { get; set; }
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
-    public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
     public virtual Language? Language { get; set; }
+    public virtual Organization? Organization { get; set; }
     public virtual Role Role { get; set; } = null!;
     public virtual State State { get; set; } = null!;
+    public virtual UserOrganization? UserOrganization { get; set; }
 }

@@ -12,11 +12,11 @@ public partial class Branch
     public string? PhoneNumber { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public virtual Organization Organization { get; set; } = null!;
-    public virtual Region? Region { get; set; }
-    public virtual District? District { get; set; }
-    public virtual State State { get; set; } = null!;
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
+    public virtual District? District { get; set; }
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual Region? Region { get; set; }
+    public virtual State State { get; set; } = null!;
 }

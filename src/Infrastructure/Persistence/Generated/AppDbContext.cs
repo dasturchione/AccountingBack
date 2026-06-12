@@ -78,6 +78,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvProductPrice> InvProductPrices { get; set; }
 
+    public virtual DbSet<InvProductTable> InvProductTables { get; set; }
+
     public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
 
     public virtual DbSet<InvWarehouse> InvWarehouses { get; set; }
@@ -1534,6 +1536,46 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("inv_product_price_state_id_fkey");
         });
 
+        modelBuilder.Entity<InvProductTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_product_table_pkey");
+
+            entity.ToTable("inv_product_table");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Barcode)
+                .HasMaxLength(100)
+                .HasColumnName("barcode");
+            entity.Property(e => e.Code)
+                .HasMaxLength(100)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_date");
+            entity.Property(e => e.Name)
+                .HasMaxLength(300)
+                .HasColumnName("name");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.StateId).HasColumnName("state_id");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvProductTables)
+                .HasForeignKey(d => d.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_table_organization_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvProductTables)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_table_product_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvProductTables)
+                .HasForeignKey(d => d.StateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_table_state_id_fkey");
+        });
+
         modelBuilder.Entity<InvRegBalance>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
@@ -2048,7 +2090,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.OwnerId, "idx_pur_doc_table_owner_id");
 
-            entity.HasIndex(e => e.ProductId, "idx_pur_doc_table_product_id");
+            entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_id");
 
             entity.HasIndex(e => e.VatRateId, "idx_pur_doc_table_vat_rate_id");
 
@@ -2060,7 +2102,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Price)
                 .HasPrecision(18, 2)
                 .HasColumnName("price");
-            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
             entity.Property(e => e.Quantity)
                 .HasPrecision(18, 3)
                 .HasColumnName("quantity");
@@ -2076,10 +2118,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.OwnerId)
                 .HasConstraintName("pur_doc_table_owner_id_fkey");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.PurDocTables)
-                .HasForeignKey(d => d.ProductId)
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.PurDocTables)
+                .HasForeignKey(d => d.ProductTableId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_doc_table_product_id_fkey");
+                .HasConstraintName("pur_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables)
                 .HasForeignKey(d => d.VatRateId)
@@ -2173,7 +2215,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.OwnerId, "idx_sale_doc_table_owner_id");
 
-            entity.HasIndex(e => e.ProductId, "idx_sale_doc_table_product_id");
+            entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_id");
 
             entity.HasIndex(e => e.VatRateId, "idx_sale_doc_table_vat_rate_id");
 
@@ -2185,7 +2227,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Price)
                 .HasPrecision(18, 2)
                 .HasColumnName("price");
-            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
             entity.Property(e => e.Quantity)
                 .HasPrecision(18, 3)
                 .HasColumnName("quantity");
@@ -2201,10 +2243,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.OwnerId)
                 .HasConstraintName("sale_doc_table_owner_id_fkey");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.SaleDocTables)
-                .HasForeignKey(d => d.ProductId)
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.SaleDocTables)
+                .HasForeignKey(d => d.ProductTableId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("sale_doc_table_product_id_fkey");
+                .HasConstraintName("sale_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocTables)
                 .HasForeignKey(d => d.VatRateId)
@@ -2328,52 +2370,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sys_role_module_role_id_fkey");
         });
 
-        modelBuilder.Entity<SysUserOrganization>(entity =>
-        {
-            entity.HasKey(e => new { e.UserId, e.OrganizationId }).HasName("sys_user_organization_pkey");
-
-            entity.ToTable("sys_user_organization");
-
-            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_organization_id");
-
-            entity.HasIndex(e => e.RoleId, "idx_sys_user_organization_role_id");
-
-            entity.HasIndex(e => e.StateId, "idx_sys_user_organization_state_id");
-
-            entity.HasIndex(e => e.UserId, "idx_sys_user_organization_default_user")
-                .IsUnique()
-                .HasFilter("is_default = true");
-
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
-            entity.Property(e => e.RoleId).HasColumnName("role_id");
-            entity.Property(e => e.IsDefault)
-                .HasDefaultValue(false)
-                .HasColumnName("is_default");
-            entity.Property(e => e.StateId).HasColumnName("state_id");
-            entity.Property(e => e.CreatedDate)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("created_date");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.SysUserOrganizations)
-                .HasForeignKey(d => d.OrganizationId)
-                .HasConstraintName("sys_user_organization_organization_id_fkey");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.SysUserOrganizations)
-                .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("sys_user_organization_role_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany()
-                .HasForeignKey(d => d.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("sys_user_organization_state_id_fkey");
-
-            entity.HasOne(d => d.User).WithMany(p => p.SysUserOrganizations)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("sys_user_organization_user_id_fkey");
-        });
-
         modelBuilder.Entity<SysUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("sys_user_pkey");
@@ -2381,6 +2377,8 @@ public partial class AppDbContext : DbContext
             entity.ToTable("sys_user");
 
             entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
+
+            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
 
             entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
 
@@ -2406,6 +2404,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastName)
                 .HasMaxLength(100)
                 .HasColumnName("last_name");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(250)
                 .HasColumnName("password_hash");
@@ -2425,6 +2424,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.LanguageId)
                 .HasConstraintName("sys_user_language_id_fkey");
 
+            entity.HasOne(d => d.Organization).WithMany(p => p.SysUsers)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_user_organization_id_fkey");
+
             entity.HasOne(d => d.Role).WithMany(p => p.SysUsers)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2434,6 +2437,50 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.StateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sys_user_state_id_fkey");
+        });
+
+        modelBuilder.Entity<SysUserOrganization>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.OrganizationId }).HasName("sys_user_organization_pkey");
+
+            entity.ToTable("sys_user_organization");
+
+            entity.HasIndex(e => e.UserId, "idx_sys_user_organization_default_user")
+                .IsUnique()
+                .HasFilter("(is_default = true)");
+
+            entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_organization_id");
+
+            entity.HasIndex(e => e.RoleId, "idx_sys_user_organization_role_id");
+
+            entity.HasIndex(e => e.StateId, "idx_sys_user_organization_state_id");
+
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_date");
+            entity.Property(e => e.IsDefault).HasColumnName("is_default");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.StateId).HasColumnName("state_id");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_user_organization_organization_id_fkey");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("sys_user_organization_role_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.SysUserOrganizations)
+                .HasForeignKey(d => d.StateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_user_organization_state_id_fkey");
+
+            entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization)
+                .HasForeignKey<SysUserOrganization>(d => d.UserId)
+                .HasConstraintName("sys_user_organization_user_id_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

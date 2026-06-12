@@ -15,16 +15,16 @@ public partial class CounterpartyCard
     public string? Address { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public virtual Organization Organization { get; set; } = null!;
-    public virtual CounterpartyType CounterpartyType { get; set; } = null!;
-    public virtual Region? Region { get; set; }
-    public virtual District? District { get; set; }
-    public virtual State State { get; set; } = null!;
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
-    public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
+    public virtual CounterpartyType CounterpartyType { get; set; } = null!;
+    public virtual District? District { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
+    public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
+    public virtual Region? Region { get; set; }
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
+    public virtual State State { get; set; } = null!;
 }

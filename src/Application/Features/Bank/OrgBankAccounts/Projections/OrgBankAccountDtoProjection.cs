@@ -4,9 +4,9 @@ using System.Linq.Expressions;
 
 namespace Application.Features.OrgBankAccounts;
 
-public class OrgBankAccountDtoProjection : IProjectionBuilder<OrgBankAccount, OrgBankAccountDto>
+public class OrgBankAccountDtoProjection : IProjectionBuilder<BankAccount, OrgBankAccountDto>
 {
-    public Expression<Func<OrgBankAccount, OrgBankAccountDto>> Build() =>
+    public Expression<Func<BankAccount, OrgBankAccountDto>> Build() =>
         x => new OrgBankAccountDto
         {
             Id = x.Id,

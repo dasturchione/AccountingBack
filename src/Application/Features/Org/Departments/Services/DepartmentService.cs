@@ -20,7 +20,9 @@ public class DepartmentService : BaseService, IDepartmentService
                              IQueryBuilder queryBuilder,
                              IQueryRepository<Department> query,
                              ICommandRepository<Department> command,
-                             ILogger<DepartmentService> logger) : base(logger)
+                             ILogger<DepartmentService> logger, 
+                             IUnitOfWork unitOfWork) 
+            : base(logger, unitOfWork)
     {
         _query = query;
         _command = command;

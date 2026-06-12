@@ -17,7 +17,6 @@ namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocService : BaseService, IPurchaseDocService
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAccountingDispatcher _dispatcher;
@@ -31,8 +30,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
-    public PurchaseDocService(IUnitOfWork unitOfWork,
-                              IUserContext userContext,
+    public PurchaseDocService(IUserContext userContext,
                               IQueryBuilder queryBuilder,
                               IAccountingDispatcher dispatcher,
                               IInventoryDispatcher inventoryDispatcher,
@@ -44,12 +42,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<Warehouse> warehouseQuery,
                               IQueryRepository<Product> productQuery,
                               IQueryRepository<CounterpartyCard> counterpartyQuery,
-                              ILogger<PurchaseDocService> logger) : base(logger)
+                              ILogger<PurchaseDocService> logger,
+                              IUnitOfWork unitOfWork) 
+            : base(logger, unitOfWork)
     {
         _query               = query;
         _command             = command;
         _dispatcher          = dispatcher;
-        _unitOfWork          = unitOfWork;
         _lineCommand         = lineCommand;
         _userContext         = userContext;
         _queryBuilder        = queryBuilder;
@@ -82,7 +81,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         });
 
     public Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(CreateAsync), _unitOfWork, async () =>
+        ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
             var docNumber = await _docNumberGenerator.GenerateAsync(dto.OrganizationId, "PUR", dto.DocDate, ct);
 
@@ -140,7 +139,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         }, ct);
 
     public Task<Result> UpdateAsync(long id, PurchaseDocUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(UpdateAsync), _unitOfWork, async () =>
+        ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
         {
             var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
             var doc   = await _query.GetAsync(query, ct);
@@ -183,7 +182,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         }, ct);
 
     public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(DeleteAsync), _unitOfWork, async () =>
+        ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
             var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
             var doc   = await _query.GetAsync(query, ct);

@@ -24,7 +24,9 @@ public class OrganizationService : BaseService, IOrganizationService
                                IQueryRepository<Organization>  orgQuery,
                                ICommandRepository<Organization> orgCommand,
                                IFakturaService                 fakturaService,
-                               ILogger<OrganizationService>    logger) : base(logger)
+                               ILogger<OrganizationService>    logger, 
+                               IUnitOfWork unitOfWork) 
+            : base(logger, unitOfWork)
     {
         _orgQuery       = orgQuery;
         _orgCommand     = orgCommand;

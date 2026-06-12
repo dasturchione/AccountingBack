@@ -12,7 +12,6 @@ namespace Application.Features.Users.Services;
 
 public class UserService : BaseService, IUserService
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IPasswordHasher _passwordHasher;
@@ -20,18 +19,18 @@ public class UserService : BaseService, IUserService
     private readonly ICommandRepository<User> _userCommand;
     private readonly IQueryRepository<UserOrganization> _userOrgQuery;
     private readonly ICommandRepository<UserOrganization> _userOrgCommand;
-    public UserService(IUnitOfWork unitOfWork,
-                       IUserContext userContext,
+    public UserService(IUserContext userContext,
                        IQueryBuilder queryBuilder,
                        IPasswordHasher passwordHasher,
                        IQueryRepository<User> userQuery,
                        ICommandRepository<User> userCommand,
                        IQueryRepository<UserOrganization> userOrgQuery,
                        ICommandRepository<UserOrganization> userOrgCommand,
-                       ILogger<UserService> logger) : base(logger)
+                       ILogger<UserService> logger, 
+                       IUnitOfWork unitOfWork) 
+            : base(logger, unitOfWork)
     {
         _userQuery = userQuery;
-        _unitOfWork = unitOfWork;
         _userCommand = userCommand;
         _userContext = userContext;
         _queryBuilder = queryBuilder;

@@ -65,6 +65,8 @@ public partial class CmnState
 
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
+    public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
+
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
@@ -86,6 +88,8 @@ public partial class CmnState
     public virtual ICollection<SysModule> SysModules { get; set; } = new List<SysModule>();
 
     public virtual ICollection<SysRole> SysRoles { get; set; } = new List<SysRole>();
+
+    public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
 
     public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

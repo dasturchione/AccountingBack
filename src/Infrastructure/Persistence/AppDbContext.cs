@@ -1835,17 +1835,29 @@ namespace Infrastructure.Persistence
                 entity.ToTable("pur_doc_table");
 
                 entity.HasIndex(e => e.OwnerId, "idx_pur_doc_table_owner_id");
-                entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_table_id");
+
+                entity.HasIndex(e => e.ProductTableId, "idx_pur_doc_table_product_id");
+
                 entity.HasIndex(e => e.VatRateId, "idx_pur_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.Lines)
@@ -1949,18 +1961,28 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.OwnerId, "idx_sale_doc_table_owner_id");
 
-                entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_table_id");
+                entity.HasIndex(e => e.ProductTableId, "idx_sale_doc_table_product_id");
 
                 entity.HasIndex(e => e.VatRateId, "idx_sale_doc_table_vat_rate_id");
 
                 entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Amount).HasPrecision(18, 2).HasColumnName("amount");
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("amount");
                 entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-                entity.Property(e => e.Price).HasPrecision(18, 2).HasColumnName("price");
+                entity.Property(e => e.Price)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("price");
                 entity.Property(e => e.ProductTableId).HasColumnName("product_table_id");
-                entity.Property(e => e.Quantity).HasPrecision(18, 3).HasColumnName("quantity");
-                entity.Property(e => e.TotalAmount).HasPrecision(18, 2).HasColumnName("total_amount");
-                entity.Property(e => e.VatAmount).HasPrecision(18, 2).HasColumnName("vat_amount");
+                entity.Property(e => e.Quantity)
+                    .HasPrecision(18, 3)
+                    .HasColumnName("quantity");
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("total_amount");
+                entity.Property(e => e.VatAmount)
+                    .HasPrecision(18, 2)
+                    .HasColumnName("vat_amount");
                 entity.Property(e => e.VatRateId).HasColumnName("vat_rate_id");
 
                 entity.HasOne(d => d.Owner).WithMany(p => p.Lines)

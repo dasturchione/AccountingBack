@@ -9,7 +9,7 @@ public partial class SaleDocTable
 
     public long OwnerId { get; set; }
 
-    public int ProductId { get; set; }
+    public int ProductTableId { get; set; }
 
     public decimal Quantity { get; set; }
 
@@ -25,7 +25,7 @@ public partial class SaleDocTable
 
     public virtual SaleDoc Owner { get; set; } = null!;
 
-    public virtual InvProduct Product { get; set; } = null!;
+    public virtual InvProductTable ProductTable { get; set; } = null!;
 
     public virtual CmnVatRate? VatRate { get; set; }
 }

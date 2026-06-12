@@ -726,6 +726,27 @@ namespace Infrastructure.Persistence
                     .HasConstraintName("cmn_vat_rate_state_id_fkey");
             });
 
+            modelBuilder.Entity<CounterpartyType>(entity =>
+            {
+                entity.HasKey(e => e.Id).HasName("cmn_counterparty_type_pkey");
+
+                entity.ToTable("cmn_counterparty_type");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.Code)
+                    .HasMaxLength(50)
+                    .HasColumnName("code");
+                entity.Property(e => e.Name)
+                    .HasMaxLength(150)
+                    .HasColumnName("name");
+                entity.Property(e => e.StateId).HasColumnName("state_id");
+
+                entity.HasOne(d => d.State).WithMany(p => p.CounterpartyTypes)
+                    .HasForeignKey(d => d.StateId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("cmn_counterparty_type_state_id_fkey");
+            });
+
             modelBuilder.Entity<CounterpartyCard>(entity =>
             {
                 entity.HasKey(e => e.Id).HasName("counterparty_card_pkey");

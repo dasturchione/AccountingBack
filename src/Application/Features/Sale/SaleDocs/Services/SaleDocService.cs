@@ -12,29 +12,31 @@ public class SaleDocService : ISaleDocService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IDocNumberGenerator _docNumberGenerator;
     private readonly IQueryRepository<SaleDoc> _query;
     private readonly ICommandRepository<SaleDoc> _command;
 
     public SaleDocService(IUserContext userContext,
-                          IQueryBuilder queryBuilder, 
+                          IQueryBuilder queryBuilder,
+                          IDocNumberGenerator docNumberGenerator,
                           IQueryRepository<SaleDoc> query,
                           ICommandRepository<SaleDoc> command)
     {
         _query = query;
         _command = command;
-        _userContext = userContext; 
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
+        _docNumberGenerator = docNumberGenerator;
     }
 
     public async Task<Result<long>> CreateAsync(SaleDocCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-            return Result.Failure<long>(SaleDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
+        var docNumber = await _docNumberGenerator.GenerateAsync(dto.OrganizationId, "SAL", dto.DocDate, ct);
 
         var entity = new SaleDoc
         {
             OrganizationId = dto.OrganizationId,
-            DocNumber = dto.DocNumber,
+            DocNumber = docNumber,
             DocDate = dto.DocDate,
             CounterpartyId = dto.CounterpartyId,
             WarehouseId = dto.WarehouseId,
@@ -87,11 +89,7 @@ public class SaleDocService : ISaleDocService
         if (entity == null) 
             return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.DocNumber != dto.DocNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-            return Result.Failure(SaleDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
-
         entity.OrganizationId = dto.OrganizationId;
-        entity.DocNumber = dto.DocNumber;
         entity.DocDate = dto.DocDate;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.WarehouseId = dto.WarehouseId;

@@ -28,14 +28,10 @@ public class ProductGroupService : IProductGroupService
 
     public async Task<Result<int>> CreateAsync(ProductGroupCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
-            return Result.Failure<int>(ProductGroupErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
         var entity = new ProductGroup
         {
             OrganizationId = dto.OrganizationId,
             ParentId       = dto.ParentId,
-            Code           = dto.Code,
             Name           = dto.Name,
             StateId        = StateIdConst.ACTIVE,
             CreatedDate    = DateTime.Now
@@ -47,7 +43,6 @@ public class ProductGroupService : IProductGroupService
             {
                 OrganizationId = dto.OrganizationId,
                 UnitId         = p.UnitId,
-                Code           = p.Code,
                 Barcode        = p.Barcode,
                 Name           = p.Name,
                 Description    = p.Description,
@@ -98,12 +93,8 @@ public class ProductGroupService : IProductGroupService
         if (entity == null) 
             return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
-            return Result.Failure(ProductGroupErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
         entity.OrganizationId = dto.OrganizationId;
         entity.ParentId = dto.ParentId;
-        entity.Code = dto.Code;
         entity.Name = dto.Name;
         entity.StateId = dto.StateId;
 

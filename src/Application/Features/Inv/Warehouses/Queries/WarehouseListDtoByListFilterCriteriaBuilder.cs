@@ -7,6 +7,5 @@ public class WarehouseListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<Ware
 {
     public Expression<Func<WarehouseListDto, bool>> Build(WarehouseListFilter options)
         => x => string.IsNullOrEmpty(options.Search) ||
-                x.Name.ToLower().Contains(options.Search.ToLower()) ||
-                x.Code.ToLower().Contains(options.Search.ToLower());
+                x.Name.ToLower().Contains(options.Search.ToLower());
 }

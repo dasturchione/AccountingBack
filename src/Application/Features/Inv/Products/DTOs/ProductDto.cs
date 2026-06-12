@@ -9,7 +9,6 @@ public class ProductDto
     public string? ProductGroupName { get; set; }
     public short UnitId { get; set; }
     public string UnitName { get; set; } = null!;
-    public string Code { get; set; } = null!;
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }

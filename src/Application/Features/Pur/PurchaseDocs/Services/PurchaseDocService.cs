@@ -28,11 +28,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
+    private readonly IDocNumberGenerator _docNumberGenerator;
 
     public PurchaseDocService(IUserContext userContext,
                               IQueryBuilder queryBuilder,
                               IAccountingDispatcher dispatcher,
                               IInventoryDispatcher inventoryDispatcher,
+                              IDocNumberGenerator docNumberGenerator,
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               ICommandRepository<PurchaseDoc> command,
@@ -55,6 +57,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _warehouseQuery      = warehouseQuery;
         _counterpartyQuery   = counterpartyQuery;
         _inventoryDispatcher = inventoryDispatcher;
+        _docNumberGenerator  = docNumberGenerator;
     }
 
     public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
@@ -80,8 +83,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
-            if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-                return Result.Failure<long>(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
+            var docNumber = await _docNumberGenerator.GenerateAsync(dto.OrganizationId, "PUR", dto.DocDate, ct);
 
             var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
             var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
@@ -103,7 +105,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             var doc = new PurchaseDoc
             {
                 OrganizationId = dto.OrganizationId,
-                DocNumber      = dto.DocNumber,
+                DocNumber      = docNumber,
                 DocDate        = dto.DocDate,
                 CurrencyId     = dto.CurrencyId,
                 PurchaseDocTables = lines,
@@ -148,10 +150,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
                 return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
 
-            if (doc.DocNumber != dto.DocNumber &&
-                await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.DocNumber == dto.DocNumber, ct))
-                return Result.Failure(PurchaseDocErrors.DocNumberConflict(dto.DocNumber, _userContext.LanguageId));
-
             // Yangi qatorlarni hisoblaymiz
             var linesResult = await BuildLinesAsync(dto.OrganizationId, dto.Lines, ct);
             if (!linesResult.IsSuccess)
@@ -168,7 +166,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             await _lineCommand.CreateAsync(newLines, ct);
 
             doc.OrganizationId = dto.OrganizationId;
-            doc.DocNumber      = dto.DocNumber;
             doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId    = dto.WarehouseId;

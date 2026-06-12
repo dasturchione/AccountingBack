@@ -28,15 +28,11 @@ public class ProductService : IProductService
 
     public async Task<Result<int>> CreateAsync(ProductCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
-            return Result.Failure<int>(ProductErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
         var entity = new Product
         {
             OrganizationId = dto.OrganizationId,
             ProductGroupId = dto.ProductGroupId,
             UnitId = dto.UnitId,
-            Code = dto.Code,
             Barcode = dto.Barcode,
             Name = dto.Name,
             Description = dto.Description,
@@ -86,13 +82,9 @@ public class ProductService : IProductService
         if (entity == null) 
             return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
-            return Result.Failure(ProductErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
         entity.OrganizationId = dto.OrganizationId;
         entity.ProductGroupId = dto.ProductGroupId;
         entity.UnitId = dto.UnitId;
-        entity.Code = dto.Code;
         entity.Barcode = dto.Barcode;
         entity.Name = dto.Name;
         entity.Description = dto.Description;

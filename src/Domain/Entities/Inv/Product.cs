@@ -6,7 +6,6 @@ public partial class Product
     public int OrganizationId { get; set; }
     public int? ProductGroupId { get; set; }
     public short UnitId { get; set; }
-    public string Code { get; set; } = null!;
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }

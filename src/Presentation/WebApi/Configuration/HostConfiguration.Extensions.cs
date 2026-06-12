@@ -253,6 +253,7 @@ namespace WebApi.Configuration
             });
 
             app.UseAuthentication();
+            app.UseMiddleware<OrganizationScopeMiddleware>();
             app.UseAuthorization();
 
             return app;

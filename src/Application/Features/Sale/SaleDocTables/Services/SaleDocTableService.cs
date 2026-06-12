@@ -32,7 +32,7 @@ public class SaleDocTableService : ISaleDocTableService
         var entity = new SaleDocTable
         {
             OwnerId = dto.OwnerId,
-            ProductId = dto.ProductId,
+            ProductTableId = dto.ProductTableId,
             Quantity = dto.Quantity,
             Price = dto.Price,
             Amount = amount,
@@ -81,7 +81,7 @@ public class SaleDocTableService : ISaleDocTableService
         var amount = dto.Quantity * dto.Price;
         var vatAmount = 0m;
         entity.OwnerId = dto.OwnerId;
-        entity.ProductId = dto.ProductId;
+        entity.ProductTableId = dto.ProductTableId;
         entity.Quantity = dto.Quantity;
         entity.Price = dto.Price;
         entity.Amount = amount;

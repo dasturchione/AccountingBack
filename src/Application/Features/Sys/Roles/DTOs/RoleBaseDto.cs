@@ -4,5 +4,5 @@ public class RoleBaseDto
 {
     public string     ShortName  { get; set; } = null!;
     public string     FullName   { get; set; } = null!;
-    public List<int>  ModuleIds  { get; set; } = [];
+    public List<int> Modules { get; set; } = [];
 }

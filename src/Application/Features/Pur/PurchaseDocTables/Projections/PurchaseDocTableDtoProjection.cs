@@ -11,8 +11,8 @@ public class PurchaseDocTableDtoProjection : IProjectionBuilder<PurchaseDocTable
         {
             Id = x.Id,
             OwnerId = x.OwnerId,
-            ProductId = x.ProductId,
-            ProductName = x.Product.Name,
+            ProductTableId = x.ProductTableId,
+            ProductName = x.ProductTable.Product.Name,
             Quantity = x.Quantity,
             Price = x.Price,
             Amount = x.Amount,

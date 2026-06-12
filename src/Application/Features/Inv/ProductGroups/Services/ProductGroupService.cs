@@ -34,12 +34,29 @@ public class ProductGroupService : IProductGroupService
         var entity = new ProductGroup
         {
             OrganizationId = dto.OrganizationId,
-            ParentId = dto.ParentId,
-            Code = dto.Code,
-            Name = dto.Name,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
+            ParentId       = dto.ParentId,
+            Code           = dto.Code,
+            Name           = dto.Name,
+            StateId        = StateIdConst.ACTIVE,
+            CreatedDate    = DateTime.Now
         };
+
+        foreach (var p in dto.Products)
+        {
+            entity.Products.Add(new Product
+            {
+                OrganizationId = dto.OrganizationId,
+                UnitId         = p.UnitId,
+                Code           = p.Code,
+                Barcode        = p.Barcode,
+                Name           = p.Name,
+                Description    = p.Description,
+                IsService      = p.IsService,
+                StateId        = StateIdConst.ACTIVE,
+                CreatedDate    = DateTime.Now
+            });
+        }
+
         await _command.CreateAsync(entity, ct);
         return entity.Id;
     }

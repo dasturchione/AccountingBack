@@ -120,13 +120,16 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             await _command.CreateAsync(doc, ct);
 
-            await _command.ReloadAsync(doc, ct);
+            // Inventory handler uchun ProductTable navigation kerak
+            var fullDocQuery = _queryBuilder.For<PurchaseDoc>().Where(d => d.Id == doc.Id).Build();
+            fullDocQuery.AddIncludes(b => b.Include(d => d.Lines).ThenInclude(l => l.ProductTable));
+            var fullDoc = await _query.GetAsync(fullDocQuery, ct) ?? doc;
 
-            var dispatch = await _dispatcher.ProcessAsync(doc, ct);
+            var dispatch = await _dispatcher.ProcessAsync(fullDoc, ct);
             if (!dispatch.IsSuccess)
                 return Result.Failure<long>(dispatch.Error);
 
-            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct);
+            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(fullDoc, ct);
             if (!inventoryDispatch.IsSuccess)
                 return Result.Failure<long>(inventoryDispatch.Error);
 
@@ -236,7 +239,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             lines.Add(new PurchaseDocTable
             {
-                Product     = products.First(f => f.Id == dto.ProductId),
+                ProductTableId = dto.ProductTableId,
                 Quantity    = dto.Quantity,
                 Price       = dto.Price,
                 Amount      = amount,

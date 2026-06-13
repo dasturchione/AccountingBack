@@ -13,6 +13,9 @@ namespace SharedKernel.Results
         public static Error Problem(short? languageId) =>
             Error.Problem("Common.Problem", GetProblemMessage(languageId));
 
+        public static Error UserHasNoOrganization(short? languageId) =>
+            Error.Business("Common.UserHasNoOrganization", );
+
         private static string GetUnauthorizedMessage(short? languageId)
         {
             return languageId switch
@@ -55,6 +58,21 @@ namespace SharedKernel.Results
                     "Произошла проблема при выполнении запроса. Пожалуйста, попробуйте позже.",
                 _ =>
                     "An issue occurred while processing the request. Please try again later."
+            };
+        }
+
+        private static string GetUserHasNoOrganizationMessage(short? languageId)
+        {
+            return languageId switch
+            {
+                LanguageIdConst.UZ =>
+                    "Joriy foydalanuvchi uchun tashkilot belgilanmagan.",
+                LanguageIdConst.UZ_CYRL =>
+                    "Жорий фойдаланувчи учун ташкилот белгиланмаган.",
+                LanguageIdConst.RU =>
+                    "Для текущего пользователя не указана организация.",
+                _ =>
+                    "No organization is assigned to the current user."
             };
         }
     }

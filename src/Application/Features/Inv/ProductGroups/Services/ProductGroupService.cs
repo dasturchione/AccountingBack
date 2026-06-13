@@ -28,9 +28,12 @@ public class ProductGroupService : IProductGroupService
 
     public async Task<Result<int>> CreateAsync(ProductGroupCreateDto dto, CancellationToken ct = default)
     {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
         var entity = new ProductGroup
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = _userContext.OrganizationId.Value,
             ParentId       = dto.ParentId,
             Name           = dto.Name,
             StateId        = StateIdConst.ACTIVE,
@@ -41,7 +44,7 @@ public class ProductGroupService : IProductGroupService
         {
             entity.Products.Add(new Product
             {
-                OrganizationId = dto.OrganizationId,
+                OrganizationId = _userContext.OrganizationId.Value,
                 UnitId         = p.UnitId,
                 Barcode        = p.Barcode,
                 Name           = p.Name,
@@ -88,12 +91,15 @@ public class ProductGroupService : IProductGroupService
 
     public async Task<Result> UpdateAsync(int id, ProductGroupUpdateDto dto, CancellationToken ct = default)
     {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
         var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
+        entity.OrganizationId = _userContext.OrganizationId.Value;
         entity.ParentId = dto.ParentId;
         entity.Name = dto.Name;
         entity.StateId = dto.StateId;

@@ -103,6 +103,9 @@ public class ProductGroupService : BaseService, IProductGroupService
                 return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).Build();
+
+            query.AddIncludes(e => e.Include(i => i.Products));
+
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
@@ -112,7 +115,48 @@ public class ProductGroupService : BaseService, IProductGroupService
             entity.Name = dto.Name;
             entity.StateId = dto.StateId;
 
+            foreach (var dtoProduct in dto.Products)
+            {
+                Product? product = null;
+
+                if (dtoProduct.Id.HasValue)
+                {
+                    product = entity.Products.FirstOrDefault(x => x.Id == dtoProduct.Id.Value);
+
+                    if (product is null)
+                        continue; 
+                }
+                else
+                {
+                    product = new Product
+                    {
+                        OrganizationId = _userContext.OrganizationId.Value,
+                        CreatedDate = DateTime.Now,
+                        StateId = StateIdConst.ACTIVE,
+                    };
+
+                    entity.Products.Add(product);
+                }
+
+                product.Name = dtoProduct.Name;
+                product.Barcode = dtoProduct.Barcode;
+                product.Description = dtoProduct.Description;
+                product.UnitId = dtoProduct.UnitId;
+                product.IsService = dtoProduct.IsService;
+                product.StateId = dtoProduct.StateId ?? StateIdConst.ACTIVE;
+            }
+
+            var dtoIds = dto.Products.Where(x => x.Id.HasValue).Select(x => x.Id!.Value).ToHashSet();
+
+            var productsToDelete = entity.Products.Where(x => !dtoIds.Contains(x.Id)).ToList();
+
+            foreach (var product in productsToDelete)
+            {
+                product.StateId = StateIdConst.PASSIVE;
+            }
+
             await _command.UpdateAsync(entity, ct);
+
             return Result.Success();
         });
 }

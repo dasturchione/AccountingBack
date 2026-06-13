@@ -86,7 +86,6 @@ public class AuthService : IAuthService
         var response = new LoginResponseDto
         {
             Token = token,
-            Organizations = organizations,
             User = new UserResponseDto
             {
                 Id             = user.Id,
@@ -101,6 +100,7 @@ public class AuthService : IAuthService
                 StateId        = user.StateId,
                 LastAccessTime = user.LastAccessTime,
                 CreatedDate    = user.CreatedDate,
+                Organizations  = organizations,
                 Permissions    = permissions
             }
         };

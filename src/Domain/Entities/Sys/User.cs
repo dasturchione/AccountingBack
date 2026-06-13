@@ -19,5 +19,5 @@ public partial class User
     public virtual Language? Language { get; set; }
     public virtual Role Role { get; set; } = null!;
     public virtual State State { get; set; } = null!;
-    public virtual UserOrganization? UserOrganization { get; set; }
+    public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 }

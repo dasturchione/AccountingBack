@@ -1384,8 +1384,8 @@ namespace Infrastructure.Persistence
                     .HasColumnType("timestamp without time zone")
                     .HasColumnName("created_date");
 
-                entity.HasOne(d => d.User).WithOne(p => p.UserOrganization)
-                    .HasForeignKey<UserOrganization>(d => d.UserId)
+                entity.HasOne(d => d.User).WithMany(p => p.UserOrganizations)
+                    .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .HasConstraintName("sys_user_organization_user_id_fkey");
 

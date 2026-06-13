@@ -4,7 +4,6 @@ public class LoginResponseDto
 {
     public string Token { get; set; } = default!;
     public UserResponseDto User { get; set; } = default!;
-    public List<UserOrgDto> Organizations { get; set; } = [];
 }
 
 public class UserResponseDto
@@ -21,6 +20,7 @@ public class UserResponseDto
     public DateTime CreatedDate { get; set; }
     public string RoleName { get; set; } = null!;
     public string StateName { get; set; } = null!;
+    public List<UserOrgDto> Organizations { get; set; } = [];
     public List<string> Permissions { get; set; } = [];
 }
 

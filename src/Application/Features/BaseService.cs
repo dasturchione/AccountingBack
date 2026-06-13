@@ -9,12 +9,14 @@ namespace Application.Features
         private readonly ILogger _logger;
         private readonly IUnitOfWork _unitOfWork;
         private string ServiceName => GetType().Name;
-
         public BaseService(ILogger logger, IUnitOfWork unitOfWork)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
         }
+
+        protected string? OldData { get; set; }
+        protected string? NewData { get; set; }
 
         // ─── Публичные перегрузки ────────────────────────────────────────────
 

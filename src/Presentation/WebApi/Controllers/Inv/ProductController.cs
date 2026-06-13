@@ -44,6 +44,14 @@ public class ProductController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("many")]
+    [ModuleAuthorize(PermissionCodeConst.ProductCreate)]
+    public async Task<IResult> CreateMany([FromBody] ProductsCreateDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.CreateManyAsync(dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ProductUpdate)]
     public async Task<IResult> Update([FromRoute] int id, [FromBody] ProductUpdateDto dto, CancellationToken ct = default)

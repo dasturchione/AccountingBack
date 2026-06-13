@@ -335,7 +335,7 @@ public class ManualService : IManualService
                             (organizationId == null || p.OrganizationId == organizationId) &&
                             (productGroupId == null || p.ProductGroupId == productGroupId),
             OrderBy  = q => q.OrderBy(p => p.Name),
-            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name }
+            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Barcode }
         };
         return (await _productQuery.GetAllAsync(spec, ct)).ToList();
     }

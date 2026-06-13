@@ -1548,9 +1548,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MarkingNumber)
                 .HasMaxLength(250)
                 .HasColumnName("marking_number");
-            entity.Property(e => e.Name)
-                .HasMaxLength(300)
-                .HasColumnName("name");
             entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.SerialNumber)

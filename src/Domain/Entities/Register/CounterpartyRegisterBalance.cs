@@ -1,20 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Domain.Entities;
 
+[Table("counterparty_reg_balance")]
+[Index("CounterpartyId", Name = "idx_counterparty_reg_balance_counterparty_id")]
+[Index("CurrencyId", Name = "idx_counterparty_reg_balance_currency_id")]
+[Index("DocDate", Name = "idx_counterparty_reg_balance_doc_date")]
+[Index("DocumentTypeId", "DocumentId", Name = "idx_counterparty_reg_balance_document")]
+[Index("OrganizationId", Name = "idx_counterparty_reg_balance_organization_id")]
 public partial class CounterpartyRegisterBalance
 {
+    [Key]
+    [Column("id")]
     public long Id { get; set; }
+
+    [Column("organization_id")]
     public int OrganizationId { get; set; }
+
+    [Column("document_type_id")]
     public short DocumentTypeId { get; set; }
+
+    [Column("document_id")]
     public long DocumentId { get; set; }
+
+    [Column("counterparty_id")]
     public int CounterpartyId { get; set; }
+
+    [Column("operation_type_id")]
     public short OperationTypeId { get; set; }
+
+    [Column("currency_id")]
     public short CurrencyId { get; set; }
+
+    [Column("amount")]
+    [Precision(18, 2)]
     public decimal Amount { get; set; }
+
+    [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
+
+    [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [ForeignKey("CounterpartyId")]
+    [InverseProperty("CounterpartyRegisterBalances")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
+
+    [ForeignKey("CurrencyId")]
+    [InverseProperty("CounterpartyRegisterBalances")]
     public virtual Currency Currency { get; set; } = null!;
+
+    [ForeignKey("DocumentTypeId")]
+    [InverseProperty("CounterpartyRegisterBalances")]
     public virtual DocumentType DocumentType { get; set; } = null!;
+
+    [ForeignKey("OperationTypeId")]
+    [InverseProperty("CounterpartyRegisterBalances")]
     public virtual OperationType OperationType { get; set; } = null!;
+
+    [ForeignKey("OrganizationId")]
+    [InverseProperty("CounterpartyRegisterBalances")]
     public virtual Organization Organization { get; set; } = null!;
 }

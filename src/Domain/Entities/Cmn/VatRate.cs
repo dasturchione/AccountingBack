@@ -1,14 +1,43 @@
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Domain.Entities;
 
+[Table("cmn_vat_rate")]
+[Index("Code", Name = "idx_cmn_vat_rate_code", IsUnique = true)]
+[Index("StateId", Name = "idx_cmn_vat_rate_state_id")]
 public partial class VatRate
 {
+    [Key]
+    [Column("id")]
     public short Id { get; set; }
+
+    [Column("code")]
+    [StringLength(50)]
     public string Code { get; set; } = null!;
+
+    [Column("name")]
+    [StringLength(150)]
     public string Name { get; set; } = null!;
+
+    [Column("rate")]
+    [Precision(5, 2)]
     public decimal Rate { get; set; }
+
+    [Column("state_id")]
     public short StateId { get; set; }
+
+    [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [InverseProperty("VatRate")]
     public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
+
+    [InverseProperty("VatRate")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
+
+    [ForeignKey("StateId")]
+    [InverseProperty("VatRates")]
     public virtual State State { get; set; } = null!;
 }

@@ -1398,7 +1398,7 @@ namespace Infrastructure.Persistence
                     .HasForeignKey(d => d.RoleId)
                     .HasConstraintName("sys_user_organization_role_id_fkey");
 
-                entity.HasOne(d => d.State).WithMany()
+                entity.HasOne(d => d.State).WithMany(p => p.UserOrganizations)
                     .HasForeignKey(d => d.StateId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("sys_user_organization_state_id_fkey");

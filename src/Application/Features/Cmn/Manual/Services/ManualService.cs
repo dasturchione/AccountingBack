@@ -205,13 +205,10 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId;
-
         var spec = new QuerySpecification<User, SelectListDto>
         {
             Criteria = u => u.StateId == StateIdConst.ACTIVE
-                         && (roleId == null || u.RoleId == roleId)
-                         && (orgId == null || u.OrganizationId == orgId),
+                         && (roleId == null || u.RoleId == roleId),
             OrderBy  = q => q.OrderBy(u => u.Name),
             Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
         };

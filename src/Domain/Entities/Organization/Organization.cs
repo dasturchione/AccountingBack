@@ -45,5 +45,4 @@ public partial class Organization
     public virtual State State { get; set; } = null!;
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

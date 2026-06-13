@@ -26,7 +26,7 @@ namespace Application.Features.Users
             });
 
             RuleFor(x => x.Organizations)
-                .Must(orgs => orgs.Count(o => o.IsDefault) <= 1)
+                .Must(orgs => orgs == null || orgs.Count(o => o.IsDefault) <= 1)
                 .WithMessage("Only one organization can be marked as default.");
         }
     }

@@ -67,10 +67,14 @@ public class UserService : BaseService, IUserService
 
             if (dto.Organizations.Count > 0)
             {
+                if (!dto.Organizations.Any(o => o.IsDefault))
+                    dto.Organizations[0].IsDefault = true;
+
                 var userOrgs = dto.Organizations.Select(o => new UserOrganization
                 {
                     UserId = user.Id,
                     OrganizationId = o.OrganizationId,
+                    IsDefault = o.IsDefault,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });
@@ -158,10 +162,14 @@ public class UserService : BaseService, IUserService
 
             if (dto.Organizations.Count > 0)
             {
+                if (!dto.Organizations.Any(o => o.IsDefault))
+                    dto.Organizations[0].IsDefault = true;
+
                 var userOrgs = dto.Organizations.Select(o => new UserOrganization
                 {
                     UserId = id,
                     OrganizationId = o.OrganizationId,
+                    IsDefault = o.IsDefault,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });

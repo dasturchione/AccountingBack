@@ -14,7 +14,7 @@ namespace SharedKernel.Results
             Error.Problem("Common.Problem", GetProblemMessage(languageId));
 
         public static Error UserHasNoOrganization(short? languageId) =>
-            Error.Business("Common.UserHasNoOrganization", );
+            Error.Business("Common.UserHasNoOrganization", GetUserHasNoOrganizationMessage(languageId));
 
         private static string GetUnauthorizedMessage(short? languageId)
         {

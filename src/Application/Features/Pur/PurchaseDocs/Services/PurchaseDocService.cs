@@ -83,7 +83,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
-            var docNumber = await _docNumberGenerator.GenerateAsync(dto.OrganizationId, "PUR", dto.DocDate, ct);
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
             var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
             var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
@@ -96,7 +99,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
             // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
-            var linesResult = await BuildLinesAsync(dto.OrganizationId, dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
@@ -104,7 +107,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var doc = new PurchaseDoc
             {
-                OrganizationId = dto.OrganizationId,
+                OrganizationId = _userContext.OrganizationId.Value,
                 DocNumber      = docNumber,
                 DocDate        = dto.DocDate,
                 CurrencyId     = dto.CurrencyId,
@@ -141,6 +144,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result> UpdateAsync(long id, PurchaseDocUpdateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
         {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
             var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
             var doc   = await _query.GetAsync(query, ct);
 
@@ -151,7 +157,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
 
             // Yangi qatorlarni hisoblaymiz
-            var linesResult = await BuildLinesAsync(dto.OrganizationId, dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure(linesResult.Error);
 
@@ -165,7 +171,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             await _lineCommand.CreateAsync(newLines, ct);
 
-            doc.OrganizationId = dto.OrganizationId;
+            doc.OrganizationId = _userContext.OrganizationId.Value;
             doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId    = dto.WarehouseId;

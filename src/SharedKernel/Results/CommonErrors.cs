@@ -4,16 +4,16 @@ namespace SharedKernel.Results
 {
     public static class CommonErrors
     {
-        public static Error Unauthorized(short? languageId) =>
+        public static Error Unauthorized(short? languageId = null) =>
             Error.Unauthorized("Common.Unauthorized", GetUnauthorizedMessage(languageId));
 
-        public static Error Forbidden(short? languageId) =>
+        public static Error Forbidden(short? languageId = null) =>
             Error.Forbidden("Common.Forbidden", GetForbiddenMessage(languageId));
 
-        public static Error Problem(short? languageId) =>
+        public static Error Problem(short? languageId = null) =>
             Error.Problem("Common.Problem", GetProblemMessage(languageId));
 
-        public static Error UserHasNoOrganization(short? languageId) =>
+        public static Error UserHasNoOrganization(short? languageId = null) =>
             Error.Business("Common.UserHasNoOrganization", GetUserHasNoOrganizationMessage(languageId));
 
         private static string GetUnauthorizedMessage(short? languageId)

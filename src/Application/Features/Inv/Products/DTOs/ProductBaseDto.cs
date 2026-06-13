@@ -2,7 +2,6 @@ namespace Application.Features.Products;
 
 public class ProductBaseDto
 {
-    public int OrganizationId { get; set; }
     public int? ProductGroupId { get; set; }
     public short UnitId { get; set; }
     public string? Barcode { get; set; }

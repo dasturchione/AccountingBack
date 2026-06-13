@@ -31,9 +31,12 @@ public class ProductService : BaseService, IProductService
     public Task<Result<int>> CreateAsync(ProductCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync<int>(nameof(CreateAsync), async () =>
         {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
             var entity = new Product
             {
-                OrganizationId = dto.OrganizationId,
+                OrganizationId = _userContext.OrganizationId.Value,
                 ProductGroupId = dto.ProductGroupId,
                 UnitId = dto.UnitId,
                 Barcode = dto.Barcode,
@@ -108,13 +111,16 @@ public class ProductService : BaseService, IProductService
     public Task<Result> UpdateAsync(int id, ProductUpdateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(UpdateAsync), async () =>
         {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
             var query = _queryBuilder.For<Product>().Where(x => x.Id == id).Build();
 
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
 
-            entity.OrganizationId = dto.OrganizationId;
+            entity.OrganizationId = _userContext.OrganizationId.Value;
             entity.ProductGroupId = dto.ProductGroupId;
             entity.UnitId = dto.UnitId;
             entity.Barcode = dto.Barcode;

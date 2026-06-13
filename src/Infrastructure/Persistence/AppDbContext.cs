@@ -1412,6 +1412,8 @@ namespace Infrastructure.Persistence
 
                 entity.HasIndex(e => e.LanguageId, "idx_sys_user_language_id");
 
+                entity.HasIndex(e => e.OrganizationId, "idx_sys_user_organization_id");
+
                 entity.HasIndex(e => e.PhoneNumber, "idx_sys_user_phone");
 
                 entity.HasIndex(e => e.RoleId, "idx_sys_user_role_id");
@@ -1436,6 +1438,7 @@ namespace Infrastructure.Persistence
                 entity.Property(e => e.LastName)
                     .HasMaxLength(100)
                     .HasColumnName("last_name");
+                entity.Property(e => e.OrganizationId).HasColumnName("organization_id");
                 entity.Property(e => e.PasswordHash)
                     .HasMaxLength(250)
                     .HasColumnName("password_hash");
@@ -1454,6 +1457,10 @@ namespace Infrastructure.Persistence
                 entity.HasOne(d => d.Language).WithMany(p => p.Users)
                     .HasForeignKey(d => d.LanguageId)
                     .HasConstraintName("sys_user_language_id_fkey");
+
+                entity.HasOne(d => d.Organization).WithMany(p => p.Users)
+                    .HasForeignKey(d => d.OrganizationId)
+                    .HasConstraintName("sys_user_organization_id_fkey");
 
                 entity.HasOne(d => d.Role).WithMany(p => p.Users)
                     .HasForeignKey(d => d.RoleId)

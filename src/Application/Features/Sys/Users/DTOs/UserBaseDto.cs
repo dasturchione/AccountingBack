@@ -14,6 +14,6 @@
 
         public int RoleId { get; set; }
 
-        public List<UserOrganizationAssignDto> Organizations { get; set; } = [];
+        public List<int> Organizations { get; set; } = [];
     }
 }

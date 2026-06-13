@@ -344,7 +344,7 @@ public class ManualService : IManualService
     {
         var spec = new QuerySpecification<Organization, SelectListDto>
         {
-            Criteria = p => p.StateId == StateIdConst.ACTIVE,
+            Criteria = p => p.StateId == StateIdConst.ACTIVE && p.UserOrganizations.Any(p => p.UserId == _userContext.Id),
             OrderBy = q => q.OrderBy(p => p.Name),
             Selector = p => new SelectListDto { Id = p.Id, Name = p.FullName, }
         };

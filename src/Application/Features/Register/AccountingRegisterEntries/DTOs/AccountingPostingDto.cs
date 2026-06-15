@@ -18,6 +18,8 @@
         public string? CreditAccountCode { get; set; }
         public string CurrencyName { get; set; } = null!;
         public string CurrencyCode { get; set; } = null!;
+        public decimal? DebitQuantity { get; set; }
+        public decimal? CreditQuantity { get; set; }
         public List<AccountingPostingTableDto> Tables { get; set; } = new();
     }
 

@@ -62,6 +62,8 @@ public class AccountingPostingDtoProjection : IProjectionBuilder<AccountingRegis
             DebitAccountName = x.DebitAccount != null ? x.DebitAccount.Name : null,
             CurrencyCode = x.Currency.Code,
             CurrencyName = x.Currency.Name,
+            DebitQuantity = x.DebitQuantity,
+            CreditQuantity = x.CreditQuantity,
             Tables = x.RegisterEntrySubkontos.OrderBy(o => o.SortOrder).Select(s => new AccountingPostingTableDto
             {
                 Id = s.Id,

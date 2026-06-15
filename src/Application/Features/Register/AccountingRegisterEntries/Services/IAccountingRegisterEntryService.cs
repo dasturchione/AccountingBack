@@ -11,6 +11,6 @@ public interface IAccountingRegisterEntryService
     Task<Result<long>> CreateAsync(AccountingRegisterEntryCreateDto dto, CancellationToken ct = default);
     Task<Result> UpdateAsync(long id, AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default);
     Task<Result> DeleteAsync(long id, CancellationToken ct = default);
-
     Task<Result<List<AccountingPostingDto>>> GetPostingAsync(short documentTypeId, long documentId, CancellationToken ct = default);
+    Task<Result<List<AccountingPostingDto>>> GetDailyPostingAsync(DateTime startDate, DateTime endDate, short? documentTypeId, CancellationToken ct = default);
 }

@@ -86,6 +86,21 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
         return items;
     }
 
+    public async Task<Result<List<AccountingPostingDto>>> GetDailyPostingAsync(DateTime startDate, DateTime endDate, short? documentTypeId, CancellationToken ct = default)
+    {
+        var endOfDay = endDate.Date.AddDays(1).AddTicks(-1);
+        var queryBuilder = _queryBuilder.For<AccountingRegisterEntry>()
+            .Where(x => x.DocDate >= startDate.Date && x.DocDate <= endOfDay);
+
+        if (documentTypeId.HasValue)
+            queryBuilder = queryBuilder.Where(x => x.DocumentTypeId == documentTypeId.Value);
+
+        var query = queryBuilder.As<AccountingPostingDto>().Build();
+        var items = await _query.GetAllAsync(query, ct);
+
+        return items;
+    }
+
     public async Task<Result> UpdateAsync(long id, AccountingRegisterEntryUpdateDto dto, CancellationToken ct = default)
     {
         var query = _queryBuilder.For<AccountingRegisterEntry>().Where(x => x.Id == id).Build();

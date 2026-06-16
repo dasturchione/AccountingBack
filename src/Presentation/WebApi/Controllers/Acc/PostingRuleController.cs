@@ -21,7 +21,7 @@ public class PostingRuleController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
     public async Task<IResult> GetAllAsync([FromQuery] PostingRuleListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -29,7 +29,7 @@ public class PostingRuleController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountViewDetail)]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -37,7 +37,7 @@ public class PostingRuleController : ControllerBase
     }
 
     [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
     public async Task<IResult> CreateAsync([FromBody] PostingRuleCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -45,7 +45,7 @@ public class PostingRuleController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] PostingRuleUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -53,7 +53,7 @@ public class PostingRuleController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountDelete)]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

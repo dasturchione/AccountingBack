@@ -89,13 +89,16 @@ public class AccountingRegisterEntryService : IAccountingRegisterEntryService
     public async Task<Result<List<AccountingPostingDto>>> GetDailyPostingAsync(DateTime startDate, DateTime endDate, short? documentTypeId, CancellationToken ct = default)
     {
         var endOfDay = endDate.Date.AddDays(1).AddTicks(-1);
-        var queryBuilder = _queryBuilder.For<AccountingRegisterEntry>()
-            .Where(x => x.DocDate >= startDate.Date && x.DocDate <= endOfDay);
 
-        if (documentTypeId.HasValue)
-            queryBuilder = queryBuilder.Where(x => x.DocumentTypeId == documentTypeId.Value);
-
-        var query = queryBuilder.As<AccountingPostingDto>().Build();
+        var query = _queryBuilder.For<AccountingRegisterEntry>()
+                        .Where(x => x.DocDate >= startDate.Date && 
+                                    x.DocDate <= endOfDay && 
+                                    (documentTypeId == null || 
+                                     x.DocumentTypeId == documentTypeId.Value))
+                        .As<AccountingPostingDto>()
+                        .OrderBy(o => o.DocDate).Desc()
+                        .Build();
+        
         var items = await _query.GetAllAsync(query, ct);
 
         return items;

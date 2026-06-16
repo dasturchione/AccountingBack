@@ -15,9 +15,6 @@ namespace Application.Features
             _unitOfWork = unitOfWork;
         }
 
-        protected string? OldData { get; set; }
-        protected string? NewData { get; set; }
-
         // ─── Публичные перегрузки ────────────────────────────────────────────
 
         protected Task<Result<T>> ExecuteAsync<T>(string operationName, Func<Task<Result<T>>> operation)

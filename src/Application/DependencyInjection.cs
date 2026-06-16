@@ -1,4 +1,5 @@
 ﻿using Application.Common.Markers;
+using Application.Features.Acc.PostingRules;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
@@ -64,6 +65,7 @@ namespace Application
             services.AddScoped<ISaleDocService, SaleDocService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
             services.AddScoped<IChartAccountService, ChartAccountService>();
+            services.AddScoped<IPostingRuleService, PostingRuleService>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();

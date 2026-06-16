@@ -1,5 +1,4 @@
-using Domain.Entities;
-﻿
+using Domain.Entities;﻿
 using LinqKit;
 using SharedKernel.Query;
 using System.Linq.Expressions;

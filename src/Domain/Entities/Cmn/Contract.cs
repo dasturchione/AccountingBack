@@ -51,17 +51,17 @@ public partial class Contract
     public DateTime CreatedDate { get; set; }
 
     [ForeignKey("CounterpartyId")]
-    [InverseProperty("CmnContracts")]
+    [InverseProperty("Contracts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
-    [InverseProperty("CmnContracts")]
+    [InverseProperty("Contracts")]
     public virtual Organization Organization { get; set; } = null!;
 
     [InverseProperty("Contract")]
     public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
 
     [ForeignKey("StateId")]
-    [InverseProperty("CmnContracts")]
+    [InverseProperty("Contracts")]
     public virtual State State { get; set; } = null!;
 }

@@ -28,20 +28,12 @@ public class ContractService : IContractService
 
     public async Task<Result<long>> CreateAsync(ContractCreateDto dto, CancellationToken ct = default)
     {
-        var exists = await _query.AnyAsync(
-            x => x.OrganizationId == dto.OrganizationId &&
-                 x.CounterpartyId == dto.CounterpartyId &&
-                 x.ContractNumber == dto.ContractNumber, ct);
-
-        if (exists)
-            return Result.Failure<long>(ContractErrors.NumberConflict(dto.ContractNumber, _userContext.LanguageId));
-
         var entity = new Contract
         {
             OrganizationId = dto.OrganizationId,
             CounterpartyId = dto.CounterpartyId,
             ContractType = dto.ContractType,
-            ContractNumber = dto.ContractNumber,
+            ContractNumber = string.Empty,
             ContractDate = dto.ContractDate,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
@@ -90,19 +82,9 @@ public class ContractService : IContractService
         if (entity == null)
             return Result.Failure(ContractErrors.NotFound(id, _userContext.LanguageId));
 
-        var duplicateExists = await _query.AnyAsync(
-            x => x.Id != id &&
-                 x.OrganizationId == dto.OrganizationId &&
-                 x.CounterpartyId == dto.CounterpartyId &&
-                 x.ContractNumber == dto.ContractNumber, ct);
-
-        if (duplicateExists)
-            return Result.Failure(ContractErrors.NumberConflict(dto.ContractNumber, _userContext.LanguageId));
-
         entity.OrganizationId = dto.OrganizationId;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.ContractType = dto.ContractType;
-        entity.ContractNumber = dto.ContractNumber;
         entity.ContractDate = dto.ContractDate;
         entity.StartDate = dto.StartDate;
         entity.EndDate = dto.EndDate;

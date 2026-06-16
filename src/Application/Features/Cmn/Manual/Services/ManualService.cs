@@ -36,6 +36,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<BankAccount> _orgBankAccountQuery;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
+    private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<Language> _languageQuery;
     private readonly IQueryRepository<Module>   _moduleQuery;
     private readonly IUserContext               _userContext;
@@ -67,6 +68,7 @@ public class ManualService : IManualService
         IQueryRepository<BankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
+        IQueryRepository<Contract> contractQuery,
         IQueryRepository<Language> languageQuery,
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Module>   moduleQuery,
@@ -98,6 +100,7 @@ public class ManualService : IManualService
         _orgBankAccountQuery   = orgBankAccountQuery;
         _cashBoxQuery          = cashBoxQuery;
         _cashOperationQuery    = cashOperationQuery;
+        _contractQuery         = contractQuery;
         _languageQuery         = languageQuery;
         _organizationQuery     = organizationQuery;
         _moduleQuery           = moduleQuery;
@@ -303,6 +306,19 @@ public class ManualService : IManualService
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         return (await _positionQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetContractsAsync(int? organizationId = null, int? counterpartyId = null, CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<Contract, SelectListDto>
+        {
+            Criteria = c => c.StateId == StateIdConst.ACTIVE &&
+                            (organizationId == null || c.OrganizationId == organizationId) &&
+                            (counterpartyId == null || c.CounterpartyId == counterpartyId),
+            OrderBy  = q => q.OrderBy(c => c.Name),
+            Selector = c => new SelectListDto { Id = c.Id, Name = c.ContractNumber, Code = c.ContractType }
+        };
+        return (await _contractQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default)

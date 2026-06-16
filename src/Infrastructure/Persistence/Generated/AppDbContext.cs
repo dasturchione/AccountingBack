@@ -36,6 +36,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnBank> CmnBanks { get; set; }
 
+    public virtual DbSet<CmnContract> CmnContracts { get; set; }
+
     public virtual DbSet<CmnCounterpartyType> CmnCounterpartyTypes { get; set; }
 
     public virtual DbSet<CmnCurrency> CmnCurrencies { get; set; }
@@ -355,6 +357,25 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnBanks)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_bank_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnContract>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.CmnContracts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_counterparty_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.CmnContracts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnContracts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnCounterpartyType>(entity =>
@@ -851,6 +872,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
+            entity.HasOne(d => d.Contract).WithMany(p => p.PurDocs).HasConstraintName("pur_doc_contract_id_fkey");
+
             entity.HasOne(d => d.Counterparty).WithMany(p => p.PurDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_counterparty_id_fkey");
@@ -1022,6 +1045,10 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
         });
+        modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);
+        modelBuilder.HasSequence("doc_number_cash_operation_seq").StartsAt(100000001L);
+        modelBuilder.HasSequence("doc_number_purchase_seq").StartsAt(100000001L);
+        modelBuilder.HasSequence("doc_number_sale_seq").StartsAt(100000001L);
 
         OnModelCreatingPartial(modelBuilder);
     }

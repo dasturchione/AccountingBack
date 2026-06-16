@@ -100,4 +100,7 @@ public partial class CounterpartyCard
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyCards")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty("Counterparty")]
+    public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 }

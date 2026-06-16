@@ -213,6 +213,14 @@ public static class PermissionCodeConst
     public const string MoneyRegBalanceDelete     = "MONEY_REG_BALANCE_DELETE";
     #endregion
 
+    #region Contract
+    public const string ContractView       = "CONTRACT_VIEW";
+    public const string ContractViewDetail = "CONTRACT_VIEW_DETAIL";
+    public const string ContractCreate     = "CONTRACT_CREATE";
+    public const string ContractUpdate     = "CONTRACT_UPDATE";
+    public const string ContractDelete     = "CONTRACT_DELETE";
+    #endregion
+
     #region Manual (ma'lumotnomalar)
     public const string ManualView = "MANUAL_VIEW";
     #endregion

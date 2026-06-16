@@ -152,6 +152,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("contracts")]
+    public async Task<IActionResult> GetContracts([FromQuery] int? organizationId, [FromQuery] int? counterpartyId, CancellationToken ct)
+    {
+        var result = await _manualService.GetContractsAsync(organizationId, counterpartyId, ct);
+        return Ok(result);
+    }
+
     [HttpGet("counterparties")]
     public async Task<IActionResult> GetCounterparties([FromQuery] int? organizationId, CancellationToken ct)
     {

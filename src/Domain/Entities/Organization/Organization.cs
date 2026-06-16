@@ -156,4 +156,7 @@ public partial class Organization
 
     [InverseProperty("Organization")]
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
+    
+    [InverseProperty("Organization")]
+    public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 }

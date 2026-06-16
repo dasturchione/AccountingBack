@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc")]
+[Index("ContractId", Name = "idx_pur_doc_contract_id")]
 [Index("CounterpartyId", Name = "idx_pur_doc_counterparty_id")]
 [Index("DocDate", Name = "idx_pur_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_pur_doc_organization_id")]
@@ -62,6 +63,13 @@ public partial class PurDoc
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("contract_id")]
+    public long? ContractId { get; set; }
+
+    [ForeignKey("ContractId")]
+    [InverseProperty("PurDocs")]
+    public virtual CmnContract? Contract { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("PurDocs")]

@@ -141,4 +141,7 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<User> Users { get; set; } = new List<User>();
+    
+    [InverseProperty("State")]
+    public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 }

@@ -61,6 +61,13 @@ public partial class PurchaseDoc
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("contract_id")]
+    public long? ContractId { get; set; }
+
+    [ForeignKey("ContractId")]
+    [InverseProperty("PurDocs")]
+    public virtual Contract? Contract { get; set; }
+
     [ForeignKey("CounterpartyId")]
     [InverseProperty("PurDocs")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;

@@ -7,6 +7,7 @@ using Application.Features.CashBoxes;
 using Application.Features.CashOperations;
 using Application.Features.ChartAccounts;
 using Application.Features.CounterpartyBankAccounts;
+using Application.Features.Contracts;
 using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyContacts;
 using Application.Features.CounterpartyRegisterBalances;
@@ -46,6 +47,7 @@ namespace Application
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IPositionService, PositionService>();
+            services.AddScoped<IContractService, ContractService>();
             services.AddScoped<ICounterpartyCardService, CounterpartyCardService>();
             services.AddScoped<ICounterpartyBankAccountService, CounterpartyBankAccountService>();
             services.AddScoped<ICounterpartyContactService, CounterpartyContactService>();

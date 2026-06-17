@@ -32,7 +32,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetPositionsAsync(int? organizationId = null, CancellationToken ct = default);
 
     // contracts
-    Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, DateTime? choosedDate = null, CancellationToken ct = default);
+    Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, short? contractTypeId = null, DateTime? choosedDate = null, CancellationToken ct = default);
 
     // counterparty
     Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default);

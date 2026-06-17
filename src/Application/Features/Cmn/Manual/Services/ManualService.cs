@@ -325,7 +325,7 @@ public class ManualService : IManualService
         return (await _positionQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, DateTime? choosedDate = null, CancellationToken ct = default)
+    public async Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, short? contractTypeId = null, DateTime? choosedDate = null, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
             return Result.Failure<List<SelectListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
@@ -337,8 +337,9 @@ public class ManualService : IManualService
                                     x.OrganizationId == _userContext.OrganizationId &&
                                     (x.StartDate == null || x.StartDate <= date) &&
                                     (x.EndDate == null || x.EndDate >= date) &&
-                                    (counterpartyId == null || x.CounterpartyId == counterpartyId))
-                        .As(a => new SelectListDto
+                                    (counterpartyId == null || x.CounterpartyId == counterpartyId) && 
+                                    (contractTypeId == null || x.ContractTypeId == contractTypeId))
+                        .As(a => new SelectListDto 
                         {
                             Id = a.Id,
                             Name = a.ContractNumber

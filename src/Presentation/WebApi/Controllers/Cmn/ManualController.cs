@@ -162,9 +162,9 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("contracts")]
-    public async Task<IResult> GetContracts([FromQuery] int? counterpartyId = null, [FromQuery] DateTime? choosedDate = null, CancellationToken ct = default)
+    public async Task<IResult> GetContracts([FromQuery] int? counterpartyId = null, [FromQuery] short? contractTypeId = null, [FromQuery] DateTime? choosedDate = null, CancellationToken ct = default)
     {
-        var result = await _manualService.GetContractsAsync(counterpartyId, choosedDate, ct);
+        var result = await _manualService.GetContractsAsync(counterpartyId, contractTypeId, choosedDate, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

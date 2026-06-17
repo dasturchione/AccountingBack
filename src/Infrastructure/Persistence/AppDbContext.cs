@@ -59,4 +59,5 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
     public virtual DbSet<Contract> Contracts { get; set; }
+    public virtual DbSet<ContractType> ContractTypes { get; set; }
 }

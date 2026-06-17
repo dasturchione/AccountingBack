@@ -25,6 +25,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<OperationType> _operationTypeQuery;
     private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
+    private readonly IQueryRepository<ContractType> _contractTypeQuery;
     private readonly IQueryRepository<Branch> _branchQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<Position> _positionQuery;
@@ -58,6 +59,7 @@ public class ManualService : IManualService
         IQueryRepository<OperationType> operationTypeQuery,
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<VatRate> vatRateQuery,
+        IQueryRepository<ContractType> contractTypeQuery,
         IQueryRepository<Branch> branchQuery,
         IQueryRepository<Department> departmentQuery,
         IQueryRepository<Position> positionQuery,
@@ -91,6 +93,7 @@ public class ManualService : IManualService
         _operationTypeQuery    = operationTypeQuery;
         _taxTypeQuery          = taxTypeQuery;
         _vatRateQuery          = vatRateQuery;
+        _contractTypeQuery     = contractTypeQuery;
         _branchQuery           = branchQuery;
         _departmentQuery       = departmentQuery;
         _positionQuery         = positionQuery;
@@ -274,6 +277,17 @@ public class ManualService : IManualService
             Selector = v => new SelectListDto { Id = v.Id, Name = v.Name, Code = v.Code }
         };
         return (await _vatRateQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<ContractType, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _contractTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetBranchesAsync(int? organizationId = null, CancellationToken ct = default)

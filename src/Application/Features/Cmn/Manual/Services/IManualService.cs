@@ -18,6 +18,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default);
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);

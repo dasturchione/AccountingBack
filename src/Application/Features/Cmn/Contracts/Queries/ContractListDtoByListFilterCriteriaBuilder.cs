@@ -8,5 +8,6 @@ public class ContractListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<Contr
     public Expression<Func<ContractListDto, bool>> Build(ContractListFilter options)
         => x => string.IsNullOrEmpty(options.Search) ||
                 x.ContractNumber.ToLower().Contains(options.Search.ToLower()) ||
-                x.CounterpartyName.ToLower().Contains(options.Search.ToLower());
+                x.CounterpartyName.ToLower().Contains(options.Search.ToLower()) ||
+                x.ContractTypeName.ToLower().Contains(options.Search.ToLower());
 }

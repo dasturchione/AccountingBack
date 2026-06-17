@@ -8,7 +8,7 @@ public class ContractBaseDtoValidator : AbstractValidator<ContractBaseDto>
     {
         RuleFor(x => x.OrganizationId).GreaterThan(0);
         RuleFor(x => x.CounterpartyId).GreaterThan(0);
-        RuleFor(x => x.ContractType).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.ContractTypeId).GreaterThan((short)0);
         RuleFor(x => x.ContractDate).NotEmpty();
         RuleFor(x => x.Comment).MaximumLength(1000);
     }

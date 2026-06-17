@@ -9,5 +9,5 @@ public class ContractByListFilterCriteriaBuilder : ICriteriaBuilder<Contract, Co
     public Expression<Func<Contract, bool>> Build(ContractListFilter options) =>
         x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
              (!options.CounterpartyId.HasValue || x.CounterpartyId == options.CounterpartyId.Value) &&
-             (string.IsNullOrEmpty(options.ContractType) || x.ContractType == options.ContractType);
+             (!options.ContractTypeId.HasValue || x.ContractTypeId == options.ContractTypeId.Value);
 }

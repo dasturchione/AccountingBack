@@ -112,6 +112,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("contract-types")]
+    public async Task<IActionResult> GetContractTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetContractTypesAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("roles")]
     public async Task<IActionResult> GetRoles(CancellationToken ct)
     {

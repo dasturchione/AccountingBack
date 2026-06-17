@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.Contracts;
 using Application.Features.CounterpartyCards;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Products;
@@ -24,6 +25,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
+    private readonly IQueryRepository<Contract> _contractQuery;
     private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
@@ -37,6 +39,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IDocNumberGenerator docNumberGenerator,
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
+                              IQueryRepository<Contract> contractQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocTable> lineCommand,
                               IQueryRepository<Warehouse> warehouseQuery,
@@ -54,6 +57,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _queryBuilder        = queryBuilder;
         _vatRateQuery        = vatRateQuery;
         _productQuery        = productQuery;
+        _contractQuery       = contractQuery;
         _warehouseQuery      = warehouseQuery;
         _counterpartyQuery   = counterpartyQuery;
         _inventoryDispatcher = inventoryDispatcher;
@@ -85,6 +89,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         {
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            if (dto.ContractId.HasValue)
+            {
+                var contractExists = await _query.AnyAsync(x => x.Id == dto.ContractId);
+                if (!contractExists)
+                    return Result.Failure<long>(ContractErrors.NotFound(dto.ContractId.Value, _userContext.LanguageId));
+            }
 
             var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
@@ -121,6 +132,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 CreatedDate    = DateTime.Now,
                 Warehouse      = warehouse,
                 Counterparty   = counterparty,
+                ContractId     = dto.ContractId,
             };
 
             await _command.CreateAsync(doc, ct);

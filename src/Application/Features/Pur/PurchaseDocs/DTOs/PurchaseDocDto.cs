@@ -24,5 +24,9 @@ public class PurchaseDocDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+
+    public long? ContractId { get; set; }
+    public string? ContractNumber { get; set; }
+
     public List<PurchaseDocTableDto> Lines { get; set; } = new();
 }

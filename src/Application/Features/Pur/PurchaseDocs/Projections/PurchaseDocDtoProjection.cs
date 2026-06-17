@@ -30,19 +30,21 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,
+            ContractId       = x.ContractId,
+            ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
             Lines = x.PurchaseDocTables.Select(l => new PurchaseDocTableDto
             {
-                Id          = l.Id,
-                OwnerId     = l.OwnerId,
-                ProductTableId = l.ProductTableId,
-                ProductName = l.ProductTable.Product.Name,
-                Quantity    = l.Quantity,
-                Price       = l.Price,
-                Amount      = l.Amount,
-                VatRateId   = l.VatRateId,
-                VatRateName = l.VatRate != null ? l.VatRate.Name : null,
-                VatAmount   = l.VatAmount,
-                TotalAmount = l.TotalAmount
+                Id              = l.Id,
+                OwnerId         = l.OwnerId,
+                ProductTableId  = l.ProductTableId,
+                ProductName     = l.ProductTable.Product.Name,
+                Quantity        = l.Quantity,
+                Price           = l.Price,
+                Amount          = l.Amount,
+                VatRateId       = l.VatRateId,
+                VatRateName     = l.VatRate != null ? l.VatRate.Name : null,
+                VatAmount       = l.VatAmount,
+                TotalAmount     = l.TotalAmount
             }).ToList()
         };
 }

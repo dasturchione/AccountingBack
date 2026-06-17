@@ -1,5 +1,6 @@
 namespace Application.Features.PurchaseDocs;
 
-public class PurchaseDocCreateDto : PurchaseDocBaseDto 
-{ 
+public class PurchaseDocCreateDto : PurchaseDocBaseDto
+{
+    public long? ContractId { get; set; }
 }

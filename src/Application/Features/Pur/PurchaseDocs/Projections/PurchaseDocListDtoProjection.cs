@@ -25,6 +25,8 @@ public class PurchaseDocListDtoProjection : IProjectionBuilder<PurchaseDoc, Purc
             StatusName = x.Status.Name,
             StateId = x.StateId,
             StateName = x.State.FullName,
-            CreatedDate = x.CreatedDate
+            CreatedDate = x.CreatedDate,
+            ContractId = x.ContractId,
+            ContractNumber = x.Contract == null ? null : x.Contract.ContractNumber
         };
 }

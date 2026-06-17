@@ -18,16 +18,16 @@ namespace Application.Features
         // ─── Публичные перегрузки ────────────────────────────────────────────
 
         protected Task<Result<T>> ExecuteAsync<T>(string operationName, Func<Task<Result<T>>> operation)
-            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error);
+            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, false);
 
         protected Task<Result> ExecuteAsync(string operationName, Func<Task<Result>> operation)
-            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error);
+            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, false);
 
         protected Task<Result<T>> ExecuteInTransactionAsync<T>(string operationName, Func<Task<Result<T>>> operation, CancellationToken ct)
-            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, ct);
+            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, true, ct);
 
         protected Task<Result> ExecuteInTransactionAsync(string operationName, Func<Task<Result>> operation, CancellationToken ct)
-            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, ct);
+            => ExecuteCoreAsync(operationName, operation, r => r.IsSuccess, r => r.Error, true, ct);
 
         // ─── Вся логика здесь ────────────────────────────────────────────────
 
@@ -36,13 +36,14 @@ namespace Application.Features
             Func<Task<TResult>> operation,
             Func<TResult, bool> isSuccess,
             Func<TResult, Error> getError,
-            CancellationToken? ct = null)
+            bool withTransaction,
+            CancellationToken ct = default)
         {
             var fullName = $"{ServiceName}.{operationName}";
             _logger.LogInformation("Processing {Operation}", fullName);
 
-            return ct.HasValue
-                ? await ExecuteWithTransactionAsync(fullName, operation, isSuccess, getError, ct.Value)
+            return withTransaction
+                ? await ExecuteWithTransactionAsync(fullName, operation, isSuccess, getError, ct)
                 : await ExecuteWithoutTransactionAsync(fullName, operation, isSuccess, getError);
         }
 
@@ -62,7 +63,7 @@ namespace Application.Features
             Func<Task<TResult>> operation,
             Func<TResult, bool> isSuccess,
             Func<TResult, Error> getError,
-            CancellationToken ct)
+            CancellationToken ct = default)
         {
             await _unitOfWork.BeginAsync(ct);
             try

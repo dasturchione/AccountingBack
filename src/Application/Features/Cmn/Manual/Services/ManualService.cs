@@ -4,6 +4,7 @@ using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
+using SharedKernel.Results;
 
 namespace Application.Features.Manual;
 
@@ -40,7 +41,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Language> _languageQuery;
     private readonly IQueryRepository<Module>   _moduleQuery;
     private readonly IUserContext               _userContext;
-
+    private readonly IQueryBuilder _queryBuilder;
     public ManualService(
         IQueryRepository<Role> roleQuery,
         IQueryRepository<State> stateQuery,
@@ -72,6 +73,7 @@ public class ManualService : IManualService
         IQueryRepository<Language> languageQuery,
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Module>   moduleQuery,
+        IQueryBuilder queryBuilder,
         IUserContext               userContext)
     {
         _roleQuery             = roleQuery;
@@ -105,6 +107,7 @@ public class ManualService : IManualService
         _organizationQuery     = organizationQuery;
         _moduleQuery           = moduleQuery;
         _userContext           = userContext;
+        _queryBuilder          = queryBuilder;
     }
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
@@ -308,17 +311,27 @@ public class ManualService : IManualService
         return (await _positionQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetContractsAsync(int? organizationId = null, int? counterpartyId = null, CancellationToken ct = default)
+    public async Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, DateTime? choosedDate = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Contract, SelectListDto>
-        {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || c.OrganizationId == organizationId) &&
-                            (counterpartyId == null || c.CounterpartyId == counterpartyId),
-            OrderBy  = q => q.OrderBy(c => c.Name),
-            Selector = c => new SelectListDto { Id = c.Id, Name = c.ContractNumber, Code = c.ContractType }
-        };
-        return (await _contractQuery.GetAllAsync(spec, ct)).ToList();
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<List<SelectListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var date = choosedDate ?? DateTime.Now;
+
+        var query = _queryBuilder.For<Contract>()
+                        .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                                    x.OrganizationId == _userContext.OrganizationId &&
+                                    (x.StartDate == null || x.StartDate <= date) &&
+                                    (x.EndDate == null || x.EndDate >= date) &&
+                                    (counterpartyId == null || x.CounterpartyId == counterpartyId))
+                        .As(a => new SelectListDto
+                        {
+                            Id = a.Id,
+                            Name = a.ContractNumber
+                        })
+                        .Build();
+
+        return await _contractQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default)

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
 using WebApi.Authorization;
+using WebApi.Extensions;
+using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
@@ -153,10 +155,10 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("contracts")]
-    public async Task<IActionResult> GetContracts([FromQuery] int? organizationId, [FromQuery] int? counterpartyId, CancellationToken ct)
+    public async Task<IResult> GetContracts([FromQuery] int? counterpartyId = null, [FromQuery] DateTime? choosedDate = null, CancellationToken ct = default)
     {
-        var result = await _manualService.GetContractsAsync(organizationId, counterpartyId, ct);
-        return Ok(result);
+        var result = await _manualService.GetContractsAsync(counterpartyId, choosedDate, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpGet("counterparties")]

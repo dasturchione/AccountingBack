@@ -110,6 +110,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("contract-types")]
+    public async Task<IActionResult> GetContractTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetContractTypesAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("roles")]
     public async Task<IActionResult> GetRoles(CancellationToken ct)
     {
@@ -153,9 +160,13 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("contracts")]
-    public async Task<IActionResult> GetContracts([FromQuery] int? organizationId, [FromQuery] int? counterpartyId, CancellationToken ct)
+    public async Task<IActionResult> GetContracts(
+        [FromQuery] int? organizationId,
+        [FromQuery] int? counterpartyId,
+        [FromQuery] short? contractTypeId,
+        CancellationToken ct)
     {
-        var result = await _manualService.GetContractsAsync(organizationId, counterpartyId, ct);
+        var result = await _manualService.GetContractsAsync(organizationId, counterpartyId, contractTypeId, ct);
         return Ok(result);
     }
 

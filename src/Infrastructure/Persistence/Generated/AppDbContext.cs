@@ -38,6 +38,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnContract> CmnContracts { get; set; }
 
+    public virtual DbSet<CmnContractType> CmnContractTypes { get; set; }
+
     public virtual DbSet<CmnCounterpartyType> CmnCounterpartyTypes { get; set; }
 
     public virtual DbSet<CmnCurrency> CmnCurrencies { get; set; }
@@ -365,6 +367,10 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
+            entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_contract_type_id_fkey");
+
             entity.HasOne(d => d.Counterparty).WithMany(p => p.CmnContracts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_contract_counterparty_id_fkey");
@@ -376,6 +382,17 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnContracts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_contract_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnContractType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_contract_type_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnContractTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnCounterpartyType>(entity =>

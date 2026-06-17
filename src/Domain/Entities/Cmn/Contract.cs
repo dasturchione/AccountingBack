@@ -6,7 +6,7 @@ namespace Domain.Entities;
 
 [Table("cmn_contract")]
 [Index("ContractDate", Name = "idx_cmn_contract_contract_date")]
-[Index("ContractType", Name = "idx_cmn_contract_contract_type")]
+[Index("ContractTypeId", Name = "idx_cmn_contract_contract_type_id")]
 [Index("CounterpartyId", Name = "idx_cmn_contract_counterparty_id")]
 [Index("OrganizationId", "CounterpartyId", "ContractNumber", Name = "idx_cmn_contract_number", IsUnique = true)]
 [Index("OrganizationId", Name = "idx_cmn_contract_organization_id")]
@@ -23,9 +23,8 @@ public partial class Contract
     [Column("counterparty_id")]
     public int CounterpartyId { get; set; }
 
-    [Column("contract_type")]
-    [StringLength(50)]
-    public string ContractType { get; set; } = null!;
+    [Column("contract_type_id")]
+    public short ContractTypeId { get; set; }
 
     [Column("contract_number")]
     [StringLength(100)]
@@ -53,6 +52,10 @@ public partial class Contract
     [ForeignKey("CounterpartyId")]
     [InverseProperty("Contracts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
+
+    [ForeignKey("ContractTypeId")]
+    [InverseProperty("Contracts")]
+    public virtual ContractType ContractType { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("Contracts")]

@@ -16,6 +16,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default);
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);
@@ -29,7 +30,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetPositionsAsync(int? organizationId = null, CancellationToken ct = default);
 
     // contracts
-    Task<List<SelectListDto>> GetContractsAsync(int? organizationId = null, int? counterpartyId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetContractsAsync(int? organizationId = null, int? counterpartyId = null, short? contractTypeId = null, CancellationToken ct = default);
 
     // counterparty
     Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default);

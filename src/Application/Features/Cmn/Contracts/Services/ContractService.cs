@@ -32,7 +32,7 @@ public class ContractService : IContractService
         {
             OrganizationId = dto.OrganizationId,
             CounterpartyId = dto.CounterpartyId,
-            ContractType = dto.ContractType,
+            ContractTypeId = dto.ContractTypeId,
             ContractNumber = string.Empty,
             ContractDate = dto.ContractDate,
             StartDate = dto.StartDate,
@@ -84,7 +84,7 @@ public class ContractService : IContractService
 
         entity.OrganizationId = dto.OrganizationId;
         entity.CounterpartyId = dto.CounterpartyId;
-        entity.ContractType = dto.ContractType;
+        entity.ContractTypeId = dto.ContractTypeId;
         entity.ContractDate = dto.ContractDate;
         entity.StartDate = dto.StartDate;
         entity.EndDate = dto.EndDate;

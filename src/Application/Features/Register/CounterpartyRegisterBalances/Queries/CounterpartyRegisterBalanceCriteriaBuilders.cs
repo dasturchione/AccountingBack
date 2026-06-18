@@ -8,8 +8,7 @@ namespace Application.Features.CounterpartyRegisterBalances;
 public class CounterpartyRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<CounterpartyRegisterBalance, CounterpartyRegisterBalanceListFilter>
 {
     public Expression<Func<CounterpartyRegisterBalance, bool>> Build(CounterpartyRegisterBalanceListFilter options) =>
-        x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
-             (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
+        x => (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
              (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&
              (!options.CounterpartyId.HasValue || x.CounterpartyId == options.CounterpartyId.Value) &&
              (!options.OperationTypeId.HasValue || x.OperationTypeId == options.OperationTypeId.Value) &&

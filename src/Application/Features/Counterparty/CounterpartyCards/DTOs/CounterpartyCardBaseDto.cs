@@ -2,7 +2,6 @@ namespace Application.Features.CounterpartyCards;
 
 public class CounterpartyCardBaseDto
 {
-    public int OrganizationId { get; set; }
     public short CounterpartyTypeId { get; set; }
     public string ShortName { get; set; } = null!;
     public string? FullName { get; set; }

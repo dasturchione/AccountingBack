@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.AuditLogs;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -12,25 +13,30 @@ public class CashOperationService : ICashOperationService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IAuditLogService _auditLogService;
     private readonly IQueryRepository<CashOperation> _query;
     private readonly ICommandRepository<CashOperation> _command;
 
     public CashOperationService(IUserContext userContext,
-                                IQueryBuilder queryBuilder, 
+                                IQueryBuilder queryBuilder,
+                                IAuditLogService auditLogService,
                                 IQueryRepository<CashOperation> query,
                                 ICommandRepository<CashOperation> command)
     {
         _query = query;
         _command = command;
-        _userContext = userContext; 
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
+        _auditLogService = auditLogService;
     }
 
     public async Task<Result<long>> CreateAsync(CashOperationCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new CashOperation
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             CashBoxId = dto.CashBoxId,
             OperationTypeId = dto.OperationTypeId,
             PaymentTypeId = dto.PaymentTypeId,
@@ -45,6 +51,14 @@ public class CashOperationService : ICashOperationService
             CreatedDate = DateTime.Now
         };
         await _command.CreateAsync(entity, ct);
+
+        var docDto = await GetByIdInternalAsync(entity.Id, ct);
+        if (docDto != null)
+        {
+            _auditLogService.SetNewValues(docDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.CashOperation, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
+        }
+
         return entity.Id;
     }
 
@@ -53,12 +67,24 @@ public class CashOperationService : ICashOperationService
         var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
 
-        if (entity == null) 
+        if (entity == null)
             return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
+
+        var oldDocDto = await GetByIdInternalAsync(id, ct);
+        if (oldDocDto != null)
+            _auditLogService.SetOldValues(oldDocDto);
 
         entity.StateId = StateIdConst.PASSIVE;
 
         await _command.UpdateAsync(entity, ct);
+
+        var newDocDto = await GetByIdInternalAsync(id, ct);
+        if (newDocDto != null)
+        {
+            _auditLogService.SetNewValues(newDocDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.CashOperation, id.ToString(), AuditLogOperationTypeConst.Delete);
+        }
+
         return Result.Success();
     }
 
@@ -83,10 +109,13 @@ public class CashOperationService : ICashOperationService
         var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
 
-        if (entity == null) 
+        if (entity == null)
             return Result.Failure(CashOperationErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
+        var oldDocDto = await GetByIdInternalAsync(id, ct);
+        if (oldDocDto != null)
+            _auditLogService.SetOldValues(oldDocDto);
+
         entity.CashBoxId = dto.CashBoxId;
         entity.OperationTypeId = dto.OperationTypeId;
         entity.PaymentTypeId = dto.PaymentTypeId;
@@ -99,6 +128,20 @@ public class CashOperationService : ICashOperationService
         entity.StatusId = dto.StatusId;
         entity.StateId = dto.StateId;
         await _command.UpdateAsync(entity, ct);
+
+        var newDocDto = await GetByIdInternalAsync(id, ct);
+        if (newDocDto != null)
+        {
+            _auditLogService.SetNewValues(newDocDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.CashOperation, id.ToString(), AuditLogOperationTypeConst.Update, dto.Comment);
+        }
+
         return Result.Success();
+    }
+
+    private async Task<CashOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).As<CashOperationDto>().Build();
+        return await _query.GetAsync(query, ct);
     }
 }

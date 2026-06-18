@@ -28,12 +28,14 @@ public class ChartAccountService : IChartAccountService
 
     public async Task<Result<int>> CreateAsync(ChartAccountCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
+        var orgId = _userContext.OrganizationId!.Value;
+
+        if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure<int>(ChartAccountErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
         var entity = new ChartAccount
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             ParentId = dto.ParentId,
             Code = dto.Code,
             Name = dto.Name,
@@ -85,10 +87,8 @@ public class ChartAccountService : IChartAccountService
         if (entity == null) 
             return Result.Failure(ChartAccountErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
+        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure(ChartAccountErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
         entity.ParentId = dto.ParentId;
         entity.Code = dto.Code;
         entity.Name = dto.Name;

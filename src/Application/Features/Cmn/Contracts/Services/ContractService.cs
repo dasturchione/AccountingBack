@@ -28,9 +28,11 @@ public class ContractService : IContractService
 
     public async Task<Result<long>> CreateAsync(ContractCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new Contract
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             CounterpartyId = dto.CounterpartyId,
             ContractTypeId = dto.ContractTypeId,
             ContractNumber = string.Empty,
@@ -82,7 +84,6 @@ public class ContractService : IContractService
         if (entity == null)
             return Result.Failure(ContractErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.ContractTypeId = dto.ContractTypeId;
         entity.ContractDate = dto.ContractDate;

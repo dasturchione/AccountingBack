@@ -4,7 +4,6 @@ namespace Application.Features.AccountingRegisterEntries;
 
 public class AccountingRegisterEntryListFilter : IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public short? DocumentTypeId { get; set; }
     public long? DocumentId { get; set; }
     public int? DebitAccountId { get; set; }

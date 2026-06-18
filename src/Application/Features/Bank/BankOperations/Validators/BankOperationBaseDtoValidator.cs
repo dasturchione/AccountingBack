@@ -6,7 +6,6 @@ public class BankOperationBaseDtoValidator : AbstractValidator<BankOperationBase
 {
     public BankOperationBaseDtoValidator()
     {
-        RuleFor(x => x.OrganizationId).GreaterThan(0);
         RuleFor(x => x.BankAccountId).GreaterThan(0);
         RuleFor(x => x.OperationTypeId).GreaterThan((short)0);
         RuleFor(x => x.DocNumber).NotEmpty().MaximumLength(50);

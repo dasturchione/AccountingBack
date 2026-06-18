@@ -22,4 +22,13 @@ public static class SaleDocErrors
             LanguageIdConst.RU      => $"Документ продажи с номером '{docNumber}' уже существует.",
             _                       => $"Sale document with number '{docNumber}' already exists."
         });
+
+    public static Error AlreadyPosted(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.AlreadyPosted", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan sotuv hujjati o'tkazilgan, uni o'zgartirish yoki o'chirish mumkin emas.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган сотув ҳужжати ўтказилган, уни ўзгартириш ёки ўчириш мумкин эмас.",
+            LanguageIdConst.RU      => $"Документ продажи с id {id} уже проведён, изменение или удаление невозможно.",
+            _                       => $"Sale document with id {id} is already posted and cannot be modified or deleted."
+        });
 }

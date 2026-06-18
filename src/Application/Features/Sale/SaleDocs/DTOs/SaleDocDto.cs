@@ -1,3 +1,5 @@
+using Application.Features.SaleDocTables;
+
 namespace Application.Features.SaleDocs;
 
 public class SaleDocDto
@@ -22,4 +24,6 @@ public class SaleDocDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+
+    public List<SaleDocTableDto> Lines { get; set; } = new();
 }

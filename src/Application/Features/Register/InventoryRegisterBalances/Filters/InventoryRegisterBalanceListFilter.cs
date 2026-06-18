@@ -4,7 +4,6 @@ namespace Application.Features.InventoryRegisterBalances;
 
 public class InventoryRegisterBalanceListFilter : IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public short? DocumentTypeId { get; set; }
     public long? DocumentId { get; set; }
     public int? WarehouseId { get; set; }

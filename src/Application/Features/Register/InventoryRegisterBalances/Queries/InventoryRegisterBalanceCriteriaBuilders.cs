@@ -7,8 +7,7 @@ namespace Application.Features.InventoryRegisterBalances;
 public class InventoryRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<RegisterBalance, InventoryRegisterBalanceListFilter>
 {
     public Expression<Func<RegisterBalance, bool>> Build(InventoryRegisterBalanceListFilter options) =>
-        x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
-             (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
+        x => (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
              (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&
              (!options.WarehouseId.HasValue || x.WarehouseId == options.WarehouseId.Value) &&
              (!options.ProductId.HasValue || x.ProductId == options.ProductId.Value) &&

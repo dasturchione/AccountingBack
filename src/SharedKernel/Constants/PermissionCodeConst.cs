@@ -224,4 +224,8 @@ public static class PermissionCodeConst
     #region Manual (ma'lumotnomalar)
     public const string ManualView = "MANUAL_VIEW";
     #endregion
+
+    #region AuditLog
+    public const string AuditLogView = "AUDIT_LOG_VIEW";
+    #endregion
 }

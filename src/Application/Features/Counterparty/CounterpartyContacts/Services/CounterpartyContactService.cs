@@ -28,9 +28,11 @@ public class CounterpartyContactService : ICounterpartyContactService
 
     public async Task<Result<int>> CreateAsync(CounterpartyContactCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new CounterpartyContact
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             CounterpartyId = dto.CounterpartyId,
             FullName = dto.FullName,
             PhoneNumber = dto.PhoneNumber,
@@ -82,7 +84,6 @@ public class CounterpartyContactService : ICounterpartyContactService
         if (entity == null) 
             return Result.Failure(CounterpartyContactErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.FullName = dto.FullName;
         entity.PhoneNumber = dto.PhoneNumber;

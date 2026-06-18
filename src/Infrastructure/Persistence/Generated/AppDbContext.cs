@@ -108,6 +108,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
 
+    public virtual DbSet<SysAuditLog> SysAuditLogs { get; set; }
+
     public virtual DbSet<SysModule> SysModules { get; set; }
 
     public virtual DbSet<SysModuleSubGroup> SysModuleSubGroups { get; set; }
@@ -973,6 +975,13 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocTables).HasConstraintName("sale_doc_table_vat_rate_id_fkey");
         });
 
+        modelBuilder.Entity<SysAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sys_audit_log_pkey");
+
+            entity.Property(e => e.ChangedDate).HasDefaultValueSql("now()");
+        });
+
         modelBuilder.Entity<SysModule>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("sys_module_pkey");
@@ -1062,6 +1071,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
         });
+        modelBuilder.HasSequence("contract_number_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_cash_operation_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_purchase_seq").StartsAt(100000001L);

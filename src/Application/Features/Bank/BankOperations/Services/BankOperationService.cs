@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.AuditLogs;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -12,25 +13,30 @@ public class BankOperationService : IBankOperationService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IAuditLogService _auditLogService;
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
 
     public BankOperationService(IUserContext userContext,
-                                IQueryBuilder queryBuilder, 
+                                IQueryBuilder queryBuilder,
+                                IAuditLogService auditLogService,
                                 IQueryRepository<BankOperation> query,
                                 ICommandRepository<BankOperation> command)
     {
         _query = query;
         _command = command;
-        _userContext = userContext; 
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
+        _auditLogService = auditLogService;
     }
 
     public async Task<Result<long>> CreateAsync(BankOperationCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new BankOperation
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
             PaymentTypeId = dto.PaymentTypeId,
@@ -46,6 +52,14 @@ public class BankOperationService : IBankOperationService
         };
 
         await _command.CreateAsync(entity, ct);
+
+        var docDto = await GetByIdInternalAsync(entity.Id, ct);
+        if (docDto != null)
+        {
+            _auditLogService.SetNewValues(docDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
+        }
+
         return entity.Id;
     }
 
@@ -54,12 +68,23 @@ public class BankOperationService : IBankOperationService
         var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
 
-        if (entity == null) 
+        if (entity == null)
             return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
+
+        var oldDocDto = await GetByIdInternalAsync(id, ct);
+        if (oldDocDto != null)
+            _auditLogService.SetOldValues(oldDocDto);
 
         entity.StateId = StateIdConst.PASSIVE;
 
         await _command.UpdateAsync(entity, ct);
+
+        var newDocDto = await GetByIdInternalAsync(id, ct);
+        if (newDocDto != null)
+        {
+            _auditLogService.SetNewValues(newDocDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Delete);
+        }
 
         return Result.Success();
     }
@@ -85,10 +110,13 @@ public class BankOperationService : IBankOperationService
         var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
 
-        if (entity == null) 
+        if (entity == null)
             return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
+        var oldDocDto = await GetByIdInternalAsync(id, ct);
+        if (oldDocDto != null)
+            _auditLogService.SetOldValues(oldDocDto);
+
         entity.BankAccountId = dto.BankAccountId;
         entity.OperationTypeId = dto.OperationTypeId;
         entity.PaymentTypeId = dto.PaymentTypeId;
@@ -102,6 +130,20 @@ public class BankOperationService : IBankOperationService
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);
+
+        var newDocDto = await GetByIdInternalAsync(id, ct);
+        if (newDocDto != null)
+        {
+            _auditLogService.SetNewValues(newDocDto);
+            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Update, dto.Comment);
+        }
+
         return Result.Success();
+    }
+
+    private async Task<BankOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).As<BankOperationDto>().Build();
+        return await _query.GetAsync(query, ct);
     }
 }

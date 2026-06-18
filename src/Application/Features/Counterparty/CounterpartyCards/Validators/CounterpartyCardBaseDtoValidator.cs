@@ -6,7 +6,6 @@ public class CounterpartyCardBaseDtoValidator : AbstractValidator<CounterpartyCa
 {
     public CounterpartyCardBaseDtoValidator()
     {
-        RuleFor(x => x.OrganizationId).GreaterThan(0);
         RuleFor(x => x.CounterpartyTypeId).GreaterThan((short)0);
         RuleFor(x => x.ShortName).NotEmpty().MaximumLength(250);
         RuleFor(x => x.FullName).MaximumLength(500).When(x => x.FullName != null);

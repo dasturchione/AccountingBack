@@ -28,12 +28,14 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
 
     public async Task<Result<int>> CreateAsync(CounterpartyBankAccountCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.AccountNumber == dto.AccountNumber, ct))
+        var orgId = _userContext.OrganizationId!.Value;
+
+        if (await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure<int>(CounterpartyBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
 
         var entity = new CounterpartyBankAccount
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             CounterpartyId = dto.CounterpartyId,
             BankId = dto.BankId,
             AccountNumber = dto.AccountNumber,
@@ -82,10 +84,8 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(CounterpartyBankAccountErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.AccountNumber == dto.AccountNumber, ct))
+        if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure(CounterpartyBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.BankId = dto.BankId;
         entity.AccountNumber = dto.AccountNumber;

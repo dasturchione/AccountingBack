@@ -2,7 +2,6 @@ namespace Application.Features.CounterpartyContacts;
 
 public class CounterpartyContactBaseDto
 {
-    public int OrganizationId { get; set; }
     public int CounterpartyId { get; set; }
     public string FullName { get; set; } = null!;
     public string? PhoneNumber { get; set; }

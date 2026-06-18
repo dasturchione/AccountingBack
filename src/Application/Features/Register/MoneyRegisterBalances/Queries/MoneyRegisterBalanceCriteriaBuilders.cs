@@ -7,8 +7,7 @@ namespace Application.Features.MoneyRegisterBalances;
 public class MoneyRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<MoneyRegisterBalance, MoneyRegisterBalanceListFilter>
 {
     public Expression<Func<MoneyRegisterBalance, bool>> Build(MoneyRegisterBalanceListFilter options) =>
-        x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
-             (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
+        x => (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
              (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&
              (string.IsNullOrEmpty(options.SourceType) || x.SourceType.ToLower().Contains(options.SourceType.ToLower())) &&
              (!options.SourceId.HasValue || x.SourceId == options.SourceId.Value) &&

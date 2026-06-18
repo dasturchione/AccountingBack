@@ -28,13 +28,15 @@ public class PositionService : IPositionService
 
     public async Task<Result<int>> CreateAsync(PositionCreateDto dto, CancellationToken ct = default)
     {
-        var exists = await _query.AnyAsync(p => p.OrganizationId == dto.OrganizationId && p.Code == dto.Code, ct);
-        if (exists) 
+        var orgId = _userContext.OrganizationId!.Value;
+
+        var exists = await _query.AnyAsync(p => p.Code == dto.Code, ct);
+        if (exists)
             return Result.Failure<int>(PositionErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
-        var entity = new Position 
-        { 
-            OrganizationId = dto.OrganizationId, 
+        var entity = new Position
+        {
+            OrganizationId = orgId,
             Code = dto.Code, 
             Name = dto.Name, 
             StateId = StateIdConst.ACTIVE, 
@@ -83,15 +85,14 @@ public class PositionService : IPositionService
 
         if (entity.Code != dto.Code)
         {
-            var exists = await _query.AnyAsync(p => p.OrganizationId == dto.OrganizationId && p.Code == dto.Code, ct);
-            if (exists) 
+            var exists = await _query.AnyAsync(p => p.Code == dto.Code, ct);
+            if (exists)
                 return Result.Failure(PositionErrors.CodeConflict(dto.Code, _userContext.LanguageId));
         }
 
-        entity.Code = dto.Code; 
-        entity.Name = dto.Name; 
+        entity.Code = dto.Code;
+        entity.Name = dto.Name;
         entity.StateId = dto.StateId;
-        entity.OrganizationId = dto.OrganizationId;
 
         await _command.UpdateAsync(entity, ct);
         return Result.Success();

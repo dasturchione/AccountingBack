@@ -57,12 +57,17 @@ namespace Infrastructure.Authentication
 
         private List<Claim> GetClaims(User user, int organizationId)
         {
-            return new List<Claim>
+            var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user.RoleId.ToString()),
                 new Claim("OrganizationId", organizationId.ToString()),
             };
+
+            if (user.Role?.HasGlobalAccess == true)
+                claims.Add(new Claim("HasGlobalAccess", "true"));
+
+            return claims;
         }
     }
 }

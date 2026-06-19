@@ -2,6 +2,7 @@
 using Application.Abstractions.Authentication;
 using Application.Features.AccountingRegisterEntries;
 using Domain.Entities;
+using LinqKit;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
@@ -15,7 +16,8 @@ namespace Application.Features.Register.AccountingRegisterEntries
         private readonly IQueryBuilder _queryBuilder;
         private readonly ISaleSubkontoNamesResolver _resolver;
         private readonly IQueryRepository<PostingRule> _postingRuleQuery;
-        public SaleAccountingHandler(IUserContext userContext, 
+
+        public SaleAccountingHandler(IUserContext userContext,
                                      IQueryBuilder queryBuilder,
                                      ISaleSubkontoNamesResolver resolver,
                                      IQueryRepository<PostingRule> postingRuleQuery)
@@ -44,7 +46,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
             }
 
             foreach (var subkontoTable in subkontoContext.Tables)
-            {
+                {
                 foreach (var ruleLine in rule.PostingRuleLines.Where(p => p.AmountSource != PostingAmountFields.CostAmount).OrderBy(o => o.SortOrder))
                 {
                     entries.Add(BuildEntry(subkontoContext, subkontoTable, ruleLine));
@@ -158,15 +160,15 @@ namespace Application.Features.Register.AccountingRegisterEntries
             var list = new List<RegisterEntrySubkonto>();
 
             if (context.ClientId != null)
-                list.Add(new RegisterEntrySubkonto
-                {
+            list.Add(new RegisterEntrySubkonto
+            {
                     EntityId = context.Id,
                     Side = SubkontoSideConst.DEBIT,
                     SortOrder = list.Count + 1,
                     DisplayValue = context.ClientName,
                     CreatedDate = DateTime.Now,
                     SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT
-                });
+            });
 
             list.Add(new RegisterEntrySubkonto
             {
@@ -174,9 +176,9 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 Side = SubkontoSideConst.DEBIT,
                 SortOrder = list.Count + 1,
                 DisplayValue = JsonSerializer.Serialize(new
-                {
+            {
                     sale = new
-                    {
+            {
                         number = context.DocNumber,
                         date = context.DocDate
                     }

@@ -6,7 +6,6 @@ public class CounterpartyBankAccountBaseDtoValidator : AbstractValidator<Counter
 {
     public CounterpartyBankAccountBaseDtoValidator()
     {
-        RuleFor(x => x.OrganizationId).GreaterThan(0);
         RuleFor(x => x.CounterpartyId).GreaterThan(0);
         RuleFor(x => x.BankId).GreaterThan(0);
         RuleFor(x => x.AccountNumber).NotEmpty().MaximumLength(50);

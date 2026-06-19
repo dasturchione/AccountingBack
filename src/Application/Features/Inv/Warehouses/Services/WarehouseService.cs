@@ -28,9 +28,11 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Result<int>> CreateAsync(WarehouseCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new Warehouse
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             BranchId = dto.BranchId,
             Name = dto.Name,
             ResponsibleUserId = dto.ResponsibleUserId,
@@ -78,7 +80,6 @@ public class WarehouseService : IWarehouseService
         if (entity == null) 
             return Result.Failure(WarehouseErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
         entity.BranchId = dto.BranchId;
         entity.Name = dto.Name;
         entity.ResponsibleUserId = dto.ResponsibleUserId;

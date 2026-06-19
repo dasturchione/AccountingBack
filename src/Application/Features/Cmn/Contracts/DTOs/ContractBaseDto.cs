@@ -2,7 +2,6 @@ namespace Application.Features.Contracts;
 
 public class ContractBaseDto
 {
-    public int OrganizationId { get; set; }
     public int CounterpartyId { get; set; }
     public short ContractTypeId { get; set; }
     public DateTime ContractDate { get; set; }

@@ -4,7 +4,6 @@ namespace Application.Features.CounterpartyCards;
 
 public class CounterpartyCardListFilter : ISearchFilter, IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public short? CounterpartyTypeId { get; set; }
     public string? Search { get; set; }
     public int Page { get; set; } = 1;

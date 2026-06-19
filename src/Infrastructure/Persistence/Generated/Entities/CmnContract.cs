@@ -25,9 +25,6 @@ public partial class CmnContract
     [Column("counterparty_id")]
     public int CounterpartyId { get; set; }
 
-    [Column("contract_type_id")]
-    public short ContractTypeId { get; set; }
-
     [Column("contract_number")]
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
@@ -51,13 +48,16 @@ public partial class CmnContract
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [ForeignKey("CounterpartyId")]
-    [InverseProperty("CmnContracts")]
-    public virtual CounterpartyCard Counterparty { get; set; } = null!;
+    [Column("contract_type_id")]
+    public short ContractTypeId { get; set; }
 
     [ForeignKey("ContractTypeId")]
     [InverseProperty("CmnContracts")]
     public virtual CmnContractType ContractType { get; set; } = null!;
+
+    [ForeignKey("CounterpartyId")]
+    [InverseProperty("CmnContracts")]
+    public virtual CounterpartyCard Counterparty { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CmnContracts")]

@@ -55,10 +55,10 @@ public partial class CmnState
     public virtual ICollection<CmnBank> CmnBanks { get; set; } = new List<CmnBank>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
+    public virtual ICollection<CmnContractType> CmnContractTypes { get; set; } = new List<CmnContractType>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnContractType> CmnContractTypes { get; set; } = new List<CmnContractType>();
+    public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
 
     [InverseProperty("State")]
     public virtual ICollection<CmnCounterpartyType> CmnCounterpartyTypes { get; set; } = new List<CmnCounterpartyType>();

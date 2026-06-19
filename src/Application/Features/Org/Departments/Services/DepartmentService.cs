@@ -33,13 +33,15 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result<int>> CreateAsync(DepartmentCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(CreateAsync), async () =>
         {
-            var exists = await _query.AnyAsync(d => d.OrganizationId == dto.OrganizationId && d.Code == dto.Code, ct);
+            var orgId = _userContext.OrganizationId!.Value;
+
+            var exists = await _query.AnyAsync(d => d.Code == dto.Code, ct);
             if (exists)
                 return Result.Failure<int>(DepartmentErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
             var entity = new Department
             {
-                OrganizationId = dto.OrganizationId,
+                OrganizationId = orgId,
                 BranchId       = dto.BranchId,
                 Code           = dto.Code,
                 Name           = dto.Name,
@@ -94,12 +96,10 @@ public class DepartmentService : BaseService, IDepartmentService
 
             if (entity.Code != dto.Code)
             {
-                var exists = await _query.AnyAsync(d => d.OrganizationId == dto.OrganizationId && d.Code == dto.Code, ct);
+                var exists = await _query.AnyAsync(d => d.Code == dto.Code, ct);
                 if (exists)
                     return Result.Failure(DepartmentErrors.CodeConflict(dto.Code, _userContext.LanguageId));
             }
-
-            entity.OrganizationId = dto.OrganizationId;
             entity.BranchId       = dto.BranchId;
             entity.Code           = dto.Code;
             entity.Name           = dto.Name;

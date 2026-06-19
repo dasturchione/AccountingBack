@@ -141,23 +141,23 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("branches")]
-    public async Task<IActionResult> GetBranches([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetBranches(CancellationToken ct)
     {
-        var result = await _manualService.GetBranchesAsync(organizationId, ct);
+        var result = await _manualService.GetBranchesAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("departments")]
-    public async Task<IActionResult> GetDepartments([FromQuery] int? organizationId, [FromQuery] int? branchId, CancellationToken ct)
+    public async Task<IActionResult> GetDepartments([FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await _manualService.GetDepartmentsAsync(organizationId, branchId, ct);
+        var result = await _manualService.GetDepartmentsAsync(branchId, ct);
         return Ok(result);
     }
 
     [HttpGet("positions")]
-    public async Task<IActionResult> GetPositions([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetPositions(CancellationToken ct)
     {
-        var result = await _manualService.GetPositionsAsync(organizationId, ct);
+        var result = await _manualService.GetPositionsAsync(ct);
         return Ok(result);
     }
 
@@ -169,58 +169,58 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("counterparties")]
-    public async Task<IActionResult> GetCounterparties([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetCounterparties(CancellationToken ct)
     {
-        var result = await _manualService.GetCounterpartiesAsync(organizationId, ct);
+        var result = await _manualService.GetCounterpartiesAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("product-groups")]
-    public async Task<IActionResult> GetProductGroups([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetProductGroups(CancellationToken ct)
     {
-        var result = await _manualService.GetProductGroupsAsync(organizationId, ct);
+        var result = await _manualService.GetProductGroupsAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("products")]
-    public async Task<IActionResult> GetProducts([FromQuery] int? organizationId, [FromQuery] int? productGroupId, CancellationToken ct)
+    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, CancellationToken ct)
     {
-        var result = await _manualService.GetProductsAsync(organizationId, productGroupId, ct);
+        var result = await _manualService.GetProductsAsync(productGroupId, ct);
         return Ok(result);
     }
 
     [HttpGet("warehouses")]
-    public async Task<IActionResult> GetWarehouses([FromQuery] int? organizationId, [FromQuery] int? branchId, CancellationToken ct)
+    public async Task<IActionResult> GetWarehouses([FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await _manualService.GetWarehousesAsync(organizationId, branchId, ct);
+        var result = await _manualService.GetWarehousesAsync(branchId, ct);
         return Ok(result);
     }
 
     [HttpGet("chart-accounts")]
-    public async Task<IActionResult> GetChartAccounts([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetChartAccounts(CancellationToken ct)
     {
-        var result = await _manualService.GetChartAccountsAsync(organizationId, ct);
+        var result = await _manualService.GetChartAccountsAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("org-bank-accounts")]
-    public async Task<IActionResult> GetOrgBankAccounts([FromQuery] int? organizationId, CancellationToken ct)
+    public async Task<IActionResult> GetOrgBankAccounts(CancellationToken ct)
     {
-        var result = await _manualService.GetOrgBankAccountsAsync(organizationId, ct);
+        var result = await _manualService.GetOrgBankAccountsAsync(ct);
         return Ok(result);
     }
 
     [HttpGet("cash-boxes")]
-    public async Task<IActionResult> GetCashBoxes([FromQuery] int? organizationId, [FromQuery] int? branchId, CancellationToken ct)
+    public async Task<IActionResult> GetCashBoxes([FromQuery] int? branchId, CancellationToken ct)
     {
-        var result = await _manualService.GetCashBoxesAsync(organizationId, branchId, ct);
+        var result = await _manualService.GetCashBoxesAsync(branchId, ct);
         return Ok(result);
     }
 
     [HttpGet("cash-operations")]
-    public async Task<IActionResult> GetCashOperations([FromQuery] int? organizationId, [FromQuery] int? cashBoxId, CancellationToken ct)
+    public async Task<IActionResult> GetCashOperations([FromQuery] int? cashBoxId, CancellationToken ct)
     {
-        var result = await _manualService.GetCashOperationsAsync(organizationId, cashBoxId, ct);
+        var result = await _manualService.GetCashOperationsAsync(cashBoxId, ct);
         return Ok(result);
     }
 

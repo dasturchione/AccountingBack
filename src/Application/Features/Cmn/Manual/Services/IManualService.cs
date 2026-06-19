@@ -27,30 +27,30 @@ public interface IManualService
 
     // org
     Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetBranchesAsync(int? organizationId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetDepartmentsAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetPositionsAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetBranchesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetDepartmentsAsync(int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPositionsAsync(CancellationToken ct = default);
 
     // contracts
     Task<Result<List<SelectListDto>>> GetContractsAsync(int? counterpartyId = null, short? contractTypeId = null, DateTime? choosedDate = null, CancellationToken ct = default);
 
     // counterparty
-    Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetCounterpartiesAsync(CancellationToken ct = default);
 
     // inv
-    Task<List<SelectListDto>> GetProductGroupsAsync(int? organizationId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetProductsAsync(int? organizationId = null, int? productGroupId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetProductsAsync(int? productGroupId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default);
 
     // acc
-    Task<List<SelectListDto>> GetChartAccountsAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);
 
     // bank
-    Task<List<SelectListDto>> GetOrgBankAccountsAsync(int? organizationId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default);
 
     // cash
-    Task<List<SelectListDto>> GetCashBoxesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetCashOperationsAsync(int? organizationId = null, int? cashBoxId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetCashBoxesAsync(int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetCashOperationsAsync(int? cashBoxId = null, CancellationToken ct = default);
 
     // languages
     Task<List<SelectListDto>> GetLanguagesAsync(CancellationToken ct = default);

@@ -28,9 +28,11 @@ public class ProductPriceService : IProductPriceService
 
     public async Task<Result<long>> CreateAsync(ProductPriceCreateDto dto, CancellationToken ct = default)
     {
+        var orgId = _userContext.OrganizationId!.Value;
+
         var entity = new ProductPrice
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             ProductId = dto.ProductId,
             CurrencyId = dto.CurrencyId,
             Price = dto.Price,
@@ -81,7 +83,6 @@ public class ProductPriceService : IProductPriceService
         if (entity == null) 
             return Result.Failure(ProductPriceErrors.NotFound(id, _userContext.LanguageId));
 
-        entity.OrganizationId = dto.OrganizationId;
         entity.ProductId = dto.ProductId;
         entity.CurrencyId = dto.CurrencyId;
         entity.Price = dto.Price;

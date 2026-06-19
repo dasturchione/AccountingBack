@@ -4,7 +4,6 @@ namespace Application.Features.BankOperations;
 
 public class BankOperationListFilter : ISearchFilter, IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public int? BankAccountId { get; set; }
     public short? OperationTypeId { get; set; }
     public DateTime? DateFrom { get; set; }

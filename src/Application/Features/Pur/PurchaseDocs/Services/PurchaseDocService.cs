@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.AuditLogs;
 using Application.Features.Contracts;
 using Application.Features.CounterpartyCards;
 using Application.Features.InventoryRegisterBalances;
@@ -20,6 +21,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
     private readonly IQueryRepository<PurchaseDoc> _query;
@@ -34,6 +36,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
     public PurchaseDocService(IUserContext userContext,
                               IQueryBuilder queryBuilder,
+                              IAuditLogService auditLogService,
                               IAccountingDispatcher dispatcher,
                               IInventoryDispatcher inventoryDispatcher,
                               IDocNumberGenerator docNumberGenerator,
@@ -46,7 +49,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<Product> productQuery,
                               IQueryRepository<CounterpartyCard> counterpartyQuery,
                               ILogger<PurchaseDocService> logger,
-                              IUnitOfWork unitOfWork) 
+                              IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
     {
         _query               = query;
@@ -55,6 +58,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _lineCommand         = lineCommand;
         _userContext         = userContext;
         _queryBuilder        = queryBuilder;
+        _auditLogService     = auditLogService;
         _vatRateQuery        = vatRateQuery;
         _productQuery        = productQuery;
         _contractQuery       = contractQuery;
@@ -92,7 +96,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             if (dto.ContractId.HasValue)
             {
-                var contractExists = await _query.AnyAsync(x => x.Id == dto.ContractId);
+                var contractExists = await _contractQuery.AnyAsync(x => x.Id == dto.ContractId.Value);
                 if (!contractExists)
                     return Result.Failure<long>(ContractErrors.NotFound(dto.ContractId.Value, _userContext.LanguageId));
             }
@@ -150,6 +154,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (!inventoryDispatch.IsSuccess)
                 return Result.Failure<long>(inventoryDispatch.Error);
 
+            var docDto = await GetByIdInternalAsync(doc.Id, ct);
+            if (docDto != null)
+            {
+                _auditLogService.SetNewValues(docDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.PurchaseDoc, doc.Id.ToString(), AuditLogOperationTypeConst.Create);
+            }
+
             return Result.Success(doc.Id);
         }, ct);
 
@@ -167,6 +178,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
                 return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
 
             // Yangi qatorlarni hisoblaymiz
             var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
@@ -196,6 +211,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             await _command.UpdateAsync(doc, ct);
 
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.PurchaseDoc, id.ToString(), AuditLogOperationTypeConst.Update, dto.Comment);
+            }
+
             return Result.Success();
         }, ct);
 
@@ -211,14 +233,31 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
                 return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
 
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
             // Avval barcha qatorlarni o'chiramiz, keyin hujjatni
             await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
 
             doc.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(doc, ct);
 
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.PurchaseDoc, id.ToString(), AuditLogOperationTypeConst.Delete);
+            }
+
             return Result.Success();
         }, ct);
+
+    private async Task<PurchaseDocDto?> GetByIdInternalAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+        return await _query.GetAsync(query, ct);
+    }
 
     // dto.Lines dan PurchaseDocTable entity larini yaratib beradi
     // VatRate DB dan olinadi — agar topilmasa xato qaytaradi

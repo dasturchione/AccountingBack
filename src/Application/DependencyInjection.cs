@@ -1,5 +1,6 @@
 ﻿using Application.Common.Markers;
 using Application.Features.Acc.PostingRules;
+using Application.Features.AuditLogs;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
@@ -72,6 +73,7 @@ namespace Application
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IManualService, ManualService>();
+            services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
@@ -82,6 +84,7 @@ namespace Application
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<SaleDoc>, SaleInventoryHandler>();
 
             services.AddScoped<ISaleSubkontoNamesResolver, SaleSubkontoNamesResolver>();
             services.AddScoped<IPurchaseSubkontoNamesResolver, PurchaseSubkontoNamesResolver>();

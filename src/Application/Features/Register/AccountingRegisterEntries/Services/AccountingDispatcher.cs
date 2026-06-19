@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.AccountingRegisterEntries;
 using Domain.Entities;
@@ -12,6 +12,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
         private readonly IAccountingDocumentHandler<SaleDoc> _saleHandler;
         private readonly IAccountingDocumentHandler<PurchaseDoc> _purchaseHandler;
         private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
+
         public AccountingDispatcher(IUserContext userContext,
                                     IAccountingDocumentHandler<SaleDoc> saleHandler,
                                     IAccountingDocumentHandler<PurchaseDoc> purchaseHandler,
@@ -28,9 +29,12 @@ namespace Application.Features.Register.AccountingRegisterEntries
             var entryResults = document switch
             {
                 PurchaseDoc p => await _purchaseHandler.HandleAsync(p, ct),
-                SaleDoc s => await _saleHandler.HandleAsync(s, ct),
-                _ => Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.UnsupportedDocumentType(_userContext.LanguageId))
+                SaleDoc s     => await _saleHandler.HandleAsync(s, ct),
+                _             => Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.UnsupportedDocumentType(_userContext.LanguageId))
             };
+
+            if (!entryResults.IsSuccess)
+                return entryResults;
 
             await _accountingRegisterCommand.CreateAsync(entryResults.Value, ct);
 

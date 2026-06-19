@@ -2,7 +2,6 @@ namespace Application.Features.CashOperations;
 
 public class CashOperationBaseDto
 {
-    public int OrganizationId { get; set; }
     public int CashBoxId { get; set; }
     public short OperationTypeId { get; set; }
     public short? PaymentTypeId { get; set; }

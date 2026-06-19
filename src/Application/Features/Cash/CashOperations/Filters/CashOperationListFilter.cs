@@ -4,7 +4,6 @@ namespace Application.Features.CashOperations;
 
 public class CashOperationListFilter : ISearchFilter, IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public int? CashBoxId { get; set; }
     public short? OperationTypeId { get; set; }
     public DateTime? DateFrom { get; set; }

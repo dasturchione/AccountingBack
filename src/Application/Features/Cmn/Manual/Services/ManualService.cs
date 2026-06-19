@@ -290,23 +290,22 @@ public class ManualService : IManualService
         return (await _contractTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetBranchesAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetBranchesAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Branch, SelectListDto>
         {
-            Criteria = b => b.StateId == StateIdConst.ACTIVE && (organizationId == null || b.OrganizationId == organizationId),
+            Criteria = b => b.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(b => b.Name),
             Selector = b => new SelectListDto { Id = b.Id, Name = b.Name, Code = b.Code }
         };
         return (await _branchQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetDepartmentsAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetDepartmentsAsync(int? branchId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Department, SelectListDto>
         {
             Criteria = d => d.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || d.OrganizationId == organizationId) &&
                             (branchId == null || d.BranchId == branchId),
             OrderBy  = q => q.OrderBy(d => d.Name),
             Selector = d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code }
@@ -314,11 +313,11 @@ public class ManualService : IManualService
         return (await _departmentQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetPositionsAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetPositionsAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Position, SelectListDto>
         {
-            Criteria = p => p.StateId == StateIdConst.ACTIVE && (organizationId == null || p.OrganizationId == organizationId),
+            Criteria = p => p.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(p => p.Name),
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
@@ -349,34 +348,33 @@ public class ManualService : IManualService
         return await _contractQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetCounterpartiesAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetCounterpartiesAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<CounterpartyCard, SelectListDto>
         {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE && (organizationId == null || c.OrganizationId == organizationId),
+            Criteria = c => c.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(c => c.Name),
             Selector = c => new SelectListDto { Id = c.Id, Name = c.ShortName }
         };
         return (await _counterpartyQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetProductGroupsAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<ProductGroup, SelectListDto>
         {
-            Criteria = g => g.StateId == StateIdConst.ACTIVE && (organizationId == null || g.OrganizationId == organizationId),
+            Criteria = g => g.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(g => g.Name),
             Selector = g => new SelectListDto { Id = g.Id, Name = g.Name }
         };
         return (await _productGroupQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetProductsAsync(int? organizationId = null, int? productGroupId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetProductsAsync(int? productGroupId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Product, SelectListDto>
         {
             Criteria = p => p.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || p.OrganizationId == organizationId) &&
                             (productGroupId == null || p.ProductGroupId == productGroupId),
             OrderBy  = q => q.OrderBy(p => p.Name),
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Barcode }
@@ -396,12 +394,11 @@ public class ManualService : IManualService
         return await _organizationQuery.GetAllAsync(spec, ct);
     }
 
-    public async Task<List<SelectListDto>> GetWarehousesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<Warehouse, SelectListDto>
         {
             Criteria = w => w.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || w.OrganizationId == organizationId) &&
                             (branchId == null || w.BranchId == branchId),
             OrderBy  = q => q.OrderBy(w => w.Name),
             Selector = w => new SelectListDto { Id = w.Id, Name = w.Name }
@@ -409,36 +406,33 @@ public class ManualService : IManualService
         return (await _warehouseQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetChartAccountsAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetChartAccountsAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<ChartAccount, SelectListDto>
         {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || x.OrganizationId == organizationId),
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(x => x.Code),
             Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
         };
         return (await _chartAccountQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetOrgBankAccountsAsync(int? organizationId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default)
     {
         var spec = new QuerySpecification<BankAccount, SelectListDto>
         {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || x.OrganizationId == organizationId),
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
             OrderBy  = q => q.OrderBy(x => x.Name),
             Selector = x => new SelectListDto { Id = x.Id, Name = x.AccountNumber, Code = x.AccountNumber }
         };
         return (await _orgBankAccountQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetCashBoxesAsync(int? organizationId = null, int? branchId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetCashBoxesAsync(int? branchId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<CashBox, SelectListDto>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || x.OrganizationId == organizationId) &&
                             (branchId == null || x.BranchId == branchId),
             OrderBy  = q => q.OrderBy(x => x.Name),
             Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
@@ -446,12 +440,11 @@ public class ManualService : IManualService
         return (await _cashBoxQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetCashOperationsAsync(int? organizationId = null, int? cashBoxId = null, CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetCashOperationsAsync(int? cashBoxId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<CashOperation, SelectListDto>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (organizationId == null || x.OrganizationId == organizationId) &&
                             (cashBoxId == null || x.CashBoxId == cashBoxId),
             OrderBy  = q => q.OrderBy(x => x.Name),
             Selector = x => new SelectListDto { Id = x.Id, Name = x.DocNumber, Code = x.DocNumber }

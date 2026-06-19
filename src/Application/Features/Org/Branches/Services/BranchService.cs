@@ -28,11 +28,13 @@ public class BranchService : IBranchService
 
     public async Task<Result<int>> CreateAsync(BranchCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.Code == dto.Code && x.OrganizationId == dto.OrganizationId, ct))
+        var orgId = _userContext.OrganizationId!.Value;
+
+        if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure<int>(BranchErrors.CodeConflict(dto.Code, _userContext.LanguageId));
         var entity = new Branch
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             Code = dto.Code,
             Name = dto.Name,
             RegionId = dto.RegionId,
@@ -82,11 +84,9 @@ public class BranchService : IBranchService
         if (entity == null) 
             return Result.Failure(BranchErrors.NotFound(id, _userContext.LanguageId));
 
-        if ((entity.Code != dto.Code || entity.OrganizationId != dto.OrganizationId) &&
-            await _query.AnyAsync(x => x.Code == dto.Code && x.OrganizationId == dto.OrganizationId, ct))
+        if (entity.Code != dto.Code &&
+            await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure(BranchErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
         entity.Code = dto.Code;
         entity.Name = dto.Name;
         entity.RegionId = dto.RegionId;

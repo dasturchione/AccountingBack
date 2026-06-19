@@ -6,7 +6,6 @@ public class CounterpartyContactBaseDtoValidator : AbstractValidator<Counterpart
 {
     public CounterpartyContactBaseDtoValidator()
     {
-        RuleFor(x => x.OrganizationId).GreaterThan(0);
         RuleFor(x => x.CounterpartyId).GreaterThan(0);
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(250);
         RuleFor(x => x.PhoneNumber).MaximumLength(50).When(x => x.PhoneNumber != null);

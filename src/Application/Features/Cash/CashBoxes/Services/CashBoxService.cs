@@ -28,12 +28,14 @@ public class CashBoxService : ICashBoxService
 
     public async Task<Result<int>> CreateAsync(CashBoxCreateDto dto, CancellationToken ct = default)
     {
-        if (await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
+        var orgId = _userContext.OrganizationId!.Value;
+
+        if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure<int>(CashBoxErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
         var entity = new CashBox
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = orgId,
             BranchId = dto.BranchId,
             Code = dto.Code,
             Name = dto.Name,
@@ -81,10 +83,8 @@ public class CashBoxService : ICashBoxService
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(CashBoxErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.OrganizationId == dto.OrganizationId && x.Code == dto.Code, ct))
+        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure(CashBoxErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
         entity.BranchId = dto.BranchId;
         entity.Code = dto.Code;
         entity.Name = dto.Name;

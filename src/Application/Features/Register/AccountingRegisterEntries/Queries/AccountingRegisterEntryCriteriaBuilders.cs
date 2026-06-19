@@ -7,8 +7,7 @@ namespace Application.Features.AccountingRegisterEntries;
 public class AccountingRegisterEntryByListFilterCriteriaBuilder : ICriteriaBuilder<AccountingRegisterEntry, AccountingRegisterEntryListFilter>
 {
     public Expression<Func<AccountingRegisterEntry, bool>> Build(AccountingRegisterEntryListFilter options) =>
-        x => (!options.OrganizationId.HasValue || x.OrganizationId == options.OrganizationId.Value) &&
-             (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
+        x => (!options.DocumentTypeId.HasValue || x.DocumentTypeId == options.DocumentTypeId.Value) &&
              (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&
              (!options.DebitAccountId.HasValue || x.DebitAccountId == options.DebitAccountId.Value) &&
              (!options.CreditAccountId.HasValue || x.CreditAccountId == options.CreditAccountId.Value) &&

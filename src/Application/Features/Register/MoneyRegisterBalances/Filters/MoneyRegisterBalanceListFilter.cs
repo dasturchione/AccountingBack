@@ -4,7 +4,6 @@ namespace Application.Features.MoneyRegisterBalances;
 
 public class MoneyRegisterBalanceListFilter : IPaginationFilter
 {
-    public int? OrganizationId { get; set; }
     public short? DocumentTypeId { get; set; }
     public long? DocumentId { get; set; }
     public string? SourceType { get; set; }

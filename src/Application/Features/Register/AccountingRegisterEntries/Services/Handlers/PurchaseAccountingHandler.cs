@@ -1,11 +1,13 @@
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.AccountingRegisterEntries;
+using Application.Features.Register.AccountingRegisterEntries.Services;
 using Domain.Entities;
 using LinqKit;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
+using System.Text.Json;
 
 namespace Application.Features.Register.AccountingRegisterEntries
 {
@@ -13,11 +15,14 @@ namespace Application.Features.Register.AccountingRegisterEntries
     {
         private readonly IUserContext _userContext;
         private readonly IQueryBuilder _queryBuilder;
+        private readonly IPurchaseSubkontoNamesResolver _resolver;
         private readonly IQueryRepository<PostingRule> _postingRuleQuery;
         public PurchaseAccountingHandler(IUserContext userContext,
                                          IQueryBuilder queryBuilder,
+                                         IPurchaseSubkontoNamesResolver resolver,
                                          IQueryRepository<PostingRule> postingRuleQuery)
         {
+            _resolver = resolver;
             _userContext = userContext;
             _queryBuilder = queryBuilder;
             _postingRuleQuery = postingRuleQuery;
@@ -31,34 +36,34 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
             var entries = new List<AccountingRegisterEntry>();
 
-            var groupedByProduct = purchase.PurchaseDocTables.GroupBy(g => g.ProductTable.ProductId);
+            var subkontoContext = await _resolver.FillSubkontoContext(purchase);
 
-            foreach (var productLine in groupedByProduct)
+            foreach (var productContext in subkontoContext.Products)
             {
                 foreach (var ruleLine in rule.PostingRuleLines.OrderBy(x => x.SortOrder))
                 {
-                    entries.Add(BuildEntry(purchase, productLine.ToList(), ruleLine));
+                    entries.Add(BuildEntry(subkontoContext, productContext, ruleLine));
                 }
             }
 
             return Result.Success(entries);
         }
 
-        private AccountingRegisterEntry BuildEntry(PurchaseDoc purchase, List<PurchaseDocTable> productLine, PostingRuleLine ruleLine)
+        private AccountingRegisterEntry BuildEntry(PurchaseSubkontoContext context, ProductPurchaseSubkontoContext productContext, PostingRuleLine ruleLine)
         {
-            var amount = GetAmount(productLine, ruleLine.AmountSource);
-            var quantity = GetQuantity(productLine, ruleLine.QuantitySource);
+            var amount = GetAmount(productContext, ruleLine.AmountSource);
+            var quantity = GetQuantity(productContext, ruleLine.QuantitySource);
 
             return new AccountingRegisterEntry
             {
                 Amount = amount,
 
-                OrganizationId = purchase.OrganizationId,
+                OrganizationId = context.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.PURCHASE,
                 OperationTypeId = OperationTypeIdConst.IN,
 
-                CreatedDate = DateTime.UtcNow,
-                DocDate = purchase.DocDate,
+                CreatedDate = DateTime.Now,
+                DocDate = context.DocDate,
 
                 DebitAccountId = ruleLine.DebitAccountId,
                 CreditAccountId = ruleLine.CreditAccountId,
@@ -66,25 +71,68 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 DebitQuantity = quantity,
                 CreditQuantity = quantity,
 
-                CurrencyId = purchase.CurrencyId,
-                DocumentId = purchase.Id,
+                CurrencyId = context.CurrencyId,
+                DocumentId = context.Id,
 
                 Content = ruleLine.ContentTemplate,
 
-                RegisterEntrySubkontos = BuildSubkontos(purchase, productLine)
+                RegisterEntrySubkontos = BuildSubkontos(context, productContext, ruleLine)
             };
         }
 
-        private List<RegisterEntrySubkonto> BuildSubkontos(PurchaseDoc purchase, List<PurchaseDocTable> productLine)
+        private List<RegisterEntrySubkonto> BuildSubkontos(PurchaseSubkontoContext context, ProductPurchaseSubkontoContext productContext, PostingRuleLine ruleLine)
         {
             var list = new List<RegisterEntrySubkonto>();
 
+            if (ruleLine.AmountSource == PostingAmountFields.Amount)
+            {
+                list.Add(new RegisterEntrySubkonto
+                {
+                    SortOrder = list.Count + 1,
+                    EntityId = productContext.ProductId,
+                    DisplayValue = productContext.ProductName,
+                    SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                    Side = SubkontoSideConst.DEBIT,
+                    CreatedDate = DateTime.Now,
+                });
+
+                list.Add(new RegisterEntrySubkonto
+                {
+                    SortOrder = list.Count + 1,
+                    EntityId = context.WarehouseId,
+                    DisplayValue = context.WarehouseName,
+                    SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
+                    Side = SubkontoSideConst.DEBIT,
+                    CreatedDate = DateTime.Now,
+                });
+            }
+
+            if (ruleLine.AmountSource == PostingAmountFields.VatAmount)
+            {
+                list.Add(new RegisterEntrySubkonto
+                {
+                    SortOrder = list.Count + 1,
+                    EntityId = context.CounterpartyId,
+                    DisplayValue = context.CounterpartyName,
+                    SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                    Side = SubkontoSideConst.DEBIT,
+                    CreatedDate = DateTime.Now,
+                });
+            }
+
             list.Add(new RegisterEntrySubkonto
             {
                 SortOrder = list.Count + 1,
-                EntityId = productLine.First().ProductTable.ProductId,
-                DisplayValue = productLine.First().ProductTable.Product.Name,
-                SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                EntityId = context.Id,
+                DisplayValue = JsonSerializer.Serialize(new
+                {
+                    purchase = new
+                    {
+                        number = context.DocNumber,
+                        date = context.DocDate
+                    }
+                }),
+                SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
                 Side = SubkontoSideConst.DEBIT,
                 CreatedDate = DateTime.Now,
             });
@@ -92,66 +140,52 @@ namespace Application.Features.Register.AccountingRegisterEntries
             list.Add(new RegisterEntrySubkonto
             {
                 SortOrder = list.Count + 1,
-                EntityId = purchase.Warehouse.Id,
-                DisplayValue = purchase.Warehouse.Name,
-                SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
-                Side = SubkontoSideConst.DEBIT,
-                CreatedDate = DateTime.Now,
-            });
-
-            list.Add(new RegisterEntrySubkonto
-            {
-                SortOrder = list.Count + 1,
-                EntityId = purchase.Id,
-                DisplayValue = $"number: {purchase.DocNumber}; date: {purchase.DocDate}",
-                SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
-                Side = SubkontoSideConst.DEBIT,
-                CreatedDate = DateTime.Now,
-            });
-
-            list.Add(new RegisterEntrySubkonto
-            {
-                SortOrder = list.Count + 1,
-                EntityId = purchase.CounterpartyId,
-                DisplayValue = purchase.Counterparty.FullName,
+                EntityId = context.CounterpartyId,
+                DisplayValue = context.CounterpartyName,
                 SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
                 Side = SubkontoSideConst.CREDIT,
                 CreatedDate = DateTime.Now,
             });
 
-            //list.Add(new RegisterEntrySubkonto
-            //{
-            //    SortOrder = list.Count + 1,
-            //    EntityId = purchase.CounterpartyId,
-            //    DisplayValue = purchase.Counterparty.FullName,
-            //    SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
-            //    Side = SubkontoSideConst.CREDIT,
-            //    CreatedDate = DateTime.Now,
-            //});
+            if (context.ContractId is not null)
+                list.Add(new RegisterEntrySubkonto
+                {
+                    SortOrder = list.Count + 1,
+                    EntityId = context.ContractId,
+                    DisplayValue = JsonSerializer.Serialize(new
+                    {
+                        contract = new
+                        {
+                            number = context.ContractNumber,
+                            date = context.ContractDate
+                        }
+                    }),
+                    SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
+                    Side = SubkontoSideConst.CREDIT,
+                    CreatedDate = DateTime.Now,
+                });
 
             return list;
         }
 
-        private decimal GetAmount(List<PurchaseDocTable> productLine, string source)
+        private decimal GetAmount(ProductPurchaseSubkontoContext productContext, string source)
         {
             return source switch
             {
-                "amount" => productLine.Sum(s => s.Amount),
-                "total_amount" => productLine.Sum(s => s.TotalAmount),
-                "vat_amount" => productLine.Sum(s => s.VatAmount),
+                PostingAmountFields.Amount => productContext.Amount,
+                PostingAmountFields.VatAmount => productContext.VatAmount,
                 _ => 0
             };
         }
 
-        private decimal? GetQuantity(List<PurchaseDocTable> productLine, string? source)
+        private decimal? GetQuantity(ProductPurchaseSubkontoContext productContext, string? source)
         {
             if (source is null)
                 return null;
 
             return source switch
             {
-                "quantity" => productLine.Sum(s => s.Quantity),
-                "received_qty" => productLine.Sum(s => s.Quantity),
+                PostingQuantityFields.Quantity => productContext.Quantity,
                 _ => null
             };
         }

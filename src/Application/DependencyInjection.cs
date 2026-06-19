@@ -7,8 +7,8 @@ using Application.Features.Branches;
 using Application.Features.CashBoxes;
 using Application.Features.CashOperations;
 using Application.Features.ChartAccounts;
-using Application.Features.CounterpartyBankAccounts;
 using Application.Features.Contracts;
+using Application.Features.CounterpartyBankAccounts;
 using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyContacts;
 using Application.Features.CounterpartyRegisterBalances;
@@ -25,6 +25,7 @@ using Application.Features.Products;
 using Application.Features.PurchaseDocs;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
+using Application.Features.Register.AccountingRegisterEntries.Services;
 using Application.Features.Roles;
 using Application.Features.SaleDocs;
 using Application.Features.SaleDocTables;
@@ -77,9 +78,13 @@ namespace Application
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IAccountingDispatcher, AccountingDispatcher>();
             services.AddScoped<IAccountingDocumentHandler<PurchaseDoc>, PurchaseAccountingHandler>();
+            services.AddScoped<IAccountingDocumentHandler<SaleDoc>, SaleAccountingHandler>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();
+
+            services.AddScoped<ISaleSubkontoNamesResolver, SaleSubkontoNamesResolver>();
+            services.AddScoped<IPurchaseSubkontoNamesResolver, PurchaseSubkontoNamesResolver>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

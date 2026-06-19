@@ -65,6 +65,15 @@ namespace Infrastructure.Context
             }
         }
 
+        public bool HasGlobalAccess
+        {
+            get
+            {
+                var value = _accessor.HttpContext?.User.FindFirst("HasGlobalAccess")?.Value;
+                return bool.TryParse(value, out var result) && result;
+            }
+        }
+
         public int? BranchId => GetHeaderInt("X-BranchId");
 
         public short? LanguageId => GetLanguageId();

@@ -22,29 +22,36 @@ namespace WebApi.Middlewares
 
                 if (int.TryParse(userIdStr, out var userId))
                 {
-                    // User ga ruxsat berilgan barcha tashkilotlarni DB dan yuklaymiz
-                    var allowedOrgIds = await db.UserOrganizations
-                        .Where(uo => uo.UserId == userId && uo.StateId == StateIdConst.ACTIVE)
-                        .Select(uo => uo.OrganizationId)
-                        .ToListAsync();
+                    var hasGlobalAccess = context.User.FindFirst("HasGlobalAccess")?.Value == "true";
 
-                    context.Items[AllowedOrgIdsKey] = allowedOrgIds;
-
-                    // X-OrganizationId header berilgan bo'lsa — ruxsat borligini tekshiramiz
-                    var headerVal = context.Request.Headers["X-OrganizationId"].FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(headerVal) && int.TryParse(headerVal, out var requestedOrgId))
+                    if (hasGlobalAccess)
                     {
-                        if (!allowedOrgIds.Contains(requestedOrgId))
+                        context.Items[AllowedOrgIdsKey] = new List<int>();
+                    }
+                    else
+                    {
+                        var allowedOrgIds = await db.UserOrganizations
+                            .Where(uo => uo.UserId == userId && uo.StateId == StateIdConst.ACTIVE)
+                            .Select(uo => uo.OrganizationId)
+                            .ToListAsync();
+
+                        context.Items[AllowedOrgIdsKey] = allowedOrgIds;
+
+                        var headerVal = context.Request.Headers["X-OrganizationId"].FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(headerVal) && int.TryParse(headerVal, out var requestedOrgId))
                         {
-                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                            await context.Response.WriteAsJsonAsync(new
+                            if (!allowedOrgIds.Contains(requestedOrgId))
                             {
-                                type   = "https://tools.ietf.org/html/rfc9110#section-15.5.4",
-                                title  = "Forbidden",
-                                status = 403,
-                                detail = "You do not have access to this organization."
-                            });
-                            return;
+                                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                                await context.Response.WriteAsJsonAsync(new
+                                {
+                                    type   = "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+                                    title  = "Forbidden",
+                                    status = 403,
+                                    detail = "You do not have access to this organization."
+                                });
+                                return;
+                            }
                         }
                     }
                 }

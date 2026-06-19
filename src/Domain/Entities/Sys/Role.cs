@@ -20,6 +20,9 @@ public partial class Role
     [StringLength(255)]
     public string FullName { get; set; } = null!;
 
+    [Column("has_global_access")]
+    public bool HasGlobalAccess { get; set; }
+
     [Column("state_id")]
     public short StateId { get; set; }
 

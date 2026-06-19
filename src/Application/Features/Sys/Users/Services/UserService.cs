@@ -40,7 +40,7 @@ public class UserService : BaseService, IUserService
     }
 
     public Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(CreateAsync), async () =>
+        ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
             var exists = await _userQuery.AnyAsync(x => x.UserName == dto.UserName, ct);
             if (exists)
@@ -82,7 +82,7 @@ public class UserService : BaseService, IUserService
             }
 
             return user.Id;
-        });
+        }, ct);
 
     public Task<Result> DeleteAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(DeleteAsync), async () =>
@@ -132,7 +132,7 @@ public class UserService : BaseService, IUserService
         });
 
     public Task<Result> UpdateAsync(int id, UserUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(UpdateAsync), async () =>
+        ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
         {
             var query = _queryBuilder.For<User>().Where(x => id == x.Id).Build();
             var user = await _userQuery.GetAsync(query, ct);
@@ -176,5 +176,5 @@ public class UserService : BaseService, IUserService
             }
 
             return Result.Success();
-        });
+        }, ct);
 }

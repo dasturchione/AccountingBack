@@ -57,6 +57,7 @@ namespace WebApi.Configuration
         {
             builder.Services.AddSwaggerGen(c =>
             {
+                c.OperationFilter<CustomHeadersOperationFilter>();
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {

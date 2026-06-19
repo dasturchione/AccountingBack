@@ -15,4 +15,6 @@ public interface IUserContext
     List<int> AllowedOrganizationIds { get; }
 
     int? BranchId { get; }
+
+    bool HasGlobalAccess { get; }
 }

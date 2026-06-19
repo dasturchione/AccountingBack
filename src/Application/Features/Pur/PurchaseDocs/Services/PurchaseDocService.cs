@@ -96,7 +96,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             if (dto.ContractId.HasValue)
             {
-                var contractExists = await _query.AnyAsync(x => x.Id == dto.ContractId);
+                var contractExists = await _contractQuery.AnyAsync(x => x.Id == dto.ContractId.Value);
                 if (!contractExists)
                     return Result.Failure<long>(ContractErrors.NotFound(dto.ContractId.Value, _userContext.LanguageId));
             }

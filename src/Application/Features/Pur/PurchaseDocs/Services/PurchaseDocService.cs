@@ -3,12 +3,9 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.Contracts;
-using Application.Features.CounterpartyCards;
 using Application.Features.InventoryRegisterBalances;
-using Application.Features.Products;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
-using Application.Features.Warehouses;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -29,9 +26,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
-    private readonly IQueryRepository<Product> _productQuery;
-    private readonly IQueryRepository<Warehouse> _warehouseQuery;
-    private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public PurchaseDocService(IUserContext userContext,
@@ -45,9 +39,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<Contract> contractQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocTable> lineCommand,
-                              IQueryRepository<Warehouse> warehouseQuery,
-                              IQueryRepository<Product> productQuery,
-                              IQueryRepository<CounterpartyCard> counterpartyQuery,
                               ILogger<PurchaseDocService> logger,
                               IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -60,10 +51,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _queryBuilder        = queryBuilder;
         _auditLogService     = auditLogService;
         _vatRateQuery        = vatRateQuery;
-        _productQuery        = productQuery;
         _contractQuery       = contractQuery;
-        _warehouseQuery      = warehouseQuery;
-        _counterpartyQuery   = counterpartyQuery;
         _inventoryDispatcher = inventoryDispatcher;
         _docNumberGenerator  = docNumberGenerator;
     }
@@ -103,16 +91,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
-            var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
-            var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
-            if (warehouse is null)
-                return Result.Failure<long>(WarehouseErrors.NotFound(dto.WarehouseId, _userContext.LanguageId));
-
-            var counterpartyQuery = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == dto.CounterpartyId).Build();
-            var counterparty = await _counterpartyQuery.GetAsync(counterpartyQuery, ct);
-            if (counterparty is null)
-                return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
-
             // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
             var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!linesResult.IsSuccess)
@@ -134,8 +112,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 Comment        = dto.Comment,
                 StateId        = StateIdConst.ACTIVE,
                 CreatedDate    = DateTime.Now,
-                Warehouse      = warehouse,
-                Counterparty   = counterparty,
+                WarehouseId    = dto.WarehouseId,
+                CounterpartyId = dto.CounterpartyId,
                 ContractId     = dto.ContractId,
             };
 
@@ -265,17 +243,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     {
         var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
-        var productIds = lineDtos.Select(s => s.ProductId).Distinct();
-        var productQuery = _queryBuilder.For<Product>().Where(x => productIds.Contains(x.Id)).Build();
-        var products = await _productQuery.GetAllAsync(productQuery);
-        if (productIds.Count() != products.Count())
-        {
-            return Result.Failure<List<PurchaseDocTable>>(ProductErrors.NotFound(1, _userContext.LanguageId));
-        }
-
         foreach (var productsGroup in lineDtos.GroupBy(g => g.ProductId))
         {
-            var product = products.First(f => f.Id == productsGroup.Key);
             var vatRateId = productsGroup.First().VatRateId;
             var productPrice = productsGroup.First().Price;
             var vatAmount = 0m;
@@ -301,7 +270,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 VatAmount = vatAmount,
                 ProductTable = new ProductTable
                 {
-                    Product = product,
+                    ProductId = productsGroup.Key,
                     SerialNumber = s.SerialNumber,
                     MarkingNumber = s.MarkingNumber,
                     CreatedDate = DateTime.Now,

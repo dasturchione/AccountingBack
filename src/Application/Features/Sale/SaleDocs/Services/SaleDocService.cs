@@ -31,7 +31,7 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
-    private readonly IQueryRepository<ProductPrice> _productPriceQuery;
+    private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public SaleDocService(IUserContext userContext,
@@ -49,27 +49,27 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<CounterpartyCard> counterpartyQuery,
                           IQueryRepository<ProductTable> productTableQuery,
                           ICommandRepository<ProductTable> productTableCommand,
-                          IQueryRepository<ProductPrice> productPriceQuery,
+                          IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
     {
-        _query               = query;
-        _command             = command;
-        _dispatcher          = dispatcher;
-        _lineCommand         = lineCommand;
-        _lineQuery           = lineQuery;
-        _userContext         = userContext;
-        _queryBuilder        = queryBuilder;
-        _auditLogService     = auditLogService;
-        _vatRateQuery        = vatRateQuery;
-        _warehouseQuery      = warehouseQuery;
-        _counterpartyQuery   = counterpartyQuery;
-        _productTableQuery   = productTableQuery;
-        _productTableCommand = productTableCommand;
-        _productPriceQuery   = productPriceQuery;
-        _inventoryDispatcher = inventoryDispatcher;
-        _docNumberGenerator  = docNumberGenerator;
+        _query                  = query;
+        _command                = command;
+        _dispatcher             = dispatcher;
+        _lineCommand            = lineCommand;
+        _lineQuery              = lineQuery;
+        _userContext            = userContext;
+        _queryBuilder           = queryBuilder;
+        _auditLogService        = auditLogService;
+        _vatRateQuery           = vatRateQuery;
+        _warehouseQuery         = warehouseQuery;
+        _counterpartyQuery      = counterpartyQuery;
+        _productTableQuery      = productTableQuery;
+        _productTableCommand    = productTableCommand;
+        _purchaseDocTableQuery  = purchaseDocTableQuery;
+        _inventoryDispatcher    = inventoryDispatcher;
+        _docNumberGenerator     = docNumberGenerator;
     }
 
     public Task<Result<PagedResponse<SaleDocListDto>>> GetAllAsync(SaleDocListFilter filter, CancellationToken ct = default) =>
@@ -140,8 +140,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
             await _command.CreateAsync(doc, ct);
 
-            // ProductTable statuslarini RESERVED qilish
-            await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.RESERVED, ct);
+            await UpdateProductTableStatusesAsync(doc.SaleDocTables.Select(s => s.ProductTable).ToList(), ProductTableStatusIdConst.RESERVED, ct);
 
             var docDto = await GetByIdInternalAsync(doc.Id, ct);
             if (docDto != null)
@@ -379,17 +378,45 @@ public class SaleDocService : BaseService, ISaleDocService
         await _productTableCommand.UpdateAsync(productTables, ct);
     }
 
+    private async Task UpdateProductTableStatusesAsync(List<ProductTable> productTables, short statusId, CancellationToken ct)
+    {
+        foreach (var pt in productTables)
+        {
+            pt.StatusId = statusId;
+        }
+
+        await _productTableCommand.UpdateAsync(productTables, ct);
+    }
+
     private async Task<Result<List<SaleDocTable>>> BuildDraftLinesAsync(int organizationId, List<int> productTableIds, CancellationToken ct)
     {
         var lines = new List<SaleDocTable>(productTableIds.Count);
 
         var ptQuery = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == organizationId
-                      && x.StateId == StateIdConst.ACTIVE
-                      && productTableIds.Contains(x.Id))
-            .Build();
-        ptQuery.AddIncludes(b => b.Include(x => x.Product));
+                            .Where(x => x.OrganizationId == organizationId
+                                      && x.StateId == StateIdConst.ACTIVE
+                                      && productTableIds.Contains(x.Id))
+                            .Build();
+
         var productTables = await _productTableQuery.GetAllAsync(ptQuery);
+
+
+        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
+                                .Where(x => productTableIds.Contains(x.ProductTableId))
+                                .As(s => new
+                                {
+                                    ProductTableId = s.ProductTableId,
+                                    PurchaseId = s.OwnerId,
+                                    DocDate = s.Owner.DocDate,
+                                    CostPrice = s.TotalAmount
+                                }).Build();
+
+        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
+
+        var lastPurchases = purchases
+                                .GroupBy(g => g.ProductTableId)
+                                .Select(g => g.OrderByDescending(x => x.DocDate).First())
+                                .ToList();
 
         foreach (var ptId in productTableIds)
         {
@@ -400,28 +427,21 @@ public class SaleDocService : BaseService, ISaleDocService
             if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
                 return Result.Failure<List<SaleDocTable>>(SaleDocErrors.ProductTableNotAvailable(ptId, _userContext.LanguageId));
 
-            var priceQuery = _queryBuilder.For<ProductPrice>()
-                .Where(x => x.ProductId == pt.ProductId
-                          && x.OrganizationId == organizationId
-                          && x.StateId == StateIdConst.ACTIVE
-                          && x.StartDate <= DateTime.Now
-                          && (x.EndDate == null || x.EndDate >= DateTime.Now))
-                .Build();
-            var productPrice = await _productPriceQuery.GetAsync(priceQuery, ct);
+            var lastPurchase = lastPurchases.FirstOrDefault(f => f.ProductTableId ==  ptId);
 
-            if (productPrice == null)
-                return Result.Failure<List<SaleDocTable>>(SaleDocErrors.ProductPriceNotFound(pt.ProductId, _userContext.LanguageId));
+            if (lastPurchase == null)
+                return Result.Failure<List<SaleDocTable>>(SaleDocErrors.CostPriceNotFound(pt.ProductId, _userContext.LanguageId));
 
             lines.Add(new SaleDocTable
             {
                 ProductTableId = pt.Id,
                 Quantity       = 1,
-                Price          = productPrice.Price,
-                CostPrice      = productPrice.Price,
-                Amount         = productPrice.Price,
+                Price          = lastPurchase.CostPrice,
+                CostPrice      = lastPurchase.CostPrice,
+                Amount         = lastPurchase.CostPrice,
                 VatRateId      = null,
                 VatAmount      = 0,
-                TotalAmount    = productPrice.Price
+                TotalAmount    = lastPurchase.CostPrice
             });
         }
 

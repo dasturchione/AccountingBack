@@ -44,7 +44,9 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
                 VatRateId       = l.VatRateId,
                 VatRateName     = l.VatRate != null ? l.VatRate.Name : null,
                 VatAmount       = l.VatAmount,
-                TotalAmount     = l.TotalAmount
+                TotalAmount     = l.TotalAmount,
+                SerialNumber    = l.ProductTable.SerialNumber,
+                MarkingNumber   = l.ProductTable.MarkingNumber
             }).ToList()
         };
 }

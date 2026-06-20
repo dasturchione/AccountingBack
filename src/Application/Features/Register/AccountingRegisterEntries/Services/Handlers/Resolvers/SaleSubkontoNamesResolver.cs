@@ -50,7 +50,7 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
             return new SaleSubkontoContext
             {
                 Id = document.Id,
-                CounterpartyId = document.CounterpartyId,
+                CounterpartyId = document.CounterpartyId, 
                 WarehouseId = document.WarehouseId,
                 CurrencyId = document.CurrencyId,
                 DocDate = document.DocDate,

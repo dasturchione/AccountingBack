@@ -39,6 +39,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 Quantity       = l.Quantity,
                 Price          = l.Price,
                 Amount         = l.Amount,
+                CostPrice      = l.CostPrice,
                 VatRateId      = l.VatRateId,
                 VatRateName    = l.VatRate != null ? l.VatRate.Name : null,
                 VatAmount      = l.VatAmount,

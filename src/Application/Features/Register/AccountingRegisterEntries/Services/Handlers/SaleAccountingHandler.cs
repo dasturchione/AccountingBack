@@ -30,11 +30,14 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
         public async Task<Result<List<AccountingRegisterEntry>>> HandleAsync(SaleDoc document, CancellationToken ct = default)
         {
+            var entries = new List<AccountingRegisterEntry>();
+
+            if (document.StatusId != DocStatusIdConst.Posted)
+                return Result.Success(entries);
+
             var rule = await GetRuleAsync(ct);
             if (rule is null)
                 return Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.PostingRuleNotFound(_userContext.LanguageId));
-
-            var entries = new List<AccountingRegisterEntry>();
 
             var subkontoContext = await _resolver.FillSubkontoContext(document);
 

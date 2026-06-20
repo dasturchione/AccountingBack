@@ -175,6 +175,20 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("suppliers")]
+    public async Task<IActionResult> GetSuppliers(CancellationToken ct)
+    {
+        var result = await _manualService.GetSuppliersAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("clients")]
+    public async Task<IActionResult> GetClients(CancellationToken ct)
+    {
+        var result = await _manualService.GetClientsAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("product-groups")]
     public async Task<IActionResult> GetProductGroups(CancellationToken ct)
     {

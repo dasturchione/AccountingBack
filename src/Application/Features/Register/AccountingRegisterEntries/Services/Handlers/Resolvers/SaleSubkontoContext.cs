@@ -1,6 +1,4 @@
-﻿using Domain.Entities;
-
-namespace Application.Features.Register.AccountingRegisterEntries
+﻿namespace Application.Features.Register.AccountingRegisterEntries
 {
     public class SaleSubkontoContext
     {

@@ -7,4 +7,5 @@ public class SaleDocBaseDto
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
     public string? Comment { get; set; }
+    public List<SaleDocLineDto> Lines { get; set; } = new();
 }

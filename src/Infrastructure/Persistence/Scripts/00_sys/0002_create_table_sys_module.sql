@@ -103,6 +103,10 @@ INSERT INTO sys_module (id, code, short_name, full_name, sub_group_id, state_id,
 (434, 'WAREHOUSE_UPDATE',      'Ombor tahrirlash','Tahrirlash',4, 1, now()),
 (435, 'WAREHOUSE_DELETE',      'Ombor o''chirish','O''chirish',4, 1, now()),
 
+-- ---- INVENTORY: ProductTable (sub_group_id = 4) ----
+(441, 'PRODUCT_TABLE_VIEW',        'Tovar kartochkalari',       'Tovar kartochkalarini ko''rish',   4, 1, now()),
+(442, 'PRODUCT_TABLE_VIEW_DETAIL', 'Tovar kartochkasi detail',  'Tovar kartochkasini batafsil',     4, 1, now()),
+
 -- ---- BANK: OrgBankAccount (sub_group_id = 5) ----
 (501, 'ORG_BANK_ACCOUNT_VIEW',        'Tashkilot bank hisoblari',       'Ro''yxat',   5, 1, now()),
 (502, 'ORG_BANK_ACCOUNT_VIEW_DETAIL', 'Tashkilot bank hisobi detail',   'Batafsil',   5, 1, now()),

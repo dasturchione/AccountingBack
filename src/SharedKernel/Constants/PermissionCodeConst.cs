@@ -221,6 +221,11 @@ public static class PermissionCodeConst
     public const string ContractDelete     = "CONTRACT_DELETE";
     #endregion
 
+    #region ProductTable
+    public const string ProductTableView       = "PRODUCT_TABLE_VIEW";
+    public const string ProductTableViewDetail = "PRODUCT_TABLE_VIEW_DETAIL";
+    #endregion
+
     #region Manual (ma'lumotnomalar)
     public const string ManualView = "MANUAL_VIEW";
     #endregion

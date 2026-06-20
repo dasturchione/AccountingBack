@@ -41,13 +41,13 @@ public static class SaleDocErrors
             _                       => $"ProductTable with id {productTableId} was not found."
         });
 
-    public static Error ProductPriceNotFound(int productId, short? languageId = null) =>
-        Error.NotFound("SaleDoc.ProductPriceNotFound", languageId switch
+    public static Error CostPriceNotFound(int productId, short? languageId = null) =>
+        Error.NotFound("SaleDoc.CostPriceNotFound", languageId switch
         {
-            LanguageIdConst.UZ      => $"Tovar id-si {productId} uchun narx topilmadi.",
-            LanguageIdConst.UZ_CYRL => $"Товар id-си {productId} учун нарх топилмади.",
-            LanguageIdConst.RU      => $"Цена для товара с id {productId} не найдена.",
-            _                       => $"Price for product with id {productId} was not found."
+            LanguageIdConst.UZ      => $"Tovar id-si {productId} uchun tannarx topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Товар id-си {productId} учун таннарх топилмади.",
+            LanguageIdConst.RU      => $"Себестоимость товара с id {productId} не найдена.",
+            _                       => $"Cost price for product with id {productId} was not found."
         });
 
     public static Error LineNotFound(long lineId, short? languageId = null) =>

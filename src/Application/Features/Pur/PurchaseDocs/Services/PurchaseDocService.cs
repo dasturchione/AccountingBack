@@ -275,7 +275,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                     MarkingNumber = s.MarkingNumber,
                     CreatedDate = DateTime.Now,
                     OrganizationId = organizationid,
-                    StateId = StateIdConst.ACTIVE
+                    StateId = StateIdConst.ACTIVE,
+                    StatusId = ProductTableStatusIdConst.IN_STOCK
                 }
             }));
         }

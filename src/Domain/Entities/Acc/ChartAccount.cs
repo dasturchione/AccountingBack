@@ -6,8 +6,6 @@ namespace Domain.Entities;
 
 [Table("acc_chart_account")]
 [Index("AccountTypeId", Name = "idx_acc_chart_account_account_type_id")]
-[Index("OrganizationId", "Code", Name = "idx_acc_chart_account_org_code", IsUnique = true)]
-[Index("OrganizationId", Name = "idx_acc_chart_account_organization_id")]
 [Index("ParentId", Name = "idx_acc_chart_account_parent_id")]
 [Index("StateId", Name = "idx_acc_chart_account_state_id")]
 public partial class ChartAccount

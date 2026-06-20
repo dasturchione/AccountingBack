@@ -11,5 +11,5 @@ public class SaleDocCreateDto
 
 public class SaleDocCreateLineDto
 {
-    public int Id { get; set; }
+    public int ProductTableId { get; set; }
 }

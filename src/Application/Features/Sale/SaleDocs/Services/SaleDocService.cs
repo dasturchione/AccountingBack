@@ -113,7 +113,7 @@ public class SaleDocService : BaseService, ISaleDocService
             if (counterparty is null)
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
-            var productTableIds = dto.Lines.Select(l => l.Id).ToList();
+            var productTableIds = dto.Lines.Select(l => l.ProductTableId).ToList();
             var linesResult = await BuildDraftLinesAsync(orgId, productTableIds, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);

@@ -9,7 +9,7 @@ public class SaleDocConfirmDto
 
 public class SaleDocConfirmLineDto
 {
-    public long SaleDocTableId { get; set; }
+    public long Id { get; set; }
     public decimal CostPrice { get; set; }
     public short? VatRateId { get; set; }
 }

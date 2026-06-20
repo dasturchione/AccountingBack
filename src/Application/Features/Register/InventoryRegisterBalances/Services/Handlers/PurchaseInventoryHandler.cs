@@ -20,7 +20,7 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
             Quantity        = line.Quantity,
             Amount          = line.TotalAmount,
             DocDate         = purchase.DocDate,
-            CreatedDate     = DateTime.UtcNow
+            CreatedDate     = DateTime.Now
         }).ToList();
 
         return Task.FromResult(Result.Success(entries));

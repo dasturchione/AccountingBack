@@ -100,21 +100,21 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var doc = new PurchaseDoc
             {
-                OrganizationId = _userContext.OrganizationId.Value,
-                DocNumber      = docNumber,
-                DocDate        = dto.DocDate,
-                CurrencyId     = dto.CurrencyId,
-                PurchaseDocTables = lines,
-                TotalAmount    = lines.Sum(l => l.Amount),
-                VatAmount      = lines.Sum(l => l.VatAmount),
-                FinalAmount    = lines.Sum(l => l.TotalAmount),
-                StatusId       = DocumentStatusIdConst.DRAFT,
-                Comment        = dto.Comment,
-                StateId        = StateIdConst.ACTIVE,
-                CreatedDate    = DateTime.Now,
-                WarehouseId    = dto.WarehouseId,
-                CounterpartyId = dto.CounterpartyId,
-                ContractId     = dto.ContractId,
+                OrganizationId      = _userContext.OrganizationId.Value,
+                DocNumber           = docNumber,
+                DocDate             = dto.DocDate,
+                CurrencyId          = dto.CurrencyId,
+                PurchaseDocTables   = lines,
+                TotalAmount         = lines.Sum(l => l.Amount),
+                VatAmount           = lines.Sum(l => l.VatAmount),
+                FinalAmount         = lines.Sum(l => l.TotalAmount),
+                StatusId            = DocumentStatusIdConst.DRAFT,
+                Comment             = dto.Comment,
+                StateId             = StateIdConst.ACTIVE,
+                CreatedDate         = DateTime.Now,
+                WarehouseId         = dto.WarehouseId,
+                CounterpartyId      = dto.CounterpartyId,
+                ContractId          = dto.ContractId,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -280,34 +280,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 }
             }));
         }
-
-        //foreach (var dto in lineDtos)
-        //{
-        //    var amount    = dto.Quantity * dto.Price;
-        //    var vatAmount = 0m;
-
-        //    if (dto.VatRateId.HasValue)
-        //    {
-        //        var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == dto.VatRateId.Value).Build();
-        //        var vatRate  = await _vatRateQuery.GetAsync(vatQuery, ct);
-
-        //        if (vatRate == null)
-        //            return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(dto.VatRateId.Value, _userContext.LanguageId));
-
-        //        vatAmount = Math.Round(amount * vatRate.Rate / 100, 2);
-        //    }
-
-        //    lines.Add(new PurchaseDocTable
-        //    {
-        //        ProductTableId = dto.ProductTableId,
-        //        Quantity    = dto.Quantity,
-        //        Price       = dto.Price,
-        //        Amount      = amount,
-        //        VatRateId   = dto.VatRateId,
-        //        VatAmount   = vatAmount,
-        //        TotalAmount = amount + vatAmount
-        //    });
-        //}
 
         return lines;
     }

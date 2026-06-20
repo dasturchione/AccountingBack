@@ -43,7 +43,8 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 VatRateId      = l.VatRateId,
                 VatRateName    = l.VatRate != null ? l.VatRate.Name : null,
                 VatAmount      = l.VatAmount,
-                TotalAmount    = l.TotalAmount
+                TotalAmount    = l.TotalAmount,
+                ProductId      = l.ProductTable.ProductId
             }).ToList()
         };
 }

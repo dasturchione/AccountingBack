@@ -42,11 +42,11 @@ public class ProductTableService : IProductTableService
 
         return new ProductTableByMarkingDto
         {
-            ProductTableId = entity.Id,
-            ProductId      = entity.ProductId,
-            ProductName    = entity.Product.Name,
-            MarkingNumber = entity.MarkingNumber,
-            SerialNumber = entity.SerialNumber,
+            ProductTableId  = entity.Id,
+            ProductId       = entity.ProductId,
+            ProductName     = entity.Product.Name,
+            MarkingNumber   = entity.MarkingNumber,
+            SerialNumber    = entity.SerialNumber,
         };
     }
 }

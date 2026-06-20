@@ -181,9 +181,9 @@ public class SaleDocService : BaseService, ISaleDocService
 
             foreach (var lineDto in dto.Lines)
             {
-                var line = existingLines.FirstOrDefault(l => l.Id == lineDto.SaleDocTableId);
+                var line = existingLines.FirstOrDefault(l => l.Id == lineDto.Id);
                 if (line == null)
-                    return Result.Failure(SaleDocErrors.LineNotFound(lineDto.SaleDocTableId, _userContext.LanguageId));
+                    return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
 
                 line.CostPrice = lineDto.CostPrice;
 

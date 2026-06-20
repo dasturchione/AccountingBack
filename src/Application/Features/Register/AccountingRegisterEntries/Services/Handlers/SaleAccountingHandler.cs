@@ -111,6 +111,9 @@ namespace Application.Features.Register.AccountingRegisterEntries
                         {
                             SortOrder = 3,
                             EntityId = purchaseData.PurchaseId,
+                            SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
+                            Side = SubkontoSideConst.CREDIT,
+                            CreatedDate = DateTime.Now,
                             DisplayValue = JsonSerializer.Serialize(new
                             {
                                 purchase = new

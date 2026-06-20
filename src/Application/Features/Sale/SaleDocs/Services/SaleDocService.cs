@@ -185,7 +185,8 @@ public class SaleDocService : BaseService, ISaleDocService
                 if (line == null)
                     return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
 
-                line.CostPrice = lineDto.CostPrice;
+                line.Amount = lineDto.Amount;
+                line.Price = lineDto.Amount;
 
                 if (lineDto.VatRateId.HasValue)
                 {

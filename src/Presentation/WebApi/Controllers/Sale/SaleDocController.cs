@@ -52,6 +52,22 @@ public class SaleDocController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpPut("{id:long}/confirm")]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    public async Task<IResult> ConfirmAsync([FromRoute] long id, [FromBody] SaleDocConfirmDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmAsync(id, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPut("{id:long}/cancel")]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.CancelAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpDelete("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.SaleDocDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)

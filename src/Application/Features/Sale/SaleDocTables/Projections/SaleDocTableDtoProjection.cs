@@ -14,6 +14,7 @@ public class SaleDocTableDtoProjection : IProjectionBuilder<SaleDocTable, SaleDo
             ProductTableId = x.ProductTableId,
             ProductName = x.ProductTable.Product.Name,
             Quantity = x.Quantity,
+            CostPrice = x.CostPrice,
             Price = x.Price,
             Amount = x.Amount,
             VatRateId = x.VatRateId,

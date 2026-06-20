@@ -40,7 +40,9 @@ public class ProductTableService : IProductTableService
         {
             ProductTableId = entity.Id,
             ProductId      = entity.ProductId,
-            ProductName    = entity.Product.Name
+            ProductName    = entity.Product.Name,
+            MarkingNumber = entity.MarkingNumber,
+            SerialNumber = entity.SerialNumber,
         };
     }
 }

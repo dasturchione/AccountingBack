@@ -20,10 +20,11 @@ public class ProductTableController : ControllerBase
         _service = service;
     }
 
-    [HttpGet("by-marking/{markingNumber}")]
+    [HttpGet("by-marking/{**markingNumber}")]
     [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
     public async Task<IResult> GetByMarkingNumber([FromRoute] string markingNumber, CancellationToken ct = default)
     {
+        markingNumber = Uri.UnescapeDataString(markingNumber);
         var result = await _service.GetByMarkingNumberAsync(markingNumber, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }

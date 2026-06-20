@@ -36,6 +36,10 @@ public class ProductTableService : IProductTableService
             return Result.Failure<ProductTableByMarkingDto>(
                 ProductTableErrors.NotFoundByMarkingNumber(markingNumber, _userContext.LanguageId));
 
+        if (entity.StatusId != ProductTableStatusIdConst.IN_STOCK)
+            return Result.Failure<ProductTableByMarkingDto>(
+                ProductTableErrors.NotAvailableByMarkingNumber(markingNumber, _userContext.LanguageId));
+
         return new ProductTableByMarkingDto
         {
             ProductTableId = entity.Id,

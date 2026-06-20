@@ -16,9 +16,6 @@ public partial class ChartAccount
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("organization_id")]
-    public int OrganizationId { get; set; }
-
     [Column("parent_id")]
     public int? ParentId { get; set; }
 
@@ -69,10 +66,6 @@ public partial class ChartAccount
 
     [InverseProperty("Parent")]
     public virtual ICollection<ChartAccount> InverseParent { get; set; } = new List<ChartAccount>();
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("ChartAccounts")]
-    public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("ParentId")]
     [InverseProperty("InverseParent")]

@@ -31,6 +31,9 @@ public partial class SysRole
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
+    [Column("has_global_access")]
+    public bool HasGlobalAccess { get; set; }
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("SysRoles")]
     public virtual OrgOrganization? Organization { get; set; }

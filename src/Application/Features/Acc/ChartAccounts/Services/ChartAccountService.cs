@@ -28,14 +28,11 @@ public class ChartAccountService : IChartAccountService
 
     public async Task<Result<int>> CreateAsync(ChartAccountCreateDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
-
         if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
             return Result.Failure<int>(ChartAccountErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
         var entity = new ChartAccount
         {
-            OrganizationId = orgId,
             ParentId = dto.ParentId,
             Code = dto.Code,
             Name = dto.Name,

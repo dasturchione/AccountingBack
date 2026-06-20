@@ -10,8 +10,6 @@ public class ChartAccountDtoProjection : IProjectionBuilder<ChartAccount, ChartA
         x => new ChartAccountDto
         {
             Id = x.Id,
-            OrganizationId = x.OrganizationId,
-            OrganizationName = x.Organization.ShortName,
             ParentId = x.ParentId,
             ParentName = x.Parent != null ? x.Parent.Name : null,
             Code = x.Code,

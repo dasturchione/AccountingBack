@@ -25,6 +25,9 @@ public partial class ProductTable
     [StringLength(250)]
     public string? MarkingNumber { get; set; }
 
+    [Column("status_id")]
+    public short StatusId { get; set; }
+
     [Column("state_id")]
     public short StateId { get; set; }
 
@@ -48,4 +51,8 @@ public partial class ProductTable
     [ForeignKey("StateId")]
     [InverseProperty("ProductTables")]
     public virtual State State { get; set; } = null!;
+
+    [ForeignKey("StatusId")]
+    [InverseProperty("ProductTables")]
+    public virtual ProductTableStatus Status { get; set; } = null!;
 }

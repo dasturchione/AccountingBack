@@ -24,6 +24,10 @@ public partial class SaleDocTable
     [Precision(18, 3)]
     public decimal Quantity { get; set; }
 
+    [Column("cost_price")]
+    [Precision(18, 2)]
+    public decimal CostPrice { get; set; }
+
     [Column("price")]
     [Precision(18, 2)]
     public decimal Price { get; set; }

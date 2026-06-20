@@ -56,6 +56,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnPaymentType> CmnPaymentTypes { get; set; }
 
+    public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
+
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
     public virtual DbSet<CmnState> CmnStates { get; set; }
@@ -142,10 +144,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.AccountType).WithMany(p => p.AccChartAccounts).HasConstraintName("acc_chart_account_account_type_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccounts)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_chart_account_organization_id_fkey");
 
             entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent).HasConstraintName("acc_chart_account_parent_id_fkey");
 
@@ -477,6 +475,15 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_payment_type_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnProductTableStatus>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_product_table_status_pkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnProductTableStatuses)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_product_table_status_state_id_fkey");
+        });
+
         modelBuilder.Entity<CmnRegion>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
@@ -709,6 +716,7 @@ public partial class AppDbContext : DbContext
                 .HasFilter("(serial_number IS NOT NULL)");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StatusId).HasDefaultValue((short)1);
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -721,6 +729,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_table_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvProductTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_table_status_id_fkey");
         });
 
         modelBuilder.Entity<InvRegBalance>(entity =>

@@ -45,6 +45,10 @@ public partial class SaleDocTable
     [Precision(18, 2)]
     public decimal TotalAmount { get; set; }
 
+    [Column("cost_price")]
+    [Precision(18, 2)]
+    public decimal CostPrice { get; set; }
+
     [ForeignKey("OwnerId")]
     [InverseProperty("SaleDocTables")]
     public virtual SaleDoc Owner { get; set; } = null!;

@@ -56,6 +56,9 @@ public partial class State
     public virtual ICollection<CounterpartyType> CounterpartyTypes { get; set; } = new List<CounterpartyType>();
 
     [InverseProperty("State")]
+    public virtual ICollection<ProductTableStatus> ProductTableStatuses { get; set; } = new List<ProductTableStatus>();
+
+    [InverseProperty("State")]
     public virtual ICollection<Currency> Currencies { get; set; } = new List<Currency>();
 
     [InverseProperty("State")]

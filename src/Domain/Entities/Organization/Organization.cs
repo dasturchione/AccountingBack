@@ -64,9 +64,6 @@ public partial class Organization
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<PostingRule> PostingRules { get; set; } = new List<PostingRule>();
 
     [InverseProperty("Organization")]

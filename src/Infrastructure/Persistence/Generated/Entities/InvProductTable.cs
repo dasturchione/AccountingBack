@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_product_table")]
+[Index("StatusId", Name = "ix_inv_product_table_status_id")]
 public partial class InvProductTable
 {
     [Key]
@@ -33,6 +34,9 @@ public partial class InvProductTable
     [StringLength(250)]
     public string? MarkingNumber { get; set; }
 
+    [Column("status_id")]
+    public short StatusId { get; set; }
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProductTables")]
     public virtual OrgOrganization Organization { get; set; } = null!;
@@ -50,4 +54,8 @@ public partial class InvProductTable
     [ForeignKey("StateId")]
     [InverseProperty("InvProductTables")]
     public virtual CmnState State { get; set; } = null!;
+
+    [ForeignKey("StatusId")]
+    [InverseProperty("InvProductTables")]
+    public virtual CmnProductTableStatus Status { get; set; } = null!;
 }

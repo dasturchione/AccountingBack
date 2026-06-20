@@ -8,8 +8,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("acc_chart_account")]
 [Index("AccountTypeId", Name = "idx_acc_chart_account_account_type_id")]
-[Index("OrganizationId", "Code", Name = "idx_acc_chart_account_org_code", IsUnique = true)]
-[Index("OrganizationId", Name = "idx_acc_chart_account_organization_id")]
 [Index("ParentId", Name = "idx_acc_chart_account_parent_id")]
 [Index("StateId", Name = "idx_acc_chart_account_state_id")]
 public partial class AccChartAccount
@@ -17,9 +15,6 @@ public partial class AccChartAccount
     [Key]
     [Column("id")]
     public int Id { get; set; }
-
-    [Column("organization_id")]
-    public int OrganizationId { get; set; }
 
     [Column("parent_id")]
     public int? ParentId { get; set; }
@@ -71,10 +66,6 @@ public partial class AccChartAccount
 
     [InverseProperty("Parent")]
     public virtual ICollection<AccChartAccount> InverseParent { get; set; } = new List<AccChartAccount>();
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("AccChartAccounts")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
 
     [ForeignKey("ParentId")]
     [InverseProperty("InverseParent")]

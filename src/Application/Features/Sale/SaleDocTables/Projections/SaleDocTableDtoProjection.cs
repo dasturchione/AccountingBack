@@ -21,6 +21,8 @@ public class SaleDocTableDtoProjection : IProjectionBuilder<SaleDocTable, SaleDo
             VatRateId = x.VatRateId,
             VatRateName = x.VatRate != null ? x.VatRate.Name : null,
             VatAmount = x.VatAmount,
-            TotalAmount = x.TotalAmount
+            TotalAmount = x.TotalAmount,
+            MarkingNumber = x.ProductTable.MarkingNumber,
+            SerialNumber = x.ProductTable.SerialNumber,
         };
 }

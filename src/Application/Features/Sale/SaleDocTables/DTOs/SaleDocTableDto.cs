@@ -15,4 +15,7 @@ public class SaleDocTableDto
     public string? VatRateName { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
+
+    public string? MarkingNumber { get; set; }
+    public string? SerialNumber { get; set; }
 }

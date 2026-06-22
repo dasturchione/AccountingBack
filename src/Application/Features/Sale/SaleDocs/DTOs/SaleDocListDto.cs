@@ -12,6 +12,7 @@ public class SaleDocListDto
     public string WarehouseName { get; set; } = null!;
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
     public decimal TotalAmount { get; set; }
     public decimal FinalAmount { get; set; }
     public short StatusId { get; set; }

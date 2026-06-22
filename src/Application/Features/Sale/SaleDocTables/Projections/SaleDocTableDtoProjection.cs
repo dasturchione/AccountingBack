@@ -12,6 +12,7 @@ public class SaleDocTableDtoProjection : IProjectionBuilder<SaleDocTable, SaleDo
             Id = x.Id,
             OwnerId = x.OwnerId,
             ProductTableId = x.ProductTableId,
+            ProductId = x.ProductTable.ProductId,
             ProductName = x.ProductTable.Product.Name,
             Quantity = x.Quantity,
             CostPrice = x.CostPrice,
@@ -20,6 +21,8 @@ public class SaleDocTableDtoProjection : IProjectionBuilder<SaleDocTable, SaleDo
             VatRateId = x.VatRateId,
             VatRateName = x.VatRate != null ? x.VatRate.Name : null,
             VatAmount = x.VatAmount,
-            TotalAmount = x.TotalAmount
+            TotalAmount = x.TotalAmount,
+            MarkingNumber = x.ProductTable.MarkingNumber,
+            SerialNumber = x.ProductTable.SerialNumber,
         };
 }

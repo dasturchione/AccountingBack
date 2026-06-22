@@ -21,6 +21,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
             WarehouseName    = x.Warehouse.Name,
             CurrencyId       = x.CurrencyId,
             CurrencyName     = x.Currency.Name,
+            CurrencyCode     = x.Currency.Code,
             TotalAmount      = x.TotalAmount,
             VatAmount        = x.VatAmount,
             FinalAmount      = x.FinalAmount,
@@ -43,7 +44,10 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 VatRateId      = l.VatRateId,
                 VatRateName    = l.VatRate != null ? l.VatRate.Name : null,
                 VatAmount      = l.VatAmount,
-                TotalAmount    = l.TotalAmount
+                TotalAmount    = l.TotalAmount,
+                ProductId      = l.ProductTable.ProductId,
+                MarkingNumber  = l.ProductTable.MarkingNumber,
+                SerialNumber   = l.ProductTable.SerialNumber
             }).ToList()
         };
 }

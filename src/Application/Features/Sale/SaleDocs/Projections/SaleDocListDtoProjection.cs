@@ -18,6 +18,7 @@ public class SaleDocListDtoProjection : IProjectionBuilder<SaleDoc, SaleDocListD
             WarehouseId = x.WarehouseId,
             WarehouseName = x.Warehouse.Name,
             CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.Code,
             CurrencyName = x.Currency.Name,
             TotalAmount = x.TotalAmount,
             FinalAmount = x.FinalAmount,

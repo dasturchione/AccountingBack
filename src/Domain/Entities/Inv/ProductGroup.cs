@@ -6,7 +6,6 @@ namespace Domain.Entities;
 
 [Table("inv_product_group")]
 [Index("OrganizationId", Name = "idx_inv_product_group_organization_id")]
-[Index("ParentId", Name = "idx_inv_product_group_parent_id")]
 [Index("StateId", Name = "idx_inv_product_group_state_id")]
 public partial class ProductGroup
 {
@@ -16,9 +15,6 @@ public partial class ProductGroup
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }
-
-    [Column("parent_id")]
-    public int? ParentId { get; set; }
 
     [Column("name")]
     [StringLength(250)]
@@ -33,16 +29,9 @@ public partial class ProductGroup
     [InverseProperty("ProductGroup")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
-    [InverseProperty("Parent")]
-    public virtual ICollection<ProductGroup> InverseParent { get; set; } = new List<ProductGroup>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("ProductGroups")]
     public virtual Organization Organization { get; set; } = null!;
-
-    [ForeignKey("ParentId")]
-    [InverseProperty("InverseParent")]
-    public virtual ProductGroup? Parent { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("ProductGroups")]

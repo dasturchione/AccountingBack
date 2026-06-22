@@ -12,8 +12,6 @@ public class ProductGroupDtoProjection : IProjectionBuilder<ProductGroup, Produc
             Id = x.Id,
             OrganizationId = x.OrganizationId,
             OrganizationName = x.Organization.ShortName,
-            ParentId = x.ParentId,
-            ParentName = x.Parent != null ? x.Parent.Name : null,
             Name = x.Name,
             StateId = x.StateId,
             StateName = x.State.FullName,

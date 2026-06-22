@@ -37,7 +37,6 @@ public class ProductGroupService : BaseService, IProductGroupService
             var entity = new ProductGroup
             {
                 OrganizationId = _userContext.OrganizationId.Value,
-                ParentId = dto.ParentId,
                 Name = dto.Name,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
@@ -111,7 +110,6 @@ public class ProductGroupService : BaseService, IProductGroupService
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
             entity.OrganizationId = _userContext.OrganizationId.Value;
-            entity.ParentId = dto.ParentId;
             entity.Name = dto.Name;
             entity.StateId = dto.StateId;
 

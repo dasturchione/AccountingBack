@@ -672,8 +672,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_group_organization_id_fkey");
 
-            entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent).HasConstraintName("inv_product_group_parent_id_fkey");
-
             entity.HasOne(d => d.State).WithMany(p => p.InvProductGroups)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_group_state_id_fkey");

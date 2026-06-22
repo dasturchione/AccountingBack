@@ -5,14 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("acc_reg_entry")]
-[Index("CreditAccountId", Name = "idx_acc_reg_entry_credit_account_id")]
-[Index("CurrencyId", Name = "idx_acc_reg_entry_currency_id")]
-[Index("DebitAccountId", Name = "idx_acc_reg_entry_debit_account_id")]
-[Index("DocDate", Name = "idx_acc_reg_entry_doc_date")]
-[Index("DocumentTypeId", "DocumentId", Name = "idx_acc_reg_entry_document")]
-[Index("JournalNumber", Name = "idx_acc_reg_entry_journal_number")]
-[Index("OperationTypeId", Name = "idx_acc_reg_entry_operation_type_id")]
-[Index("OrganizationId", Name = "idx_acc_reg_entry_organization_id")]
 public partial class AccountingRegisterEntry
 {
     [Key]

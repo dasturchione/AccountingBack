@@ -8,7 +8,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_product_group")]
 [Index("OrganizationId", Name = "idx_inv_product_group_organization_id")]
-[Index("ParentId", Name = "idx_inv_product_group_parent_id")]
 [Index("StateId", Name = "idx_inv_product_group_state_id")]
 public partial class InvProductGroup
 {
@@ -18,9 +17,6 @@ public partial class InvProductGroup
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }
-
-    [Column("parent_id")]
-    public int? ParentId { get; set; }
 
     [Column("name")]
     [StringLength(250)]
@@ -35,16 +31,9 @@ public partial class InvProductGroup
     [InverseProperty("ProductGroup")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
-    [InverseProperty("Parent")]
-    public virtual ICollection<InvProductGroup> InverseParent { get; set; } = new List<InvProductGroup>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProductGroups")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("ParentId")]
-    [InverseProperty("InverseParent")]
-    public virtual InvProductGroup? Parent { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("InvProductGroups")]

@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -45,6 +44,12 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<AccountingPolicy> AccountingPolicies { get; set; } = new List<AccountingPolicy>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PostingOperationType> PostingOperationTypes { get; set; } = new List<PostingOperationType>();
 
     [InverseProperty("State")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();

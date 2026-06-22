@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_district")]
-[Index("RegionId", Name = "idx_cmn_district_region_id")]
 public partial class District
 {
     [Key]

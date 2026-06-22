@@ -46,6 +46,9 @@ public partial class AccChartAccount
     public bool IsCurrency { get; set; }
 
     [InverseProperty("Account")]
+    public virtual ICollection<AccAccountResolveRule> AccAccountResolveRules { get; set; } = new List<AccAccountResolveRule>();
+
+    [InverseProperty("Account")]
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 
     [InverseProperty("CreditAccount")]

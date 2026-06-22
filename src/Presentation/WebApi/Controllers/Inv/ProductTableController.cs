@@ -28,4 +28,28 @@ public class ProductTableController : ControllerBase
         var result = await _service.GetByMarkingNumberAsync(markingNumber, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
+
+    [HttpGet("product-group-summary")]
+    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    public async Task<IResult> GetProductGroupSummary(CancellationToken ct = default)
+    {
+        var result = await _service.GetProductGroupSummaryAsync(ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("product-summary")]
+    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    public async Task<IResult> GetProductSummary([FromQuery] ProductTableGroupFilter filter, CancellationToken ct = default)
+    {
+        var result = await _service.GetProductSummaryAsync(filter, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("product-table-summary")]
+    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    public async Task<IResult> GetProductTableSummary([FromQuery] int? productGroupId, [FromQuery] int? productId, CancellationToken ct = default)
+    {
+        var result = await _service.GetProductTableSummaryAsync(productGroupId, productId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }

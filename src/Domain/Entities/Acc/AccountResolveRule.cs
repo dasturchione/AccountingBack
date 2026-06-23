@@ -32,10 +32,10 @@ public partial class AccountResolveRule
     public int Priority { get; set; }
 
     [ForeignKey("AccountId")]
-    [InverseProperty("AccAccountResolveRules")]
+    [InverseProperty("AccountResolveRules")]
     public virtual ChartAccount Account { get; set; } = null!;
 
     [ForeignKey("PolicyId")]
-    [InverseProperty("AccAccountResolveRules")]
+    [InverseProperty("AccountResolveRules")]
     public virtual AccountingPolicy Policy { get; set; } = null!;
 }

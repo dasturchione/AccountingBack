@@ -17,10 +17,6 @@ public partial class SaleDocTable
     [Column("product_table_id")]
     public int ProductTableId { get; set; }
 
-    [Column("price")]
-    [Precision(18, 2)]
-    public decimal Price { get; set; }
-
     [Column("amount")]
     [Precision(18, 2)]
     public decimal Amount { get; set; }

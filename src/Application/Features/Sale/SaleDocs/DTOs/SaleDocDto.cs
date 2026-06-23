@@ -49,7 +49,6 @@ public class SaleDocProductTableDto
     public int ProductTableId { get; set; }
     public string? MarkingNumber { get; set; }
     public string? SerialNumber { get; set; }
-    public decimal Price { get; set; }
     public decimal CostPrice { get; set; }
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }

@@ -49,7 +49,6 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                     ProductTableId = t.ProductTableId,
                     MarkingNumber  = t.ProductTable.MarkingNumber,
                     SerialNumber   = t.ProductTable.SerialNumber,
-                    Price          = t.Price,
                     CostPrice      = t.CostPrice,
                     Amount         = t.Amount,
                     VatRateId      = t.VatRateId,

@@ -5,7 +5,7 @@ alter table sale_doc_table
 drop column quantity;
 
 alter table sale_doc_table 
-drop column unit_price; 
+drop column price; 
 
 alter table sale_doc_table
 add column owner_id bigint

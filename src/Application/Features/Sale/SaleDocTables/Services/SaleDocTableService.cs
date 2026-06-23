@@ -2,7 +2,6 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
-using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -61,7 +60,7 @@ public class SaleDocTableService : ISaleDocTableService
         if (productLine == null)
             return Result.Failure<long>(SaleDocTableErrors.OwnerNotFound(dto.OwnerId, _userContext.LanguageId));
 
-        var (amount, vatAmount, totalAmount, error) = await CalculateAmountsAsync(dto.Price, dto.VatRateId, ct);
+        var (amount, vatAmount, totalAmount, error) = await CalculateAmountsAsync(dto.Amount, dto.VatRateId, ct);
         if (error != null)
             return Result.Failure<long>(error);
 
@@ -69,7 +68,6 @@ public class SaleDocTableService : ISaleDocTableService
         {
             OwnerId        = dto.OwnerId,
             ProductTableId = dto.ProductTableId,
-            Price          = dto.Price,
             Amount         = amount,
             VatRateId      = dto.VatRateId,
             VatAmount      = vatAmount,
@@ -88,12 +86,11 @@ public class SaleDocTableService : ISaleDocTableService
         if (entity == null)
             return Result.Failure(SaleDocTableErrors.NotFound(id, _userContext.LanguageId));
 
-        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(dto.Price, dto.VatRateId, ct);
+        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(dto.Amount, dto.VatRateId, ct);
         if (error != null)
             return Result.Failure(error);
 
         entity.ProductTableId = dto.ProductTableId;
-        entity.Price       = dto.Price;
         entity.Amount      = newAmount;
         entity.VatRateId   = dto.VatRateId;
         entity.VatAmount   = newVatAmount;

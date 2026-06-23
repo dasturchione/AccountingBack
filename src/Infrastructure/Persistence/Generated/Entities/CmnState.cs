@@ -91,6 +91,9 @@ public partial class CmnState
     public virtual ICollection<CmnProductTableStatus> CmnProductTableStatuses { get; set; } = new List<CmnProductTableStatus>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CmnPurchaseItemType> CmnPurchaseItemTypes { get; set; } = new List<CmnPurchaseItemType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CmnRegion> CmnRegions { get; set; } = new List<CmnRegion>();
 
     [InverseProperty("State")]

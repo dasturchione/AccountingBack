@@ -72,6 +72,9 @@ public partial class ChartAccount
     [InverseProperty("InverseParent")]
     public virtual ChartAccount? Parent { get; set; }
 
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
+
     [ForeignKey("StateId")]
     [InverseProperty("ChartAccounts")]
     public virtual State State { get; set; } = null!;

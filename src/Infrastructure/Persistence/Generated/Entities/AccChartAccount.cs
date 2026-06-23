@@ -74,6 +74,9 @@ public partial class AccChartAccount
     [InverseProperty("InverseParent")]
     public virtual AccChartAccount? Parent { get; set; }
 
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
+
     [ForeignKey("StateId")]
     [InverseProperty("AccChartAccounts")]
     public virtual CmnState State { get; set; } = null!;

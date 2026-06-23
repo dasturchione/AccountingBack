@@ -44,6 +44,14 @@ public partial class PostingRuleLine
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("debit_account_source")]
+    [StringLength(100)]
+    public string? DebitAccountSource { get; set; }
+
+    [Column("credit_account_source")]
+    [StringLength(100)]
+    public string? CreditAccountSource { get; set; }
+
     [ForeignKey("CreditAccountId")]
     [InverseProperty("PostingRuleLineCreditAccounts")]
     public virtual ChartAccount? CreditAccount { get; set; }

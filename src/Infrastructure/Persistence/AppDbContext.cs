@@ -61,4 +61,5 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Contract> Contracts { get; set; }
     public virtual DbSet<ContractType> ContractTypes { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
+    public virtual DbSet<PurchaseItemType> PurchaseItemTypes { get; set; }
 }

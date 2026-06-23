@@ -64,6 +64,9 @@ public partial class Product
     [InverseProperty("Products")]
     public virtual ProductGroup? ProductGroup { get; set; }
 
+    [InverseProperty("Service")]
+    public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
+
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 

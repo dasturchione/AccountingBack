@@ -7,8 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc_table")]
+[Index("ExpenseAccountId", Name = "idx_pur_doc_table_expense_account_id")]
+[Index("ItemTypeId", Name = "idx_pur_doc_table_item_type_id")]
 [Index("OwnerId", Name = "idx_pur_doc_table_owner_id")]
 [Index("ProductTableId", Name = "idx_pur_doc_table_product_id")]
+[Index("ServiceId", Name = "idx_pur_doc_table_service_id")]
 [Index("VatRateId", Name = "idx_pur_doc_table_vat_rate_id")]
 public partial class PurDocTable
 {
@@ -20,7 +23,7 @@ public partial class PurDocTable
     public long OwnerId { get; set; }
 
     [Column("product_table_id")]
-    public int ProductTableId { get; set; }
+    public int? ProductTableId { get; set; }
 
     [Column("quantity")]
     [Precision(18, 3)]
@@ -45,13 +48,38 @@ public partial class PurDocTable
     [Precision(18, 2)]
     public decimal TotalAmount { get; set; }
 
+    [Column("item_type_id")]
+    public short ItemTypeId { get; set; }
+
+    [Column("service_id")]
+    public int? ServiceId { get; set; }
+
+    [Column("service_name")]
+    [StringLength(250)]
+    public string? ServiceName { get; set; }
+
+    [Column("expense_account_id")]
+    public int? ExpenseAccountId { get; set; }
+
+    [ForeignKey("ExpenseAccountId")]
+    [InverseProperty("PurDocTables")]
+    public virtual AccChartAccount? ExpenseAccount { get; set; }
+
+    [ForeignKey("ItemTypeId")]
+    [InverseProperty("PurDocTables")]
+    public virtual CmnPurchaseItemType ItemType { get; set; } = null!;
+
     [ForeignKey("OwnerId")]
     [InverseProperty("PurDocTables")]
     public virtual PurDoc Owner { get; set; } = null!;
 
     [ForeignKey("ProductTableId")]
     [InverseProperty("PurDocTables")]
-    public virtual InvProductTable ProductTable { get; set; } = null!;
+    public virtual InvProductTable? ProductTable { get; set; }
+
+    [ForeignKey("ServiceId")]
+    [InverseProperty("PurDocTables")]
+    public virtual InvProduct? Service { get; set; }
 
     [ForeignKey("VatRateId")]
     [InverseProperty("PurDocTables")]

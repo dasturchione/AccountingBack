@@ -68,6 +68,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
+    public virtual DbSet<CmnPurchaseItemType> CmnPurchaseItemTypes { get; set; }
+
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
     public virtual DbSet<CmnState> CmnStates { get; set; }
@@ -547,6 +549,17 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_product_table_status_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnPurchaseItemType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_purchase_item_type_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnPurchaseItemTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_purchase_item_type_state_id_fkey");
+        });
+
         modelBuilder.Entity<CmnRegion>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
@@ -995,11 +1008,19 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("pur_doc_table_pkey");
 
+            entity.Property(e => e.ItemTypeId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.ExpenseAccount).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_expense_account_id_fkey");
+
+            entity.HasOne(d => d.ItemType).WithMany(p => p.PurDocTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_table_item_type_id_fkey");
+
             entity.HasOne(d => d.Owner).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_owner_id_fkey");
 
-            entity.HasOne(d => d.ProductTable).WithMany(p => p.PurDocTables)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_doc_table_product_table_id_fkey");
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_product_table_id_fkey");
+
+            entity.HasOne(d => d.Service).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_service_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
         });

@@ -82,6 +82,9 @@ public partial class State
     public virtual ICollection<PaymentType> PaymentTypes { get; set; } = new List<PaymentType>();
 
     [InverseProperty("State")]
+    public virtual ICollection<PurchaseItemType> PurchaseItemTypes { get; set; } = new List<PurchaseItemType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<Region> Regions { get; set; } = new List<Region>();
 
     [InverseProperty("State")]

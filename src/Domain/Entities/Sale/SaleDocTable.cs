@@ -5,28 +5,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("sale_doc_table")]
-[Index("OwnerId", Name = "idx_sale_doc_table_owner_id")]
 [Index("ProductTableId", Name = "idx_sale_doc_table_product_id")]
 [Index("VatRateId", Name = "idx_sale_doc_table_vat_rate_id")]
+[Index("OwnerId", Name = "ix_sale_doc_table_owner_id")]
 public partial class SaleDocTable
 {
     [Key]
     [Column("id")]
     public long Id { get; set; }
 
-    [Column("owner_id")]
-    public long OwnerId { get; set; }
-
     [Column("product_table_id")]
     public int ProductTableId { get; set; }
-
-    [Column("quantity")]
-    [Precision(18, 3)]
-    public decimal Quantity { get; set; }
-
-    [Column("cost_price")]
-    [Precision(18, 2)]
-    public decimal CostPrice { get; set; }
 
     [Column("price")]
     [Precision(18, 2)]
@@ -47,9 +36,16 @@ public partial class SaleDocTable
     [Precision(18, 2)]
     public decimal TotalAmount { get; set; }
 
+    [Column("cost_price")]
+    [Precision(18, 2)]
+    public decimal CostPrice { get; set; }
+
+    [Column("owner_id")]
+    public long? OwnerId { get; set; }
+
     [ForeignKey("OwnerId")]
     [InverseProperty("SaleDocTables")]
-    public virtual SaleDoc Owner { get; set; } = null!;
+    public virtual SaleDocProduct? Owner { get; set; }
 
     [ForeignKey("ProductTableId")]
     [InverseProperty("SaleDocTables")]

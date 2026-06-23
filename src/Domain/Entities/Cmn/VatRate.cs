@@ -37,6 +37,9 @@ public partial class VatRate
     [InverseProperty("VatRate")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
+    [InverseProperty("VatRate")]
+    public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
     [ForeignKey("StateId")]
     [InverseProperty("VatRates")]
     public virtual State State { get; set; } = null!;

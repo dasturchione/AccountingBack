@@ -66,6 +66,9 @@ public partial class InvProduct
     [InverseProperty("InvProducts")]
     public virtual InvProductGroup? ProductGroup { get; set; }
 
+    [InverseProperty("Product")]
+    public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
     [ForeignKey("StateId")]
     [InverseProperty("InvProducts")]
     public virtual CmnState State { get; set; } = null!;

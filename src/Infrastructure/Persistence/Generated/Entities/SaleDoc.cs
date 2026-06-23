@@ -76,7 +76,7 @@ public partial class SaleDoc
     public virtual OrgOrganization Organization { get; set; } = null!;
 
     [InverseProperty("Owner")]
-    public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
+    public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("SaleDocs")]

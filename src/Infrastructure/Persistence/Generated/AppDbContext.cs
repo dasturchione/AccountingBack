@@ -118,6 +118,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
 
+    public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
+
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
 
     public virtual DbSet<SysAuditLog> SysAuditLogs { get; set; }
@@ -1031,6 +1033,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Warehouse).WithMany(p => p.SaleDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleDocProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_doc_product_pkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.SaleDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_doc_product_product_id_fkey");
+
+            entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_vat_rate_id_fkey");
         });
 
         modelBuilder.Entity<SaleDocTable>(entity =>

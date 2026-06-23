@@ -1,20 +1,21 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
+using SharedKernel.QueryResults;
 using SharedKernel.Results;
 
-namespace Application.Features.ProductTables;
+namespace Application.Features.Inv.ProductStocks;
 
-public class ProductTableService : IProductTableService
+public class ProductStockService : IProductStockService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductTable> _query;
     private readonly IQueryRepository<ProductPrice> _priceQuery;
-
-    public ProductTableService(IUserContext userContext,
+    public ProductStockService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<ProductTable> query,
                                IQueryRepository<ProductPrice> priceQuery)
@@ -37,11 +38,11 @@ public class ProductTableService : IProductTableService
 
         if (entity is null)
             return Result.Failure<ProductTableByMarkingDto>(
-                ProductTableErrors.NotFoundByMarkingNumber(markingNumber, _userContext.LanguageId));
+                ProductStockErrors.NotFoundByMarkingNumber(markingNumber, _userContext.LanguageId));
 
         if (entity.StatusId != ProductTableStatusIdConst.IN_STOCK)
             return Result.Failure<ProductTableByMarkingDto>(
-                ProductTableErrors.NotAvailableByMarkingNumber(markingNumber, _userContext.LanguageId));
+                ProductStockErrors.NotAvailableByMarkingNumber(markingNumber, _userContext.LanguageId));
 
         return new ProductTableByMarkingDto
         {
@@ -53,19 +54,19 @@ public class ProductTableService : IProductTableService
         };
     }
 
-    public async Task<Result<List<ProductTableGroupSummaryDto>>> GetProductGroupSummaryAsync(CancellationToken ct = default)
+    public async Task<Result<PagedResponse<ProductGroupStockDto>>> GetProductGroupsStockAsync(ProductGroupStockFilter filter, CancellationToken ct = default)
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
 
-        var result = inStockEntities
+        var items = inStockEntities
             .Where(x => x.Product.ProductGroup != null)
             .GroupBy(x => new { x.Product.ProductGroupId, GroupName = x.Product.ProductGroup!.Name })
             .Select(g =>
             {
                 var qty = g.Count();
                 var totalAmount = g.Sum(x => priceMap.GetValueOrDefault(x.ProductId));
-                return new ProductTableGroupSummaryDto
+                return new ProductGroupStockDto
                 {
                     Id       = g.Key.ProductGroupId ?? 0,
                     Name     = g.Key.GroupName,
@@ -77,10 +78,12 @@ public class ProductTableService : IProductTableService
             .OrderBy(x => x.Name)
             .ToList();
 
-        return Result.Success(result);
+        var pagedList = new PagedList<ProductGroupStockDto>(items, items.Count);
+
+        return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
-    public async Task<Result<List<ProductTableProductSummaryDto>>> GetProductSummaryAsync(ProductTableGroupFilter filter, CancellationToken ct = default)
+    public async Task<Result<PagedResponse<ProductStockDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default)
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
@@ -93,12 +96,12 @@ public class ProductTableService : IProductTableService
                 .Where(x => x.Product.Name.Contains(filter.Search, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-        var result = inStockEntities
+        var items = inStockEntities
             .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.ProductGroup, x.Product.Unit })
-            .Select(g =>
+            .Select(g => 
             {
                 var price = priceMap.GetValueOrDefault(g.Key.ProductId);
-                return new ProductTableProductSummaryDto
+                return new ProductStockDto
                 {
                     Id               = g.Key.ProductId,
                     Name             = g.Key.Name,
@@ -112,21 +115,23 @@ public class ProductTableService : IProductTableService
             .OrderBy(x => x.Name)
             .ToList();
 
-        return Result.Success(result);
+        var pagedList = new PagedList<ProductStockDto>(items, items.Count);
+
+        return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
-    public async Task<Result<List<ProductTableItemDto>>> GetProductTableSummaryAsync(int? productGroupId, int? productId, CancellationToken ct = default)
+    public async Task<Result<PagedResponse<ProductTableStockDto>>> GetProductTablesStockAsync(ProductTableStockFilter filter, CancellationToken ct = default)
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
 
-        if (productGroupId.HasValue)
-            inStockEntities = inStockEntities.Where(x => x.Product.ProductGroupId == productGroupId.Value).ToList();
+        if (filter.ProductGroupId.HasValue)
+            inStockEntities = inStockEntities.Where(x => x.Product.ProductGroupId == filter.ProductGroupId.Value).ToList();
 
-        if (productId.HasValue)
-            inStockEntities = inStockEntities.Where(x => x.ProductId == productId.Value).ToList();
+        if (filter.ProductId.HasValue)
+            inStockEntities = inStockEntities.Where(x => x.ProductId == filter.ProductId.Value).ToList();
 
-        var result = inStockEntities
-            .Select(x => new ProductTableItemDto
+        var items = inStockEntities
+            .Select(x => new ProductTableStockDto
             {
                 Id = x.Id,
                 ProductId = x.ProductId,
@@ -138,7 +143,9 @@ public class ProductTableService : IProductTableService
             .ThenBy(x => x.SerialNumber)
             .ToList();
 
-        return Result.Success(result);
+        var pagedList = new PagedList<ProductTableStockDto>(items, items.Count);
+
+        return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
     private async Task<List<ProductTable>> GetInStockEntitiesAsync(CancellationToken ct)

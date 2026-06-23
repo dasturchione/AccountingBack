@@ -1,4 +1,4 @@
-namespace Application.Features.ProductTables;
+namespace Application.Features.Inv.ProductStocks;
 
 public class ProductTableByMarkingDto
 {

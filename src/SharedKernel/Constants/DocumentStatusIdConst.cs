@@ -7,5 +7,7 @@ namespace SharedKernel.Constants
         public const short POSTED = 2;
 
         public const short CANCELLED = 3;
+
+        public const short PENDING = 4;
     }
 }

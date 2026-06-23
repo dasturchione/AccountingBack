@@ -32,7 +32,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
         {
             var entries = new List<AccountingRegisterEntry>();
 
-            if (document.StatusId != DocStatusIdConst.Posted)
+            if (document.StatusId != DocumentStatusIdConst.POSTED)
                 return Result.Success(entries);
 
             var rule = await GetRuleAsync(ct);

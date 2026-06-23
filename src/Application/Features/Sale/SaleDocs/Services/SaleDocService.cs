@@ -233,7 +233,6 @@ public class SaleDocService : BaseService, ISaleDocService
                     {
                         OwnerId        = productLine.Id,
                         ProductTableId = pt.Id,
-                        Price          = productLine.UnitPrice,
                         CostPrice      = costPrice,
                         Amount         = productLine.UnitPrice,
                         VatRateId      = productLine.VatRateId,
@@ -301,7 +300,6 @@ public class SaleDocService : BaseService, ISaleDocService
                     return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
 
                 line.Amount = lineDto.Amount;
-                line.Price = lineDto.Amount;
 
                 if (line.VatRateId.HasValue)
                 {
@@ -309,7 +307,7 @@ public class SaleDocService : BaseService, ISaleDocService
                     var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
 
                     if (vatRate != null)
-                        line.VatAmount = Math.Round(line.Price * vatRate.Rate / 100, 2);
+                        line.VatAmount = Math.Round(line.Amount * vatRate.Rate / 100, 2);
                 }
 
                 line.TotalAmount = line.Amount + line.VatAmount;

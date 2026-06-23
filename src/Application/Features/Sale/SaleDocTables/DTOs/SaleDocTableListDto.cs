@@ -7,7 +7,6 @@ public class SaleDocTableListDto
     public int ProductTableId { get; set; }
     public string ProductName { get; set; } = null!;
     public decimal CostPrice { get; set; }
-    public decimal Price { get; set; }
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }
     public string? VatRateName { get; set; }

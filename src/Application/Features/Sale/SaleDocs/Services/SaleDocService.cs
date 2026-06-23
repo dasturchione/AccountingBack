@@ -223,7 +223,6 @@ public class SaleDocService : BaseService, ISaleDocService
                     {
                         OwnerId        = productLine.Id,
                         ProductTableId = ptId,
-                        Price          = productLine.UnitPrice,
                         CostPrice      = costPrice,
                         Amount         = productLine.UnitPrice,
                         VatRateId      = productLine.VatRateId,

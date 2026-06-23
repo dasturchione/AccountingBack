@@ -68,8 +68,8 @@ namespace Infrastructure.Persistence
             modelBuilder.Entity<SaleDocTable>()
                 .HasQueryFilter(e => AllowedOrgIds.Count == 0
                                   || (CurrentOrganizationId != 0
-                                      ? e.Owner.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId)));
+                                      ? e.Owner!.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner!.Owner.OrganizationId)));
 
             // Role — OrganizationId nullable: null bo'lsa global (hamma ko'ra oladi)
             modelBuilder.Entity<Role>()

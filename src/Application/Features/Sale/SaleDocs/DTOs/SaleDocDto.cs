@@ -1,5 +1,3 @@
-using Application.Features.SaleDocTables;
-
 namespace Application.Features.SaleDocs;
 
 public class SaleDocDto
@@ -26,5 +24,35 @@ public class SaleDocDto
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
 
-    public List<SaleDocTableDto> Lines { get; set; } = new();
+    public List<SaleDocProductDto> Products { get; set; } = new();
+}
+
+public class SaleDocProductDto
+{
+    public long Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = null!;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal CostPrice { get; set; }
+    public decimal Amount { get; set; }
+    public short? VatRateId { get; set; }
+    public string? VatRateName { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<SaleDocProductTableDto> Tables { get; set; } = new();
+}
+
+public class SaleDocProductTableDto
+{
+    public long Id { get; set; }
+    public int ProductTableId { get; set; }
+    public string? MarkingNumber { get; set; }
+    public string? SerialNumber { get; set; }
+    public decimal Price { get; set; }
+    public decimal CostPrice { get; set; }
+    public decimal Amount { get; set; }
+    public short? VatRateId { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal TotalAmount { get; set; }
 }

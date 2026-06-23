@@ -1,4 +1,3 @@
-using Application.Features.SaleDocTables;
 using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
@@ -31,23 +30,32 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,
-            Lines = x.SaleDocTables.Select(l => new SaleDocTableDto
+            Products = x.SaleDocProducts.Select(p => new SaleDocProductDto
             {
-                Id             = l.Id,
-                OwnerId        = l.OwnerId,
-                ProductTableId = l.ProductTableId,
-                ProductName    = l.ProductTable.Product.Name,
-                Quantity       = l.Quantity,
-                Price          = l.Price,
-                Amount         = l.Amount,
-                CostPrice      = l.CostPrice,
-                VatRateId      = l.VatRateId,
-                VatRateName    = l.VatRate != null ? l.VatRate.Name : null,
-                VatAmount      = l.VatAmount,
-                TotalAmount    = l.TotalAmount,
-                ProductId      = l.ProductTable.ProductId,
-                MarkingNumber  = l.ProductTable.MarkingNumber,
-                SerialNumber   = l.ProductTable.SerialNumber
+                Id          = p.Id,
+                ProductId   = p.ProductId,
+                ProductName = p.Product.Name,
+                Quantity    = p.Quantity,
+                UnitPrice   = p.UnitPrice,
+                CostPrice   = p.CostPrice,
+                Amount      = p.Amount,
+                VatRateId   = p.VatRateId,
+                VatRateName = p.VatRate != null ? p.VatRate.Name : null,
+                VatAmount   = p.VatAmount,
+                TotalAmount = p.TotalAmount,
+                Tables = p.SaleDocTables.Select(t => new SaleDocProductTableDto
+                {
+                    Id             = t.Id,
+                    ProductTableId = t.ProductTableId,
+                    MarkingNumber  = t.ProductTable.MarkingNumber,
+                    SerialNumber   = t.ProductTable.SerialNumber,
+                    Price          = t.Price,
+                    CostPrice      = t.CostPrice,
+                    Amount         = t.Amount,
+                    VatRateId      = t.VatRateId,
+                    VatAmount      = t.VatAmount,
+                    TotalAmount    = t.TotalAmount,
+                }).ToList()
             }).ToList()
         };
 }

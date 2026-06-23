@@ -25,6 +25,8 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<SaleDoc> _query;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<SaleDoc> _command;
+    private readonly ICommandRepository<SaleDocProduct> _productLineCommand;
+    private readonly IQueryRepository<SaleDocProduct> _productLineQuery;
     private readonly ICommandRepository<SaleDocTable> _lineCommand;
     private readonly IQueryRepository<SaleDocTable> _lineQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
@@ -43,6 +45,8 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<SaleDoc> query,
                           IQueryRepository<VatRate> vatRateQuery,
                           ICommandRepository<SaleDoc> command,
+                          ICommandRepository<SaleDocProduct> productLineCommand,
+                          IQueryRepository<SaleDocProduct> productLineQuery,
                           ICommandRepository<SaleDocTable> lineCommand,
                           IQueryRepository<SaleDocTable> lineQuery,
                           IQueryRepository<Warehouse> warehouseQuery,
@@ -59,6 +63,8 @@ public class SaleDocService : BaseService, ISaleDocService
         _dispatcher             = dispatcher;
         _lineCommand            = lineCommand;
         _lineQuery              = lineQuery;
+        _productLineCommand     = productLineCommand;
+        _productLineQuery       = productLineQuery;
         _userContext            = userContext;
         _queryBuilder           = queryBuilder;
         _auditLogService        = auditLogService;
@@ -92,6 +98,10 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success(entity);
         });
 
+    /// <summary>
+    /// Bosqich 1: Bugalter sotuv hujjatini yaratadi.
+    /// SaleDoc (DRAFT) + SaleDocProduct yaratiladi. ProductTable hali o'zgarmaydi.
+    /// </summary>
     public Task<Result<long>> CreateAsync(SaleDocCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
@@ -113,12 +123,11 @@ public class SaleDocService : BaseService, ISaleDocService
             if (counterparty is null)
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
-            var productTableIds = dto.Lines.Select(l => l.ProductTableId).ToList();
-            var linesResult = await BuildDraftLinesAsync(orgId, productTableIds, ct);
-            if (!linesResult.IsSuccess)
-                return Result.Failure<long>(linesResult.Error);
+            var productsResult = await BuildProductLinesAsync(dto.Products, ct);
+            if (!productsResult.IsSuccess)
+                return Result.Failure<long>(productsResult.Error);
 
-            var lines = linesResult.Value;
+            var productLines = productsResult.Value;
 
             var doc = new SaleDoc
             {
@@ -126,10 +135,10 @@ public class SaleDocService : BaseService, ISaleDocService
                 DocNumber      = docNumber,
                 DocDate        = now,
                 CurrencyId     = dto.CurrencyId,
-                SaleDocTables  = lines,
-                TotalAmount    = lines.Sum(l => l.Amount),
-                VatAmount      = 0,
-                FinalAmount    = lines.Sum(l => l.Amount),
+                SaleDocProducts = productLines,
+                TotalAmount    = productLines.Sum(l => l.Amount),
+                VatAmount      = productLines.Sum(l => l.VatAmount),
+                FinalAmount    = productLines.Sum(l => l.TotalAmount),
                 StatusId       = DocumentStatusIdConst.DRAFT,
                 Comment        = dto.Comment,
                 StateId        = StateIdConst.ACTIVE,
@@ -139,8 +148,6 @@ public class SaleDocService : BaseService, ISaleDocService
             };
 
             await _command.CreateAsync(doc, ct);
-
-            await UpdateProductTableStatusesAsync(doc.SaleDocTables.Select(s => s.ProductTable).ToList(), ProductTableStatusIdConst.RESERVED, ct);
 
             var docDto = await GetByIdInternalAsync(doc.Id, ct);
             if (docDto != null)
@@ -152,6 +159,109 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success(doc.Id);
         }, ct);
 
+    /// <summary>
+    /// Bosqich 2: Skladchik tasdiqlaydi — aniq ProductTable elementlarini tanlaydi.
+    /// SaleDocTable yaratiladi, ProductTable → RESERVED, SaleDoc → PENDING.
+    /// </summary>
+    public Task<Result> WarehouseConfirmAsync(long id, SaleDocWarehouseConfirmDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(WarehouseConfirmAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var docQuery = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+            var doc = await _query.GetAsync(docQuery, ct);
+
+            if (doc == null)
+                return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(SaleDocErrors.NotDraft(id, _userContext.LanguageId));
+
+            var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
+            var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
+
+            var allProductTableIds = dto.Items.SelectMany(i => i.ProductTableIds).ToList();
+
+            var ptQuery = _queryBuilder.For<ProductTable>()
+                .Where(x => allProductTableIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE)
+                .Build();
+            var productTables = await _productTableQuery.GetAllAsync(ptQuery, ct);
+
+            var purchaseCostMap = await GetCostPriceMapAsync(allProductTableIds, ct);
+
+            var allNewLines = new List<SaleDocTable>();
+
+            foreach (var item in dto.Items)
+            {
+                var productLine = productLines.FirstOrDefault(p => p.Id == item.SaleDocProductId);
+                if (productLine == null)
+                    return Result.Failure(SaleDocErrors.SaleDocProductNotFound(item.SaleDocProductId, _userContext.LanguageId));
+
+                if (item.ProductTableIds.Count != (int)productLine.Quantity)
+                    return Result.Failure(SaleDocErrors.QuantityMismatch(item.SaleDocProductId, productLine.Quantity, item.ProductTableIds.Count, _userContext.LanguageId));
+
+                foreach (var ptId in item.ProductTableIds)
+                {
+                    var pt = productTables.FirstOrDefault(x => x.Id == ptId);
+                    if (pt == null)
+                        return Result.Failure(SaleDocErrors.ProductTableNotFound(ptId, _userContext.LanguageId));
+
+                    if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                        return Result.Failure(SaleDocErrors.ProductTableNotAvailable(ptId, _userContext.LanguageId));
+
+                    if (pt.ProductId != productLine.ProductId)
+                        return Result.Failure(SaleDocErrors.ProductMismatch(ptId, productLine.ProductId, pt.ProductId, _userContext.LanguageId));
+
+                    var costPrice = purchaseCostMap.GetValueOrDefault(ptId);
+
+                    var vatAmount = 0m;
+                    if (productLine.VatRateId.HasValue && productLine.VatAmount > 0 && productLine.Quantity > 0)
+                        vatAmount = Math.Round(productLine.VatAmount / productLine.Quantity, 2);
+
+                    allNewLines.Add(new SaleDocTable
+                    {
+                        OwnerId        = productLine.Id,
+                        ProductTableId = ptId,
+                        Price          = productLine.UnitPrice,
+                        CostPrice      = costPrice,
+                        Amount         = productLine.UnitPrice,
+                        VatRateId      = productLine.VatRateId,
+                        VatAmount      = vatAmount,
+                        TotalAmount    = productLine.UnitPrice + vatAmount,
+                    });
+                }
+            }
+
+            await _lineCommand.CreateAsync(allNewLines, ct);
+
+            await UpdateProductTableStatusesAsync(allProductTableIds, ProductTableStatusIdConst.RESERVED, ct);
+
+            // SaleDocProduct.CostPrice ni yangilash
+            foreach (var item in dto.Items)
+            {
+                var productLine = productLines.First(p => p.Id == item.SaleDocProductId);
+                var lineCosts = item.ProductTableIds.Select(ptId => purchaseCostMap.GetValueOrDefault(ptId));
+                productLine.CostPrice = lineCosts.Sum();
+                await _productLineCommand.UpdateAsync(productLine, ct);
+            }
+
+            doc.StatusId = DocumentStatusIdConst.PENDING;
+            await _command.UpdateAsync(doc, ct);
+
+            var docDto = await GetByIdInternalAsync(id, ct);
+            if (docDto != null)
+            {
+                _auditLogService.SetNewValues(docDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.SaleDoc, id.ToString(), AuditLogOperationTypeConst.Update, "WarehouseConfirm");
+            }
+
+            return Result.Success();
+        }, ct);
+
+    /// <summary>
+    /// Bosqich 3: Bugalter tasdiqlaydi — SaleDoc → POSTED, ProductTable → SOLD, provodka yaratiladi.
+    /// </summary>
     public Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
         {
@@ -164,66 +274,46 @@ public class SaleDocService : BaseService, ISaleDocService
             if (doc == null)
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
-            if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Failure(SaleDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+            if (doc.StatusId != DocumentStatusIdConst.PENDING)
+                return Result.Failure(SaleDocErrors.NotPending(id, _userContext.LanguageId));
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            var counterpartyQuery = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == dto.CounterpartyId).Build();
-            var counterparty = await _counterpartyQuery.GetAsync(counterpartyQuery, ct);
-            if (counterparty is null)
-                return Result.Failure(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
-
-            var linesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId == id).Build();
-            var existingLines = await _lineQuery.GetAllAsync(linesQuery, ct);
-
-            foreach (var lineDto in dto.Lines)
+            if (dto.CounterpartyId.HasValue)
             {
-                var line = existingLines.FirstOrDefault(l => l.Id == lineDto.Id);
-                if (line == null)
-                    return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
-
-                line.Amount = lineDto.Amount;
-                line.Price = lineDto.Amount;
-
-                if (lineDto.VatRateId.HasValue)
-                {
-                    var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == lineDto.VatRateId.Value).Build();
-                    var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
-
-                    if (vatRate == null)
-                        return Result.Failure(SaleDocTableErrors.VatRateNotFound(lineDto.VatRateId.Value, _userContext.LanguageId));
-
-                    line.VatRateId = lineDto.VatRateId;
-                    line.VatAmount = Math.Round(line.Price * vatRate.Rate / 100, 2);
-                }
-                else
-                {
-                    line.VatRateId = null;
-                    line.VatAmount = 0;
-                }
-
-                line.TotalAmount = line.Amount + line.VatAmount;
-                await _lineCommand.UpdateAsync(line, ct);
+                var counterpartyQuery = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == dto.CounterpartyId.Value).Build();
+                var counterparty = await _counterpartyQuery.GetAsync(counterpartyQuery, ct);
+                if (counterparty is null)
+                    return Result.Failure(CounterpartyCardErrors.NotFound(dto.CounterpartyId.Value, _userContext.LanguageId));
+                doc.CounterpartyId = dto.CounterpartyId.Value;
             }
 
-            doc.CounterpartyId = dto.CounterpartyId;
-            doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
-            doc.TotalAmount    = existingLines.Sum(l => l.Amount);
-            doc.VatAmount      = existingLines.Sum(l => l.VatAmount);
-            doc.FinalAmount    = existingLines.Sum(l => l.TotalAmount);
-            doc.StatusId       = DocumentStatusIdConst.POSTED;
+            if (dto.DocDate.HasValue)
+                doc.DocDate = DateTime.SpecifyKind(dto.DocDate.Value, DateTimeKind.Unspecified);
 
+            if (dto.Comment != null)
+                doc.Comment = dto.Comment;
+
+            doc.StatusId = DocumentStatusIdConst.POSTED;
             await _command.UpdateAsync(doc, ct);
 
-            // ProductTable statuslarini SOLD qilish
-            var productTableIds = existingLines.Select(l => l.ProductTableId).ToList();
+            // ProductTable → SOLD
+            var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
+            var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
+            var productLineIds = productLines.Select(p => p.Id).ToList();
+
+            var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId.HasValue && productLineIds.Contains(x.OwnerId.Value)).Build();
+            var tables = await _lineQuery.GetAllAsync(tablesQuery, ct);
+            var productTableIds = tables.Select(t => t.ProductTableId).ToList();
+
             await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.SOLD, ct);
 
+            // Provodka
             var fullDocQuery = _queryBuilder.For<SaleDoc>().Where(d => d.Id == doc.Id).Build();
-            fullDocQuery.AddIncludes(b => b.Include(d => d.SaleDocTables).ThenInclude(l => l.ProductTable));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(p => p.SaleDocTables));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(p => p.SaleDocTables).ThenInclude(t => t.ProductTable));
             var fullDoc = await _query.GetAsync(fullDocQuery, ct) ?? doc;
 
             var dispatch = await _dispatcher.ProcessAsync(fullDoc, ct);
@@ -244,6 +334,9 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success();
         }, ct);
 
+    /// <summary>
+    /// Bekor qilish — istalgan bosqichdan. ProductTable → IN_STOCK ga qaytariladi.
+    /// </summary>
     public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
         {
@@ -256,19 +349,24 @@ public class SaleDocService : BaseService, ISaleDocService
             if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Failure(SaleDocErrors.AlreadyCancelled(id, _userContext.LanguageId));
 
-            if (doc.StatusId != DocumentStatusIdConst.POSTED)
-                return Result.Failure(SaleDocErrors.NotPosted(id, _userContext.LanguageId));
-
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            var linesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId == id).Build();
-            var existingLines = await _lineQuery.GetAllAsync(linesQuery, ct);
+            // PENDING yoki POSTED bo'lsa ProductTable larni IN_STOCK ga qaytarish
+            if (doc.StatusId == DocumentStatusIdConst.PENDING || doc.StatusId == DocumentStatusIdConst.POSTED)
+            {
+                var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
+                var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
+                var productLineIds = productLines.Select(p => p.Id).ToList();
 
-            // ProductTable statuslarini IN_STOCK ga qaytarish
-            var productTableIds = existingLines.Select(l => l.ProductTableId).ToList();
-            await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.IN_STOCK, ct);
+                var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId.HasValue && productLineIds.Contains(x.OwnerId.Value)).Build();
+                var tables = await _lineQuery.GetAllAsync(tablesQuery, ct);
+                var productTableIds = tables.Select(t => t.ProductTableId).ToList();
+
+                if (productTableIds.Count > 0)
+                    await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.IN_STOCK, ct);
+            }
 
             doc.StatusId = DocumentStatusIdConst.CANCELLED;
             await _command.UpdateAsync(doc, ct);
@@ -283,11 +381,16 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success();
         }, ct);
 
+    /// <summary>
+    /// O'zgartirish — faqat DRAFT va PENDING bosqichlarda.
+    /// DRAFT: header + mahsulot liniyalari o'zgaradi.
+    /// PENDING: header o'zgaradi (skladchik tanlagan tovarlar o'zgarmaydi).
+    /// </summary>
     public Task<Result> UpdateAsync(long id, SaleDocUpdateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
         {
             if (_userContext.OrganizationId is null)
-                return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
             var doc   = await _query.GetAsync(query, ct);
@@ -295,8 +398,8 @@ public class SaleDocService : BaseService, ISaleDocService
             if (doc == null)
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
-            if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Failure(SaleDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT && doc.StatusId != DocumentStatusIdConst.PENDING)
+                return Result.Failure(SaleDocErrors.CannotUpdateInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
@@ -308,6 +411,32 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.CurrencyId     = dto.CurrencyId;
             doc.Comment        = dto.Comment;
             doc.StateId        = dto.StateId;
+
+            // DRAFT da mahsulot liniyalarini ham o'zgartirish mumkin
+            if (doc.StatusId == DocumentStatusIdConst.DRAFT && dto.Products.Count > 0)
+            {
+                var existingProductsQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
+                var existingProducts = await _productLineQuery.GetAllAsync(existingProductsQuery, ct);
+
+                // Mavjud liniyalarni o'chirish
+                foreach (var existing in existingProducts)
+                    await _productLineCommand.DeleteAsync(existing, ct);
+
+                // Yangi liniyalarni yaratish
+                var productsResult = await BuildProductLinesFromUpdateAsync(dto.Products, ct);
+                if (!productsResult.IsSuccess)
+                    return Result.Failure(productsResult.Error);
+
+                var newProducts = productsResult.Value;
+                foreach (var p in newProducts)
+                    p.OwnerId = id;
+
+                await _productLineCommand.CreateAsync(newProducts, ct);
+
+                doc.TotalAmount = newProducts.Sum(p => p.Amount);
+                doc.VatAmount   = newProducts.Sum(p => p.VatAmount);
+                doc.FinalAmount = newProducts.Sum(p => p.TotalAmount);
+            }
 
             await _command.UpdateAsync(doc, ct);
 
@@ -330,20 +459,18 @@ public class SaleDocService : BaseService, ISaleDocService
             if (doc == null)
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
-            if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Failure(SaleDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(SaleDocErrors.NotDraft(id, _userContext.LanguageId));
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            // DRAFT holatdagi doc o'chirilganda ProductTable larni IN_STOCK ga qaytarish
-            var linesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId == id).Build();
-            var existingLines = await _lineQuery.GetAllAsync(linesQuery, ct);
-            var productTableIds = existingLines.Select(l => l.ProductTableId).ToList();
-            await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.IN_STOCK, ct);
-
-            await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+            // Product liniyalarini o'chirish
+            var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
+            var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
+            foreach (var pl in productLines)
+                await _productLineCommand.DeleteAsync(pl, ct);
 
             doc.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(doc, ct);
@@ -357,6 +484,8 @@ public class SaleDocService : BaseService, ISaleDocService
 
             return Result.Success();
         }, ct);
+
+    // ──────────────── Private helpers ────────────────
 
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
@@ -372,80 +501,98 @@ public class SaleDocService : BaseService, ISaleDocService
         var productTables = await _productTableQuery.GetAllAsync(ptQuery);
 
         foreach (var pt in productTables)
-        {
             pt.StatusId = statusId;
-        }
 
         await _productTableCommand.UpdateAsync(productTables, ct);
     }
 
-    private async Task UpdateProductTableStatusesAsync(List<ProductTable> productTables, short statusId, CancellationToken ct)
+    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesAsync(List<SaleDocCreateProductDto> products, CancellationToken ct)
     {
-        foreach (var pt in productTables)
+        var lines = new List<SaleDocProduct>(products.Count);
+
+        foreach (var p in products)
         {
-            pt.StatusId = statusId;
-        }
-
-        await _productTableCommand.UpdateAsync(productTables, ct);
-    }
-
-    private async Task<Result<List<SaleDocTable>>> BuildDraftLinesAsync(int organizationId, List<int> productTableIds, CancellationToken ct)
-    {
-        var lines = new List<SaleDocTable>(productTableIds.Count);
-
-        var ptQuery = _queryBuilder.For<ProductTable>()
-                            .Where(x => x.OrganizationId == organizationId
-                                      && x.StateId == StateIdConst.ACTIVE
-                                      && productTableIds.Contains(x.Id))
-                            .Build();
-
-        var productTables = await _productTableQuery.GetAllAsync(ptQuery);
-
-
-        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-                                .Where(x => productTableIds.Contains(x.ProductTableId))
-                                .As(s => new
-                                {
-                                    ProductTableId = s.ProductTableId,
-                                    PurchaseId = s.OwnerId,
-                                    DocDate = s.Owner.DocDate,
-                                    CostPrice = s.TotalAmount
-                                }).Build();
-
-        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
-
-        var lastPurchases = purchases
-                                .GroupBy(g => g.ProductTableId)
-                                .Select(g => g.OrderByDescending(x => x.DocDate).First())
-                                .ToList();
-
-        foreach (var ptId in productTableIds)
-        {
-            var pt = productTables.FirstOrDefault(x => x.Id == ptId);
-            if (pt == null)
-                return Result.Failure<List<SaleDocTable>>(SaleDocErrors.ProductTableNotFound(ptId, _userContext.LanguageId));
-
-            if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                return Result.Failure<List<SaleDocTable>>(SaleDocErrors.ProductTableNotAvailable(ptId, _userContext.LanguageId));
-
-            var lastPurchase = lastPurchases.FirstOrDefault(f => f.ProductTableId ==  ptId);
-
-            if (lastPurchase == null)
-                return Result.Failure<List<SaleDocTable>>(SaleDocErrors.CostPriceNotFound(pt.ProductId, _userContext.LanguageId));
-
-            lines.Add(new SaleDocTable
+            var vatAmount = 0m;
+            if (p.VatRateId.HasValue)
             {
-                ProductTableId = pt.Id,
-                Quantity       = 1,
-                Price          = lastPurchase.CostPrice,
-                CostPrice      = lastPurchase.CostPrice,
-                Amount         = lastPurchase.CostPrice,
-                VatRateId      = null,
-                VatAmount      = 0,
-                TotalAmount    = lastPurchase.CostPrice
+                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == p.VatRateId.Value).Build();
+                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
+                if (vatRate == null)
+                    return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
+
+                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 2);
+            }
+
+            var amount = p.Quantity * p.UnitPrice;
+
+            lines.Add(new SaleDocProduct
+            {
+                ProductId  = p.ProductId,
+                Quantity   = p.Quantity,
+                UnitPrice  = p.UnitPrice,
+                CostPrice  = 0,
+                Amount     = amount,
+                VatRateId  = p.VatRateId,
+                VatAmount  = vatAmount,
+                TotalAmount = amount + vatAmount,
             });
         }
 
         return lines;
+    }
+
+    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesFromUpdateAsync(List<SaleDocUpdateProductDto> products, CancellationToken ct)
+    {
+        var lines = new List<SaleDocProduct>(products.Count);
+
+        foreach (var p in products)
+        {
+            var vatAmount = 0m;
+            if (p.VatRateId.HasValue)
+            {
+                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == p.VatRateId.Value).Build();
+                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
+                if (vatRate == null)
+                    return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
+
+                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 2);
+            }
+
+            var amount = p.Quantity * p.UnitPrice;
+
+            lines.Add(new SaleDocProduct
+            {
+                ProductId  = p.ProductId,
+                Quantity   = p.Quantity,
+                UnitPrice  = p.UnitPrice,
+                CostPrice  = 0,
+                Amount     = amount,
+                VatRateId  = p.VatRateId,
+                VatAmount  = vatAmount,
+                TotalAmount = amount + vatAmount,
+            });
+        }
+
+        return lines;
+    }
+
+    private async Task<Dictionary<int, decimal>> GetCostPriceMapAsync(List<int> productTableIds, CancellationToken ct)
+    {
+        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
+            .Where(x => productTableIds.Contains(x.ProductTableId))
+            .As(s => new
+            {
+                ProductTableId = s.ProductTableId,
+                DocDate = s.Owner.DocDate,
+                CostPrice = s.TotalAmount
+            }).Build();
+
+        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
+
+        return purchases
+            .GroupBy(g => g.ProductTableId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => x.DocDate).First().CostPrice);
     }
 }

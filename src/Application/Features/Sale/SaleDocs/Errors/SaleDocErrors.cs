@@ -85,4 +85,58 @@ public static class SaleDocErrors
             LanguageIdConst.RU      => $"ProductTable с id {productTableId} недоступен на складе (продан или зарезервирован).",
             _                       => $"ProductTable with id {productTableId} is not available in stock (sold or reserved)."
         });
+
+    public static Error NotDraft(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.NotDraft", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan sotuv hujjati qoralama holatda emas.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган сотув ҳужжати қоралама ҳолатда эмас.",
+            LanguageIdConst.RU      => $"Документ продажи с id {id} не в черновике.",
+            _                       => $"Sale document with id {id} is not in draft status."
+        });
+
+    public static Error NotPending(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.NotPending", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan sotuv hujjati kutilmoqda holatda emas.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган сотув ҳужжати кутилмоқда ҳолатда эмас.",
+            LanguageIdConst.RU      => $"Документ продажи с id {id} не в статусе ожидания.",
+            _                       => $"Sale document with id {id} is not in pending status."
+        });
+
+    public static Error QuantityMismatch(long saleDocProductId, decimal expected, int actual, short? languageId = null) =>
+        Error.Conflict("SaleDoc.QuantityMismatch", languageId switch
+        {
+            LanguageIdConst.UZ      => $"SaleDocProduct id-si {saleDocProductId}: kutilgan son {expected}, kelgan son {actual}.",
+            LanguageIdConst.UZ_CYRL => $"SaleDocProduct id-си {saleDocProductId}: кутилган сон {expected}, келган сон {actual}.",
+            LanguageIdConst.RU      => $"SaleDocProduct id {saleDocProductId}: ожидалось {expected}, получено {actual}.",
+            _                       => $"SaleDocProduct id {saleDocProductId}: expected {expected}, received {actual}."
+        });
+
+    public static Error SaleDocProductNotFound(long saleDocProductId, short? languageId = null) =>
+        Error.NotFound("SaleDoc.SaleDocProductNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"SaleDocProduct id-si {saleDocProductId} topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"SaleDocProduct id-си {saleDocProductId} топилмади.",
+            LanguageIdConst.RU      => $"SaleDocProduct с id {saleDocProductId} не найден.",
+            _                       => $"SaleDocProduct with id {saleDocProductId} was not found."
+        });
+
+    public static Error ProductMismatch(int productTableId, int expectedProductId, int actualProductId, short? languageId = null) =>
+        Error.Conflict("SaleDoc.ProductMismatch", languageId switch
+        {
+            LanguageIdConst.UZ      => $"ProductTable id-si {productTableId} mahsuloti ({actualProductId}) SaleDocProduct mahsulotiga ({expectedProductId}) mos kelmaydi.",
+            LanguageIdConst.UZ_CYRL => $"ProductTable id-си {productTableId} маҳсулоти ({actualProductId}) SaleDocProduct маҳсулотига ({expectedProductId}) мос келмайди.",
+            LanguageIdConst.RU      => $"Товар ProductTable id {productTableId} ({actualProductId}) не соответствует товару SaleDocProduct ({expectedProductId}).",
+            _                       => $"ProductTable id {productTableId} product ({actualProductId}) does not match SaleDocProduct product ({expectedProductId})."
+        });
+
+    public static Error CannotUpdateInCurrentStatus(long id, short statusId, short? languageId = null) =>
+        Error.Conflict("SaleDoc.CannotUpdateInCurrentStatus", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan sotuv hujjatini joriy holatda o'zgartirish mumkin emas.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган сотув ҳужжатини жорий ҳолатда ўзгартириш мумкин эмас.",
+            LanguageIdConst.RU      => $"Документ продажи с id {id} нельзя изменить в текущем статусе.",
+            _                       => $"Sale document with id {id} cannot be updated in current status."
+        });
 }

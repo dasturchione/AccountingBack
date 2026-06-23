@@ -6,10 +6,13 @@ public class SaleDocCreateDto
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
     public string? Comment { get; set; }
-    public List<SaleDocCreateLineDto> Lines { get; set; } = new();
+    public List<SaleDocCreateProductDto> Products { get; set; } = new();
 }
 
-public class SaleDocCreateLineDto
+public class SaleDocCreateProductDto
 {
-    public int ProductTableId { get; set; }
+    public int ProductId { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public short? VatRateId { get; set; }
 }

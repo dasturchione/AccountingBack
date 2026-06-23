@@ -52,6 +52,14 @@ public class SaleDocController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpPut("{id:long}/warehouse-confirm")]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    public async Task<IResult> WarehouseConfirmAsync([FromRoute] long id, [FromBody] SaleDocWarehouseConfirmDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.WarehouseConfirmAsync(id, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPut("{id:long}/confirm")]
     [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
     public async Task<IResult> ConfirmAsync([FromRoute] long id, [FromBody] SaleDocConfirmDto dto, CancellationToken ct = default)

@@ -14,25 +14,25 @@ public class SaleDocTableService : ISaleDocTableService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<SaleDocTable> _query;
     private readonly ICommandRepository<SaleDocTable> _command;
-    private readonly IQueryRepository<SaleDoc> _docQuery;
-    private readonly ICommandRepository<SaleDoc> _docCommand;
+    private readonly IQueryRepository<SaleDocProduct> _productLineQuery;
+    private readonly ICommandRepository<SaleDocProduct> _productLineCommand;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
 
     public SaleDocTableService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<SaleDocTable> query,
                                ICommandRepository<SaleDocTable> command,
-                               IQueryRepository<SaleDoc> docQuery,
-                               ICommandRepository<SaleDoc> docCommand,
+                               IQueryRepository<SaleDocProduct> productLineQuery,
+                               ICommandRepository<SaleDocProduct> productLineCommand,
                                IQueryRepository<VatRate> vatRateQuery)
     {
-        _query        = query;
-        _command      = command;
-        _userContext  = userContext;
-        _queryBuilder = queryBuilder;
-        _docQuery     = docQuery;
-        _docCommand   = docCommand;
-        _vatRateQuery = vatRateQuery;
+        _query              = query;
+        _command            = command;
+        _userContext        = userContext;
+        _queryBuilder       = queryBuilder;
+        _productLineQuery   = productLineQuery;
+        _productLineCommand = productLineCommand;
+        _vatRateQuery       = vatRateQuery;
     }
 
     public async Task<Result<PagedResponse<SaleDocTableListDto>>> GetAllAsync(SaleDocTableListFilter filter, CancellationToken ct = default)
@@ -55,16 +55,13 @@ public class SaleDocTableService : ISaleDocTableService
 
     public async Task<Result<long>> CreateAsync(SaleDocTableCreateDto dto, CancellationToken ct = default)
     {
-        var docQuery = _queryBuilder.For<SaleDoc>().Where(x => x.Id == dto.OwnerId).Build();
-        var doc      = await _docQuery.GetAsync(docQuery, ct);
+        var productLineQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.Id == dto.OwnerId).Build();
+        var productLine = await _productLineQuery.GetAsync(productLineQuery, ct);
 
-        if (doc == null)
+        if (productLine == null)
             return Result.Failure<long>(SaleDocTableErrors.OwnerNotFound(dto.OwnerId, _userContext.LanguageId));
 
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure<long>(SaleDocTableErrors.OwnerAlreadyPosted(dto.OwnerId, _userContext.LanguageId));
-
-        var (amount, vatAmount, totalAmount, error) = await CalculateAmountsAsync(dto.Quantity, dto.Price, dto.VatRateId, ct);
+        var (amount, vatAmount, totalAmount, error) = await CalculateAmountsAsync(dto.Price, dto.VatRateId, ct);
         if (error != null)
             return Result.Failure<long>(error);
 
@@ -72,7 +69,6 @@ public class SaleDocTableService : ISaleDocTableService
         {
             OwnerId        = dto.OwnerId,
             ProductTableId = dto.ProductTableId,
-            Quantity       = dto.Quantity,
             Price          = dto.Price,
             Amount         = amount,
             VatRateId      = dto.VatRateId,
@@ -81,12 +77,6 @@ public class SaleDocTableService : ISaleDocTableService
         };
 
         await _command.CreateAsync(entity, ct);
-
-        doc.TotalAmount += amount;
-        doc.VatAmount   += vatAmount;
-        doc.FinalAmount += totalAmount;
-        await _docCommand.UpdateAsync(doc, ct);
-
         return entity.Id;
     }
 
@@ -98,25 +88,11 @@ public class SaleDocTableService : ISaleDocTableService
         if (entity == null)
             return Result.Failure(SaleDocTableErrors.NotFound(id, _userContext.LanguageId));
 
-        var docQuery = _queryBuilder.For<SaleDoc>().Where(x => x.Id == entity.OwnerId).Build();
-        var doc      = await _docQuery.GetAsync(docQuery, ct);
-
-        if (doc == null)
-            return Result.Failure(SaleDocTableErrors.OwnerNotFound(entity.OwnerId, _userContext.LanguageId));
-
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure(SaleDocTableErrors.OwnerAlreadyPosted(entity.OwnerId, _userContext.LanguageId));
-
-        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(dto.Quantity, dto.Price, dto.VatRateId, ct);
+        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(dto.Price, dto.VatRateId, ct);
         if (error != null)
             return Result.Failure(error);
 
-        doc.TotalAmount += newAmount      - entity.Amount;
-        doc.VatAmount   += newVatAmount   - entity.VatAmount;
-        doc.FinalAmount += newTotalAmount - entity.TotalAmount;
-
         entity.ProductTableId = dto.ProductTableId;
-        entity.Quantity    = dto.Quantity;
         entity.Price       = dto.Price;
         entity.Amount      = newAmount;
         entity.VatRateId   = dto.VatRateId;
@@ -124,8 +100,6 @@ public class SaleDocTableService : ISaleDocTableService
         entity.TotalAmount = newTotalAmount;
 
         await _command.UpdateAsync(entity, ct);
-        await _docCommand.UpdateAsync(doc, ct);
-
         return Result.Success();
     }
 
@@ -137,29 +111,14 @@ public class SaleDocTableService : ISaleDocTableService
         if (entity == null)
             return Result.Failure(SaleDocTableErrors.NotFound(id, _userContext.LanguageId));
 
-        var docQuery = _queryBuilder.For<SaleDoc>().Where(x => x.Id == entity.OwnerId).Build();
-        var doc      = await _docQuery.GetAsync(docQuery, ct);
-
-        if (doc == null)
-            return Result.Failure(SaleDocTableErrors.OwnerNotFound(entity.OwnerId, _userContext.LanguageId));
-
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure(SaleDocTableErrors.OwnerAlreadyPosted(entity.OwnerId, _userContext.LanguageId));
-
-        doc.TotalAmount -= entity.Amount;
-        doc.VatAmount   -= entity.VatAmount;
-        doc.FinalAmount -= entity.TotalAmount;
-
         await _command.DeleteAsync(entity, ct);
-        await _docCommand.UpdateAsync(doc, ct);
-
         return Result.Success();
     }
 
     private async Task<(decimal amount, decimal vatAmount, decimal totalAmount, Error? error)> CalculateAmountsAsync(
-        decimal quantity, decimal price, short? vatRateId, CancellationToken ct)
+        decimal price, short? vatRateId, CancellationToken ct)
     {
-        var amount    = quantity * price;
+        var amount    = price;
         var vatAmount = 0m;
 
         if (vatRateId.HasValue)

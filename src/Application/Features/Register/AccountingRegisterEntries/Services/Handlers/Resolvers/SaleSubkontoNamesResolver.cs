@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Query;
@@ -50,7 +50,7 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
             return new SaleSubkontoContext
             {
                 Id = document.Id,
-                CounterpartyId = document.CounterpartyId, 
+                CounterpartyId = document.CounterpartyId,
                 WarehouseId = document.WarehouseId,
                 CurrencyId = document.CurrencyId,
                 DocDate = document.DocDate,
@@ -75,18 +75,19 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
 
         private async Task FillProductsAsync(SaleDoc document, SaleSubkontoContext context)
         {
-            var productTableIds = document.SaleDocTables.Select(s => s.ProductTableId).Distinct().ToList();
+            var allTables = document.SaleDocProducts.SelectMany(p => p.SaleDocTables).ToList();
+            var productTableIds = allTables.Select(s => s.ProductTableId).Distinct().ToList();
 
             var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
                                     .Where(x => productTableIds.Contains(x.ProductTableId))
-                                    .As(s => new 
+                                    .As(s => new
                                     {
                                         ProductTableId = s.ProductTableId,
                                         PurchaseId = s.OwnerId,
                                         Date = s.Owner.DocDate,
                                         Amount = s.Amount,
                                         DocNumber = s.Owner.DocNumber,
-                                        WarehouseId = s.Owner.WarehouseId, 
+                                        WarehouseId = s.Owner.WarehouseId,
                                         WarehouseName = s.Owner.Warehouse.Name,
                                         Quantity = s.Quantity
                                     }).Build();
@@ -110,7 +111,7 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
                     g => g.Key,
                     g => g.OrderByDescending(x => x.Date).First());
 
-            var saleDocTablesByProductTable = document.SaleDocTables.ToDictionary(x => x.ProductTableId);
+            var saleDocTablesByProductTable = allTables.ToDictionary(x => x.ProductTableId);
 
             context.Products = productTables
                         .GroupBy(x => new { x.ProductId, x.ProductName })
@@ -124,11 +125,11 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
                             {
                                 ProductId = group.Key.ProductId,
                                 ProductName = group.Key.ProductName,
-                                Quantity = saleRows.Sum(x => x.Quantity),
+                                Quantity = saleRows.Count,
                                 Amount = saleRows.Sum(x => x.Amount),
                                 VatAmount = saleRows.Sum(x => x.VatAmount),
                                 VatRateId = saleRows.First().VatRateId,
-                                
+
                                 Purchases = group
                                     .Select(x => lastPurchases.GetValueOrDefault(x.TableId))
                                     .Where(x => x != null)

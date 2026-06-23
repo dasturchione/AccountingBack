@@ -8,7 +8,9 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
 {
     public Task<Result<List<RegisterBalance>>> HandleAsync(SaleDoc sale, CancellationToken ct = default)
     {
-        var entries = sale.SaleDocTables.Select(line => new RegisterBalance
+        var allTables = sale.SaleDocProducts.SelectMany(p => p.SaleDocTables).ToList();
+
+        var entries = allTables.Select(line => new RegisterBalance
         {
             OrganizationId  = sale.OrganizationId,
             DocumentTypeId  = DocumentTypeIdConst.SALE,
@@ -16,7 +18,7 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
             WarehouseId     = sale.WarehouseId,
             ProductId       = line.ProductTable.ProductId,
             OperationTypeId = OperationTypeIdConst.OUT,
-            Quantity        = line.Quantity,
+            Quantity        = 1,
             Amount          = line.TotalAmount,
             DocDate         = sale.DocDate,
             CreatedDate     = DateTime.Now

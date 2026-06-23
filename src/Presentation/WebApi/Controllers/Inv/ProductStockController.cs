@@ -1,4 +1,4 @@
-using Application.Features.ProductTables;
+using Application.Features.Inv.ProductStocks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -8,14 +8,13 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/product-tables")]
+[Route("api/product-stocks")]
 [ApiController]
 [Authorize]
-public class ProductTableController : ControllerBase
+public class ProductStockController : ControllerBase
 {
-    private readonly IProductTableService _service;
-
-    public ProductTableController(IProductTableService service)
+    private readonly IProductStockService _service;
+    public ProductStockController(IProductStockService service)
     {
         _service = service;
     }
@@ -29,27 +28,27 @@ public class ProductTableController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("product-group-summary")]
+    [HttpGet("groups")]
     [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
-    public async Task<IResult> GetProductGroupSummary(CancellationToken ct = default)
+    public async Task<IResult> GetProductGroupSummary([FromQuery] ProductGroupStockFilter filter, CancellationToken ct = default)
     {
-        var result = await _service.GetProductGroupSummaryAsync(ct);
+        var result = await _service.GetProductGroupsStockAsync(filter, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("product-summary")]
+    [HttpGet("products")]
     [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
-    public async Task<IResult> GetProductSummary([FromQuery] ProductTableGroupFilter filter, CancellationToken ct = default)
+    public async Task<IResult> GetProductSummary([FromQuery] ProductStockFilter filter, CancellationToken ct = default)
     {
-        var result = await _service.GetProductSummaryAsync(filter, ct);
+        var result = await _service.GetProductsStockAsync(filter, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("product-table-summary")]
+    [HttpGet("tables")]
     [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
-    public async Task<IResult> GetProductTableSummary([FromQuery] int? productGroupId, [FromQuery] int? productId, CancellationToken ct = default)
+    public async Task<IResult> GetProductTableSummary([FromQuery] ProductTableStockFilter filter, CancellationToken ct = default)
     {
-        var result = await _service.GetProductTableSummaryAsync(productGroupId, productId, ct);
+        var result = await _service.GetProductTablesStockAsync(filter, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 }

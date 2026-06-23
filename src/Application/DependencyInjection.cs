@@ -23,7 +23,6 @@ using Application.Features.Positions;
 using Application.Features.ProductGroups;
 using Application.Features.ProductPrices;
 using Application.Features.Products;
-using Application.Features.ProductTables;
 using Application.Features.PurchaseDocs;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -37,6 +36,7 @@ using Application.Features.Warehouses;
 using Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Query;
+using Application.Features.Inv.ProductStocks;
 
 namespace Application
 {
@@ -58,7 +58,7 @@ namespace Application
             services.AddScoped<IProductGroupService, ProductGroupService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
-            services.AddScoped<IProductTableService, ProductTableService>();
+            services.AddScoped<IProductStockService, ProductStockService>();
             services.AddScoped<IProductPriceService, ProductPriceService>();
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
             services.AddScoped<IBankOperationService, BankOperationService>();

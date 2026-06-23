@@ -1,9 +1,9 @@
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
-namespace Application.Features.ProductTables;
+namespace Application.Features.Inv.ProductStocks;
 
-public static class ProductTableErrors
+public static class ProductStockErrors
 {
     public static Error NotFoundByMarkingNumber(string markingNumber, short? languageId = null) =>
         Error.NotFound("ProductTable.NotFoundByMarkingNumber", languageId switch

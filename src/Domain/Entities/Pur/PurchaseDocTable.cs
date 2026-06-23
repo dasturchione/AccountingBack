@@ -60,15 +60,15 @@ public partial class PurchaseDocTable
     public int? ExpenseAccountId { get; set; }
 
     [ForeignKey("ExpenseAccountId")]
-    [InverseProperty("PurDocTables")]
+    [InverseProperty("PurchaseDocTables")]
     public virtual ChartAccount? ExpenseAccount { get; set; }
 
     [ForeignKey("ItemTypeId")]
-    [InverseProperty("PurDocTables")]
+    [InverseProperty("PurchaseDocTables")]
     public virtual PurchaseItemType ItemType { get; set; } = null!;
 
     [ForeignKey("OwnerId")]
-    [InverseProperty("PurDocTables")]
+    [InverseProperty("PurchaseDocTables")]
     public virtual PurchaseDoc Owner { get; set; } = null!;
 
     [ForeignKey("ProductTableId")]

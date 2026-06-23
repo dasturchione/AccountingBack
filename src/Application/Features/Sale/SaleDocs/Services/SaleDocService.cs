@@ -605,10 +605,10 @@ public class SaleDocService : BaseService, ISaleDocService
     private async Task<Dictionary<int, decimal>> GetCostPriceMapAsync(List<int> productTableIds, CancellationToken ct)
     {
         var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productTableIds.Contains(x.ProductTableId))
+            .Where(x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value))
             .As(s => new
             {
-                ProductTableId = s.ProductTableId,
+                ProductTableId = s.ProductTableId!.Value,
                 DocDate = s.Owner.DocDate,
                 CostPrice = s.TotalAmount
             }).Build();

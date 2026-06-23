@@ -79,10 +79,10 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
             var productTableIds = allTables.Select(s => s.ProductTableId).Distinct().ToList();
 
             var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-                                    .Where(x => productTableIds.Contains(x.ProductTableId))
+                                    .Where(x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value))
                                     .As(s => new
                                     {
-                                        ProductTableId = s.ProductTableId,
+                                        ProductTableId = s.ProductTableId!.Value,
                                         PurchaseId = s.OwnerId,
                                         Date = s.Owner.DocDate,
                                         Amount = s.Amount,

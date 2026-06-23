@@ -29,4 +29,5 @@ public class PurchaseDocDto
     public string? ContractNumber { get; set; }
 
     public List<PurchaseDocTableDto> Lines { get; set; } = new();
+    public List<PurchaseDocTableDto> ServiceLines { get; set; } = new();
 }

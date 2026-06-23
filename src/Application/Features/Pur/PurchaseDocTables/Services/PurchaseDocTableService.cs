@@ -70,14 +70,18 @@ public class PurchaseDocTableService : IPurchaseDocTableService
 
         var entity = new PurchaseDocTable
         {
-            OwnerId     = dto.OwnerId,
-            ProductTableId = dto.ProductTableId,
-            Quantity    = dto.Quantity,
-            Price       = dto.Price,
-            Amount      = amount,
-            VatRateId   = dto.VatRateId,
-            VatAmount   = vatAmount,
-            TotalAmount = totalAmount
+            OwnerId          = dto.OwnerId,
+            ItemTypeId       = dto.ItemTypeId,
+            ProductTableId   = dto.ProductTableId,
+            Quantity         = dto.Quantity,
+            Price            = dto.Price,
+            Amount           = amount,
+            VatRateId        = dto.VatRateId,
+            VatAmount        = vatAmount,
+            TotalAmount      = totalAmount,
+            ServiceId        = dto.ServiceId,
+            ServiceName      = dto.ServiceName,
+            ExpenseAccountId = dto.ExpenseAccountId,
         };
 
         await _command.CreateAsync(entity, ct);
@@ -116,13 +120,17 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         doc.VatAmount   += newVatAmount   - entity.VatAmount;
         doc.FinalAmount += newTotalAmount - entity.TotalAmount;
 
-        entity.ProductTableId = dto.ProductTableId;
-        entity.Quantity    = dto.Quantity;
-        entity.Price       = dto.Price;
-        entity.Amount      = newAmount;
-        entity.VatRateId   = dto.VatRateId;
-        entity.VatAmount   = newVatAmount;
-        entity.TotalAmount = newTotalAmount;
+        entity.ItemTypeId       = dto.ItemTypeId;
+        entity.ProductTableId   = dto.ProductTableId;
+        entity.Quantity         = dto.Quantity;
+        entity.Price            = dto.Price;
+        entity.Amount           = newAmount;
+        entity.VatRateId        = dto.VatRateId;
+        entity.VatAmount        = newVatAmount;
+        entity.TotalAmount      = newTotalAmount;
+        entity.ServiceId        = dto.ServiceId;
+        entity.ServiceName      = dto.ServiceName;
+        entity.ExpenseAccountId = dto.ExpenseAccountId;
 
         await _command.UpdateAsync(entity, ct);
         await _docCommand.UpdateAsync(doc, ct);

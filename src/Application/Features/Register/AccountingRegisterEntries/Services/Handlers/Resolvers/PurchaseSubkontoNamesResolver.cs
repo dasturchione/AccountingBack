@@ -61,7 +61,14 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
         private async Task FillProductsAsync(PurchaseDoc document, PurchaseSubkontoContext context)
         {
-            var productTableIds = document.PurchaseDocTables.Select(s => s.ProductTableId).Distinct().ToList();
+            var productLines = document.PurchaseDocTables
+                .Where(l => l.ProductTableId.HasValue)
+                .ToList();
+
+            if (productLines.Count == 0)
+                return;
+
+            var productTableIds = productLines.Select(s => s.ProductTableId!.Value).Distinct().ToList();
 
             var productsQuery = _queryBuilder.For<ProductTable>()
                                 .Where(x => productTableIds.Contains(x.Id))
@@ -74,8 +81,8 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
             var products = await _productTableQuery.GetAllAsync(productsQuery);
 
-            var qtyByTableId = document.PurchaseDocTables
-                    .GroupBy(x => x.ProductTableId)
+            var qtyByTableId = productLines
+                    .GroupBy(x => x.ProductTableId!.Value)
                     .ToDictionary(
                         g => g.Key,
                         g => new

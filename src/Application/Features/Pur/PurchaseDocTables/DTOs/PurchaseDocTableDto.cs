@@ -4,8 +4,9 @@ public class PurchaseDocTableDto
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
-    public int ProductTableId { get; set; }
-    public string ProductName { get; set; } = null!;
+    public short ItemTypeId { get; set; }
+    public int? ProductTableId { get; set; }
+    public string? ProductName { get; set; }
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }
     public decimal Amount { get; set; }
@@ -16,4 +17,9 @@ public class PurchaseDocTableDto
 
     public string? MarkingNumber { get; set; }
     public string? SerialNumber { get; set; }
+
+    public int? ServiceId { get; set; }
+    public string? ServiceName { get; set; }
+    public int? ExpenseAccountId { get; set; }
+    public string? ExpenseAccountName { get; set; }
 }

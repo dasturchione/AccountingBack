@@ -1,5 +1,6 @@
 using Application.Features.PurchaseDocTables;
 using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -32,21 +33,42 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             CreatedDate      = x.CreatedDate,
             ContractId       = x.ContractId,
             ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
-            Lines = x.PurchaseDocTables.Select(l => new PurchaseDocTableDto
-            {
-                Id              = l.Id,
-                OwnerId         = l.OwnerId,
-                ProductTableId  = l.ProductTableId,
-                ProductName     = l.ProductTable.Product.Name,
-                Quantity        = l.Quantity,
-                Price           = l.Price,
-                Amount          = l.Amount,
-                VatRateId       = l.VatRateId,
-                VatRateName     = l.VatRate != null ? l.VatRate.Name : null,
-                VatAmount       = l.VatAmount,
-                TotalAmount     = l.TotalAmount,
-                SerialNumber    = l.ProductTable.SerialNumber,
-                MarkingNumber   = l.ProductTable.MarkingNumber
-            }).ToList()
+            Lines = x.PurchaseDocTables
+                .Where(l => l.ItemTypeId == PurchaseItemTypeIdConst.PRODUCT)
+                .Select(l => new PurchaseDocTableDto
+                {
+                    Id                 = l.Id,
+                    OwnerId            = l.OwnerId,
+                    ItemTypeId         = l.ItemTypeId,
+                    ProductTableId     = l.ProductTableId,
+                    ProductName        = l.ProductTable != null ? l.ProductTable.Product.Name : null,
+                    Quantity           = l.Quantity,
+                    Price              = l.Price,
+                    Amount             = l.Amount,
+                    VatRateId          = l.VatRateId,
+                    VatRateName        = l.VatRate != null ? l.VatRate.Name : null,
+                    VatAmount          = l.VatAmount,
+                    TotalAmount        = l.TotalAmount,
+                    SerialNumber       = l.ProductTable != null ? l.ProductTable.SerialNumber : null,
+                    MarkingNumber      = l.ProductTable != null ? l.ProductTable.MarkingNumber : null,
+                }).ToList(),
+            ServiceLines = x.PurchaseDocTables
+                .Where(l => l.ItemTypeId == PurchaseItemTypeIdConst.SERVICE)
+                .Select(l => new PurchaseDocTableDto
+                {
+                    Id                 = l.Id,
+                    OwnerId            = l.OwnerId,
+                    ItemTypeId         = l.ItemTypeId,
+                    ServiceName        = l.ServiceName,
+                    ExpenseAccountId   = l.ExpenseAccountId,
+                    ExpenseAccountName = l.ExpenseAccount != null ? l.ExpenseAccount.Name : null,
+                    Quantity           = l.Quantity,
+                    Price              = l.Price,
+                    Amount             = l.Amount,
+                    VatRateId          = l.VatRateId,
+                    VatRateName        = l.VatRate != null ? l.VatRate.Name : null,
+                    VatAmount          = l.VatAmount,
+                    TotalAmount        = l.TotalAmount,
+                }).ToList()
         };
 }

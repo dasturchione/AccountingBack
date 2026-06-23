@@ -91,12 +91,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
-            // Barcha qatorlar uchun QQS ni oldindan hisoblaymiz
-            var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
-            if (!linesResult.IsSuccess)
-                return Result.Failure<long>(linesResult.Error);
+            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, dto.ServiceLines, ct);
+            if (!allLinesResult.IsSuccess)
+                return Result.Failure<long>(allLinesResult.Error);
 
-            var lines = linesResult.Value;
+            var allLines = allLinesResult.Value;
 
             var doc = new PurchaseDoc
             {
@@ -104,10 +103,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 DocNumber           = docNumber,
                 DocDate             = dto.DocDate,
                 CurrencyId          = dto.CurrencyId,
-                PurchaseDocTables   = lines,
-                TotalAmount         = lines.Sum(l => l.Amount),
-                VatAmount           = lines.Sum(l => l.VatAmount),
-                FinalAmount         = lines.Sum(l => l.TotalAmount),
+                PurchaseDocTables   = allLines,
+                TotalAmount         = allLines.Sum(l => l.Amount),
+                VatAmount           = allLines.Sum(l => l.VatAmount),
+                FinalAmount         = allLines.Sum(l => l.TotalAmount),
                 StatusId            = DocumentStatusIdConst.DRAFT,
                 Comment             = dto.Comment,
                 StateId             = StateIdConst.ACTIVE,
@@ -161,12 +160,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            // Yangi qatorlarni hisoblaymiz
-            var linesResult = await BuildLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
-            if (!linesResult.IsSuccess)
-                return Result.Failure(linesResult.Error);
+            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, dto.ServiceLines, ct);
+            if (!allLinesResult.IsSuccess)
+                return Result.Failure(allLinesResult.Error);
 
-            var newLines = linesResult.Value;
+            var newLines = allLinesResult.Value;
 
             // Eski qatorlarni o'chirib, yangilarini yozamiz
             await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
@@ -237,9 +235,43 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         return await _query.GetAsync(query, ct);
     }
 
-    // dto.Lines dan PurchaseDocTable entity larini yaratib beradi
-    // VatRate DB dan olinadi — agar topilmasa xato qaytaradi
-    private async Task<Result<List<PurchaseDocTable>>> BuildLinesAsync(int organizationid, List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
+    private async Task<Result<List<PurchaseDocTable>>> BuildAllLinesAsync(
+        int organizationId,
+        List<PurchaseDocLineDto> productLineDtos,
+        List<PurchaseDocServiceLineDto> serviceLineDtos,
+        CancellationToken ct)
+    {
+        var allLines = new List<PurchaseDocTable>();
+
+        if (productLineDtos.Count > 0)
+        {
+            var productResult = await BuildProductLinesAsync(organizationId, productLineDtos, ct);
+            if (!productResult.IsSuccess)
+                return Result.Failure<List<PurchaseDocTable>>(productResult.Error);
+
+            allLines.AddRange(productResult.Value);
+        }
+
+        foreach (var sDto in serviceLineDtos)
+        {
+            allLines.Add(new PurchaseDocTable
+            {
+                ItemTypeId       = PurchaseItemTypeIdConst.SERVICE,
+                ServiceName      = sDto.Name,
+                ExpenseAccountId = sDto.AccountId,
+                Price            = sDto.Price,
+                Amount           = sDto.Price,
+                Quantity         = 1,
+                VatAmount        = 0,
+                TotalAmount      = sDto.Price,
+            });
+        }
+
+        return allLines;
+    }
+
+    private async Task<Result<List<PurchaseDocTable>>> BuildProductLinesAsync(
+        int organizationId, List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
     {
         var lines = new List<PurchaseDocTable>(lineDtos.Count);
 
@@ -260,23 +292,24 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 vatAmount = Math.Round(productPrice * vatRate.Rate / 100, 2);
             }
 
-            lines.AddRange(productsGroup.Select(s => new PurchaseDocTable()
+            lines.AddRange(productsGroup.Select(s => new PurchaseDocTable
             {
-                Amount = productPrice,
-                Price = productPrice,
-                Quantity = 1,
+                ItemTypeId  = PurchaseItemTypeIdConst.PRODUCT,
+                Amount      = productPrice,
+                Price       = productPrice,
+                Quantity    = 1,
                 TotalAmount = productPrice + vatAmount,
-                VatRateId = vatRateId,
-                VatAmount = vatAmount,
+                VatRateId   = vatRateId,
+                VatAmount   = vatAmount,
                 ProductTable = new ProductTable
                 {
-                    ProductId = productsGroup.Key,
-                    SerialNumber = s.SerialNumber,
-                    MarkingNumber = s.MarkingNumber,
-                    CreatedDate = DateTime.Now,
-                    OrganizationId = organizationid,
-                    StateId = StateIdConst.ACTIVE,
-                    StatusId = ProductTableStatusIdConst.IN_STOCK
+                    ProductId      = productsGroup.Key,
+                    SerialNumber   = s.SerialNumber,
+                    MarkingNumber  = s.MarkingNumber,
+                    CreatedDate    = DateTime.Now,
+                    OrganizationId = organizationId,
+                    StateId        = StateIdConst.ACTIVE,
+                    StatusId       = ProductTableStatusIdConst.IN_STOCK
                 }
             }));
         }

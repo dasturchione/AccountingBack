@@ -7,6 +7,5 @@ public class SaleDocWarehouseConfirmDto
 
 public class SaleDocWarehouseConfirmItemDto
 {
-    public long SaleDocProductId { get; set; }
-    public List<int> ProductTableIds { get; set; } = new();
+    public int ProductTableId { get; set; }
 }

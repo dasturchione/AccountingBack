@@ -161,6 +161,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
     /// <summary>
     /// Bosqich 2: Skladchik tasdiqlaydi — aniq ProductTable elementlarini tanlaydi.
+    /// Faqat productTableId lar keladi, sistema ProductId bo'yicha SaleDocProduct ga moslashtiradi.
     /// SaleDocTable yaratiladi, ProductTable → RESERVED, SaleDoc → PENDING.
     /// </summary>
     public Task<Result> WarehouseConfirmAsync(long id, SaleDocWarehouseConfirmDto dto, CancellationToken ct = default) =>
@@ -181,39 +182,48 @@ public class SaleDocService : BaseService, ISaleDocService
             var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
             var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
 
-            var allProductTableIds = dto.Items.SelectMany(i => i.ProductTableIds).ToList();
+            var allProductTableIds = dto.Items.Select(i => i.ProductTableId).ToList();
 
             var ptQuery = _queryBuilder.For<ProductTable>()
                 .Where(x => allProductTableIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE)
                 .Build();
             var productTables = await _productTableQuery.GetAllAsync(ptQuery, ct);
 
+            // Har bir ProductTable ni tekshirish
+            foreach (var item in dto.Items)
+            {
+                var pt = productTables.FirstOrDefault(x => x.Id == item.ProductTableId);
+                if (pt == null)
+                    return Result.Failure(SaleDocErrors.ProductTableNotFound(item.ProductTableId, _userContext.LanguageId));
+
+                if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                    return Result.Failure(SaleDocErrors.ProductTableNotAvailable(item.ProductTableId, _userContext.LanguageId));
+            }
+
+            // ProductTable larni ProductId bo'yicha guruhlash
+            var ptByProductId = productTables.GroupBy(pt => pt.ProductId).ToDictionary(g => g.Key, g => g.ToList());
+
+            // Har bir SaleDocProduct uchun mos ProductTable larni tekshirish
+            foreach (var productLine in productLines)
+            {
+                if (!ptByProductId.TryGetValue(productLine.ProductId, out var matchedPts))
+                    return Result.Failure(SaleDocErrors.QuantityMismatch(productLine.Id, productLine.Quantity, 0, _userContext.LanguageId));
+
+                if (matchedPts.Count != (int)productLine.Quantity)
+                    return Result.Failure(SaleDocErrors.QuantityMismatch(productLine.Id, productLine.Quantity, matchedPts.Count, _userContext.LanguageId));
+            }
+
             var purchaseCostMap = await GetCostPriceMapAsync(allProductTableIds, ct);
 
             var allNewLines = new List<SaleDocTable>();
 
-            foreach (var item in dto.Items)
+            foreach (var productLine in productLines)
             {
-                var productLine = productLines.FirstOrDefault(p => p.Id == item.SaleDocProductId);
-                if (productLine == null)
-                    return Result.Failure(SaleDocErrors.SaleDocProductNotFound(item.SaleDocProductId, _userContext.LanguageId));
+                var matchedPts = ptByProductId[productLine.ProductId];
 
-                if (item.ProductTableIds.Count != (int)productLine.Quantity)
-                    return Result.Failure(SaleDocErrors.QuantityMismatch(item.SaleDocProductId, productLine.Quantity, item.ProductTableIds.Count, _userContext.LanguageId));
-
-                foreach (var ptId in item.ProductTableIds)
+                foreach (var pt in matchedPts)
                 {
-                    var pt = productTables.FirstOrDefault(x => x.Id == ptId);
-                    if (pt == null)
-                        return Result.Failure(SaleDocErrors.ProductTableNotFound(ptId, _userContext.LanguageId));
-
-                    if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                        return Result.Failure(SaleDocErrors.ProductTableNotAvailable(ptId, _userContext.LanguageId));
-
-                    if (pt.ProductId != productLine.ProductId)
-                        return Result.Failure(SaleDocErrors.ProductMismatch(ptId, productLine.ProductId, pt.ProductId, _userContext.LanguageId));
-
-                    var costPrice = purchaseCostMap.GetValueOrDefault(ptId);
+                    var costPrice = purchaseCostMap.GetValueOrDefault(pt.Id);
 
                     var vatAmount = 0m;
                     if (productLine.VatRateId.HasValue && productLine.VatAmount > 0 && productLine.Quantity > 0)
@@ -222,7 +232,7 @@ public class SaleDocService : BaseService, ISaleDocService
                     allNewLines.Add(new SaleDocTable
                     {
                         OwnerId        = productLine.Id,
-                        ProductTableId = ptId,
+                        ProductTableId = pt.Id,
                         Price          = productLine.UnitPrice,
                         CostPrice      = costPrice,
                         Amount         = productLine.UnitPrice,
@@ -231,20 +241,14 @@ public class SaleDocService : BaseService, ISaleDocService
                         TotalAmount    = productLine.UnitPrice + vatAmount,
                     });
                 }
+
+                productLine.CostPrice = matchedPts.Sum(pt => purchaseCostMap.GetValueOrDefault(pt.Id));
+                await _productLineCommand.UpdateAsync(productLine, ct);
             }
 
             await _lineCommand.CreateAsync(allNewLines, ct);
 
             await UpdateProductTableStatusesAsync(allProductTableIds, ProductTableStatusIdConst.RESERVED, ct);
-
-            // SaleDocProduct.CostPrice ni yangilash
-            foreach (var item in dto.Items)
-            {
-                var productLine = productLines.First(p => p.Id == item.SaleDocProductId);
-                var lineCosts = item.ProductTableIds.Select(ptId => purchaseCostMap.GetValueOrDefault(ptId));
-                productLine.CostPrice = lineCosts.Sum();
-                await _productLineCommand.UpdateAsync(productLine, ct);
-            }
 
             doc.StatusId = DocumentStatusIdConst.PENDING;
             await _command.UpdateAsync(doc, ct);
@@ -260,7 +264,8 @@ public class SaleDocService : BaseService, ISaleDocService
         }, ct);
 
     /// <summary>
-    /// Bosqich 3: Bugalter tasdiqlaydi — SaleDoc → POSTED, ProductTable → SOLD, provodka yaratiladi.
+    /// Bosqich 3: Bugalter tasdiqlaydi — har bir SaleDocTable uchun sotuv narxini belgilaydi.
+    /// SaleDoc → POSTED, ProductTable → SOLD, provodka yaratiladi.
     /// </summary>
     public Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
@@ -281,33 +286,56 @@ public class SaleDocService : BaseService, ISaleDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            if (dto.CounterpartyId.HasValue)
-            {
-                var counterpartyQuery = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == dto.CounterpartyId.Value).Build();
-                var counterparty = await _counterpartyQuery.GetAsync(counterpartyQuery, ct);
-                if (counterparty is null)
-                    return Result.Failure(CounterpartyCardErrors.NotFound(dto.CounterpartyId.Value, _userContext.LanguageId));
-                doc.CounterpartyId = dto.CounterpartyId.Value;
-            }
-
-            if (dto.DocDate.HasValue)
-                doc.DocDate = DateTime.SpecifyKind(dto.DocDate.Value, DateTimeKind.Unspecified);
-
-            if (dto.Comment != null)
-                doc.Comment = dto.Comment;
-
-            doc.StatusId = DocumentStatusIdConst.POSTED;
-            await _command.UpdateAsync(doc, ct);
-
-            // ProductTable → SOLD
+            // SaleDocTable larni yangilash — bugalter sotuv narxini belgilaydi
             var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
             var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
             var productLineIds = productLines.Select(p => p.Id).ToList();
 
             var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId.HasValue && productLineIds.Contains(x.OwnerId.Value)).Build();
-            var tables = await _lineQuery.GetAllAsync(tablesQuery, ct);
-            var productTableIds = tables.Select(t => t.ProductTableId).ToList();
+            var existingLines = await _lineQuery.GetAllAsync(tablesQuery, ct);
 
+            foreach (var lineDto in dto.Lines)
+            {
+                var line = existingLines.FirstOrDefault(l => l.Id == lineDto.Id);
+                if (line == null)
+                    return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
+
+                line.Amount = lineDto.Amount;
+                line.Price = lineDto.Amount;
+
+                if (line.VatRateId.HasValue)
+                {
+                    var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == line.VatRateId.Value).Build();
+                    var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
+
+                    if (vatRate != null)
+                        line.VatAmount = Math.Round(line.Price * vatRate.Rate / 100, 2);
+                }
+
+                line.TotalAmount = line.Amount + line.VatAmount;
+                await _lineCommand.UpdateAsync(line, ct);
+            }
+
+            // SaleDocProduct summalarini qayta hisoblash
+            foreach (var productLine in productLines)
+            {
+                var lineTables = existingLines.Where(t => t.OwnerId == productLine.Id).ToList();
+                productLine.Amount = lineTables.Sum(t => t.Amount);
+                productLine.UnitPrice = productLine.Quantity > 0 ? Math.Round(productLine.Amount / productLine.Quantity, 2) : 0;
+                productLine.VatAmount = lineTables.Sum(t => t.VatAmount);
+                productLine.TotalAmount = lineTables.Sum(t => t.TotalAmount);
+                await _productLineCommand.UpdateAsync(productLine, ct);
+            }
+
+            // SaleDoc summalarini yangilash
+            doc.TotalAmount = existingLines.Sum(l => l.Amount);
+            doc.VatAmount   = existingLines.Sum(l => l.VatAmount);
+            doc.FinalAmount = existingLines.Sum(l => l.TotalAmount);
+            doc.StatusId = DocumentStatusIdConst.POSTED;
+            await _command.UpdateAsync(doc, ct);
+
+            // ProductTable → SOLD
+            var productTableIds = existingLines.Select(t => t.ProductTableId).ToList();
             await UpdateProductTableStatusesAsync(productTableIds, ProductTableStatusIdConst.SOLD, ct);
 
             // Provodka

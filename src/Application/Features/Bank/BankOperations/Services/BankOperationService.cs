@@ -150,7 +150,7 @@ public class BankOperationService : IBankOperationService
             OrganizationId = orgId,
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
+            PaymentTypeId = 2,
             CounterpartyId = dto.CounterpartyId,
             DocNumber = string.Empty,
             DocDate = dto.DocDate,

@@ -1,3 +1,4 @@
+using SharedKernel.Constants;
 using System.Text.Json.Serialization;
 
 namespace Application.Features.BankParsers;
@@ -60,6 +61,10 @@ public class TransactionDto
 
     [JsonPropertyName("docNumber")]
     public string DocNumber { get; set; } = "";
+
+    [JsonPropertyName("operationTypeId")]
+
+    public short OperationTypeId => Debit > Credit ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT;
 
     [JsonPropertyName("operationCode")]
     public string OperationCode { get; set; } = "";

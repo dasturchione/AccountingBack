@@ -44,6 +44,14 @@ public class BankOperationController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("many")]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationCreate)]
+    public async Task<IResult> CreateManyAsync([FromBody] BankOperationsCreateDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.CreateManyAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.BankOperationUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] BankOperationUpdateDto dto, CancellationToken ct = default)

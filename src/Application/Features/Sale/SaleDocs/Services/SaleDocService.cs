@@ -58,30 +58,30 @@ public class SaleDocService : BaseService, ISaleDocService
                           IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
     {
-        _query                  = query;
-        _command                = command;
-        _dispatcher             = dispatcher;
-        _lineCommand            = lineCommand;
-        _lineQuery              = lineQuery;
-        _productLineCommand     = productLineCommand;
-        _productLineQuery       = productLineQuery;
-        _userContext            = userContext;
-        _queryBuilder           = queryBuilder;
-        _auditLogService        = auditLogService;
-        _vatRateQuery           = vatRateQuery;
-        _warehouseQuery         = warehouseQuery;
-        _counterpartyQuery      = counterpartyQuery;
-        _productTableQuery      = productTableQuery;
-        _productTableCommand    = productTableCommand;
-        _purchaseDocTableQuery  = purchaseDocTableQuery;
-        _inventoryDispatcher    = inventoryDispatcher;
-        _docNumberGenerator     = docNumberGenerator;
+        _query = query;
+        _command = command;
+        _dispatcher = dispatcher;
+        _lineCommand = lineCommand;
+        _lineQuery = lineQuery;
+        _productLineCommand = productLineCommand;
+        _productLineQuery = productLineQuery;
+        _userContext = userContext;
+        _queryBuilder = queryBuilder;
+        _auditLogService = auditLogService;
+        _vatRateQuery = vatRateQuery;
+        _warehouseQuery = warehouseQuery;
+        _counterpartyQuery = counterpartyQuery;
+        _productTableQuery = productTableQuery;
+        _productTableCommand = productTableCommand;
+        _purchaseDocTableQuery = purchaseDocTableQuery;
+        _inventoryDispatcher = inventoryDispatcher;
+        _docNumberGenerator = docNumberGenerator;
     }
 
     public Task<Result<PagedResponse<SaleDocListDto>>> GetAllAsync(SaleDocListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
-            var query     = _queryBuilder.BuildPaged<SaleDoc, SaleDocListDto, SaleDocListFilter>(filter);
+            var query = _queryBuilder.BuildPaged<SaleDoc, SaleDocListDto, SaleDocListFilter>(filter);
             var pagedList = await _query.GetPagedAsync(query, ct);
             return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
         });
@@ -89,7 +89,7 @@ public class SaleDocService : BaseService, ISaleDocService
     public Task<Result<SaleDocDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query  = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
+            var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity == null)
@@ -132,18 +132,18 @@ public class SaleDocService : BaseService, ISaleDocService
             var doc = new SaleDoc
             {
                 OrganizationId = orgId,
-                DocNumber      = docNumber,
-                DocDate        = now,
-                CurrencyId     = dto.CurrencyId,
+                DocNumber = docNumber,
+                DocDate = now,
+                CurrencyId = dto.CurrencyId,
                 SaleDocProducts = productLines,
-                TotalAmount    = productLines.Sum(l => l.Amount),
-                VatAmount      = productLines.Sum(l => l.VatAmount),
-                FinalAmount    = productLines.Sum(l => l.TotalAmount),
-                StatusId       = DocumentStatusIdConst.DRAFT,
-                Comment        = dto.Comment,
-                StateId        = StateIdConst.ACTIVE,
-                CreatedDate    = now,
-                WarehouseId    = dto.WarehouseId,
+                TotalAmount = productLines.Sum(l => l.Amount),
+                VatAmount = productLines.Sum(l => l.VatAmount),
+                FinalAmount = productLines.Sum(l => l.TotalAmount),
+                StatusId = DocumentStatusIdConst.DRAFT,
+                Comment = dto.Comment,
+                StateId = StateIdConst.ACTIVE,
+                CreatedDate = now,
+                WarehouseId = dto.WarehouseId,
                 CounterpartyId = dto.CounterpartyId,
             };
 
@@ -231,13 +231,13 @@ public class SaleDocService : BaseService, ISaleDocService
 
                     allNewLines.Add(new SaleDocTable
                     {
-                        OwnerId        = productLine.Id,
+                        OwnerId = productLine.Id,
                         ProductTableId = pt.Id,
-                        CostPrice      = costPrice,
-                        Amount         = productLine.UnitPrice,
-                        VatRateId      = productLine.VatRateId,
-                        VatAmount      = vatAmount,
-                        TotalAmount    = productLine.UnitPrice + vatAmount,
+                        CostPrice = costPrice,
+                        Amount = productLine.UnitPrice,
+                        VatRateId = productLine.VatRateId,
+                        VatAmount = vatAmount,
+                        TotalAmount = productLine.UnitPrice + vatAmount,
                     });
                 }
 
@@ -327,7 +327,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
             // SaleDoc summalarini yangilash
             doc.TotalAmount = existingLines.Sum(l => l.Amount);
-            doc.VatAmount   = existingLines.Sum(l => l.VatAmount);
+            doc.VatAmount = existingLines.Sum(l => l.VatAmount);
             doc.FinalAmount = existingLines.Sum(l => l.TotalAmount);
             doc.StatusId = DocumentStatusIdConst.POSTED;
             await _command.UpdateAsync(doc, ct);
@@ -419,7 +419,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
-            var doc   = await _query.GetAsync(query, ct);
+            var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
@@ -431,12 +431,12 @@ public class SaleDocService : BaseService, ISaleDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
+            doc.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.CounterpartyId = dto.CounterpartyId;
-            doc.WarehouseId    = dto.WarehouseId;
-            doc.CurrencyId     = dto.CurrencyId;
-            doc.Comment        = dto.Comment;
-            doc.StateId        = dto.StateId;
+            doc.WarehouseId = dto.WarehouseId;
+            doc.CurrencyId = dto.CurrencyId;
+            doc.Comment = dto.Comment;
+            doc.StateId = dto.StateId;
 
             // DRAFT da mahsulot liniyalarini ham o'zgartirish mumkin
             if (doc.StatusId == DocumentStatusIdConst.DRAFT && dto.Products.Count > 0)
@@ -460,7 +460,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 await _productLineCommand.CreateAsync(newProducts, ct);
 
                 doc.TotalAmount = newProducts.Sum(p => p.Amount);
-                doc.VatAmount   = newProducts.Sum(p => p.VatAmount);
+                doc.VatAmount = newProducts.Sum(p => p.VatAmount);
                 doc.FinalAmount = newProducts.Sum(p => p.TotalAmount);
             }
 
@@ -480,7 +480,7 @@ public class SaleDocService : BaseService, ISaleDocService
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
             var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
-            var doc   = await _query.GetAsync(query, ct);
+            var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
@@ -553,13 +553,13 @@ public class SaleDocService : BaseService, ISaleDocService
 
             lines.Add(new SaleDocProduct
             {
-                ProductId  = p.ProductId,
-                Quantity   = p.Quantity,
-                UnitPrice  = p.UnitPrice,
-                CostPrice  = 0,
-                Amount     = amount,
-                VatRateId  = p.VatRateId,
-                VatAmount  = vatAmount,
+                ProductId = p.ProductId,
+                Quantity = p.Quantity,
+                UnitPrice = p.UnitPrice,
+                CostPrice = 0,
+                Amount = amount,
+                VatRateId = p.VatRateId,
+                VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
             });
         }
@@ -588,13 +588,13 @@ public class SaleDocService : BaseService, ISaleDocService
 
             lines.Add(new SaleDocProduct
             {
-                ProductId  = p.ProductId,
-                Quantity   = p.Quantity,
-                UnitPrice  = p.UnitPrice,
-                CostPrice  = 0,
-                Amount     = amount,
-                VatRateId  = p.VatRateId,
-                VatAmount  = vatAmount,
+                ProductId = p.ProductId,
+                Quantity = p.Quantity,
+                UnitPrice = p.UnitPrice,
+                CostPrice = 0,
+                Amount = amount,
+                VatRateId = p.VatRateId,
+                VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
             });
         }

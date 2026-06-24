@@ -34,22 +34,7 @@ public class BankOperationService : IBankOperationService
     {
         var orgId = _userContext.OrganizationId!.Value;
 
-        var entity = new BankOperation
-        {
-            OrganizationId = orgId,
-            BankAccountId = dto.BankAccountId,
-            OperationTypeId = dto.OperationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
-            CounterpartyId = dto.CounterpartyId,
-            DocNumber = dto.DocNumber,
-            DocDate = dto.DocDate,
-            CurrencyId = dto.CurrencyId,
-            Amount = dto.Amount,
-            Comment = dto.Comment,
-            StatusId = dto.StatusId,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
-        };
+        var entity = BuildCreateEntity(dto, orgId);
 
         await _command.CreateAsync(entity, ct);
 
@@ -61,6 +46,18 @@ public class BankOperationService : IBankOperationService
         }
 
         return entity.Id;
+    }
+
+    public async Task<Result<List<long>>> CreateManyAsync(BankOperationsCreateDto dto, CancellationToken ct = default)
+    {
+        var orgId = _userContext.OrganizationId!.Value;
+        var entities = dto.Operations
+            .Select(operation => BuildCreateEntity(operation, orgId))
+            .ToList();
+
+        await _command.CreateAsync(entities, ct);
+
+        return entities.Select(x => x.Id).ToList();
     }
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
@@ -146,4 +143,22 @@ public class BankOperationService : IBankOperationService
         var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).As<BankOperationDto>().Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private static BankOperation BuildCreateEntity(BankOperationCreateDto dto, int orgId) =>
+        new()
+        {
+            OrganizationId = orgId,
+            BankAccountId = dto.BankAccountId,
+            OperationTypeId = dto.OperationTypeId,
+            PaymentTypeId = dto.PaymentTypeId,
+            CounterpartyId = dto.CounterpartyId,
+            DocNumber = string.Empty,
+            DocDate = dto.DocDate,
+            CurrencyId = dto.CurrencyId,
+            Amount = dto.Amount,
+            Comment = dto.Comment,
+            StatusId = DocumentStatusIdConst.POSTED,
+            StateId = StateIdConst.ACTIVE,
+            CreatedDate = DateTime.Now
+        };
 }

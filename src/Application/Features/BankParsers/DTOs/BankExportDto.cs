@@ -19,6 +19,9 @@ public class AccountStatementDto
     [JsonPropertyName("accountNumber")]
     public string AccountNumber { get; set; } = "";
 
+    [JsonPropertyName("bankAccountId")]
+    public int? BankAccountId { get; set; }
+
     [JsonPropertyName("companyName")]
     public string CompanyName { get; set; } = "";
 
@@ -72,6 +75,9 @@ public class TransactionDto
 
     [JsonPropertyName("counterpartyName")]
     public string CounterpartyName { get; set; } = "";
+
+    [JsonPropertyName("counterpartyId")]
+    public int? CounterpartyId { get; set; }
 
     [JsonPropertyName("debit")]
     public decimal Debit { get; set; }

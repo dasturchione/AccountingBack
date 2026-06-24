@@ -121,6 +121,9 @@ INSERT INTO sys_module (id, code, short_name, full_name, sub_group_id, state_id,
 (514, 'BANK_OPERATION_UPDATE',      'Bank operatsiyasi tahrirlash','Tahrirlash',5,1, now()),
 (515, 'BANK_OPERATION_DELETE',      'Bank operatsiyasi o''chirish','O''chirish',5,1, now()),
 
+-- ---- BANK: BankStatementParser (sub_group_id = 5) ----
+(521, 'BANK_STATEMENT_PARSE', 'Bank statement import', 'Bank Excel statement faylini JSON qilib parse qilish', 5, 1, now()),
+
 -- ---- CASH: CashBox (sub_group_id = 6) ----
 (601, 'CASH_BOX_VIEW',        'Kassalar',       'Ro''yxat',   6, 1, now()),
 (602, 'CASH_BOX_VIEW_DETAIL', 'Kassa detail',   'Batafsil',   6, 1, now()),

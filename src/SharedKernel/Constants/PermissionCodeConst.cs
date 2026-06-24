@@ -125,6 +125,10 @@ public static class PermissionCodeConst
     public const string BankOperationDelete     = "BANK_OPERATION_DELETE";
     #endregion
 
+    #region BankStatementParser
+    public const string BankStatementParse = "BANK_STATEMENT_PARSE";
+    #endregion
+
     #region CashBox
     public const string CashBoxView       = "CASH_BOX_VIEW";
     public const string CashBoxViewDetail = "CASH_BOX_VIEW_DETAIL";

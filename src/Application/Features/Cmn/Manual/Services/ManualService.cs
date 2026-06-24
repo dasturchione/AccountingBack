@@ -32,6 +32,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<ProductGroup> _productGroupQuery;
     private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<PurchaseServiceType> _purchaseServiceTypeQuery;
     private readonly IQueryRepository<PurchaseService> _purchaseServiceQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
@@ -67,6 +68,7 @@ public class ManualService : IManualService
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<ProductGroup> productGroupQuery,
         IQueryRepository<Product> productQuery,
+        IQueryRepository<PurchaseServiceType> purchaseServiceTypeQuery,
         IQueryRepository<PurchaseService> purchaseServiceQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
@@ -102,6 +104,7 @@ public class ManualService : IManualService
         _counterpartyQuery     = counterpartyQuery;
         _productGroupQuery     = productGroupQuery;
         _productQuery          = productQuery;
+        _purchaseServiceTypeQuery = purchaseServiceTypeQuery;
         _purchaseServiceQuery  = purchaseServiceQuery;
         _warehouseQuery        = warehouseQuery;
         _chartAccountQuery     = chartAccountQuery;
@@ -436,6 +439,23 @@ public class ManualService : IManualService
         };
 
         return (await _purchaseServiceQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetPurchaseServiceTypesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<PurchaseServiceType, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto
+            {
+                Id   = x.Id,
+                Name = x.Name,
+                Code = x.Account.Code
+            }
+        };
+
+        return (await _purchaseServiceTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)

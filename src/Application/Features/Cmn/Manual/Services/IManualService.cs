@@ -45,6 +45,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default);
 
     // purchase
+    Task<List<SelectListDto>> GetPurchaseServiceTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPurchaseServicesAsync(int? serviceTypeId = null, CancellationToken ct = default);
 
     // acc

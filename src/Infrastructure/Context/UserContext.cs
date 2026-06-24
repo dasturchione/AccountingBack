@@ -44,6 +44,10 @@ namespace Infrastructure.Context
                 if (!string.IsNullOrWhiteSpace(headerVal) && int.TryParse(headerVal, out var headerId))
                     return headerId;
 
+                var claimVal = _accessor.HttpContext?.User.FindFirst("OrganizationId")?.Value;
+                if (int.TryParse(claimVal, out var claimId) && claimId > 0)
+                    return claimId;
+
                 return null;
             }
         }

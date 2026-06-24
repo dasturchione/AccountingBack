@@ -23,8 +23,9 @@ public class PurchaseDocTableDtoProjection : IProjectionBuilder<PurchaseDocTable
             TotalAmount        = x.TotalAmount,
             MarkingNumber      = x.ProductTable != null ? x.ProductTable.MarkingNumber : null,
             SerialNumber       = x.ProductTable != null ? x.ProductTable.SerialNumber : null,
-            ServiceName        = x.ServiceName,
-            ExpenseAccountId   = x.ExpenseAccountId,
-            ExpenseAccountName = x.ExpenseAccount != null ? x.ExpenseAccount.Name : null,
+            ServiceId          = x.ServiceId,
+            ServiceName        = x.Service != null ? x.Service.Name : null,
+            ExpenseAccountId   = x.Service != null ? x.Service.ServiceType.AccountId : null,
+            ExpenseAccountName = x.Service != null ? x.Service.ServiceType.Account.Name : null,
         };
 }

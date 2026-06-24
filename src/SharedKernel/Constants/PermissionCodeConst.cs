@@ -157,6 +157,14 @@ public static class PermissionCodeConst
     public const string PurchaseDocTableDelete     = "PURCHASE_DOC_TABLE_DELETE";
     #endregion
 
+    #region PurchaseService
+    public const string PurchaseServiceView       = "PURCHASE_SERVICE_VIEW";
+    public const string PurchaseServiceViewDetail = "PURCHASE_SERVICE_VIEW_DETAIL";
+    public const string PurchaseServiceCreate     = "PURCHASE_SERVICE_CREATE";
+    public const string PurchaseServiceUpdate     = "PURCHASE_SERVICE_UPDATE";
+    public const string PurchaseServiceDelete     = "PURCHASE_SERVICE_DELETE";
+    #endregion
+
     #region SaleDoc
     public const string SaleDocView       = "SALE_DOC_VIEW";
     public const string SaleDocViewDetail = "SALE_DOC_VIEW_DETAIL";

@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pur_doc_table")]
-[Index("ExpenseAccountId", Name = "idx_pur_doc_table_expense_account_id")]
 [Index("ItemTypeId", Name = "idx_pur_doc_table_item_type_id")]
 [Index("OwnerId", Name = "idx_pur_doc_table_owner_id")]
 [Index("ProductTableId", Name = "idx_pur_doc_table_product_id")]
@@ -50,18 +49,7 @@ public partial class PurchaseDocTable
     public short ItemTypeId { get; set; }
 
     [Column("service_id")]
-    public int? ServiceId { get; set; }
-
-    [Column("service_name")]
-    [StringLength(250)]
-    public string? ServiceName { get; set; }
-
-    [Column("expense_account_id")]
-    public int? ExpenseAccountId { get; set; }
-
-    [ForeignKey("ExpenseAccountId")]
-    [InverseProperty("PurchaseDocTables")]
-    public virtual ChartAccount? ExpenseAccount { get; set; }
+    public long? ServiceId { get; set; }
 
     [ForeignKey("ItemTypeId")]
     [InverseProperty("PurchaseDocTables")]
@@ -77,7 +65,7 @@ public partial class PurchaseDocTable
 
     [ForeignKey("ServiceId")]
     [InverseProperty("PurchaseDocTables")]
-    public virtual Product? Service { get; set; }
+    public virtual PurchaseService? Service { get; set; }
 
     [ForeignKey("VatRateId")]
     [InverseProperty("PurchaseDocTables")]

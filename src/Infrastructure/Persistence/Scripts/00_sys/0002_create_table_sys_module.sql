@@ -156,6 +156,13 @@ INSERT INTO sys_module (id, code, short_name, full_name, sub_group_id, state_id,
 (724, 'CONTRACT_UPDATE',      'Shartnoma tahrirlash',  'Shartnomani tahrirlash',        7, 1, now()),
 (725, 'CONTRACT_DELETE',      'Shartnoma o''chirish',  'Shartnomani o''chirish',        7, 1, now()),
 
+-- ---- PURCHASE: PurchaseService (sub_group_id = 7) ----
+(731, 'PURCHASE_SERVICE_VIEW',        'Xarid xizmatlari',       'Ro''yxat',   7, 1, now()),
+(732, 'PURCHASE_SERVICE_VIEW_DETAIL', 'Xarid xizmati detail',   'Batafsil',   7, 1, now()),
+(733, 'PURCHASE_SERVICE_CREATE',      'Xarid xizmati yaratish', 'Yangi',      7, 1, now()),
+(734, 'PURCHASE_SERVICE_UPDATE',      'Xarid xizmati tahrirlash','Tahrirlash',7, 1, now()),
+(735, 'PURCHASE_SERVICE_DELETE',      'Xarid xizmati o''chirish','O''chirish',7, 1, now()),
+
 -- ---- SALE: SaleDoc (sub_group_id = 8) ----
 (801, 'SALE_DOC_VIEW',        'Sotuv hujjatlari',       'Ro''yxat',   8, 1, now()),
 (802, 'SALE_DOC_VIEW_DETAIL', 'Sotuv hujjati detail',   'Batafsil',   8, 1, now()),

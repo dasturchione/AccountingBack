@@ -257,8 +257,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             allLines.Add(new PurchaseDocTable
             {
                 ItemTypeId       = PurchaseItemTypeIdConst.SERVICE,
-                ServiceName      = sDto.Name,
-                ExpenseAccountId = sDto.AccountId,
+                ServiceId        = sDto.ServiceId,
                 Price            = sDto.Price,
                 Amount           = sDto.Price,
                 Quantity         = 1,

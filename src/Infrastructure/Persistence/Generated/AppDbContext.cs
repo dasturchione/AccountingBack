@@ -7,10 +7,7 @@ namespace Infrastructure.Persistence.Generated;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public virtual DbSet<AccAccountResolveRule> AccAccountResolveRules { get; set; }
 
@@ -68,6 +65,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
+    public virtual DbSet<CmnPurServiceType> CmnPurServiceTypes { get; set; }
+
     public virtual DbSet<CmnPurchaseItemType> CmnPurchaseItemTypes { get; set; }
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
@@ -117,6 +116,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PurDoc> PurDocs { get; set; }
 
     public virtual DbSet<PurDocTable> PurDocTables { get; set; }
+
+    public virtual DbSet<PurService> PurServices { get; set; }
 
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
 
@@ -547,6 +548,22 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnProductTableStatuses)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_product_table_status_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnPurServiceType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_pur_service_type_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.VatApplicable).HasDefaultValue(true);
+
+            entity.HasOne(d => d.Account).WithMany(p => p.CmnPurServiceTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pur_service_type_account_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnPurServiceTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pur_service_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnPurchaseItemType>(entity =>
@@ -1010,8 +1027,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.ItemTypeId).HasDefaultValue((short)1);
 
-            entity.HasOne(d => d.ExpenseAccount).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_expense_account_id_fkey");
-
             entity.HasOne(d => d.ItemType).WithMany(p => p.PurDocTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_table_item_type_id_fkey");
@@ -1023,6 +1038,21 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Service).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_service_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<PurService>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pur_service_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.ServiceType).WithMany(p => p.PurServices)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_service_service_type_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PurServices)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_service_state_id_fkey");
         });
 
         modelBuilder.Entity<SaleDoc>(entity =>

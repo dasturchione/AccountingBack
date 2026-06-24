@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc_table")]
-[Index("ExpenseAccountId", Name = "idx_pur_doc_table_expense_account_id")]
 [Index("ItemTypeId", Name = "idx_pur_doc_table_item_type_id")]
 [Index("OwnerId", Name = "idx_pur_doc_table_owner_id")]
 [Index("ProductTableId", Name = "idx_pur_doc_table_product_id")]
@@ -52,18 +51,7 @@ public partial class PurDocTable
     public short ItemTypeId { get; set; }
 
     [Column("service_id")]
-    public int? ServiceId { get; set; }
-
-    [Column("service_name")]
-    [StringLength(250)]
-    public string? ServiceName { get; set; }
-
-    [Column("expense_account_id")]
-    public int? ExpenseAccountId { get; set; }
-
-    [ForeignKey("ExpenseAccountId")]
-    [InverseProperty("PurDocTables")]
-    public virtual AccChartAccount? ExpenseAccount { get; set; }
+    public long? ServiceId { get; set; }
 
     [ForeignKey("ItemTypeId")]
     [InverseProperty("PurDocTables")]
@@ -79,7 +67,7 @@ public partial class PurDocTable
 
     [ForeignKey("ServiceId")]
     [InverseProperty("PurDocTables")]
-    public virtual InvProduct? Service { get; set; }
+    public virtual PurService? Service { get; set; }
 
     [ForeignKey("VatRateId")]
     [InverseProperty("PurDocTables")]

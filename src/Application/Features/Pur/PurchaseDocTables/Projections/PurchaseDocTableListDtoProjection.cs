@@ -21,8 +21,9 @@ public class PurchaseDocTableListDtoProjection : IProjectionBuilder<PurchaseDocT
             VatRateName        = x.VatRate != null ? x.VatRate.Name : null,
             VatAmount          = x.VatAmount,
             TotalAmount        = x.TotalAmount,
-            ServiceName        = x.ServiceName,
-            ExpenseAccountId   = x.ExpenseAccountId,
-            ExpenseAccountName = x.ExpenseAccount != null ? x.ExpenseAccount.Name : null,
+            ServiceId          = x.ServiceId,
+            ServiceName        = x.Service != null ? x.Service.Name : null,
+            ExpenseAccountId   = x.Service != null ? x.Service.ServiceType.AccountId : null,
+            ExpenseAccountName = x.Service != null ? x.Service.ServiceType.Account.Name : null,
         };
 }

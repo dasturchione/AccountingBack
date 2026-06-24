@@ -80,8 +80,6 @@ public class PurchaseDocTableService : IPurchaseDocTableService
             VatAmount        = vatAmount,
             TotalAmount      = totalAmount,
             ServiceId        = dto.ServiceId,
-            ServiceName      = dto.ServiceName,
-            ExpenseAccountId = dto.ExpenseAccountId,
         };
 
         await _command.CreateAsync(entity, ct);
@@ -129,8 +127,6 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         entity.VatAmount        = newVatAmount;
         entity.TotalAmount      = newTotalAmount;
         entity.ServiceId        = dto.ServiceId;
-        entity.ServiceName      = dto.ServiceName;
-        entity.ExpenseAccountId = dto.ExpenseAccountId;
 
         await _command.UpdateAsync(entity, ct);
         await _docCommand.UpdateAsync(doc, ct);

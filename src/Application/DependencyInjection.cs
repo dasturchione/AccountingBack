@@ -25,6 +25,7 @@ using Application.Features.ProductPrices;
 using Application.Features.Products;
 using Application.Features.PurchaseDocs;
 using Application.Features.PurchaseDocTables;
+using Application.Features.PurchaseServices;
 using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.Register.AccountingRegisterEntries.Services;
 using Application.Features.Roles;
@@ -66,6 +67,7 @@ namespace Application
             services.AddScoped<ICashOperationService, CashOperationService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();
             services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
+            services.AddScoped<IPurchaseServiceService, PurchaseServiceService>();
             services.AddScoped<ISaleDocService, SaleDocService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
             services.AddScoped<IChartAccountService, ChartAccountService>();

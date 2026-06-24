@@ -18,7 +18,7 @@ public class PurchaseDocTableDto
     public string? MarkingNumber { get; set; }
     public string? SerialNumber { get; set; }
 
-    public int? ServiceId { get; set; }
+    public long? ServiceId { get; set; }
     public string? ServiceName { get; set; }
     public int? ExpenseAccountId { get; set; }
     public string? ExpenseAccountName { get; set; }

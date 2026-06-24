@@ -14,6 +14,7 @@ public class PurchaseDocTableListDto
     public string? VatRateName { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public long? ServiceId { get; set; }
     public string? ServiceName { get; set; }
     public int? ExpenseAccountId { get; set; }
     public string? ExpenseAccountName { get; set; }

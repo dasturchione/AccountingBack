@@ -203,6 +203,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("purchase-services")]
+    public async Task<IActionResult> GetPurchaseServices([FromQuery] int? serviceTypeId, CancellationToken ct)
+    {
+        var result = await _manualService.GetPurchaseServicesAsync(serviceTypeId, ct);
+        return Ok(result);
+    }
+
     [HttpGet("warehouses")]
     public async Task<IActionResult> GetWarehouses([FromQuery] int? branchId, CancellationToken ct)
     {

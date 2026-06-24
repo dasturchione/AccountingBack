@@ -85,6 +85,9 @@ public partial class State
     public virtual ICollection<PurchaseItemType> PurchaseItemTypes { get; set; } = new List<PurchaseItemType>();
 
     [InverseProperty("State")]
+    public virtual ICollection<PurchaseServiceType> PurchaseServiceTypes { get; set; } = new List<PurchaseServiceType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<Region> Regions { get; set; } = new List<Region>();
 
     [InverseProperty("State")]
@@ -137,6 +140,9 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PurchaseService> PurchaseServices { get; set; } = new List<PurchaseService>();
 
     [InverseProperty("State")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();

@@ -8,7 +8,5 @@ public class PurchaseDocTableBaseDto
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }
     public short? VatRateId { get; set; }
-    public int? ServiceId { get; set; }
-    public string? ServiceName { get; set; }
-    public int? ExpenseAccountId { get; set; }
+    public long? ServiceId { get; set; }
 }

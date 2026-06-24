@@ -129,6 +129,14 @@ public static class PermissionCodeConst
     public const string BankStatementParse = "BANK_STATEMENT_PARSE";
     #endregion
 
+    #region Bank
+    public const string BankView       = "BANK_VIEW";
+    public const string BankViewDetail = "BANK_VIEW_DETAIL";
+    public const string BankCreate     = "BANK_CREATE";
+    public const string BankUpdate     = "BANK_UPDATE";
+    public const string BankDelete     = "BANK_DELETE";
+    #endregion
+
     #region CashBox
     public const string CashBoxView       = "CASH_BOX_VIEW";
     public const string CashBoxViewDetail = "CASH_BOX_VIEW_DETAIL";

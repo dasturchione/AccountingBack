@@ -5,6 +5,7 @@ using Application.Features.AccountingRegisterEntries;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
 using Application.Features.BankParsers;
+using Application.Features.Banks;
 using Application.Features.Branches;
 using Application.Features.CashBoxes;
 using Application.Features.CashOperations;
@@ -65,6 +66,7 @@ namespace Application
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
             services.AddScoped<IBankOperationService, BankOperationService>();
             services.AddScoped<IBankStatementParserService, BankStatementParserService>();
+            services.AddScoped<IBankService, BankService>();
             services.AddScoped<ICashBoxService, CashBoxService>();
             services.AddScoped<ICashOperationService, CashOperationService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();

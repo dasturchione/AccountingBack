@@ -1,6 +1,5 @@
 using ClosedXML.Excel;
 using Application.Abstractions;
-using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query.Specifications;
@@ -12,16 +11,13 @@ namespace Application.Features.BankParsers;
 
 public partial class BankStatementParserService : IBankStatementParserService
 {
-    private readonly IUserContext _userContext;
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
 
     public BankStatementParserService(
-        IUserContext userContext,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery)
     {
-        _userContext = userContext;
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
     }
@@ -64,41 +60,28 @@ public partial class BankStatementParserService : IBankStatementParserService
             .Distinct()
             .ToList();
 
-        var companyInns = export.Accounts
-            .Select(x => NormalizeKey(x.CompanyInn))
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .ToList();
-
-        if (accountNumbers.Count == 0 || companyInns.Count == 0)
+        if (accountNumbers.Count == 0)
             return;
-
-        var currentOrgId = _userContext.OrganizationId;
-        var allowedOrgIds = _userContext.AllowedOrganizationIds;
 
         var specification = new QuerySpecification<BankAccount, BankAccountMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            accountNumbers.Contains(x.AccountNumber) &&
-                            companyInns.Contains(x.Organization.Inn) &&
-                            (!currentOrgId.HasValue || x.OrganizationId == currentOrgId.Value) &&
-                            (currentOrgId.HasValue || allowedOrgIds.Count == 0 || allowedOrgIds.Contains(x.OrganizationId)),
+                            accountNumbers.Contains(x.AccountNumber),
             Selector = x => new BankAccountMatch
             {
                 Id = x.Id,
-                AccountNumber = x.AccountNumber,
-                OrganizationInn = x.Organization.Inn
+                AccountNumber = x.AccountNumber
             }
         };
 
         var matches = await _bankAccountQuery.GetAllAsync(specification, ct);
         var idsByKey = matches
-            .GroupBy(x => BuildKey(x.AccountNumber, x.OrganizationInn))
+            .GroupBy(x => NormalizeKey(x.AccountNumber))
             .ToDictionary(x => x.Key, x => x.First().Id);
 
         foreach (var account in export.Accounts)
         {
-            if (idsByKey.TryGetValue(BuildKey(account.AccountNumber, account.CompanyInn), out var id))
+            if (idsByKey.TryGetValue(NormalizeKey(account.AccountNumber), out var id))
                 account.BankAccountId = id;
         }
     }
@@ -115,16 +98,11 @@ public partial class BankStatementParserService : IBankStatementParserService
         if (counterpartyInns.Count == 0)
             return;
 
-        var currentOrgId = _userContext.OrganizationId;
-        var allowedOrgIds = _userContext.AllowedOrganizationIds;
-
         var specification = new QuerySpecification<CounterpartyCard, CounterpartyMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
                             x.Inn != null &&
-                            counterpartyInns.Contains(x.Inn) &&
-                            (!currentOrgId.HasValue || x.OrganizationId == currentOrgId.Value) &&
-                            (currentOrgId.HasValue || allowedOrgIds.Count == 0 || allowedOrgIds.Contains(x.OrganizationId)),
+                            counterpartyInns.Contains(x.Inn),
             Selector = x => new CounterpartyMatch
             {
                 Id = x.Id,
@@ -272,9 +250,6 @@ public partial class BankStatementParserService : IBankStatementParserService
         };
     }
 
-    private static string BuildKey(string accountNumber, string inn) =>
-        $"{NormalizeKey(accountNumber)}|{NormalizeKey(inn)}";
-
     private static string NormalizeKey(string value) =>
         value.Replace(" ", "").Replace("\u00a0", "").Trim();
 
@@ -335,7 +310,6 @@ public partial class BankStatementParserService : IBankStatementParserService
     {
         public int Id { get; set; }
         public string AccountNumber { get; set; } = "";
-        public string OrganizationInn { get; set; } = "";
     }
 
     private sealed class CounterpartyMatch

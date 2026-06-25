@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.AccountingRegisterEntries;
+using Application.Features.Register.PostingEngines;
 using Domain.Entities;
 using SharedKernel.Results;
 
@@ -9,36 +10,47 @@ namespace Application.Features.Register.AccountingRegisterEntries
     public class AccountingDispatcher : IAccountingDispatcher
     {
         private readonly IUserContext _userContext;
-        //private readonly IAccountingDocumentHandler<SaleDoc> _saleHandler;
-        //private readonly IAccountingDocumentHandler<PurchaseDoc> _purchaseHandler;
+        private readonly IPostingContextDispatcher _postingContextDispatcher;
+        private readonly IPostingService _postingService;
         private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
 
         public AccountingDispatcher(IUserContext userContext,
-                                    //IAccountingDocumentHandler<SaleDoc> saleHandler,
-                                    //IAccountingDocumentHandler<PurchaseDoc> purchaseHandler,
+                                    IPostingContextDispatcher postingContextDispatcher,
+                                    IPostingService postingService,
                                     ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand)
         {
-            //_saleHandler = saleHandler;
             _userContext = userContext;
-            //_purchaseHandler = purchaseHandler;
+            _postingContextDispatcher = postingContextDispatcher;
+            _postingService = postingService;
             _accountingRegisterCommand = accountingRegisterCommand;
         }
 
         public async Task<Result<List<AccountingRegisterEntry>>> ProcessAsync(object document, CancellationToken ct = default)
         {
-            var entryResults = document switch
+            var contextsResult = await _postingContextDispatcher.ProcessAsync(document, ct);
+            if (!contextsResult.IsSuccess)
             {
-                //PurchaseDoc p => await _purchaseHandler.HandleAsync(p, ct),
-                //SaleDoc s     => await _saleHandler.HandleAsync(s, ct),
-                _             => Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.UnsupportedDocumentType(_userContext.LanguageId))
-            };
+                if (contextsResult.Error.Code == PostingContextErrors.UnsupportedDocumentType().Code)
+                    return Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.UnsupportedDocumentType(_userContext.LanguageId));
 
-            if (!entryResults.IsSuccess)
-                return entryResults;
+                return Result.Failure<List<AccountingRegisterEntry>>(contextsResult.Error);
+            }
 
-            await _accountingRegisterCommand.CreateAsync(entryResults.Value, ct);
+            try
+            {
+                var accountingEntries = await _postingService.BuildEntriesAsync(contextsResult.Value);
+                if (accountingEntries.Count > 0)
+                    await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);
 
-            return entryResults;
+                return Result.Success(accountingEntries);
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure<List<AccountingRegisterEntry>>(
+                    SharedKernel.Results.Error.Problem(
+                        "AccountingRegisterEntry.PostingFailed",
+                        ex.Message));
+            }
         }
     }
 }

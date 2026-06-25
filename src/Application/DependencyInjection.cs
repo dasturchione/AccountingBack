@@ -86,6 +86,7 @@ namespace Application
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IAccountingDispatcher, AccountingDispatcher>();
             services.AddScoped<IPostingContextDispatcher, PostingContextDispatcher>();
+            services.AddScoped<IPostingService, PostingService>();
             services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
 

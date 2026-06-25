@@ -1,4 +1,4 @@
-﻿namespace Application.Features.Register.PostingEngine
+﻿namespace Application.Features.Register.PostingEngines
 {
     /// <summary>
     /// Одно значение субконто, готовое к записи в RegisterEntrySubkonto.

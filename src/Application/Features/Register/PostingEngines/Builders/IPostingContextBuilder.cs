@@ -1,4 +1,4 @@
-﻿namespace Application.Features.Register.PostingEngine
+﻿namespace Application.Features.Register.PostingEngines
 {
     /// <summary>
     /// Строит PostingContext из конкретного документа (Sale, Purchase, Payment...).
@@ -8,5 +8,5 @@
     public interface IPostingContextBuilder<TDocument>
     {
         Task<List<PostingContext>> BuildAsync(TDocument document);
-    }
+    } 
 }

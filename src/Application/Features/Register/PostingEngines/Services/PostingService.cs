@@ -3,9 +3,9 @@ using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 
-namespace Application.Features.Register.PostingEngine
+namespace Application.Features.Register.PostingEngines
 {
-    public class PostingService
+    public class PostingService : IPostingService
     {
         private readonly IQueryBuilder _queryBuilder;
         private readonly IQueryRepository<PostingRule> _ruleQuery;
@@ -56,13 +56,16 @@ namespace Application.Features.Register.PostingEngine
                         throw new ArgumentException($"Для шаблона не передана сумма источника {line.AmountSource}.");
                     }
 
+                    if (amount == 0m)
+                        continue;
+
                     var debitAccountId = GetAccountId(line.DebitAlias, context, resolveRules);
                     var creditAccountId = GetAccountId(line.CreditAlias, context, resolveRules);
 
                     var entry = new AccountingRegisterEntry
                     {
                         OrganizationId = context.OrganizationId,
-                        DocumentTypeId = context.RuleId,
+                        DocumentTypeId = GetDocumentTypeId(context.RuleId),
                         DocumentId = context.DocumentId,
                         DebitAccountId = debitAccountId,
                         CreditAccountId = creditAccountId,
@@ -80,7 +83,7 @@ namespace Application.Features.Register.PostingEngine
                     // те, что к CT — к кредитовой, а без AppliesTo — к обеим сторонам.
 
                     var ctSubkontos = GetSubkontos(line.CreditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
-                    var dtSubkontos = GetSubkontos(line.CreditAlias, SubkontoSideConst.DEBIT, context.Subkontos);
+                    var dtSubkontos = GetSubkontos(line.DebitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
 
                     foreach (var subkonto in ctSubkontos)
                     {
@@ -173,13 +176,13 @@ namespace Application.Features.Register.PostingEngine
                 case AliasConst.Customer:
                 case AliasConst.SupplierAdvance:
                 case AliasConst.CustomerAdvance:
-                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CONTRACT ||
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CONTRACT ||
                                          x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
                              .ToList();
                     break;
 
                 case AliasConst.Inventory:
-                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PRODUCT ||
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PRODUCT ||
                                          x.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE ||
                                          x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
                                          x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
@@ -189,5 +192,13 @@ namespace Application.Features.Register.PostingEngine
 
             return result;
         }
+
+        private static short GetDocumentTypeId(short ruleId) =>
+            ruleId switch
+            {
+                PostingRuleIdConst.PURCHASE_GOODS or PostingRuleIdConst.PURCHASE_SERVICE => DocumentTypeIdConst.PURCHASE,
+                PostingRuleIdConst.SALE_GOODS or PostingRuleIdConst.SALE_SERVICE => DocumentTypeIdConst.SALE,
+                _ => ruleId
+            };
     }
 }

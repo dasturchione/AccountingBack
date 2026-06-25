@@ -5,7 +5,7 @@ using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Text.Json;
 
-namespace Application.Features.Register.PostingEngine
+namespace Application.Features.Register.PostingEngines
 {
     public class PurchaseDocContextBuilder : IPostingContextBuilder<PurchaseDoc>
     {

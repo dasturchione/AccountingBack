@@ -1,4 +1,4 @@
-﻿namespace Application.Features.Register.PostingEngine
+﻿namespace Application.Features.Register.PostingEngines
 {
     /// <summary>
     /// Полная модель "со всем, что нужно" для формирования проводки: суммы для резолва

@@ -28,6 +28,7 @@ using Application.Features.PurchaseDocs;
 using Application.Features.PurchaseDocTables;
 using Application.Features.PurchaseServices;
 using Application.Features.Register.AccountingRegisterEntries;
+using Application.Features.Register.PostingEngines;
 using Application.Features.Roles;
 using Application.Features.SaleDocs;
 using Application.Features.SaleDocTables;
@@ -84,6 +85,9 @@ namespace Application
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IAccountingDispatcher, AccountingDispatcher>();
+            services.AddScoped<IPostingContextDispatcher, PostingContextDispatcher>();
+            services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

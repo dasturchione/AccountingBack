@@ -1,4 +1,4 @@
-insert into acc_posting_template 
+insert into acc_posting_rule 
 	(id, code, name, document_type_id) 
 values 
 	(1,		'PURCHASE_GOODS',			'Поступление товара'),

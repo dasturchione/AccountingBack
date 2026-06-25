@@ -50,12 +50,6 @@ public partial class ChartAccount
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 
     [InverseProperty("CreditAccount")]
-    public virtual ICollection<PostingRuleLine> PostingRuleLineCreditAccounts { get; set; } = new List<PostingRuleLine>();
-
-    [InverseProperty("DebitAccount")]
-    public virtual ICollection<PostingRuleLine> PostingRuleLineDebitAccounts { get; set; } = new List<PostingRuleLine>();
-
-    [InverseProperty("CreditAccount")]
     public virtual ICollection<AccountingRegisterEntry> RegisterEntryCreditAccounts { get; set; } = new List<AccountingRegisterEntry>();
 
     [InverseProperty("DebitAccount")]

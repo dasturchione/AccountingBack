@@ -8,35 +8,37 @@ namespace Application.Features.Register.PostingEngine
     public class PostingService
     {
         private readonly IQueryBuilder _queryBuilder;
-        private readonly IQueryRepository<PostingTemplate> _templateQuery;
+        private readonly IQueryRepository<PostingRule> _ruleQuery;
         private readonly IQueryRepository<AccountResolveRule> _accountResolveRuleQuery;
         public PostingService(IQueryBuilder queryBuilder,
-                              IQueryRepository<PostingTemplate> templateQuery,
+                              IQueryRepository<PostingRule> ruleQuery,
                               IQueryRepository<AccountResolveRule> accountResolveRuleQuery)
         {
+            _ruleQuery = ruleQuery;
             _queryBuilder = queryBuilder;
-            _templateQuery = templateQuery;
             _accountResolveRuleQuery = accountResolveRuleQuery;
         }
 
         public async Task<List<AccountingRegisterEntry>> BuildEntriesAsync(List<PostingContext> contexts)
         {
-            var documentTypeIds = contexts.Select(s => s.DocumentTypeId);
-            var postingTemplateQuery = _queryBuilder.For<PostingTemplate>().Where(x => documentTypeIds.Contains(x.DocumentTypeId)).Build();
-            postingTemplateQuery.AddIncludes(x => x.Include(i => i.PostingTemplateLines));
-            var templates = await _templateQuery.GetAllAsync(postingTemplateQuery);
+            var postingRuleIds = contexts.Select(s => s.RuleId);
 
-            var rules = await GetResolveRulesAsync(templates);
+            var postingRuleQuery = _queryBuilder.For<PostingRule>().Where(x => postingRuleIds.Contains(x.Id)).Build();
+            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines));
+
+            var postingRules = await _ruleQuery.GetAllAsync(postingRuleQuery);
+
+            var resolveRules = await GetResolveRulesAsync(postingRules);
 
             var result = new List<AccountingRegisterEntry>();
 
             foreach (var context in contexts)
             {
-                var template = templates.FirstOrDefault(f => f.DocumentTypeId == context.DocumentTypeId);
-                if (template == null)
+                var postingRule = postingRules.FirstOrDefault(f => f.Id == context.RuleId);
+                if (postingRule == null)
                     throw new ArgumentException($"Шаблон проводки не найден в acc_posting_template.");
 
-                foreach (var line in template.PostingTemplateLines)
+                foreach (var line in postingRule.PostingRuleLines)
                 {
                     if (string.IsNullOrWhiteSpace(line.AmountSource))
                     {
@@ -54,13 +56,13 @@ namespace Application.Features.Register.PostingEngine
                         throw new ArgumentException($"Для шаблона не передана сумма источника {line.AmountSource}.");
                     }
 
-                    var debitAccountId = GetAccountId(line.DebitAlias, context, rules);
-                    var creditAccountId = GetAccountId(line.CreditAlias, context, rules);
+                    var debitAccountId = GetAccountId(line.DebitAlias, context, resolveRules);
+                    var creditAccountId = GetAccountId(line.CreditAlias, context, resolveRules);
 
                     var entry = new AccountingRegisterEntry
                     {
                         OrganizationId = context.OrganizationId,
-                        DocumentTypeId = context.DocumentTypeId,
+                        DocumentTypeId = context.RuleId,
                         DocumentId = context.DocumentId,
                         DebitAccountId = debitAccountId,
                         CreditAccountId = creditAccountId,
@@ -70,7 +72,7 @@ namespace Application.Features.Register.PostingEngine
                         CreatedDate = DateTime.UtcNow,
                         DebitQuantity = context.DebitQuantity,
                         CreditQuantity = context.CreditQuantity,
-                        Content = template.Name,
+                        Content = postingRule.Name,
                         JournalNumber = context.JournalNumber,
                     };
 
@@ -97,11 +99,11 @@ namespace Application.Features.Register.PostingEngine
             return result;
         }
 
-        private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingTemplate> templates)
+        private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingRule> postingRules)
         {
-            var aliases = templates
-                            .SelectMany(t => t.PostingTemplateLines.Select(l => l.CreditAlias))
-                            .Concat(templates.SelectMany(t => t.PostingTemplateLines.Select(l => l.DebitAlias)))
+            var aliases = postingRules
+                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias))
+                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias)))
                             .Distinct()
                             .ToList();
 
@@ -155,34 +157,37 @@ namespace Application.Features.Register.PostingEngine
 
         private List<SubkontoValue> GetSubkontoValues(string alias, List<SubkontoValue> subkontos)
         {
-            return alias switch
+            var result = new List<SubkontoValue>();
+
+            switch (alias)
             {
-                AliasConst.VATIn => 
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
+                case AliasConst.VATIn:
+                case AliasConst.VATOut:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                             .ToList();
+                    break;
 
-                AliasConst.VATOut =>
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
+                case AliasConst.Supplier:
+                case AliasConst.Customer:
+                case AliasConst.SupplierAdvance:
+                case AliasConst.CustomerAdvance:
+                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CONTRACT ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                             .ToList();
+                    break;
 
-                AliasConst.Supplier => 
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Contract
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
-
-                AliasConst.Inventory =>
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Product || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Warehouse || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale)
-                             .ToList(),
-
-                _ => throw new ArgumentOutOfRangeException(nameof(alias), alias, "Unsupported alias value.")
+                case AliasConst.Inventory:
+                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PRODUCT ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
+                             .ToList();
+                    break;
             };
+
+            return result;
         }
     }
 }

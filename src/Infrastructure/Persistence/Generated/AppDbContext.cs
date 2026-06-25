@@ -26,10 +26,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
 
-    public virtual DbSet<AccPostingTemplate> AccPostingTemplates { get; set; }
-
-    public virtual DbSet<AccPostingTemplateLine> AccPostingTemplateLines { get; set; }
-
     public virtual DbSet<AccRegEntry> AccRegEntries { get; set; }
 
     public virtual DbSet<AccRegEntrySubkonto> AccRegEntrySubkontos { get; set; }
@@ -63,8 +59,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CmnOperationType> CmnOperationTypes { get; set; }
 
     public virtual DbSet<CmnPaymentType> CmnPaymentTypes { get; set; }
-
-    public virtual DbSet<CmnPostingOperationType> CmnPostingOperationTypes { get; set; }
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
@@ -219,57 +213,17 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<AccPostingRule>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_posting_rule_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.DocumentType).WithMany(p => p.AccPostingRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_document_type_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.AccPostingRules).HasConstraintName("acc_posting_rule_operation_type_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.AccPostingRules).HasConstraintName("acc_posting_rule_organization_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.AccPostingRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_state_id_fkey");
         });
 
         modelBuilder.Entity<AccPostingRuleLine>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
 
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.CreditAccount).WithMany(p => p.AccPostingRuleLineCreditAccounts).HasConstraintName("acc_posting_rule_line_credit_account_id_fkey");
-
-            entity.HasOne(d => d.DebitAccount).WithMany(p => p.AccPostingRuleLineDebitAccounts).HasConstraintName("acc_posting_rule_line_debit_account_id_fkey");
-
-            entity.HasOne(d => d.Rule).WithMany(p => p.AccPostingRuleLines).HasConstraintName("acc_posting_rule_line_rule_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.AccPostingRuleLines)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_line_state_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPostingTemplate>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_template_pkey");
-
-            entity.HasOne(d => d.DocumentType).WithMany(p => p.AccPostingTemplates)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_template_document_type_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPostingTemplateLine>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_template_line_pkey");
-
             entity.Property(e => e.IsOptional).HasDefaultValue(true);
 
-            entity.HasOne(d => d.Template).WithMany(p => p.AccPostingTemplateLines)
+            entity.HasOne(d => d.Template).WithMany(p => p.AccPostingRuleLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_template_line_template_id_fkey");
+                .HasConstraintName("acc_posting_rule_line_template_id_fkey");
         });
 
         modelBuilder.Entity<AccRegEntry>(entity =>
@@ -535,15 +489,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnPaymentTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_payment_type_state_id_fkey");
-        });
-
-        modelBuilder.Entity<CmnPostingOperationType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_posting_operation_type_pkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.CmnPostingOperationTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_posting_operation_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnProductTableStatus>(entity =>

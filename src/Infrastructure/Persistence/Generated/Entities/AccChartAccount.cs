@@ -52,12 +52,6 @@ public partial class AccChartAccount
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 
     [InverseProperty("CreditAccount")]
-    public virtual ICollection<AccPostingRuleLine> AccPostingRuleLineCreditAccounts { get; set; } = new List<AccPostingRuleLine>();
-
-    [InverseProperty("DebitAccount")]
-    public virtual ICollection<AccPostingRuleLine> AccPostingRuleLineDebitAccounts { get; set; } = new List<AccPostingRuleLine>();
-
-    [InverseProperty("CreditAccount")]
     public virtual ICollection<AccRegEntry> AccRegEntryCreditAccounts { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("DebitAccount")]

@@ -30,9 +30,6 @@ public partial class CmnDocumentType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("DocumentType")]
-    public virtual ICollection<AccPostingRule> AccPostingRules { get; set; } = new List<AccPostingRule>();
-
-    [InverseProperty("DocumentType")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("DocumentType")]

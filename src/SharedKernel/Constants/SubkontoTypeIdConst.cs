@@ -14,8 +14,14 @@
 
         public const short EMPLOYEE = 6;
 
-        public const short DOCUMENT = 7;
+        public const short TAX = 7;
 
-        public const short TAX = 8;
+        public const short BANK_OPERATION = 8;
+
+        public const short CONTRACT = 9;
+
+        public const short PURCHASE = 10; 
+        
+        public const short SALE = 11;
     }
 }

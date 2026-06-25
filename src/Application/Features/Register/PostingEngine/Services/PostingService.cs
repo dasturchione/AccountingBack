@@ -38,6 +38,14 @@ namespace Application.Features.Register.PostingEngine
 
                 foreach (var line in template.PostingTemplateLines)
                 {
+                    if (string.IsNullOrWhiteSpace(line.AmountSource))
+                    {
+                        if (line.IsOptional)
+                            continue;
+
+                        throw new ArgumentException("Для шаблона не указан источник суммы.");
+                    }
+
                     if (!context.Amounts.TryGetValue(line.AmountSource, out var amount))
                     {
                         if (line.IsOptional)

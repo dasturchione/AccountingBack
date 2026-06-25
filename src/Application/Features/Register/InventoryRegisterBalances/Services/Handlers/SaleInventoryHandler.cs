@@ -19,7 +19,7 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
             ProductId       = line.ProductTable.ProductId,
             OperationTypeId = OperationTypeIdConst.OUT,
             Quantity        = 1,
-            Amount          = line.TotalAmount,
+            Amount          = line.CostPrice,
             DocDate         = sale.DocDate,
             CreatedDate     = DateTime.Now
         }).ToList();

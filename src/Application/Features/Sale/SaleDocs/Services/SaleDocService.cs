@@ -34,6 +34,8 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
+    private readonly IProductTableReservationService _reservationService;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public SaleDocService(IUserContext userContext,
@@ -54,6 +56,8 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<ProductTable> productTableQuery,
                           ICommandRepository<ProductTable> productTableCommand,
                           IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                          IQueryRepository<OrganizationConfig> organizationConfigQuery,
+                          IProductTableReservationService reservationService,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -74,6 +78,8 @@ public class SaleDocService : BaseService, ISaleDocService
         _productTableQuery = productTableQuery;
         _productTableCommand = productTableCommand;
         _purchaseDocTableQuery = purchaseDocTableQuery;
+        _organizationConfigQuery = organizationConfigQuery;
+        _reservationService = reservationService;
         _inventoryDispatcher = inventoryDispatcher;
         _docNumberGenerator = docNumberGenerator;
     }
@@ -182,49 +188,33 @@ public class SaleDocService : BaseService, ISaleDocService
             var productLinesQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
             var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
 
-            var allProductTableIds = dto.Items.Select(i => i.ProductTableId).ToList();
+            if (productLines.Count == 0)
+                return Result.Failure(SaleDocErrors.EmptyProducts(id, _userContext.LanguageId));
 
-            var ptQuery = _queryBuilder.For<ProductTable>()
-                .Where(x => allProductTableIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE)
-                .Build();
-            var productTables = await _productTableQuery.GetAllAsync(ptQuery, ct);
+            var valuationMethod = await GetInventoryValuationMethodAsync(doc.OrganizationId, ct);
+            var selectionResult = await SelectInventoryAsync(doc, productLines, valuationMethod, ct);
+            if (!selectionResult.IsSuccess)
+                return Result.Failure(selectionResult.Error);
 
-            // Har bir ProductTable ni tekshirish
-            foreach (var item in dto.Items)
-            {
-                var pt = productTables.FirstOrDefault(x => x.Id == item.ProductTableId);
-                if (pt == null)
-                    return Result.Failure(SaleDocErrors.ProductTableNotFound(item.ProductTableId, _userContext.LanguageId));
+            var selectedItems = selectionResult.Value;
+            var selectedProductTableIds = selectedItems.Select(x => x.ProductTableId).ToList();
 
-                if (pt.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                    return Result.Failure(SaleDocErrors.ProductTableNotAvailable(item.ProductTableId, _userContext.LanguageId));
-            }
+            var reserved = await _reservationService.TryReserveAsync(selectedProductTableIds, ct);
+            if (!reserved)
+                return Result.Failure(SaleDocErrors.InventoryReservationConflict(_userContext.LanguageId));
 
-            // ProductTable larni ProductId bo'yicha guruhlash
-            var ptByProductId = productTables.GroupBy(pt => pt.ProductId).ToDictionary(g => g.Key, g => g.ToList());
-
-            // Har bir SaleDocProduct uchun mos ProductTable larni tekshirish
-            foreach (var productLine in productLines)
-            {
-                if (!ptByProductId.TryGetValue(productLine.ProductId, out var matchedPts))
-                    return Result.Failure(SaleDocErrors.QuantityMismatch(productLine.Id, productLine.Quantity, 0, _userContext.LanguageId));
-
-                if (matchedPts.Count != (int)productLine.Quantity)
-                    return Result.Failure(SaleDocErrors.QuantityMismatch(productLine.Id, productLine.Quantity, matchedPts.Count, _userContext.LanguageId));
-            }
-
-            var purchaseCostMap = await GetCostPriceMapAsync(allProductTableIds, ct);
+            var selectedByProductId = selectedItems
+                .GroupBy(x => x.ProductId)
+                .ToDictionary(x => x.Key, x => x.ToList());
 
             var allNewLines = new List<SaleDocTable>();
 
             foreach (var productLine in productLines)
             {
-                var matchedPts = ptByProductId[productLine.ProductId];
+                var matchedPts = selectedByProductId[productLine.ProductId];
 
                 foreach (var pt in matchedPts)
                 {
-                    var costPrice = purchaseCostMap.GetValueOrDefault(pt.Id);
-
                     var vatAmount = 0m;
                     if (productLine.VatRateId.HasValue && productLine.VatAmount > 0 && productLine.Quantity > 0)
                         vatAmount = Math.Round(productLine.VatAmount / productLine.Quantity, 2);
@@ -232,8 +222,8 @@ public class SaleDocService : BaseService, ISaleDocService
                     allNewLines.Add(new SaleDocTable
                     {
                         OwnerId = productLine.Id,
-                        ProductTableId = pt.Id,
-                        CostPrice = costPrice,
+                        ProductTableId = pt.ProductTableId,
+                        CostPrice = pt.CostPrice,
                         Amount = productLine.UnitPrice,
                         VatRateId = productLine.VatRateId,
                         VatAmount = vatAmount,
@@ -241,13 +231,11 @@ public class SaleDocService : BaseService, ISaleDocService
                     });
                 }
 
-                productLine.CostPrice = matchedPts.Sum(pt => purchaseCostMap.GetValueOrDefault(pt.Id));
+                productLine.CostPrice = matchedPts.Sum(pt => pt.CostPrice);
                 await _productLineCommand.UpdateAsync(productLine, ct);
             }
 
             await _lineCommand.CreateAsync(allNewLines, ct);
-
-            await UpdateProductTableStatusesAsync(allProductTableIds, ProductTableStatusIdConst.RESERVED, ct);
 
             doc.StatusId = DocumentStatusIdConst.PENDING;
             await _command.UpdateAsync(doc, ct);
@@ -602,23 +590,131 @@ public class SaleDocService : BaseService, ISaleDocService
         return lines;
     }
 
-    private async Task<Dictionary<int, decimal>> GetCostPriceMapAsync(List<int> productTableIds, CancellationToken ct)
+    private async Task<string> GetInventoryValuationMethodAsync(int organizationId, CancellationToken ct)
     {
+        var query = _queryBuilder.For<OrganizationConfig>()
+            .Where(x => x.OrganizationId == organizationId)
+            .As(x => x.InventoryValuationMethod)
+            .Build();
+
+        var method = await _organizationConfigQuery.GetAsync(query, ct);
+        return NormalizeValuationMethod(method);
+    }
+
+    private static string NormalizeValuationMethod(string? method)
+    {
+        var normalized = method?.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
+            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
+            _ => InventoryValuationMethodConst.FIFO
+        };
+    }
+
+    private async Task<Result<List<SelectedInventoryItem>>> SelectInventoryAsync(
+        SaleDoc doc,
+        List<SaleDocProduct> productLines,
+        string valuationMethod,
+        CancellationToken ct)
+    {
+        if (valuationMethod is not InventoryValuationMethodConst.FIFO
+            and not InventoryValuationMethodConst.LIFO
+            and not InventoryValuationMethodConst.AVERAGE)
+            return Result.Failure<List<SelectedInventoryItem>>(SaleDocErrors.InvalidInventoryValuationMethod(valuationMethod, _userContext.LanguageId));
+
+        var productIds = productLines.Select(x => x.ProductId).Distinct().ToList();
+
+        foreach (var productLine in productLines)
+        {
+            if (productLine.Quantity <= 0 || productLine.Quantity != decimal.Truncate(productLine.Quantity))
+                return Result.Failure<List<SelectedInventoryItem>>(SaleDocErrors.InvalidProductQuantity(productLine.Id, productLine.Quantity, _userContext.LanguageId));
+        }
+
         var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value))
-            .As(s => new
+            .Where(x => x.ProductTableId.HasValue
+                        && productIds.Contains(x.ProductTable!.ProductId)
+                        && x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
+                        && x.ProductTable.StateId == StateIdConst.ACTIVE
+                        && x.Owner.OrganizationId == doc.OrganizationId
+                        && x.Owner.WarehouseId == doc.WarehouseId)
+            .As(x => new InventoryCandidate
             {
-                ProductTableId = s.ProductTableId!.Value,
-                DocDate = s.Owner.DocDate,
-                CostPrice = s.TotalAmount
-            }).Build();
+                ProductTableId = x.ProductTableId!.Value,
+                ProductId = x.ProductTable!.ProductId,
+                PurchaseDocId = x.OwnerId,
+                PurchaseDate = x.Owner.DocDate,
+                Quantity = x.Quantity,
+                CostAmount = x.TotalAmount
+            })
+            .Build();
 
-        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
+        var candidates = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
+        var result = new List<SelectedInventoryItem>();
+        var selectedProductTableIds = new HashSet<int>();
 
-        return purchases
-            .GroupBy(g => g.ProductTableId)
-            .ToDictionary(
-                g => g.Key,
-                g => g.OrderByDescending(x => x.DocDate).First().CostPrice);
+        foreach (var productLine in productLines)
+        {
+            var requiredQuantity = (int)productLine.Quantity;
+            var averageCandidates = candidates
+                .Where(x => x.ProductId == productLine.ProductId)
+                .ToList();
+            var productCandidates = averageCandidates
+                .Where(x => !selectedProductTableIds.Contains(x.ProductTableId))
+                .ToList();
+
+            if (productCandidates.Count < requiredQuantity)
+                return Result.Failure<List<SelectedInventoryItem>>(
+                    SaleDocErrors.InsufficientStock(productLine.ProductId, requiredQuantity, productCandidates.Count, _userContext.LanguageId));
+
+            var orderedCandidates = valuationMethod == InventoryValuationMethodConst.LIFO
+                ? productCandidates.OrderByDescending(x => x.PurchaseDate).ThenByDescending(x => x.PurchaseDocId).ThenByDescending(x => x.ProductTableId)
+                : productCandidates.OrderBy(x => x.PurchaseDate).ThenBy(x => x.PurchaseDocId).ThenBy(x => x.ProductTableId);
+
+            var selected = orderedCandidates.Take(requiredQuantity).ToList();
+            var averageCost = CalculateWeightedAverageCost(averageCandidates);
+
+            foreach (var item in selected)
+                selectedProductTableIds.Add(item.ProductTableId);
+
+            result.AddRange(selected.Select(x => new SelectedInventoryItem
+            {
+                ProductTableId = x.ProductTableId,
+                ProductId = x.ProductId,
+                CostPrice = valuationMethod == InventoryValuationMethodConst.AVERAGE
+                    ? averageCost
+                    : x.CostAmount
+            }));
+        }
+
+        return Result.Success(result);
+    }
+
+    private static decimal CalculateWeightedAverageCost(List<InventoryCandidate> candidates)
+    {
+        var totalQuantity = candidates.Sum(x => x.Quantity);
+
+        if (totalQuantity <= 0)
+            return 0;
+
+        return Math.Round(candidates.Sum(x => x.CostAmount) / totalQuantity, 2);
+    }
+
+    private sealed class InventoryCandidate
+    {
+        public int ProductTableId { get; set; }
+        public int ProductId { get; set; }
+        public long PurchaseDocId { get; set; }
+        public DateTime PurchaseDate { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal CostAmount { get; set; }
+    }
+
+    private sealed class SelectedInventoryItem
+    {
+        public int ProductTableId { get; set; }
+        public int ProductId { get; set; }
+        public decimal CostPrice { get; set; }
     }
 }

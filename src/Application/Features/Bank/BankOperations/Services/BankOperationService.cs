@@ -116,15 +116,14 @@ public class BankOperationService : IBankOperationService
 
         entity.BankAccountId = dto.BankAccountId;
         entity.OperationTypeId = dto.OperationTypeId;
-        entity.PaymentTypeId = dto.PaymentTypeId;
+        entity.PaymentTypeId = 2;
         entity.CounterpartyId = dto.CounterpartyId;
-        entity.DocNumber = dto.DocNumber;
         entity.DocDate = dto.DocDate;
         entity.CurrencyId = dto.CurrencyId;
         entity.Amount = dto.Amount;
         entity.Comment = dto.Comment;
-        entity.StatusId = dto.StatusId;
-        entity.StateId = dto.StateId;
+        entity.StatusId = DocumentStatusIdConst.POSTED;
+        entity.StateId = StateIdConst.ACTIVE;
 
         await _command.UpdateAsync(entity, ct);
 

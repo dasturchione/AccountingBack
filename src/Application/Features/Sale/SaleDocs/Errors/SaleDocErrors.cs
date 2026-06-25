@@ -3,7 +3,7 @@ using SharedKernel.Results;
 
 namespace Application.Features.SaleDocs;
 
-public static class SaleDocErrors
+public static partial class SaleDocErrors
 {
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("SaleDoc.NotFound", languageId switch

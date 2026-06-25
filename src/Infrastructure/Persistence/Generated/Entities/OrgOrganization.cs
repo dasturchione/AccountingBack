@@ -134,6 +134,9 @@ public partial class OrgOrganization
     public virtual ICollection<OrgDepartment> OrgDepartments { get; set; } = new List<OrgDepartment>();
 
     [InverseProperty("Organization")]
+    public virtual OrgOrganizationConfig? OrgOrganizationConfig { get; set; }
+
+    [InverseProperty("Organization")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
 
     [InverseProperty("Organization")]

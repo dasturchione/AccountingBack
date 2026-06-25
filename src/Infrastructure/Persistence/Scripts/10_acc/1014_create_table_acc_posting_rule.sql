@@ -1,4 +1,4 @@
-create table acc_posting_template 
+create table acc_posting_rule 
 (
 	id						smallserial primary key,
 	code					varchar(50) not null unique,

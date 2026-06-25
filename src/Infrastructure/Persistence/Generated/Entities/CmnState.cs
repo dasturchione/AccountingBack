@@ -37,12 +37,6 @@ public partial class CmnState
     public virtual ICollection<AccChartAccount> AccChartAccounts { get; set; } = new List<AccChartAccount>();
 
     [InverseProperty("State")]
-    public virtual ICollection<AccPostingRuleLine> AccPostingRuleLines { get; set; } = new List<AccPostingRuleLine>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<AccPostingRule> AccPostingRules { get; set; } = new List<AccPostingRule>();
-
-    [InverseProperty("State")]
     public virtual ICollection<AccSubkontoType> AccSubkontoTypes { get; set; } = new List<AccSubkontoType>();
 
     [InverseProperty("State")]

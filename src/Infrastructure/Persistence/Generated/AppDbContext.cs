@@ -22,10 +22,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; }
 
-    public virtual DbSet<AccPostingRule> AccPostingRules { get; set; }
-
-    public virtual DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
-
     public virtual DbSet<AccPostingTemplate> AccPostingTemplates { get; set; }
 
     public virtual DbSet<AccPostingTemplateLine> AccPostingTemplateLines { get; set; }
@@ -214,42 +210,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.SubkontoType).WithMany(p => p.AccChartAccountSubkontos)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_chart_account_subkonto_subkonto_type_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPostingRule>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_rule_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.DocumentType).WithMany(p => p.AccPostingRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_document_type_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.AccPostingRules).HasConstraintName("acc_posting_rule_operation_type_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.AccPostingRules).HasConstraintName("acc_posting_rule_organization_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.AccPostingRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_state_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPostingRuleLine>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.CreditAccount).WithMany(p => p.AccPostingRuleLineCreditAccounts).HasConstraintName("acc_posting_rule_line_credit_account_id_fkey");
-
-            entity.HasOne(d => d.DebitAccount).WithMany(p => p.AccPostingRuleLineDebitAccounts).HasConstraintName("acc_posting_rule_line_debit_account_id_fkey");
-
-            entity.HasOne(d => d.Rule).WithMany(p => p.AccPostingRuleLines).HasConstraintName("acc_posting_rule_line_rule_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.AccPostingRuleLines)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_line_state_id_fkey");
         });
 
         modelBuilder.Entity<AccPostingTemplate>(entity =>

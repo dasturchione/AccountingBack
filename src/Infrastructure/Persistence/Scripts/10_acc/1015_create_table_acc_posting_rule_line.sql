@@ -1,7 +1,7 @@
-create table acc_posting_template_line 
+create table acc_posting_rule_line 
 (
 	id						serial primary key,
-	template_id				smallint not null references acc_posting_template(id),
+	template_id				smallint not null references acc_posting_rule(id),
 	order_number			smallint not null,
 	debit_alias				varchar(250) not null,
 	credit_alias			varchar(250) not null,

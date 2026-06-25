@@ -9,6 +9,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountType> AccountTypes { get; set; }
     public virtual DbSet<ChartAccount> ChartAccounts { get; set; }
     public virtual DbSet<ChartAccountSubkonto> ChartAccountSubkontos { get; set; }
+    public virtual DbSet<AccountingPolicy> AccountingPolicies { get; set; }
     public virtual DbSet<PostingRule> PostingRules { get; set; }
     public virtual DbSet<PostingRuleLine> PostingRuleLines { get; set; }
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }

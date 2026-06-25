@@ -37,6 +37,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
+    private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
     private readonly IQueryRepository<BankAccount> _orgBankAccountQuery;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
@@ -72,6 +73,7 @@ public class ManualService : IManualService
         IQueryRepository<PurchaseService> purchaseServiceQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
+        IQueryRepository<AccountingPolicy> accountingPolicyQuery,
         IQueryRepository<BankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
@@ -108,6 +110,7 @@ public class ManualService : IManualService
         _purchaseServiceQuery  = purchaseServiceQuery;
         _warehouseQuery        = warehouseQuery;
         _chartAccountQuery     = chartAccountQuery;
+        _accountingPolicyQuery = accountingPolicyQuery;
         _orgBankAccountQuery   = orgBankAccountQuery;
         _cashBoxQuery          = cashBoxQuery;
         _cashOperationQuery    = cashOperationQuery;
@@ -491,6 +494,17 @@ public class ManualService : IManualService
             Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
         };
         return (await _chartAccountQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetAccountingPoliciesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<AccountingPolicy, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _accountingPolicyQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default)

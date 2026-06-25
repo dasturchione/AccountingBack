@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.Acc.PostingTemplateViews;
 using Infrastructure.Authentication;
 using Infrastructure.Context;
 using Infrastructure.Query;
@@ -25,6 +26,7 @@ namespace Infrastructure
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
+            services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();
 
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();

@@ -231,6 +231,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("accounting-policies")]
+    public async Task<IActionResult> GetAccountingPolicies(CancellationToken ct)
+    {
+        var result = await _manualService.GetAccountingPoliciesAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("org-bank-accounts")]
     public async Task<IActionResult> GetOrgBankAccounts(CancellationToken ct)
     {

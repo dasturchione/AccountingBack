@@ -6,9 +6,9 @@
 
         public const string Warehouse = "warehouse";
 
-        public const string Purchase = "purchase";
-
         public const string Counterparty = "counterparty";
+
+        public const string Purchase = "purchase";
 
         public const string Contract = "contract";
 

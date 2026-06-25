@@ -13,13 +13,16 @@ public partial class BankStatementParserService : IBankStatementParserService
 {
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
+    private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
 
     public BankStatementParserService(
         IQueryRepository<BankAccount> bankAccountQuery,
-        IQueryRepository<CounterpartyCard> counterpartyQuery)
+        IQueryRepository<CounterpartyCard> counterpartyQuery,
+        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery)
     {
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
+        _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(Stream stream, CancellationToken ct = default)
@@ -95,14 +98,21 @@ public partial class BankStatementParserService : IBankStatementParserService
             .Distinct()
             .ToList();
 
-        if (counterpartyInns.Count == 0)
+        var counterpartyAccounts = export.Accounts
+            .SelectMany(x => x.Transactions)
+            .Select(x => NormalizeKey(x.CounterpartyAccount))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        if (counterpartyInns.Count == 0 && counterpartyAccounts.Count == 0)
             return;
 
-        var specification = new QuerySpecification<CounterpartyCard, CounterpartyMatch>
+        var cardSpecification = new QuerySpecification<CounterpartyCard, CounterpartyMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
                             x.Inn != null &&
-                            counterpartyInns.Contains(x.Inn),
+                            (counterpartyInns.Contains(x.Inn) || counterpartyAccounts.Contains(x.Inn)),
             Selector = x => new CounterpartyMatch
             {
                 Id = x.Id,
@@ -110,14 +120,32 @@ public partial class BankStatementParserService : IBankStatementParserService
             }
         };
 
-        var matches = await _counterpartyQuery.GetAllAsync(specification, ct);
-        var idsByInn = matches
+        var cardMatches = await _counterpartyQuery.GetAllAsync(cardSpecification, ct);
+        var idsByInn = cardMatches
             .GroupBy(x => NormalizeKey(x.Inn))
             .ToDictionary(x => x.Key, x => x.First().Id);
 
+        var accountSpecification = new QuerySpecification<CounterpartyBankAccount, CounterpartyAccountMatch>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            counterpartyAccounts.Contains(x.AccountNumber),
+            Selector = x => new CounterpartyAccountMatch
+            {
+                CounterpartyId = x.CounterpartyId,
+                AccountNumber = x.AccountNumber
+            }
+        };
+
+        var accountMatches = await _counterpartyBankAccountQuery.GetAllAsync(accountSpecification, ct);
+        var idsByAccount = accountMatches
+            .GroupBy(x => NormalizeKey(x.AccountNumber))
+            .ToDictionary(x => x.Key, x => x.First().CounterpartyId);
+
         foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
         {
-            if (idsByInn.TryGetValue(NormalizeKey(transaction.CounterpartyInn), out var id))
+            if (idsByInn.TryGetValue(NormalizeKey(transaction.CounterpartyInn), out var id) ||
+                idsByInn.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out id) ||
+                idsByAccount.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out id))
                 transaction.CounterpartyId = id;
         }
     }
@@ -316,5 +344,11 @@ public partial class BankStatementParserService : IBankStatementParserService
     {
         public int Id { get; set; }
         public string Inn { get; set; } = "";
+    }
+
+    private sealed class CounterpartyAccountMatch
+    {
+        public int CounterpartyId { get; set; }
+        public string AccountNumber { get; set; } = "";
     }
 }

@@ -124,6 +124,13 @@ INSERT INTO sys_module (id, code, short_name, full_name, sub_group_id, state_id,
 -- ---- BANK: BankStatementParser (sub_group_id = 5) ----
 (521, 'BANK_STATEMENT_PARSE', 'Bank statement import', 'Bank Excel statement faylini JSON qilib parse qilish', 5, 1, now()),
 
+-- ---- BANK: Bank dictionary (sub_group_id = 5) ----
+(531, 'BANK_VIEW',        'Banklar',          'Banklar ro''yxati',        5, 1, now()),
+(532, 'BANK_VIEW_DETAIL', 'Bank detail',      'Bankni batafsil ko''rish', 5, 1, now()),
+(533, 'BANK_CREATE',      'Bank yaratish',    'Yangi bank qo''shish',     5, 1, now()),
+(534, 'BANK_UPDATE',      'Bank tahrirlash',  'Bankni tahrirlash',        5, 1, now()),
+(535, 'BANK_DELETE',      'Bank o''chirish',  'Bankni o''chirish',        5, 1, now()),
+
 -- ---- CASH: CashBox (sub_group_id = 6) ----
 (601, 'CASH_BOX_VIEW',        'Kassalar',       'Ro''yxat',   6, 1, now()),
 (602, 'CASH_BOX_VIEW_DETAIL', 'Kassa detail',   'Batafsil',   6, 1, now()),

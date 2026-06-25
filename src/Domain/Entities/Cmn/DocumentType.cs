@@ -28,9 +28,6 @@ public partial class DocumentType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("DocumentType")]
-    public virtual ICollection<PostingRule> PostingRules { get; set; } = new List<PostingRule>();
-
-    [InverseProperty("DocumentType")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
     [InverseProperty("DocumentType")]

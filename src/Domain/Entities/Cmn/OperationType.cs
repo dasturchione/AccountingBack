@@ -28,9 +28,6 @@ public partial class OperationType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("OperationType")]
-    public virtual ICollection<PostingRule> PostingRules { get; set; } = new List<PostingRule>();
-
-    [InverseProperty("OperationType")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
     [InverseProperty("OperationType")]

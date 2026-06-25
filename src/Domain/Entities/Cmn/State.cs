@@ -31,12 +31,6 @@ public partial class State
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
 
     [InverseProperty("State")]
-    public virtual ICollection<PostingRuleLine> PostingRuleLines { get; set; } = new List<PostingRuleLine>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<PostingRule> PostingRules { get; set; } = new List<PostingRule>();
-
-    [InverseProperty("State")]
     public virtual ICollection<SubkontoType> SubkontoTypes { get; set; } = new List<SubkontoType>();
 
     [InverseProperty("State")]

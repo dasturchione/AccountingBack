@@ -79,13 +79,6 @@ namespace Infrastructure.Persistence
                                       ? e.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.OrganizationId.Value)));
 
-            // PostingRule — OrganizationId nullable
-            modelBuilder.Entity<PostingRule>()
-                .HasQueryFilter(e => e.OrganizationId == null
-                                  || AllowedOrgIds.Count == 0
-                                  || (CurrentOrganizationId != 0
-                                      ? e.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.OrganizationId.Value)));
         }
 
         public override int SaveChanges()

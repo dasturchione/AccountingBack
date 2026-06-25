@@ -111,7 +111,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
                         {
                             SortOrder = 3,
                             EntityId = purchaseData.PurchaseId,
-                            SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
+                            SubkontoTypeId = SubkontoTypeIdConst.PURCHASE,
                             Side = SubkontoSideConst.CREDIT,
                             CreatedDate = DateTime.Now,
                             DisplayValue = JsonSerializer.Serialize(new
@@ -173,7 +173,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
                     SortOrder = list.Count + 1,
                     DisplayValue = context.ClientName,
                     CreatedDate = DateTime.Now,
-                    SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT
+                    SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY
             });
 
             list.Add(new RegisterEntrySubkonto
@@ -182,15 +182,15 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 Side = SubkontoSideConst.DEBIT,
                 SortOrder = list.Count + 1,
                 DisplayValue = JsonSerializer.Serialize(new
-            {
+                {
                     sale = new
-            {
+                    {
                         number = context.DocNumber,
                         date = context.DocDate
                     }
                 }),
                 CreatedDate = DateTime.Now,
-                SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT
+                SubkontoTypeId = SubkontoTypeIdConst.SALE
             });
 
             return list;

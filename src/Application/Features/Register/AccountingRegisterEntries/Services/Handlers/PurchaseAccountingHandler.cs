@@ -132,7 +132,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
                         date = context.DocDate
                     }
                 }),
-                SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
+                SubkontoTypeId = SubkontoTypeIdConst.PURCHASE,
                 Side = SubkontoSideConst.DEBIT,
                 CreatedDate = DateTime.Now,
             });
@@ -160,7 +160,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
                             date = context.ContractDate
                         }
                     }),
-                    SubkontoTypeId = SubkontoTypeIdConst.DOCUMENT,
+                    SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
                     Side = SubkontoSideConst.CREDIT,
                     CreatedDate = DateTime.Now,
                 });

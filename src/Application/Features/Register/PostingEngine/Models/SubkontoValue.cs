@@ -10,9 +10,7 @@
     {
         /// <summary>Код типа субконто, например "Product", "Counterparty", "Contract".
         /// Должен соответствовать коду в справочнике subkonto_type.</summary>
-        public string SubkontoTypeCode { get; set; } = string.Empty;
-
-        public short SubkontoTypeId { get; set; } = 1;
+        public short SubkontoTypeId { get; set; } 
 
         /// <summary>Ссылка на конкретную сущность (id товара, id контрагента и т.д.)</summary>
         public long? EntityId { get; set; }

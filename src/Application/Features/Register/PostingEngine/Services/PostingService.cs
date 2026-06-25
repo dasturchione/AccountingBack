@@ -147,34 +147,37 @@ namespace Application.Features.Register.PostingEngine
 
         private List<SubkontoValue> GetSubkontoValues(string alias, List<SubkontoValue> subkontos)
         {
-            return alias switch
+            var result = new List<SubkontoValue>();
+
+            switch (alias)
             {
-                AliasConst.VATIn => 
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
+                case AliasConst.VATIn:
+                case AliasConst.VATOut:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                             .ToList();
+                    break;
 
-                AliasConst.VATOut =>
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
+                case AliasConst.Supplier:
+                case AliasConst.Customer:
+                case AliasConst.SupplierAdvance:
+                case AliasConst.CustomerAdvance:
+                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CONTRACT ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                             .ToList();
+                    break;
 
-                AliasConst.Supplier => 
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Contract
-                                       || x.SubkontoTypeCode == SubkontoTypeCodeConst.Counterparty)
-                             .ToList(),
-
-                AliasConst.Inventory =>
-                    subkontos.Where(x => x.SubkontoTypeCode == SubkontoTypeCodeConst.Product || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Warehouse || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Purchase || 
-                                         x.SubkontoTypeCode == SubkontoTypeCodeConst.Sale)
-                             .ToList(),
-
-                _ => throw new ArgumentOutOfRangeException(nameof(alias), alias, "Unsupported alias value.")
+                case AliasConst.Inventory:
+                    subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PRODUCT ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
+                             .ToList();
+                    break;
             };
+
+            return result;
         }
     }
 }

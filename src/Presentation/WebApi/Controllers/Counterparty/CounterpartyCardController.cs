@@ -44,6 +44,14 @@ public class CounterpartyCardController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("many")]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyCardCreate)]
+    public async Task<IResult> CreateMany([FromBody] CounterpartyCardCreateManyDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.CreateManyAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.CounterpartyCardUpdate)]
     public async Task<IResult> Update([FromRoute] int id, [FromBody] CounterpartyCardUpdateDto dto, CancellationToken ct = default)

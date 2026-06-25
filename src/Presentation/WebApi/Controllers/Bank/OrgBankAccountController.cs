@@ -44,6 +44,14 @@ public class OrgBankAccountController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("many")]
+    [ModuleAuthorize(PermissionCodeConst.OrgBankAccountCreate)]
+    public async Task<IResult> CreateManyAsync([FromBody] OrgBankAccountCreateManyDto dto, CancellationToken ct = default)
+    {
+        var result = await _service.CreateManyAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.OrgBankAccountUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] OrgBankAccountUpdateDto dto, CancellationToken ct = default)

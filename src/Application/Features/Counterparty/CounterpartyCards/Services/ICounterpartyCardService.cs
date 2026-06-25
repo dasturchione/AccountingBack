@@ -7,7 +7,8 @@ public interface ICounterpartyCardService
 {
     Task<Result<PagedResponse<CounterpartyCardListDto>>> GetAllAsync(CounterpartyCardListFilter filter, CancellationToken ct = default);
     Task<Result<CounterpartyCardDto>> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<Result<int>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default);
+    Task<Result<CounterpartyCardCreateResultDto>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default);
+    Task<Result<List<CounterpartyCardCreateResultDto>>> CreateManyAsync(CounterpartyCardCreateManyDto dto, CancellationToken ct = default);
     Task<Result> UpdateAsync(int id, CounterpartyCardUpdateDto dto, CancellationToken ct = default);
     Task<Result> DeleteAsync(int id, CancellationToken ct = default);
 }

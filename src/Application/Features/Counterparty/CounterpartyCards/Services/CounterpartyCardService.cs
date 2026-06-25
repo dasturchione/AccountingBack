@@ -26,30 +26,40 @@ public class CounterpartyCardService : ICounterpartyCardService
         _queryBuilder = queryBuilder;
     }
 
-    public async Task<Result<int>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default)
+    public async Task<Result<CounterpartyCardCreateResultDto>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default)
     {
         var orgId = _userContext.OrganizationId!.Value;
 
         if (await _query.AnyAsync(x => x.ShortName == dto.ShortName, ct))
-            return Result.Failure<int>(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
+            return Result.Failure<CounterpartyCardCreateResultDto>(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
 
-        var entity = new CounterpartyCard
-        {
-            OrganizationId = orgId,
-            CounterpartyTypeId = dto.CounterpartyTypeId,
-            ShortName = dto.ShortName,
-            FullName = dto.FullName,
-            Inn = dto.Inn,
-            PhoneNumber = dto.PhoneNumber,
-            Email = dto.Email,
-            RegionId = dto.RegionId,
-            DistrictId = dto.DistrictId,
-            Address = dto.Address,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
-        };
+        var entity = BuildCreateEntity(dto, orgId);
         await _command.CreateAsync(entity, ct);
-        return entity.Id;
+        return ToCreateResult(entity);
+    }
+
+    public async Task<Result<List<CounterpartyCardCreateResultDto>>> CreateManyAsync(CounterpartyCardCreateManyDto dto, CancellationToken ct = default)
+    {
+        var orgId = _userContext.OrganizationId!.Value;
+        var duplicateShortName = dto.Counterparties
+            .GroupBy(x => x.ShortName)
+            .FirstOrDefault(x => x.Count() > 1)
+            ?.Key;
+
+        if (duplicateShortName != null)
+            return Result.Failure<List<CounterpartyCardCreateResultDto>>(CounterpartyCardErrors.ShortNameConflict(duplicateShortName, _userContext.LanguageId));
+
+        foreach (var counterparty in dto.Counterparties)
+        {
+            if (await _query.AnyAsync(x => x.ShortName == counterparty.ShortName, ct))
+                return Result.Failure<List<CounterpartyCardCreateResultDto>>(CounterpartyCardErrors.ShortNameConflict(counterparty.ShortName, _userContext.LanguageId));
+        }
+
+        var entities = dto.Counterparties.Select(counterparty => BuildCreateEntity(counterparty, orgId)).ToList();
+
+        await _command.CreateAsync(entities, ct);
+
+        return entities.Select(ToCreateResult).ToList();
     }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
@@ -104,4 +114,29 @@ public class CounterpartyCardService : ICounterpartyCardService
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
+
+    private static CounterpartyCard BuildCreateEntity(CounterpartyCardCreateDto dto, int orgId) =>
+        new()
+        {
+            OrganizationId = orgId,
+            CounterpartyTypeId = dto.CounterpartyTypeId,
+            ShortName = dto.ShortName,
+            FullName = dto.FullName,
+            Inn = dto.Inn,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            RegionId = dto.RegionId,
+            DistrictId = dto.DistrictId,
+            Address = dto.Address,
+            StateId = StateIdConst.ACTIVE,
+            CreatedDate = DateTime.Now
+        };
+
+    private static CounterpartyCardCreateResultDto ToCreateResult(CounterpartyCard entity) =>
+        new()
+        {
+            Id = entity.Id,
+            Inn = entity.Inn,
+            ShortName = entity.ShortName
+        };
 }

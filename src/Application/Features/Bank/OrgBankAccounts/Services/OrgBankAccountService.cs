@@ -13,38 +13,59 @@ public class OrgBankAccountService : IOrgBankAccountService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<BankAccount> _query;
+    private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly ICommandRepository<BankAccount> _command;
 
     public OrgBankAccountService(IUserContext userContext,
                                  IQueryBuilder queryBuilder, 
                                  IQueryRepository<BankAccount> query,
+                                 IQueryRepository<Organization> organizationQuery,
                                  ICommandRepository<BankAccount> command)
     {
         _query = query;
+        _organizationQuery = organizationQuery;
         _command = command;
         _userContext = userContext; 
         _queryBuilder = queryBuilder;
     }
 
-    public async Task<Result<int>> CreateAsync(OrgBankAccountCreateDto dto, CancellationToken ct = default)
+    public async Task<Result<OrgBankAccountCreateResultDto>> CreateAsync(OrgBankAccountCreateDto dto, CancellationToken ct = default)
     {
         var orgId = _userContext.OrganizationId!.Value;
 
         if (await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
-            return Result.Failure<int>(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
+            return Result.Failure<OrgBankAccountCreateResultDto>(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
 
-        var entity = new BankAccount
-        {
-            OrganizationId = orgId,
-            BankId = dto.BankId,
-            AccountNumber = dto.AccountNumber,
-            CurrencyId = dto.CurrencyId,
-            IsMain = dto.IsMain,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
-        };
+        var entity = BuildCreateEntity(dto, orgId);
         await _command.CreateAsync(entity, ct);
-        return entity.Id;
+        var inn = await GetOrganizationInnAsync(orgId, ct);
+
+        return ToCreateResult(entity, inn);
+    }
+
+    public async Task<Result<List<OrgBankAccountCreateResultDto>>> CreateManyAsync(OrgBankAccountCreateManyDto dto, CancellationToken ct = default)
+    {
+        var orgId = _userContext.OrganizationId!.Value;
+        var duplicateAccountNumber = dto.Accounts
+            .GroupBy(x => x.AccountNumber)
+            .FirstOrDefault(x => x.Count() > 1)
+            ?.Key;
+
+        if (duplicateAccountNumber != null)
+            return Result.Failure<List<OrgBankAccountCreateResultDto>>(OrgBankAccountErrors.AccountNumberConflict(duplicateAccountNumber, _userContext.LanguageId));
+
+        foreach (var account in dto.Accounts)
+        {
+            if (await _query.AnyAsync(x => x.AccountNumber == account.AccountNumber, ct))
+                return Result.Failure<List<OrgBankAccountCreateResultDto>>(OrgBankAccountErrors.AccountNumberConflict(account.AccountNumber, _userContext.LanguageId));
+        }
+
+        var entities = dto.Accounts.Select(account => BuildCreateEntity(account, orgId)).ToList();
+
+        await _command.CreateAsync(entities, ct);
+
+        var inn = await GetOrganizationInnAsync(orgId, ct);
+        return entities.Select(entity => ToCreateResult(entity, inn)).ToList();
     }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
@@ -94,4 +115,31 @@ public class OrgBankAccountService : IOrgBankAccountService
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
+
+    private static BankAccount BuildCreateEntity(OrgBankAccountCreateDto dto, int orgId) =>
+        new()
+        {
+            OrganizationId = orgId,
+            BankId = dto.BankId,
+            AccountNumber = dto.AccountNumber,
+            CurrencyId = dto.CurrencyId,
+            IsMain = dto.IsMain,
+            StateId = StateIdConst.ACTIVE,
+            CreatedDate = DateTime.Now
+        };
+
+    private async Task<string> GetOrganizationInnAsync(int orgId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<Organization>().Where(x => x.Id == orgId).Build();
+        var organization = await _organizationQuery.GetAsync(query, ct);
+        return organization?.Inn ?? string.Empty;
+    }
+
+    private static OrgBankAccountCreateResultDto ToCreateResult(BankAccount entity, string inn) =>
+        new()
+        {
+            Id = entity.Id,
+            Inn = inn,
+            AccountNumber = entity.AccountNumber
+        };
 }

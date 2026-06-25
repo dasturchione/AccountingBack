@@ -85,11 +85,9 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
                                         ProductTableId = s.ProductTableId!.Value,
                                         PurchaseId = s.OwnerId,
                                         Date = s.Owner.DocDate,
-                                        Amount = s.Amount,
                                         DocNumber = s.Owner.DocNumber,
                                         WarehouseId = s.Owner.WarehouseId,
-                                        WarehouseName = s.Owner.Warehouse.Name,
-                                        Quantity = s.Quantity
+                                        WarehouseName = s.Owner.Warehouse.Name
                                     }).Build();
 
             var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery);
@@ -140,8 +138,8 @@ namespace Application.Features.Register.AccountingRegisterEntries.Services
                                         PurchaseId = x.PurchaseId,
                                         PurchaseDocNumber = x.DocNumber,
                                         PurchaseDate = x.Date,
-                                        PurchaseAmount = x.Amount,
-                                        Quantity = x.Quantity
+                                        PurchaseAmount = saleDocTablesByProductTable[x.ProductTableId].CostPrice,
+                                        Quantity = 1
                                     })
                                     .ToList()
                             };

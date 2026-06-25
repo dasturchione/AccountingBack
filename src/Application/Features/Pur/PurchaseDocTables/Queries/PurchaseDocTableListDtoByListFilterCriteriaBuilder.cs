@@ -6,6 +6,10 @@ namespace Application.Features.PurchaseDocTables;
 public class PurchaseDocTableListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<PurchaseDocTableListDto, PurchaseDocTableListFilter>
 {
     public Expression<Func<PurchaseDocTableListDto, bool>> Build(PurchaseDocTableListFilter options)
-        => x => string.IsNullOrEmpty(options.Search) ||
-                x.ProductName.ToLower().Contains(options.Search.ToLower());
+    {
+        var search = options.Search?.ToLower() ?? string.Empty;
+
+        return x => search.Length == 0 ||
+                    (x.ProductName != null && x.ProductName.ToLower().Contains(search));
+    }
 }

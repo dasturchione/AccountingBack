@@ -51,6 +51,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<RegisterBalance> RegisterBalances { get; set; }
     public virtual DbSet<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
+    public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
     public virtual DbSet<Module> Modules { get; set; }
     public virtual DbSet<ModuleSubGroup> ModuleSubGroups { get; set; }
@@ -64,4 +65,15 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PurchaseItemType> PurchaseItemTypes { get; set; }
     public virtual DbSet<PurchaseService> PurchaseServices { get; set; }
     public virtual DbSet<PurchaseServiceType> PurchaseServiceTypes { get; set; }
+    public virtual DbSet<OrganizationConfig> OrganizationConfigs { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<OrganizationConfig>()
+            .HasOne(x => x.Organization)
+            .WithOne(x => x.OrganizationConfig)
+            .HasForeignKey<OrganizationConfig>(x => x.OrganizationId);
+
+        ApplyOrganizationFilters(modelBuilder);
+    }
 }

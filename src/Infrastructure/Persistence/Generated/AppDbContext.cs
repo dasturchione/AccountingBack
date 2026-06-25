@@ -7,7 +7,10 @@ namespace Infrastructure.Persistence.Generated;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
     public virtual DbSet<AccAccountResolveRule> AccAccountResolveRules { get; set; }
 
@@ -110,6 +113,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OrgDepartment> OrgDepartments { get; set; }
 
     public virtual DbSet<OrgOrganization> OrgOrganizations { get; set; }
+
+    public virtual DbSet<OrgOrganizationConfig> OrgOrganizationConfigs { get; set; }
 
     public virtual DbSet<OrgPosition> OrgPositions { get; set; }
 
@@ -971,6 +976,18 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.OrgOrganizations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("org_organization_state_id_fkey");
+        });
+
+        modelBuilder.Entity<OrgOrganizationConfig>(entity =>
+        {
+            entity.HasKey(e => e.OrganizationId).HasName("org_organization_config_pkey");
+
+            entity.Property(e => e.OrganizationId).ValueGeneratedNever();
+            entity.Property(e => e.InventoryValuationMethod).HasDefaultValueSql("'fifo'::character varying");
+
+            entity.HasOne(d => d.Organization).WithOne(p => p.OrgOrganizationConfig)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("org_organization_config_organization_id_fkey");
         });
 
         modelBuilder.Entity<OrgPosition>(entity =>

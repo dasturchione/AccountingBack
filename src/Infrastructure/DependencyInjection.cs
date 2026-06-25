@@ -27,6 +27,7 @@ namespace Infrastructure
             services.AddScoped<IPermissionChecker, PermissionChecker>();
 
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
+            services.AddScoped<IProductTableReservationService, ProductTableReservationService>();
 
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();

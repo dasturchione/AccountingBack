@@ -160,8 +160,15 @@ public class ProductStockService : IProductStockService
 
     private async Task<List<ProductTable>> GetInStockEntitiesAsync(CancellationToken ct)
     {
+        if (_userContext.OrganizationId is null)
+            return new List<ProductTable>();
+
+        var orgId = _userContext.OrganizationId.Value;
+
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.StatusId == ProductTableStatusIdConst.IN_STOCK && x.StateId == StateIdConst.ACTIVE)
+            .Where(x => x.OrganizationId == orgId &&
+                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.StateId == StateIdConst.ACTIVE)
             .Build();
 
         query.AddIncludes(b => b.Include(x => x.Product).ThenInclude(p => p.ProductGroup));

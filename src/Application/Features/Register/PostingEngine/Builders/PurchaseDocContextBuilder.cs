@@ -49,7 +49,7 @@ namespace Application.Features.Register.PostingEngine
                 {
                     OrganizationId = document.OrganizationId,
                     AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
-                    DocumentTypeId = PostingOperationTypeIdConst.PURCHASE_GOODS,
+                    RuleId = PostingRuleIdConst.PURCHASE_GOODS,
                     DocumentId = document.Id,
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,
@@ -120,7 +120,7 @@ namespace Application.Features.Register.PostingEngine
                 {
                     OrganizationId = document.OrganizationId,
                     AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
-                    DocumentTypeId = PostingOperationTypeIdConst.PURCHASE_SERVICE,
+                    RuleId = PostingRuleIdConst.PURCHASE_SERVICE,
                     DocumentId = document.Id,
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,

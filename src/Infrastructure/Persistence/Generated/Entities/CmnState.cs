@@ -79,9 +79,6 @@ public partial class CmnState
     public virtual ICollection<CmnPaymentType> CmnPaymentTypes { get; set; } = new List<CmnPaymentType>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnPostingOperationType> CmnPostingOperationTypes { get; set; } = new List<CmnPostingOperationType>();
-
-    [InverseProperty("State")]
     public virtual ICollection<CmnProductTableStatus> CmnProductTableStatuses { get; set; } = new List<CmnProductTableStatus>();
 
     [InverseProperty("State")]

@@ -11,7 +11,7 @@
     {
         // ---- Идентификация документа (попадает напрямую в acc_reg_entry) ----
         public int OrganizationId { get; set; }
-        public short DocumentTypeId { get; set; }
+        public short RuleId { get; set; }
         public long DocumentId { get; set; }
         public short CurrencyId { get; set; }
         public DateTime DocDate { get; set; }

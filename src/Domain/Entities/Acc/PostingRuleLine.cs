@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Persistence.Generated.Entities;
+namespace Domain.Entities;
 
-[Table("acc_posting_template_line")]
-public partial class AccPostingTemplateLine
+[Table("acc_posting_rule_line")]
+public partial class PostingRuleLine
 {
     [Key]
     [Column("id")]
@@ -35,6 +32,6 @@ public partial class AccPostingTemplateLine
     public bool IsOptional { get; set; }
 
     [ForeignKey("TemplateId")]
-    [InverseProperty("AccPostingTemplateLines")]
-    public virtual AccPostingTemplate Template { get; set; } = null!;
+    [InverseProperty("PostingRuleLines")]
+    public virtual PostingRule Template { get; set; } = null!;
 }

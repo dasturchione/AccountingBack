@@ -1,5 +1,5 @@
 insert into acc_posting_rule 
-	(id, code, name, document_type_id) 
+	(id, code, name) 
 values 
 	(1,		'PURCHASE_GOODS',			'Поступление товара'),
 	(2,		'PURCHASE_SERVICE',			'Получение услуги'),

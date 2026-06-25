@@ -43,9 +43,6 @@ public partial class State
     public virtual ICollection<AccountingPolicy> AccountingPolicies { get; set; } = new List<AccountingPolicy>();
 
     [InverseProperty("State")]
-    public virtual ICollection<PostingOperationType> PostingOperationTypes { get; set; } = new List<PostingOperationType>();
-
-    [InverseProperty("State")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("State")]

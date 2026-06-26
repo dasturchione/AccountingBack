@@ -34,6 +34,9 @@ public partial class CmnVatRate
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("VatRate")]
+    public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
+
+    [InverseProperty("VatRate")]
     public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
 
     [InverseProperty("VatRate")]

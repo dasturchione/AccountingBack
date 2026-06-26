@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
-[Table("sale_doc_product")]
-[Index("OwnerId", Name = "ix_sale_doc_product_owner_id")]
-[Index("ProductId", Name = "ix_sale_doc_product_product_id")]
-public partial class SaleDocProduct
+[Table("pur_doc_product")]
+[Index("ItemTypeId", Name = "ix_pur_doc_product_item_type_id")]
+[Index("OwnerId", Name = "ix_pur_doc_product_owner_id")]
+public partial class PurDocProduct
 {
     [Key]
     [Column("id")]
@@ -18,6 +18,9 @@ public partial class SaleDocProduct
     [Column("owner_id")]
     public long OwnerId { get; set; }
 
+    [Column("item_type_id")]
+    public short ItemTypeId { get; set; }
+
     [Column("product_id")]
     public int ProductId { get; set; }
 
@@ -25,13 +28,8 @@ public partial class SaleDocProduct
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
 
-    [Column("unit_price")]
-    [Precision(24, 8)]
-    public decimal UnitPrice { get; set; }
-
-    [Column("cost_price")]
-    [Precision(24, 8)]
-    public decimal CostPrice { get; set; }
+    [Column("unit_id")]
+    public short UnitId { get; set; }
 
     [Column("amount")]
     [Precision(24, 8)]
@@ -48,25 +46,30 @@ public partial class SaleDocProduct
     [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
-    [Column("unit_id")]
-    public short UnitId { get; set; }
+    [Column("unit_price")]
+    [Precision(24, 8)]
+    public decimal UnitPrice { get; set; }
+
+    [ForeignKey("ItemTypeId")]
+    [InverseProperty("PurDocProducts")]
+    public virtual CmnPurchaseItemType ItemType { get; set; } = null!;
 
     [ForeignKey("OwnerId")]
-    [InverseProperty("SaleDocProducts")]
-    public virtual SaleDoc Owner { get; set; } = null!;
+    [InverseProperty("PurDocProducts")]
+    public virtual PurDoc Owner { get; set; } = null!;
 
     [ForeignKey("ProductId")]
-    [InverseProperty("SaleDocProducts")]
+    [InverseProperty("PurDocProducts")]
     public virtual InvProduct Product { get; set; } = null!;
 
     [InverseProperty("Owner")]
-    public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
+    public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
 
     [ForeignKey("UnitId")]
-    [InverseProperty("SaleDocProducts")]
+    [InverseProperty("PurDocProducts")]
     public virtual CmnUnit Unit { get; set; } = null!;
 
     [ForeignKey("VatRateId")]
-    [InverseProperty("SaleDocProducts")]
+    [InverseProperty("PurDocProducts")]
     public virtual CmnVatRate? VatRate { get; set; }
 }

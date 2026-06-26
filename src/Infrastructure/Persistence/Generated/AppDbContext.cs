@@ -62,8 +62,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
-    public virtual DbSet<CmnPurServiceType> CmnPurServiceTypes { get; set; }
-
     public virtual DbSet<CmnPurchaseItemType> CmnPurchaseItemTypes { get; set; }
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
@@ -85,6 +83,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CounterpartyContact> CounterpartyContacts { get; set; }
 
     public virtual DbSet<CounterpartyRegBalance> CounterpartyRegBalances { get; set; }
+
+    public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
 
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
@@ -114,9 +114,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PurDoc> PurDocs { get; set; }
 
-    public virtual DbSet<PurDocTable> PurDocTables { get; set; }
+    public virtual DbSet<PurDocProduct> PurDocProducts { get; set; }
 
-    public virtual DbSet<PurService> PurServices { get; set; }
+    public virtual DbSet<PurDocTable> PurDocTables { get; set; }
 
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
 
@@ -137,6 +137,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SysUser> SysUsers { get; set; }
 
     public virtual DbSet<SysUserOrganization> SysUserOrganizations { get; set; }
+
+    public virtual DbSet<TaxRate> TaxRates { get; set; }
+
+    public virtual DbSet<TaxReportSnapshot> TaxReportSnapshots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -500,22 +504,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_product_table_status_state_id_fkey");
         });
 
-        modelBuilder.Entity<CmnPurServiceType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_pur_service_type_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.VatApplicable).HasDefaultValue(true);
-
-            entity.HasOne(d => d.Account).WithMany(p => p.CmnPurServiceTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_pur_service_type_account_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.CmnPurServiceTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_pur_service_type_state_id_fkey");
-        });
-
         modelBuilder.Entity<CmnPurchaseItemType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_purchase_item_type_pkey");
@@ -684,9 +672,18 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("counterparty_reg_balance_organization_id_fkey");
         });
 
+        modelBuilder.Entity<DocumentSequence>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("document_sequences_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
         modelBuilder.Entity<InvProduct>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_product_pkey");
+
+            entity.HasIndex(e => e.Mxik, "ix_inv_product_mxik").HasFilter("(mxik IS NOT NULL)");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
@@ -983,45 +980,55 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("pur_doc_warehouse_id_fkey");
         });
 
+        modelBuilder.Entity<PurDocProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pur_doc_product_pkey");
+
+            entity.HasIndex(e => e.ProductId, "ix_pur_doc_product_product_id").HasFilter("(product_id IS NOT NULL)");
+
+            entity.HasOne(d => d.ItemType).WithMany(p => p.PurDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_product_item_type_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.PurDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.PurDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.PurDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_product_unit_id_fkey");
+
+            entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocProducts).HasConstraintName("pur_doc_product_vat_rate_id_fkey");
+        });
+
         modelBuilder.Entity<PurDocTable>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("pur_doc_table_pkey");
 
-            entity.Property(e => e.ItemTypeId).HasDefaultValue((short)1);
-
-            entity.HasOne(d => d.ItemType).WithMany(p => p.PurDocTables)
+            entity.HasOne(d => d.Owner).WithMany(p => p.PurDocTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_doc_table_item_type_id_fkey");
+                .HasConstraintName("pur_doc_table_owner_id_fkey");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_owner_id_fkey");
-
-            entity.HasOne(d => d.ProductTable).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_product_table_id_fkey");
-
-            entity.HasOne(d => d.Service).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_service_id_fkey");
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.PurDocTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pur_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
-        });
-
-        modelBuilder.Entity<PurService>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("pur_service_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.ServiceType).WithMany(p => p.PurServices)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_service_service_type_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.PurServices)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_service_state_id_fkey");
         });
 
         modelBuilder.Entity<SaleDoc>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("sale_doc_pkey");
 
+            entity.HasIndex(e => e.ContractId, "idx_sale_doc_contract_id").HasFilter("(contract_id IS NOT NULL)");
+
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Contract).WithMany(p => p.SaleDocs).HasConstraintName("sale_doc_contract_id_fkey");
 
             entity.HasOne(d => d.Counterparty).WithMany(p => p.SaleDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1052,11 +1059,17 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sale_doc_product_pkey");
 
+            entity.Property(e => e.UnitId).HasDefaultValue((short)1);
+
             entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_owner_id_fkey");
 
             entity.HasOne(d => d.Product).WithMany(p => p.SaleDocProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.SaleDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_doc_product_unit_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_vat_rate_id_fkey");
         });
@@ -1065,7 +1078,9 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sale_doc_table_pkey");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocTables).HasConstraintName("sale_doc_table_owner_id_fkey");
+            entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_doc_table_owner_id_fkey");
 
             entity.HasOne(d => d.ProductTable).WithMany(p => p.SaleDocTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1169,6 +1184,34 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sys_user_organization_state_id_fkey");
 
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TaxRate>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tax_rates_pkey");
+
+            entity.HasIndex(e => new { e.CompanyId, e.Code }, "ix_tax_rates_company_code")
+                .IsUnique()
+                .HasFilter("((company_id IS NOT NULL) AND (deleted_at IS NULL))");
+
+            entity.HasIndex(e => e.Code, "ix_tax_rates_global_code")
+                .IsUnique()
+                .HasFilter("((company_id IS NULL) AND (deleted_at IS NULL))");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<TaxReportSnapshot>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("tax_report_snapshots_pkey");
+
+            entity.HasIndex(e => new { e.CompanyId, e.TaxType, e.Period }, "ix_tax_report_snapshots_company_tax_type_period")
+                .IsUnique()
+                .HasFilter("(deleted_at IS NULL)");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
         });
         modelBuilder.HasSequence("contract_number_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);

@@ -28,6 +28,12 @@ public partial class CmnUnit
     [InverseProperty("Unit")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
+    [InverseProperty("Unit")]
+    public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnUnits")]
     public virtual CmnState State { get; set; } = null!;

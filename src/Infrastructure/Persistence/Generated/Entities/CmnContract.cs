@@ -66,6 +66,9 @@ public partial class CmnContract
     [InverseProperty("Contract")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
+    [InverseProperty("Contract")]
+    public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnContracts")]
     public virtual CmnState State { get; set; } = null!;

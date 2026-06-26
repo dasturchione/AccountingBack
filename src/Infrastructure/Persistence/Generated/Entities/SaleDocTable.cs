@@ -20,30 +20,30 @@ public partial class SaleDocTable
     public int ProductTableId { get; set; }
 
     [Column("amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal Amount { get; set; }
 
     [Column("vat_rate_id")]
     public short? VatRateId { get; set; }
 
     [Column("vat_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal VatAmount { get; set; }
 
     [Column("total_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
     [Column("cost_price")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal CostPrice { get; set; }
 
     [Column("owner_id")]
-    public long? OwnerId { get; set; }
+    public long OwnerId { get; set; }
 
     [ForeignKey("OwnerId")]
     [InverseProperty("SaleDocTables")]
-    public virtual SaleDocProduct? Owner { get; set; }
+    public virtual SaleDocProduct Owner { get; set; } = null!;
 
     [ForeignKey("ProductTableId")]
     [InverseProperty("SaleDocTables")]

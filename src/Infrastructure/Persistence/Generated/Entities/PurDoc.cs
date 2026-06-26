@@ -40,15 +40,15 @@ public partial class PurDoc
     public short CurrencyId { get; set; }
 
     [Column("total_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
     [Column("vat_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal VatAmount { get; set; }
 
     [Column("final_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal FinalAmount { get; set; }
 
     [Column("status_id")]
@@ -84,7 +84,7 @@ public partial class PurDoc
     public virtual OrgOrganization Organization { get; set; } = null!;
 
     [InverseProperty("Owner")]
-    public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
+    public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("PurDocs")]

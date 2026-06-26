@@ -49,6 +49,10 @@ public partial class InvProduct
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("mxik")]
+    [StringLength(17)]
+    public string? Mxik { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
@@ -65,6 +69,9 @@ public partial class InvProduct
     [ForeignKey("ProductGroupId")]
     [InverseProperty("InvProducts")]
     public virtual InvProductGroup? ProductGroup { get; set; }
+
+    [InverseProperty("Product")]
+    public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();

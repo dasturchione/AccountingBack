@@ -30,7 +30,7 @@ public partial class CmnPurchaseItemType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("ItemType")]
-    public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
+    public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("CmnPurchaseItemTypes")]

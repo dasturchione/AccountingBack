@@ -39,15 +39,15 @@ public partial class SaleDoc
     public short CurrencyId { get; set; }
 
     [Column("total_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
     [Column("vat_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal VatAmount { get; set; }
 
     [Column("final_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal FinalAmount { get; set; }
 
     [Column("status_id")]
@@ -62,6 +62,13 @@ public partial class SaleDoc
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("contract_id")]
+    public long? ContractId { get; set; }
+
+    [ForeignKey("ContractId")]
+    [InverseProperty("SaleDocs")]
+    public virtual CmnContract? Contract { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("SaleDocs")]

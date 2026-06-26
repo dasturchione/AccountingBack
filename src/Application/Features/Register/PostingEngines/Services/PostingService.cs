@@ -198,6 +198,7 @@ namespace Application.Features.Register.PostingEngines
             {
                 PostingRuleIdConst.PURCHASE_GOODS or PostingRuleIdConst.PURCHASE_SERVICE => DocumentTypeIdConst.PURCHASE,
                 PostingRuleIdConst.SALE_GOODS or PostingRuleIdConst.SALE_SERVICE => DocumentTypeIdConst.SALE,
+                
                 _ => ruleId
             };
     }

@@ -197,23 +197,9 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("products")]
-    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, CancellationToken ct)
+    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, [FromQuery] bool? isService = null, CancellationToken ct)
     {
-        var result = await _manualService.GetProductsAsync(productGroupId, ct);
-        return Ok(result);
-    }
-
-    [HttpGet("purchase-services")]
-    public async Task<IActionResult> GetPurchaseServices([FromQuery] int? serviceTypeId, CancellationToken ct)
-    {
-        var result = await _manualService.GetPurchaseServicesAsync(serviceTypeId, ct);
-        return Ok(result);
-    }
-
-    [HttpGet("purchase-service-types")]
-    public async Task<IActionResult> GetPurchaseServiceTypes(CancellationToken ct)
-    {
-        var result = await _manualService.GetPurchaseServiceTypesAsync(ct);
+        var result = await _manualService.GetProductsAsync(productGroupId, isService, ct);
         return Ok(result);
     }
 

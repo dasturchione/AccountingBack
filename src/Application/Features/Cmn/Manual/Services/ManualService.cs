@@ -414,14 +414,14 @@ public class ManualService : IManualService
         return (await _productGroupQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetProductsAsync(int? productGroupId = null, CancellationToken ct = default)
+    public async Task<List<ProductSelectListDto>> GetProductsAsync(int? productGroupId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Product, SelectListDto>
+        var spec = new QuerySpecification<Product, ProductSelectListDto>
         {
             Criteria = p => p.StateId == StateIdConst.ACTIVE &&
                             (productGroupId == null || p.ProductGroupId == productGroupId),
             OrderBy  = q => q.OrderBy(p => p.Name),
-            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Barcode }
+            Selector = p => new ProductSelectListDto { Id = p.Id, Name = p.Name, Code = p.Barcode, Mxik = p.Mxik }
         };
         return (await _productQuery.GetAllAsync(spec, ct)).ToList();
     }

@@ -6,3 +6,8 @@ public class SelectListDto
     public string Name { get; set; } = null!;
     public string? Code { get; set; }
 }
+
+public class ProductSelectListDto : SelectListDto
+{
+    public string? Mxik { get; set; }
+}

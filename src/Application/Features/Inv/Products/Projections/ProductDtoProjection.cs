@@ -19,6 +19,7 @@ public class ProductDtoProjection : IProjectionBuilder<Product, ProductDto>
             Barcode = x.Barcode,
             Name = x.Name,
             Description = x.Description,
+            IsPieceTracked = x.IsPieceTracked,
             IsService = x.IsService,
             Mxik = x.Mxik,
             StateId = x.StateId,

@@ -4,6 +4,7 @@ namespace Application.Features.Products;
 
 public class ProductListFilter : ISearchFilter, IPaginationFilter
 {
+    public bool? IsPieceTracked { get; set; }
     public int? ProductGroupId { get; set; }
     public bool? IsService { get; set; }
     public string? Search { get; set; }

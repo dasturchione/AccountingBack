@@ -53,6 +53,9 @@ public partial class InvProduct
     [StringLength(17)]
     public string? Mxik { get; set; }
 
+    [Column("is_piece_tracked")]
+    public bool IsPieceTracked { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 

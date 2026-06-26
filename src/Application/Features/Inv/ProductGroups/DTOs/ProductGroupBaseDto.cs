@@ -11,5 +11,6 @@ public class ProductInGroupBaseDto
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
+    public bool IsPieceTracked { get; set; }
     public bool IsService { get; set; }
 }

@@ -41,6 +41,7 @@ public class ProductService : BaseService, IProductService
                 UnitId = dto.UnitId,
                 Barcode = dto.Barcode,
                 Name = dto.Name,
+                IsPieceTracked = dto.IsPieceTracked,
                 Description = dto.Description,
                 IsService = dto.IsService,
                 Mxik = dto.Mxik,
@@ -64,6 +65,7 @@ public class ProductService : BaseService, IProductService
                 CreatedDate = DateTime.Now,
                 Barcode = s.Barcode,
                 Description = s.Description,
+                IsPieceTracked = s.IsPieceTracked,
                 IsService = s.IsService,
                 Mxik = s.Mxik,
                 StateId = StateIdConst.ACTIVE,
@@ -131,6 +133,7 @@ public class ProductService : BaseService, IProductService
             entity.IsService = dto.IsService;
             entity.Mxik = dto.Mxik;
             entity.StateId = dto.StateId;
+            entity.IsPieceTracked = dto.IsPieceTracked;
 
             await _command.UpdateAsync(entity, ct);
             return Result.Success();

@@ -84,8 +84,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CounterpartyRegBalance> CounterpartyRegBalances { get; set; }
 
-    public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
-
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
     public virtual DbSet<InvProductGroup> InvProductGroups { get; set; }
@@ -137,10 +135,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SysUser> SysUsers { get; set; }
 
     public virtual DbSet<SysUserOrganization> SysUserOrganizations { get; set; }
-
-    public virtual DbSet<TaxRate> TaxRates { get; set; }
-
-    public virtual DbSet<TaxReportSnapshot> TaxReportSnapshots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -672,13 +666,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("counterparty_reg_balance_organization_id_fkey");
         });
 
-        modelBuilder.Entity<DocumentSequence>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("document_sequences_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-        });
-
         modelBuilder.Entity<InvProduct>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_product_pkey");
@@ -1184,34 +1171,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sys_user_organization_state_id_fkey");
 
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
-        });
-
-        modelBuilder.Entity<TaxRate>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("tax_rates_pkey");
-
-            entity.HasIndex(e => new { e.CompanyId, e.Code }, "ix_tax_rates_company_code")
-                .IsUnique()
-                .HasFilter("((company_id IS NOT NULL) AND (deleted_at IS NULL))");
-
-            entity.HasIndex(e => e.Code, "ix_tax_rates_global_code")
-                .IsUnique()
-                .HasFilter("((company_id IS NULL) AND (deleted_at IS NULL))");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-        });
-
-        modelBuilder.Entity<TaxReportSnapshot>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("tax_report_snapshots_pkey");
-
-            entity.HasIndex(e => new { e.CompanyId, e.TaxType, e.Period }, "ix_tax_report_snapshots_company_tax_type_period")
-                .IsUnique()
-                .HasFilter("(deleted_at IS NULL)");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
         });
         modelBuilder.HasSequence("contract_number_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);

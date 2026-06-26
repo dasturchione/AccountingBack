@@ -14,4 +14,6 @@ public class ProductSelectListDto : SelectListDto
     public short UnitId { get; set; }
     
     public string? UnitCode { get; set; }
+
+    public bool IsPieceTracked { get; set; }
 }

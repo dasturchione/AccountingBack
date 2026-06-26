@@ -2,6 +2,7 @@ namespace Application.Features.Products;
 
 public class ProductBaseDto
 {
+    public bool IsPieceTracked { get; set; }
     public int? ProductGroupId { get; set; }
     public short UnitId { get; set; }
     public string? Barcode { get; set; }

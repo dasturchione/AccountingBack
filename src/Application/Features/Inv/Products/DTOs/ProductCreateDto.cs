@@ -1,7 +1,7 @@
 namespace Application.Features.Products;
 
-public class ProductCreateDto : ProductBaseDto 
-{ 
+public class ProductCreateDto : ProductBaseDto
+{
 }
 
 public class ProductsCreateDto

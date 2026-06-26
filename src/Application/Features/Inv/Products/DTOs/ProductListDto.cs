@@ -11,6 +11,7 @@ public class ProductListDto
     public string UnitName { get; set; } = null!;
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
+    public bool IsPieceTracked { get; set; }
     public bool IsService { get; set; }
     public string? Mxik { get; set; }
     public short StateId { get; set; }

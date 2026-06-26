@@ -8,3 +8,6 @@ add constraint ck_inv_product_mxik
 create index ix_inv_product_mxik
     on inv_product (mxik)
     where mxik is not null;
+
+alter table inv_product 
+add column is_piece_tracked boolean not null default false;

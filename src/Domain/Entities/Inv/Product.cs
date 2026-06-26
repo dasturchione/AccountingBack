@@ -41,6 +41,9 @@ public partial class Product
     [Column("is_service")]
     public bool IsService { get; set; }
 
+    [Column("is_piece_tracked")]
+    public bool IsPieceTracked { get; set; }
+
     [Column("state_id")]
     public short StateId { get; set; }
 

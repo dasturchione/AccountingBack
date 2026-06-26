@@ -18,6 +18,7 @@ public class ProductListDtoProjection : IProjectionBuilder<Product, ProductListD
             UnitName = x.Unit.Name,
             Barcode = x.Barcode,
             Name = x.Name,
+            IsPieceTracked = x.IsPieceTracked,
             IsService = x.IsService,
             Mxik = x.Mxik,
             StateId = x.StateId,

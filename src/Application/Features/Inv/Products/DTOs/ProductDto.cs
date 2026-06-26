@@ -12,6 +12,7 @@ public class ProductDto
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
+    public bool IsPieceTracked { get; set; }
     public bool IsService { get; set; }
     public string? Mxik { get; set; }
     public short StateId { get; set; }

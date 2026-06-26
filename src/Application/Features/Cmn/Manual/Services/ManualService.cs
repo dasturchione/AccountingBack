@@ -421,7 +421,8 @@ public class ManualService : IManualService
                                      Code = s.Barcode,
                                      Mxik = s.Mxik,
                                      UnitId = s.UnitId,
-                                     UnitCode = s.Unit.Code
+                                     UnitCode = s.Unit.Code,
+                                     IsPieceTracked = s.IsPieceTracked
                                  }).Build();
 
         return await _productQuery.GetAllAsync(query, ct);

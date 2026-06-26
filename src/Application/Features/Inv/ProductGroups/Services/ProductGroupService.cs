@@ -52,6 +52,7 @@ public class ProductGroupService : BaseService, IProductGroupService
                     Name = p.Name,
                     Description = p.Description,
                     IsService = p.IsService,
+                    IsPieceTracked = p.IsPieceTracked,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });
@@ -144,6 +145,7 @@ public class ProductGroupService : BaseService, IProductGroupService
                 product.Barcode = dtoProduct.Barcode;
                 product.Description = dtoProduct.Description;
                 product.UnitId = dtoProduct.UnitId;
+                product.IsPieceTracked = dtoProduct.IsPieceTracked;
                 product.IsService = dtoProduct.IsService;
                 product.StateId = dtoProduct.StateId ?? StateIdConst.ACTIVE;
             }

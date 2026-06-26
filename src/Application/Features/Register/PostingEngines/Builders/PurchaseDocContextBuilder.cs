@@ -11,25 +11,25 @@ namespace Application.Features.Register.PostingEngines
     {
         private readonly IUserContext _userContext;
         private readonly IQueryBuilder _queryBuilder;
+        private readonly IQueryRepository<Product> _productQuery;
         private readonly IQueryRepository<Contract> _contractQuery;
         private readonly IQueryRepository<Warehouse> _warehouseQuery;
         private readonly IQueryRepository<ProductTable> _productTableQuery;
-        private readonly IQueryRepository<PurchaseService> _purchaseServiceQuery;
         private readonly IQueryRepository<CounterpartyCard> _counterpartyCardQuery;
         public PurchaseDocContextBuilder(IUserContext userContext, 
                                          IQueryBuilder queryBuilder,
+                                         IQueryRepository<Product> productQuery,
                                          IQueryRepository<Contract> contractQuery,
                                          IQueryRepository<Warehouse> warehouseQuery,
                                          IQueryRepository<ProductTable> productTableQuery,
-                                         IQueryRepository<PurchaseService> purchaseServiceQuery,
                                          IQueryRepository<CounterpartyCard> counterpartyCardQuery)
         {
             _userContext = userContext;
             _queryBuilder = queryBuilder;
+            _productQuery = productQuery;
             _contractQuery = contractQuery;
             _warehouseQuery = warehouseQuery;
             _productTableQuery = productTableQuery;
-            _purchaseServiceQuery = purchaseServiceQuery;
             _counterpartyCardQuery = counterpartyCardQuery;
         }
 
@@ -232,11 +232,11 @@ namespace Application.Features.Register.PostingEngines
             return new List<ServiceTempDto>();
         }
 
-        private async Task<List<PurchaseService>> GetServiceDetailsAync(PurchaseDoc document)
+        private async Task<List<Product>> GetServiceDetailsAync(PurchaseDoc document)
         {
             var serviceIds = new List<long>();
-            var query = _queryBuilder.For<PurchaseService>().Where(x => serviceIds.Contains(x.Id)).Build();
-            return await _purchaseServiceQuery.GetAllAsync(query);
+            var query = _queryBuilder.For<Product>().Where(x => serviceIds.Contains(x.Id)).Build();
+            return await _productQuery.GetAllAsync(query);
         }
 
         private class ProductTempDto

@@ -197,7 +197,7 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("products")]
-    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, [FromQuery] bool? isService = null, CancellationToken ct)
+    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, [FromQuery] bool? isService, CancellationToken ct)
     {
         var result = await _manualService.GetProductsAsync(productGroupId, isService, ct);
         return Ok(result);

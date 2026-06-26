@@ -419,7 +419,9 @@ public class ManualService : IManualService
                                      Id = s.Id,
                                      Name = s.Name,
                                      Code = s.Barcode,
-                                     Mxik = s.Mxik
+                                     Mxik = s.Mxik,
+                                     UnitId = s.UnitId,
+                                     UnitCode = s.Unit.Code
                                  }).Build();
 
         return await _productQuery.GetAllAsync(query, ct);

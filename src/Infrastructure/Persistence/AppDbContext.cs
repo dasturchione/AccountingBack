@@ -65,8 +65,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ContractType> ContractTypes { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<PurchaseItemType> PurchaseItemTypes { get; set; }
-    public virtual DbSet<PurchaseService> PurchaseServices { get; set; }
-    public virtual DbSet<PurchaseServiceType> PurchaseServiceTypes { get; set; }
     public virtual DbSet<OrganizationConfig> OrganizationConfigs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

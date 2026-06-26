@@ -30,9 +30,9 @@ public class ProductGroupController : ControllerBase
 
     [HttpGet("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ProductGroupViewDetail)]
-    public async Task<IResult> GetById([FromRoute] int id, CancellationToken ct = default)
+    public async Task<IResult> GetById([FromRoute] int id, [FromQuery] bool? isService, CancellationToken ct = default)
     {
-        var result = await _service.GetByIdAsync(id, ct);
+        var result = await _service.GetByIdAsync(id, isService, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

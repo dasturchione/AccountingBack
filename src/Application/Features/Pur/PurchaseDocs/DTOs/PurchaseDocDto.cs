@@ -27,7 +27,6 @@ public class PurchaseDocDto
     public string? ContractNumber { get; set; }
 
     public List<PurchaseDocProductDto> Lines { get; set; } = new();
-    public List<PurchaseDocProductDto> ServiceLines { get; set; } = new();
 }
 
 public class PurchaseDocProductDto

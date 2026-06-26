@@ -56,7 +56,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
     public async Task<Result<long>> CreateAsync(PurchaseDocTableCreateDto dto, CancellationToken ct = default)
     {
         await Task.CompletedTask;
-        return Result.Failure<long>(PurchaseDocTableErrors.ServiceLinesUnsupported(_userContext.LanguageId));
+        return Result.Failure<long>(PurchaseDocTableErrors.DirectTableCreateUnsupported(_userContext.LanguageId));
     }
 
     public async Task<Result> UpdateAsync(long id, PurchaseDocTableUpdateDto dto, CancellationToken ct = default)

@@ -62,7 +62,6 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
                         VatAmount      = t.VatAmount,
                         TotalAmount    = t.TotalAmount,
                     }).ToList()
-                }).ToList(),
-            ServiceLines = new List<PurchaseDocProductDto>()
+                }).ToList()
         };
 }

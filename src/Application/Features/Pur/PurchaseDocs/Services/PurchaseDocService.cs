@@ -94,7 +94,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
-            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, dto.ServiceLines, ct);
+            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure<long>(allLinesResult.Error);
 
@@ -166,7 +166,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, dto.ServiceLines, ct);
+            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure(allLinesResult.Error);
 
@@ -246,7 +246,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private async Task<Result<List<PurchaseDocProduct>>> BuildAllLinesAsync(
         int organizationId,
         List<PurchaseDocLineDto> productLineDtos,
-        List<PurchaseDocServiceLineDto> serviceLineDtos,
         CancellationToken ct)
     {
         var allLines = new List<PurchaseDocProduct>();
@@ -259,9 +258,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             allLines.AddRange(productResult.Value);
         }
-
-        if (serviceLineDtos.Count > 0)
-            return Result.Failure<List<PurchaseDocProduct>>(PurchaseDocTableErrors.ServiceLinesUnsupported(_userContext.LanguageId));
 
         return allLines;
     }

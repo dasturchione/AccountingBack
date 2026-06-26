@@ -28,9 +28,6 @@ public partial class PurchaseService
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("Service")]
-    public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
-
     [ForeignKey("ServiceTypeId")]
     [InverseProperty("PurchaseServices")]
     public virtual PurchaseServiceType ServiceType { get; set; } = null!;

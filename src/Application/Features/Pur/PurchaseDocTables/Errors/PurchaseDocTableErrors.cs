@@ -41,11 +41,11 @@ public static class PurchaseDocTableErrors
             _                       => $"VAT rate with id {vatRateId} was not found."
         });
 
-    public static Error ServiceLinesUnsupported(short? languageId = null) =>
-        Error.Business("PurchaseDocTable.ServiceLinesUnsupported", languageId switch
+    public static Error DirectTableCreateUnsupported(short? languageId = null) =>
+        Error.Business("PurchaseDocTable.DirectTableCreateUnsupported", languageId switch
         {
-            LanguageIdConst.UZ => "Xarid xizmat qatorlari joriy baza sxemasida qo'llab-quvvatlanmaydi.",
-            _ => "Purchase service lines are not supported by the current database schema."
+            LanguageIdConst.UZ => "Xarid item qatorlari hujjat product line ichida yaratiladi.",
+            _ => "Purchase item rows are created through purchase document product lines."
         });
 
     public static Error InvalidProductQuantity(int productId, decimal quantity, short? languageId = null) =>

@@ -52,6 +52,7 @@ public class ProductStockService : IProductStockService
             ProductTableId = entity.Id,
             ProductId      = entity.ProductId,
             ProductName    = entity.Product.Name,
+            Mxik           = entity.Product.Mxik,
             MarkingNumber  = entity.MarkingNumber,
             SerialNumber   = entity.SerialNumber,
         };
@@ -104,7 +105,7 @@ public class ProductStockService : IProductStockService
                 .ToList();
 
         var items = inStockEntities
-            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.ProductGroup, x.Product.Unit })
+            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.Mxik, x.Product.ProductGroup, x.Product.Unit })
             .Select(g => 
             {
                 var price = priceMap.GetValueOrDefault(g.Key.ProductId);
@@ -115,6 +116,7 @@ public class ProductStockService : IProductStockService
                     Id               = g.Key.ProductId,
                     Name             = g.Key.Name,
                     Barcode          = g.Key.Barcode,
+                    Mxik             = g.Key.Mxik,
                     ProductGroupName = g.Key.ProductGroup?.Name,
                     UnitName         = g.Key.Unit.Name,
                     Quantity         = qty,
@@ -146,6 +148,7 @@ public class ProductStockService : IProductStockService
                 Id = x.Id,
                 ProductId = x.ProductId,
                 ProductName = x.Product.Name,
+                Mxik = x.Product.Mxik,
                 SerialNumber = x.SerialNumber,
                 MarkingNumber = x.MarkingNumber,
             })

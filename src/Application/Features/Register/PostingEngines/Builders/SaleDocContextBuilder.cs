@@ -226,20 +226,19 @@ namespace Application.Features.Register.PostingEngines
                 return new Dictionary<int, PurchaseBatchDto>();
 
             var query = _queryBuilder.For<PurchaseDocTable>()
-                .Where(x => x.ProductTableId.HasValue
-                            && productTableIds.Contains(x.ProductTableId.Value)
-                            && x.Owner.OrganizationId == document.OrganizationId
-                            && x.Owner.StatusId == DocumentStatusIdConst.POSTED
-                            && x.Owner.StateId == StateIdConst.ACTIVE
-                            && x.Owner.DocDate <= document.DocDate)
+                .Where(x => productTableIds.Contains(x.ProductTableId)
+                            && x.Owner.Owner.OrganizationId == document.OrganizationId
+                            && x.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED
+                            && x.Owner.Owner.StateId == StateIdConst.ACTIVE
+                            && x.Owner.Owner.DocDate <= document.DocDate)
                 .As(x => new PurchaseBatchDto
                 {
-                    ProductTableId = x.ProductTableId!.Value,
-                    PurchaseId = x.OwnerId,
-                    Date = x.Owner.DocDate,
-                    DocNumber = x.Owner.DocNumber,
-                    WarehouseId = x.Owner.WarehouseId,
-                    WarehouseName = x.Owner.Warehouse.Name,
+                    ProductTableId = x.ProductTableId,
+                    PurchaseId = x.Owner.OwnerId,
+                    Date = x.Owner.Owner.DocDate,
+                    DocNumber = x.Owner.Owner.DocNumber,
+                    WarehouseId = x.Owner.Owner.WarehouseId,
+                    WarehouseName = x.Owner.Owner.Warehouse.Name,
                     CostAmount = x.TotalAmount
                 })
                 .Build();

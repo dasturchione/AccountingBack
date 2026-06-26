@@ -32,6 +32,9 @@ public partial class VatRate
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("VatRate")]
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
+
+    [InverseProperty("VatRate")]
     public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
 
     [InverseProperty("VatRate")]

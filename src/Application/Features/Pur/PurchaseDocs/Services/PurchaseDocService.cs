@@ -25,7 +25,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly IQueryRepository<Contract> _contractQuery;
-    private readonly ICommandRepository<PurchaseDocTable> _lineCommand;
+    private readonly ICommandRepository<PurchaseDocProduct> _productLineCommand;
+    private readonly ICommandRepository<PurchaseDocTable> _tableLineCommand;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public PurchaseDocService(IUserContext userContext,
@@ -38,7 +39,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<VatRate> vatRateQuery,
                               IQueryRepository<Contract> contractQuery,
                               ICommandRepository<PurchaseDoc> command,
-                              ICommandRepository<PurchaseDocTable> lineCommand,
+                              ICommandRepository<PurchaseDocProduct> productLineCommand,
+                              ICommandRepository<PurchaseDocTable> tableLineCommand,
                               ILogger<PurchaseDocService> logger,
                               IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -46,7 +48,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _query               = query;
         _command             = command;
         _dispatcher          = dispatcher;
-        _lineCommand         = lineCommand;
+        _productLineCommand  = productLineCommand;
+        _tableLineCommand    = tableLineCommand;
         _userContext         = userContext;
         _queryBuilder        = queryBuilder;
         _auditLogService     = auditLogService;
@@ -103,7 +106,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 DocNumber           = docNumber,
                 DocDate             = dto.DocDate,
                 CurrencyId          = dto.CurrencyId,
-                PurchaseDocTables   = allLines,
+                PurchaseDocProducts = allLines,
                 TotalAmount         = allLines.Sum(l => l.Amount),
                 VatAmount           = allLines.Sum(l => l.VatAmount),
                 FinalAmount         = allLines.Sum(l => l.TotalAmount),
@@ -120,7 +123,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             // Inventory handler uchun ProductTable navigation kerak
             var fullDocQuery = _queryBuilder.For<PurchaseDoc>().Where(d => d.Id == doc.Id).Build();
-            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocTables).ThenInclude(l => l.ProductTable));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Unit));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.VatRate));
+            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable));
             var fullDoc = await _query.GetAsync(fullDocQuery, ct) ?? doc;
 
             var dispatch = await _dispatcher.ProcessAsync(fullDoc, ct);
@@ -167,12 +173,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             var newLines = allLinesResult.Value;
 
             // Eski qatorlarni o'chirib, yangilarini yozamiz
-            await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+            await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
+            await _productLineCommand.DeleteAsync(l => l.OwnerId == id, ct);
 
             foreach (var line in newLines)
                 line.OwnerId = id;
 
-            await _lineCommand.CreateAsync(newLines, ct);
+            await _productLineCommand.CreateAsync(newLines, ct);
 
             doc.OrganizationId = _userContext.OrganizationId.Value;
             doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
@@ -214,7 +221,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 _auditLogService.SetOldValues(oldDocDto);
 
             // Avval barcha qatorlarni o'chiramiz, keyin hujjatni
-            await _lineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+            await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
+            await _productLineCommand.DeleteAsync(l => l.OwnerId == id, ct);
 
             doc.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(doc, ct);
@@ -235,49 +243,66 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<Result<List<PurchaseDocTable>>> BuildAllLinesAsync(
+    private async Task<Result<List<PurchaseDocProduct>>> BuildAllLinesAsync(
         int organizationId,
         List<PurchaseDocLineDto> productLineDtos,
         List<PurchaseDocServiceLineDto> serviceLineDtos,
         CancellationToken ct)
     {
-        var allLines = new List<PurchaseDocTable>();
+        var allLines = new List<PurchaseDocProduct>();
 
         if (productLineDtos.Count > 0)
         {
             var productResult = await BuildProductLinesAsync(organizationId, productLineDtos, ct);
             if (!productResult.IsSuccess)
-                return Result.Failure<List<PurchaseDocTable>>(productResult.Error);
+                return Result.Failure<List<PurchaseDocProduct>>(productResult.Error);
 
             allLines.AddRange(productResult.Value);
         }
 
-        foreach (var sDto in serviceLineDtos)
-        {
-            allLines.Add(new PurchaseDocTable
-            {
-                ItemTypeId       = PurchaseItemTypeIdConst.SERVICE,
-                ServiceId        = sDto.ServiceId,
-                Price            = sDto.Price,
-                Amount           = sDto.Price,
-                Quantity         = 1,
-                VatAmount        = 0,
-                TotalAmount      = sDto.Price,
-            });
-        }
+        if (serviceLineDtos.Count > 0)
+            return Result.Failure<List<PurchaseDocProduct>>(PurchaseDocTableErrors.ServiceLinesUnsupported(_userContext.LanguageId));
 
         return allLines;
     }
 
-    private async Task<Result<List<PurchaseDocTable>>> BuildProductLinesAsync(
+    private async Task<Result<List<PurchaseDocProduct>>> BuildProductLinesAsync(
         int organizationId, List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
     {
-        var lines = new List<PurchaseDocTable>(lineDtos.Count);
+        var lines = new List<PurchaseDocProduct>();
+        var markingNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var productsGroup in lineDtos.GroupBy(g => g.ProductId))
+        foreach (var dto in lineDtos)
         {
-            var vatRateId = productsGroup.First().VatRateId;
-            var productPrice = productsGroup.First().Price;
+            if (dto.Quantity <= 0 || dto.Quantity != decimal.Truncate(dto.Quantity))
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.InvalidProductQuantity(dto.ProductId, dto.Quantity, _userContext.LanguageId));
+
+            if (dto.UnitPrice < 0)
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.InvalidProductUnitPrice(dto.ProductId, dto.UnitPrice, _userContext.LanguageId));
+
+            if (dto.Items.Count == 0)
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
+
+            if (dto.Quantity != dto.Items.Count)
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
+
+            foreach (var item in dto.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.MarkingNumber))
+                    return Result.Failure<List<PurchaseDocProduct>>(
+                        PurchaseDocTableErrors.MarkingNumberRequired(dto.ProductId, _userContext.LanguageId));
+
+                if (!markingNumbers.Add(item.MarkingNumber.Trim()))
+                    return Result.Failure<List<PurchaseDocProduct>>(
+                        PurchaseDocTableErrors.DuplicateMarkingNumber(item.MarkingNumber, _userContext.LanguageId));
+            }
+
+            var vatRateId = dto.VatRateId;
+            var amount = dto.UnitPrice * dto.Quantity;
             var vatAmount = 0m;
 
             if (vatRateId.HasValue)
@@ -286,33 +311,55 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
 
                 if (vatRate == null)
-                    return Result.Failure<List<PurchaseDocTable>>(PurchaseDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId));
+                    return Result.Failure<List<PurchaseDocProduct>>(PurchaseDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId));
 
-                vatAmount = Math.Round(productPrice * vatRate.Rate / 100, 2);
+                vatAmount = Math.Round(amount * vatRate.Rate / 100, 8);
             }
 
-            lines.AddRange(productsGroup.Select(s => new PurchaseDocTable
+            var itemVatAmounts = SplitAmount(vatAmount, dto.Items.Count);
+
+            lines.Add(new PurchaseDocProduct
             {
-                ItemTypeId  = PurchaseItemTypeIdConst.PRODUCT,
-                Amount      = productPrice,
-                Price       = productPrice,
-                Quantity    = 1,
-                TotalAmount = productPrice + vatAmount,
-                VatRateId   = vatRateId,
-                VatAmount   = vatAmount,
-                ProductTable = new ProductTable
+                ItemTypeId = PurchaseItemTypeIdConst.PRODUCT,
+                ProductId = dto.ProductId,
+                UnitId = dto.UnitId,
+                Quantity = dto.Quantity,
+                UnitPrice = dto.UnitPrice,
+                Amount = amount,
+                VatRateId = vatRateId,
+                VatAmount = vatAmount,
+                TotalAmount = amount + vatAmount,
+                PurchaseDocTables = dto.Items.Select((item, index) => new PurchaseDocTable
                 {
-                    ProductId      = productsGroup.Key,
-                    SerialNumber   = s.SerialNumber,
-                    MarkingNumber  = s.MarkingNumber,
-                    CreatedDate    = DateTime.Now,
-                    OrganizationId = organizationId,
-                    StateId        = StateIdConst.ACTIVE,
-                    StatusId       = ProductTableStatusIdConst.IN_STOCK
-                }
-            }));
+                    Amount = dto.UnitPrice,
+                    VatRateId = vatRateId,
+                    VatAmount = itemVatAmounts[index],
+                    TotalAmount = dto.UnitPrice + itemVatAmounts[index],
+                    ProductTable = new ProductTable
+                    {
+                        ProductId      = dto.ProductId,
+                        SerialNumber   = item.SerialNumber,
+                        MarkingNumber  = item.MarkingNumber.Trim(),
+                        CreatedDate    = DateTime.Now,
+                        OrganizationId = organizationId,
+                        StateId        = StateIdConst.ACTIVE,
+                        StatusId       = ProductTableStatusIdConst.IN_STOCK
+                    }
+                }).ToList()
+            });
         }
 
         return lines;
+    }
+
+    private static List<decimal> SplitAmount(decimal amount, int count)
+    {
+        if (count <= 0)
+            return new List<decimal>();
+
+        var split = Math.Round(amount / count, 8);
+        var result = Enumerable.Repeat(split, count).ToList();
+        result[^1] += amount - result.Sum();
+        return result;
     }
 }

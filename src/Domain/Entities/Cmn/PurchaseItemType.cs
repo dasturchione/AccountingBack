@@ -28,7 +28,7 @@ public partial class PurchaseItemType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("ItemType")]
-    public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("PurchaseItemTypes")]

@@ -13,6 +13,7 @@ public class ProductDto
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public bool IsService { get; set; }
+    public string? Mxik { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }

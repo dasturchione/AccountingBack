@@ -207,11 +207,11 @@ public class ProductStockService : IProductStockService
             return new Dictionary<int, decimal>();
 
         var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value))
+            .Where(x => productTableIds.Contains(x.ProductTableId))
             .As(x => new
             {
-                ProductTableId = x.ProductTableId!.Value,
-                DocDate = x.Owner.DocDate,
+                ProductTableId = x.ProductTableId,
+                DocDate = x.Owner.Owner.DocDate,
                 CostPrice = x.TotalAmount
             })
             .Build();

@@ -1,4 +1,3 @@
-using Application.Features.PurchaseDocTables;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -33,43 +32,37 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             CreatedDate      = x.CreatedDate,
             ContractId       = x.ContractId,
             ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
-            Lines = x.PurchaseDocTables
+            Lines = x.PurchaseDocProducts
                 .Where(l => l.ItemTypeId == PurchaseItemTypeIdConst.PRODUCT)
-                .Select(l => new PurchaseDocTableDto
+                .Select(l => new PurchaseDocProductDto
                 {
                     Id                 = l.Id,
                     OwnerId            = l.OwnerId,
                     ItemTypeId         = l.ItemTypeId,
-                    ProductTableId     = l.ProductTableId,
-                    ProductName        = l.ProductTable != null ? l.ProductTable.Product.Name : null,
+                    ProductId          = l.ProductId,
+                    ProductName        = l.Product.Name,
                     Quantity           = l.Quantity,
-                    Price              = l.Price,
+                    UnitId             = l.UnitId,
+                    UnitName           = l.Unit.Name,
+                    UnitPrice          = l.UnitPrice,
                     Amount             = l.Amount,
                     VatRateId          = l.VatRateId,
                     VatRateName        = l.VatRate != null ? l.VatRate.Name : null,
                     VatAmount          = l.VatAmount,
                     TotalAmount        = l.TotalAmount,
-                    SerialNumber       = l.ProductTable != null ? l.ProductTable.SerialNumber : null,
-                    MarkingNumber      = l.ProductTable != null ? l.ProductTable.MarkingNumber : null,
+                    Items = l.PurchaseDocTables.Select(t => new PurchaseDocProductItemDto
+                    {
+                        Id             = t.Id,
+                        ProductTableId = t.ProductTableId,
+                        MarkingNumber  = t.ProductTable.MarkingNumber,
+                        SerialNumber   = t.ProductTable.SerialNumber,
+                        Amount         = t.Amount,
+                        VatRateId      = t.VatRateId,
+                        VatRateName    = t.VatRate != null ? t.VatRate.Name : null,
+                        VatAmount      = t.VatAmount,
+                        TotalAmount    = t.TotalAmount,
+                    }).ToList()
                 }).ToList(),
-            ServiceLines = x.PurchaseDocTables
-                .Where(l => l.ItemTypeId == PurchaseItemTypeIdConst.SERVICE)
-                .Select(l => new PurchaseDocTableDto
-                {
-                    Id                 = l.Id,
-                    OwnerId            = l.OwnerId,
-                    ItemTypeId         = l.ItemTypeId,
-                    ServiceId          = l.ServiceId,
-                    ServiceName        = l.Service != null ? l.Service.Name : null,
-                    ExpenseAccountId   = l.Service != null ? l.Service.ServiceType.AccountId : null,
-                    ExpenseAccountName = l.Service != null ? l.Service.ServiceType.Account.Name : null,
-                    Quantity           = l.Quantity,
-                    Price              = l.Price,
-                    Amount             = l.Amount,
-                    VatRateId          = l.VatRateId,
-                    VatRateName        = l.VatRate != null ? l.VatRate.Name : null,
-                    VatAmount          = l.VatAmount,
-                    TotalAmount        = l.TotalAmount,
-                }).ToList()
+            ServiceLines = new List<PurchaseDocProductDto>()
         };
 }

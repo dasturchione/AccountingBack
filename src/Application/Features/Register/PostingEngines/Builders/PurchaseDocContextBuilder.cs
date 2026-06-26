@@ -95,21 +95,25 @@ namespace Application.Features.Register.PostingEngines
                             SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
                             DisplayValue = counterpartyName,
                             EntityId = document.CounterpartyId,
-                            SortOrder = 2,
-                        },
-                        new()
-                        {
-                            SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
-                            DisplayValue = JsonSerializer.Serialize(new
-                            {
-                                number = contractData!.Value.ContractNumber,
-                                date = contractData!.Value.ContractDate
-                            }),
-                            EntityId = document.CounterpartyId,
-                            SortOrder = 3,
+                            SortOrder = 4,
                         },
                     }
                 };
+
+                if (contractData is not null)
+                {
+                    context.Subkontos.Add(new SubkontoValue
+                    {
+                        SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
+                        DisplayValue = JsonSerializer.Serialize(new
+                        {
+                            number = contractData.Value.ContractNumber,
+                            date = contractData.Value.ContractDate
+                        }),
+                        EntityId = document.ContractId,
+                        SortOrder = 5,
+                    });
+                }
 
                 result.Add(context);
             }
@@ -207,60 +211,30 @@ namespace Application.Features.Register.PostingEngines
 
         private async Task<List<ProductTempDto>> GetProductsAsync(PurchaseDoc document)
         {
-            var productTableIds = document.PurchaseDocTables.Where(x => x.ProductTableId != null).Select(s => s.ProductTableId!);
+            var productLines = document.PurchaseDocProducts
+                .Where(x => x.ItemTypeId == PurchaseItemTypeIdConst.PRODUCT)
+                .ToList();
+            await Task.CompletedTask;
 
-            var productQuery = _queryBuilder.For<ProductTable>()
-                                            .Where(x => productTableIds.Contains(x.Id))
-                                            .As(s => new
-                                            {
-                                                TableId = s.Id,
-                                                ProductId = s.ProductId,
-                                                ProductName = s.Product.Name,
-                                            })
-                                            .Build();
-
-            var products = await _productTableQuery.GetAllAsync(productQuery);
-
-            return products.GroupBy(g => g.ProductId).Select(grouped => new ProductTempDto
+            return productLines.GroupBy(g => g.ProductId).Select(grouped => new ProductTempDto
             {
                 ProductId = grouped.Key,
-                ProductName = grouped.First().ProductName,
-                Quantity = document.PurchaseDocTables.Where(x => x.ProductTableId == grouped.Key).Sum(s => s.Quantity),
-                Amount = document.PurchaseDocTables.Where(x => x.ProductTableId == grouped.Key).Sum(s => s.Amount),
-                VatAmount = document.PurchaseDocTables.Where(x => x.ProductTableId == grouped.Key).Sum(s => s.VatAmount)
+                ProductName = grouped.First().Product?.Name ?? "",
+                Quantity = grouped.Sum(s => s.Quantity),
+                Amount = grouped.Sum(s => s.Amount),
+                VatAmount = grouped.Sum(s => s.VatAmount)
             }).ToList();
         }
 
         private async Task<List<ServiceTempDto>> GetServicesAsync(PurchaseDoc document)
         {
-            var services = document.PurchaseDocTables.Where(x => x.ItemTypeId == 2).ToList();
-
-            var result = new List<ServiceTempDto>();
-
-            var serviceDetails = await GetServiceDetailsAync(document);
-
-            foreach (var service in services)
-            {
-                var serviceDetail = serviceDetails.FirstOrDefault(f => f.Id == service.Id);
-                if (serviceDetail is null)
-                    continue;
-                result.Add(new ServiceTempDto
-                {
-                    VatAmount = service.VatAmount,
-                    Amount = service.Amount,
-                    VatApplicable = true,
-                    ServiceId = service.Id,
-                    ServiceName = serviceDetail.Name,
-                    ServiceTypeId = serviceDetail.ServiceTypeId,
-                });
-            }
-
-            return result;
+            await Task.CompletedTask;
+            return new List<ServiceTempDto>();
         }
 
         private async Task<List<PurchaseService>> GetServiceDetailsAync(PurchaseDoc document)
         {
-            var serviceIds = document.PurchaseDocTables.Where(x => x.ItemTypeId == 2).Select(s => s.ServiceId).Distinct().ToList();
+            var serviceIds = new List<long>();
             var query = _queryBuilder.For<PurchaseService>().Where(x => serviceIds.Contains(x.Id)).Build();
             return await _purchaseServiceQuery.GetAllAsync(query);
         }

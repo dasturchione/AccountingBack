@@ -6,5 +6,6 @@ public class SaleDocBaseDto
     public int CounterpartyId { get; set; }
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
+    public long? ContractId { get; set; }
     public string? Comment { get; set; }
 }

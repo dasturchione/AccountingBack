@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pur_doc")]
+[Index("ContractId", Name = "idx_pur_doc_contract_id")]
 [Index("CounterpartyId", Name = "idx_pur_doc_counterparty_id")]
 [Index("DocDate", Name = "idx_pur_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_pur_doc_organization_id")]
@@ -37,15 +38,15 @@ public partial class PurchaseDoc
     public short CurrencyId { get; set; }
 
     [Column("total_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
     [Column("vat_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal VatAmount { get; set; }
 
     [Column("final_amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal FinalAmount { get; set; }
 
     [Column("status_id")]
@@ -81,7 +82,7 @@ public partial class PurchaseDoc
     public virtual Organization Organization { get; set; } = null!;
 
     [InverseProperty("Owner")]
-    public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("PurDocs")]

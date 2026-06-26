@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
 [Table("cmn_currency")]
+[Index("Code", Name = "idx_cmn_currency_code", IsUnique = true)]
 public partial class Currency
 {
     [Key]

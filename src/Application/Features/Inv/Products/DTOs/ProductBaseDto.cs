@@ -8,4 +8,5 @@ public class ProductBaseDto
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public bool IsService { get; set; }
+    public string? Mxik { get; set; }
 }

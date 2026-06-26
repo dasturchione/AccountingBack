@@ -1,5 +1,3 @@
-using Application.Features.PurchaseDocTables;
-
 namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocDto
@@ -28,6 +26,38 @@ public class PurchaseDocDto
     public long? ContractId { get; set; }
     public string? ContractNumber { get; set; }
 
-    public List<PurchaseDocTableDto> Lines { get; set; } = new();
-    public List<PurchaseDocTableDto> ServiceLines { get; set; } = new();
+    public List<PurchaseDocProductDto> Lines { get; set; } = new();
+    public List<PurchaseDocProductDto> ServiceLines { get; set; } = new();
+}
+
+public class PurchaseDocProductDto
+{
+    public long Id { get; set; }
+    public long OwnerId { get; set; }
+    public short ItemTypeId { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = null!;
+    public decimal Quantity { get; set; }
+    public short UnitId { get; set; }
+    public string UnitName { get; set; } = null!;
+    public decimal UnitPrice { get; set; }
+    public decimal Amount { get; set; }
+    public short? VatRateId { get; set; }
+    public string? VatRateName { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<PurchaseDocProductItemDto> Items { get; set; } = new();
+}
+
+public class PurchaseDocProductItemDto
+{
+    public long Id { get; set; }
+    public int ProductTableId { get; set; }
+    public string? MarkingNumber { get; set; }
+    public string? SerialNumber { get; set; }
+    public decimal Amount { get; set; }
+    public short? VatRateId { get; set; }
+    public string? VatRateName { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal TotalAmount { get; set; }
 }

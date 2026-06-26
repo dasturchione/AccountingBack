@@ -9,21 +9,20 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
 {
     public Task<Result<List<RegisterBalance>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
     {
-        var entries = purchase.PurchaseDocTables
-            .Where(line => line.ProductTableId.HasValue && line.ProductTable != null)
-            .Select(line => new RegisterBalance
+        var entries = purchase.PurchaseDocProducts
+            .SelectMany(line => line.PurchaseDocTables.Select(table => new RegisterBalance
             {
                 OrganizationId  = purchase.OrganizationId,
                 DocumentTypeId  = DocumentTypeIdConst.PURCHASE,
                 DocumentId      = purchase.Id,
                 WarehouseId     = purchase.WarehouseId,
-                ProductId       = line.ProductTable!.ProductId,
+                ProductId       = line.ProductId,
                 OperationTypeId = OperationTypeIdConst.IN,
-                Quantity        = line.Quantity,
-                Amount          = line.TotalAmount,
+                Quantity        = 1,
+                Amount          = table.TotalAmount,
                 DocDate         = purchase.DocDate,
                 CreatedDate     = DateTime.Now
-            }).ToList();
+            })).ToList();
 
         return Task.FromResult(Result.Success(entries));
     }

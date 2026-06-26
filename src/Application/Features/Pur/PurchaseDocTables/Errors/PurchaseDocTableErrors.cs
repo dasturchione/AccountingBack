@@ -40,4 +40,53 @@ public static class PurchaseDocTableErrors
             LanguageIdConst.RU      => $"Ставка НДС с id {vatRateId} не найдена.",
             _                       => $"VAT rate with id {vatRateId} was not found."
         });
+
+    public static Error ServiceLinesUnsupported(short? languageId = null) =>
+        Error.Business("PurchaseDocTable.ServiceLinesUnsupported", languageId switch
+        {
+            LanguageIdConst.UZ => "Xarid xizmat qatorlari joriy baza sxemasida qo'llab-quvvatlanmaydi.",
+            _ => "Purchase service lines are not supported by the current database schema."
+        });
+
+    public static Error InvalidProductQuantity(int productId, decimal quantity, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.InvalidProductQuantity", languageId switch
+        {
+            LanguageIdConst.UZ => $"Mahsulot id-si {productId} uchun miqdor noto'g'ri: {quantity}.",
+            _ => $"Invalid quantity {quantity} for product id {productId}."
+        });
+
+    public static Error InvalidProductUnitPrice(int productId, decimal unitPrice, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.InvalidProductUnitPrice", languageId switch
+        {
+            LanguageIdConst.UZ => $"Mahsulot id-si {productId} uchun narx noto'g'ri: {unitPrice}.",
+            _ => $"Invalid unit price {unitPrice} for product id {productId}."
+        });
+
+    public static Error ProductItemsRequired(int productId, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.ProductItemsRequired", languageId switch
+        {
+            LanguageIdConst.UZ => $"Mahsulot id-si {productId} uchun marking itemlar kiritilishi kerak.",
+            _ => $"Items with marking numbers are required for product id {productId}."
+        });
+
+    public static Error ProductQuantityItemsMismatch(int productId, decimal quantity, int itemCount, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.ProductQuantityItemsMismatch", languageId switch
+        {
+            LanguageIdConst.UZ => $"Mahsulot id-si {productId} uchun quantity ({quantity}) va items soni ({itemCount}) mos emas.",
+            _ => $"Quantity ({quantity}) and item count ({itemCount}) do not match for product id {productId}."
+        });
+
+    public static Error DuplicateMarkingNumber(string markingNumber, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.DuplicateMarkingNumber", languageId switch
+        {
+            LanguageIdConst.UZ => $"Marking raqami takrorlangan: {markingNumber}.",
+            _ => $"Duplicate marking number: {markingNumber}."
+        });
+
+    public static Error MarkingNumberRequired(int productId, short? languageId = null) =>
+        Error.Business("PurchaseDocTable.MarkingNumberRequired", languageId switch
+        {
+            LanguageIdConst.UZ => $"Mahsulot id-si {productId} uchun marking raqami majburiy.",
+            _ => $"Marking number is required for product id {productId}."
+        });
 }

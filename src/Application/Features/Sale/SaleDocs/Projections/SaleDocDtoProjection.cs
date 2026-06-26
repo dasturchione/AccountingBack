@@ -30,12 +30,16 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,
+            ContractId       = x.ContractId,
+            ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
             Products = x.SaleDocProducts.Select(p => new SaleDocProductDto
             {
                 Id          = p.Id,
                 ProductId   = p.ProductId,
                 ProductName = p.Product.Name,
                 Quantity    = p.Quantity,
+                UnitId      = p.UnitId,
+                UnitName    = p.Unit.Name,
                 UnitPrice   = p.UnitPrice,
                 CostPrice   = p.CostPrice,
                 Amount      = p.Amount,

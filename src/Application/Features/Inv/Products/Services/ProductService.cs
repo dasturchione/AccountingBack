@@ -43,6 +43,7 @@ public class ProductService : BaseService, IProductService
                 Name = dto.Name,
                 Description = dto.Description,
                 IsService = dto.IsService,
+                Mxik = dto.Mxik,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             };
@@ -64,6 +65,7 @@ public class ProductService : BaseService, IProductService
                 Barcode = s.Barcode,
                 Description = s.Description,
                 IsService = s.IsService,
+                Mxik = s.Mxik,
                 StateId = StateIdConst.ACTIVE,
                 UnitId = s.UnitId,
                 OrganizationId = _userContext.OrganizationId.Value,
@@ -127,6 +129,7 @@ public class ProductService : BaseService, IProductService
             entity.Name = dto.Name;
             entity.Description = dto.Description;
             entity.IsService = dto.IsService;
+            entity.Mxik = dto.Mxik;
             entity.StateId = dto.StateId;
 
             await _command.UpdateAsync(entity, ct);

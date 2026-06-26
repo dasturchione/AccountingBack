@@ -59,17 +59,23 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<ProductTable>(modelBuilder);
 
             // Navigation orqali OrganizationId bo'lgan entitylar
-            modelBuilder.Entity<PurchaseDocTable>()
+            modelBuilder.Entity<PurchaseDocProduct>()
                 .HasQueryFilter(e => AllowedOrgIds.Count == 0
                                   || (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId)));
 
+            modelBuilder.Entity<PurchaseDocTable>()
+                .HasQueryFilter(e => AllowedOrgIds.Count == 0
+                                  || (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId)));
+
             modelBuilder.Entity<SaleDocTable>()
                 .HasQueryFilter(e => AllowedOrgIds.Count == 0
                                   || (CurrentOrganizationId != 0
-                                      ? e.Owner!.Owner.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.Owner!.Owner.OrganizationId)));
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId)));
 
             // Role — OrganizationId nullable: null bo'lsa global (hamma ko'ra oladi)
             modelBuilder.Entity<Role>()

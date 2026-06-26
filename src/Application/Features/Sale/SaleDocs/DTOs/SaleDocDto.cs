@@ -23,6 +23,8 @@ public class SaleDocDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+    public long? ContractId { get; set; }
+    public string? ContractNumber { get; set; }
 
     public List<SaleDocProductDto> Products { get; set; } = new();
 }
@@ -33,6 +35,8 @@ public class SaleDocProductDto
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
     public decimal Quantity { get; set; }
+    public short UnitId { get; set; }
+    public string UnitName { get; set; } = null!;
     public decimal UnitPrice { get; set; }
     public decimal CostPrice { get; set; }
     public decimal Amount { get; set; }

@@ -55,41 +55,8 @@ public class PurchaseDocTableService : IPurchaseDocTableService
 
     public async Task<Result<long>> CreateAsync(PurchaseDocTableCreateDto dto, CancellationToken ct = default)
     {
-        var docQuery = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == dto.OwnerId).Build();
-        var doc      = await _docQuery.GetAsync(docQuery, ct);
-
-        if (doc == null)
-            return Result.Failure<long>(PurchaseDocTableErrors.OwnerNotFound(dto.OwnerId, _userContext.LanguageId));
-
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure<long>(PurchaseDocTableErrors.OwnerAlreadyPosted(dto.OwnerId, _userContext.LanguageId));
-
-        var (amount, vatAmount, totalAmount, error) = await CalculateAmountsAsync(dto.Quantity, dto.Price, dto.VatRateId, ct);
-        if (error != null)
-            return Result.Failure<long>(error);
-
-        var entity = new PurchaseDocTable
-        {
-            OwnerId          = dto.OwnerId,
-            ItemTypeId       = dto.ItemTypeId,
-            ProductTableId   = dto.ProductTableId,
-            Quantity         = dto.Quantity,
-            Price            = dto.Price,
-            Amount           = amount,
-            VatRateId        = dto.VatRateId,
-            VatAmount        = vatAmount,
-            TotalAmount      = totalAmount,
-            ServiceId        = dto.ServiceId,
-        };
-
-        await _command.CreateAsync(entity, ct);
-
-        doc.TotalAmount += amount;
-        doc.VatAmount   += vatAmount;
-        doc.FinalAmount += totalAmount;
-        await _docCommand.UpdateAsync(doc, ct);
-
-        return entity.Id;
+        await Task.CompletedTask;
+        return Result.Failure<long>(PurchaseDocTableErrors.ServiceLinesUnsupported(_userContext.LanguageId));
     }
 
     public async Task<Result> UpdateAsync(long id, PurchaseDocTableUpdateDto dto, CancellationToken ct = default)
@@ -100,16 +67,16 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         if (entity == null)
             return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
 
-        var docQuery = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == entity.OwnerId).Build();
+        var docQuery = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == entity.Owner.OwnerId).Build();
         var doc      = await _docQuery.GetAsync(docQuery, ct);
 
         if (doc == null)
-            return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.OwnerId, _userContext.LanguageId));
+            return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.Owner.OwnerId, _userContext.LanguageId));
 
         if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.OwnerId, _userContext.LanguageId));
+            return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.Owner.OwnerId, _userContext.LanguageId));
 
-        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(dto.Quantity, dto.Price, dto.VatRateId, ct);
+        var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(1, dto.Price, dto.VatRateId, ct);
         if (error != null)
             return Result.Failure(error);
 
@@ -118,15 +85,11 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         doc.VatAmount   += newVatAmount   - entity.VatAmount;
         doc.FinalAmount += newTotalAmount - entity.TotalAmount;
 
-        entity.ItemTypeId       = dto.ItemTypeId;
-        entity.ProductTableId   = dto.ProductTableId;
-        entity.Quantity         = dto.Quantity;
-        entity.Price            = dto.Price;
+        entity.ProductTableId   = dto.ProductTableId ?? entity.ProductTableId;
         entity.Amount           = newAmount;
         entity.VatRateId        = dto.VatRateId;
         entity.VatAmount        = newVatAmount;
         entity.TotalAmount      = newTotalAmount;
-        entity.ServiceId        = dto.ServiceId;
 
         await _command.UpdateAsync(entity, ct);
         await _docCommand.UpdateAsync(doc, ct);
@@ -142,14 +105,14 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         if (entity == null)
             return Result.Failure(PurchaseDocTableErrors.NotFound(id, _userContext.LanguageId));
 
-        var docQuery = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == entity.OwnerId).Build();
+        var docQuery = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == entity.Owner.OwnerId).Build();
         var doc      = await _docQuery.GetAsync(docQuery, ct);
 
         if (doc == null)
-            return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.OwnerId, _userContext.LanguageId));
+            return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.Owner.OwnerId, _userContext.LanguageId));
 
         if (doc.StatusId == DocumentStatusIdConst.POSTED)
-            return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.OwnerId, _userContext.LanguageId));
+            return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.Owner.OwnerId, _userContext.LanguageId));
 
         doc.TotalAmount -= entity.Amount;
         doc.VatAmount   -= entity.VatAmount;

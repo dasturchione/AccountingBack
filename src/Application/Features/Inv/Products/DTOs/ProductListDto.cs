@@ -12,6 +12,7 @@ public class ProductListDto
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;
     public bool IsService { get; set; }
+    public string? Mxik { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }

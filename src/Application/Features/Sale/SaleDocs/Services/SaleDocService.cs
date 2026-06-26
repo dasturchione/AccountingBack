@@ -151,6 +151,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 CreatedDate = now,
                 WarehouseId = dto.WarehouseId,
                 CounterpartyId = dto.CounterpartyId,
+                ContractId = dto.ContractId,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -278,7 +279,7 @@ public class SaleDocService : BaseService, ISaleDocService
             var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
             var productLineIds = productLines.Select(p => p.Id).ToList();
 
-            var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId.HasValue && productLineIds.Contains(x.OwnerId.Value)).Build();
+            var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => productLineIds.Contains(x.OwnerId)).Build();
             var existingLines = await _lineQuery.GetAllAsync(tablesQuery, ct);
 
             foreach (var lineDto in dto.Lines)
@@ -374,7 +375,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 var productLines = await _productLineQuery.GetAllAsync(productLinesQuery, ct);
                 var productLineIds = productLines.Select(p => p.Id).ToList();
 
-                var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => x.OwnerId.HasValue && productLineIds.Contains(x.OwnerId.Value)).Build();
+                var tablesQuery = _queryBuilder.For<SaleDocTable>().Where(x => productLineIds.Contains(x.OwnerId)).Build();
                 var tables = await _lineQuery.GetAllAsync(tablesQuery, ct);
                 var productTableIds = tables.Select(t => t.ProductTableId).ToList();
 
@@ -423,6 +424,7 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId = dto.WarehouseId;
             doc.CurrencyId = dto.CurrencyId;
+            doc.ContractId = dto.ContractId;
             doc.Comment = dto.Comment;
             doc.StateId = dto.StateId;
 
@@ -543,6 +545,7 @@ public class SaleDocService : BaseService, ISaleDocService
             {
                 ProductId = p.ProductId,
                 Quantity = p.Quantity,
+                UnitId = p.UnitId,
                 UnitPrice = p.UnitPrice,
                 CostPrice = 0,
                 Amount = amount,
@@ -578,6 +581,7 @@ public class SaleDocService : BaseService, ISaleDocService
             {
                 ProductId = p.ProductId,
                 Quantity = p.Quantity,
+                UnitId = p.UnitId,
                 UnitPrice = p.UnitPrice,
                 CostPrice = 0,
                 Amount = amount,
@@ -633,19 +637,18 @@ public class SaleDocService : BaseService, ISaleDocService
         }
 
         var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => x.ProductTableId.HasValue
-                        && productIds.Contains(x.ProductTable!.ProductId)
+            .Where(x => productIds.Contains(x.ProductTable.ProductId)
                         && x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
                         && x.ProductTable.StateId == StateIdConst.ACTIVE
-                        && x.Owner.OrganizationId == doc.OrganizationId
-                        && x.Owner.WarehouseId == doc.WarehouseId)
+                        && x.Owner.Owner.OrganizationId == doc.OrganizationId
+                        && x.Owner.Owner.WarehouseId == doc.WarehouseId)
             .As(x => new InventoryCandidate
             {
-                ProductTableId = x.ProductTableId!.Value,
-                ProductId = x.ProductTable!.ProductId,
-                PurchaseDocId = x.OwnerId,
-                PurchaseDate = x.Owner.DocDate,
-                Quantity = x.Quantity,
+                ProductTableId = x.ProductTableId,
+                ProductId = x.ProductTable.ProductId,
+                PurchaseDocId = x.Owner.OwnerId,
+                PurchaseDate = x.Owner.Owner.DocDate,
+                Quantity = 1,
                 CostAmount = x.TotalAmount
             })
             .Build();

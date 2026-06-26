@@ -20,6 +20,7 @@ public class ProductDtoProjection : IProjectionBuilder<Product, ProductDto>
             Name = x.Name,
             Description = x.Description,
             IsService = x.IsService,
+            Mxik = x.Mxik,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate

@@ -45,6 +45,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Position> Positions { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
     public virtual DbSet<PurchaseDoc> PurchaseDocs { get; set; }
+    public virtual DbSet<PurchaseDocProduct> PurchaseDocProducts { get; set; }
     public virtual DbSet<PurchaseDocTable> PurchaseDocTables { get; set; }
     public virtual DbSet<AccountingRegisterEntry> AccountingRegisterEntries { get; set; }
     public virtual DbSet<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; }

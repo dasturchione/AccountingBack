@@ -47,11 +47,18 @@ public partial class Product
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("mxik")]
+    [StringLength(17)]
+    public string? Mxik { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
     [InverseProperty("Product")]
     public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
     [InverseProperty("Product")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();

@@ -85,13 +85,17 @@ public class ProductGroupService : BaseService, IProductGroupService
             return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
         });
 
-    public Task<Result<ProductGroupDto>> GetByIdAsync(int id, CancellationToken ct = default) =>
+    public Task<Result<ProductGroupDto>> GetByIdAsync(int id, bool? isService, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
             var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).As<ProductGroupDto>().Build();
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure<ProductGroupDto>(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
+
+            if (isService.HasValue)
+                entity.Products = entity.Products.Where(x => x.IsService == isService).ToList();
+
             return entity;
         });
 

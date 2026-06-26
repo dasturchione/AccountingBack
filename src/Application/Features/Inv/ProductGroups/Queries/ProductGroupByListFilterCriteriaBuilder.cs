@@ -14,5 +14,6 @@ public class ProductGroupByListFilterCriteriaBuilder : ICriteriaBuilder<ProductG
     }
 
     public Expression<Func<ProductGroup, bool>> Build(ProductGroupListFilter options) =>
-        x => (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value);
+        x => (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value) && 
+             (options.IsService == null || x.Products.Any(a => a.IsService));
 }

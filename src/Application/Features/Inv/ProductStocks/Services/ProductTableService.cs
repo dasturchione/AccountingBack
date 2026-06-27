@@ -204,7 +204,6 @@ public class ProductStockService : IProductStockService
                 PurchaseId = g.Key.PurchaseId,
                 DocNumber = g.Key.DocNumber,
                 Date = g.Key.DocDate,
-                Qty = g.Count(),
                 TotalAmount = g.Key.TotalAmount,
                 ProductTableIds = g.Select(x => x.ProductTableId).ToList(),
             })

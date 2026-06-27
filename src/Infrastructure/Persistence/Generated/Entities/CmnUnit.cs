@@ -26,6 +26,9 @@ public partial class CmnUnit
     public short StateId { get; set; }
 
     [InverseProperty("Unit")]
+    public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
     [InverseProperty("Unit")]

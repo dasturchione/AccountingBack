@@ -30,6 +30,9 @@ public partial class Unit
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
     [InverseProperty("Unit")]
+    public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [ForeignKey("StateId")]

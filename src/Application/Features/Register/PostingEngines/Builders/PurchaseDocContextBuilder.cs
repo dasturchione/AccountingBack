@@ -38,12 +38,11 @@ namespace Application.Features.Register.PostingEngines
             var result = new List<PostingContext>();
 
             var productDatas = await GetProductsAsync(document);
-            var purchasedServices = await GetServicesAsync(document);
             var wareHouseName = await GetWarehouseNameAsync(document.WarehouseId);
             var counterpartyName = await GetCounterpartyNameAsync(document.CounterpartyId);
             var contractData = await GetContractDataAsync(document.ContractId);
 
-            foreach (var productData in productDatas)
+            foreach (var productData in productDatas.Where(x => !x.IsService))
             {
                 var context = new PostingContext
                 {
@@ -118,7 +117,7 @@ namespace Application.Features.Register.PostingEngines
                 result.Add(context);
             }
 
-            foreach (var service in purchasedServices)
+            foreach (var service in productDatas.Where(x => x.IsService))
             {
                 var context = new PostingContext
                 {
@@ -129,12 +128,8 @@ namespace Application.Features.Register.PostingEngines
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
-                    ServiceType = service.ServiceTypeId switch
-                    {
-                        ServiceTypeIdConst.Production => "production",
-                        ServiceTypeIdConst.Administrative => "admin",
-                        _ => "_default"
-                    },
+
+                    ServiceType = "_default",
 
                     Amounts = new Dictionary<string, decimal>
                     {
@@ -211,51 +206,36 @@ namespace Application.Features.Register.PostingEngines
 
         private async Task<List<ProductTempDto>> GetProductsAsync(PurchaseDoc document)
         {
-            var productLines = document.PurchaseDocProducts
-                .Where(x => x.ItemTypeId == PurchaseItemTypeIdConst.PRODUCT)
-                .ToList();
-            await Task.CompletedTask;
+            var productIds = document.PurchaseDocProducts.Select(s => s.ProductId);
 
-            return productLines.GroupBy(g => g.ProductId).Select(grouped => new ProductTempDto
+            var query = _queryBuilder.For<Product>()
+                                     .Where(x => productIds.Contains(x.Id))
+                                     .As(s => new ProductTempDto
+                                     {
+                                         ProductId = s.Id,
+                                         ProductName = s.Name,
+                                         IsService = s.IsService,
+                                     }).Build();
+
+            var items = await _productQuery.GetAllAsync(query);
+            foreach (var item in items)
             {
-                ProductId = grouped.Key,
-                ProductName = grouped.First().Product?.Name ?? "",
-                Quantity = grouped.Sum(s => s.Quantity),
-                Amount = grouped.Sum(s => s.Amount),
-                VatAmount = grouped.Sum(s => s.VatAmount)
-            }).ToList();
-        }
-
-        private async Task<List<ServiceTempDto>> GetServicesAsync(PurchaseDoc document)
-        {
-            await Task.CompletedTask;
-            return new List<ServiceTempDto>();
-        }
-
-        private async Task<List<Product>> GetServiceDetailsAync(PurchaseDoc document)
-        {
-            var serviceIds = new List<long>();
-            var query = _queryBuilder.For<Product>().Where(x => serviceIds.Contains(x.Id)).Build();
-            return await _productQuery.GetAllAsync(query);
+                var productLines = document.PurchaseDocProducts.Where(x => x.ProductId == item.ProductId).ToList();
+                item.Quantity = productLines.Sum(s => s.Quantity);
+                item.Amount = productLines.Sum(s => s.Amount);
+                item.VatAmount = productLines.Sum(s => s.VatAmount);
+            }
+            return items;
         }
 
         private class ProductTempDto
         {
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
+            public bool IsService { get; set; }
             public decimal Quantity { get; set; }
             public decimal Amount { get; set; }
             public decimal VatAmount { get; set; }
-        }
-
-        private class ServiceTempDto
-        {
-            public long ServiceId { get; set; }
-            public string ServiceName { get; set; } = null!;
-            public int ServiceTypeId { get; set; }
-            public decimal Amount { get; set; }
-            public decimal VatAmount { get; set; }
-            public bool VatApplicable { get; set; } = true;
         }
     }
 }

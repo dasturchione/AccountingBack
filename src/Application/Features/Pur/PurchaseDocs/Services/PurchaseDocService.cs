@@ -316,7 +316,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             lines.Add(new PurchaseDocProduct
             {
-                ItemTypeId = PurchaseItemTypeIdConst.PRODUCT,
                 ProductId = dto.ProductId,
                 UnitId = dto.UnitId,
                 Quantity = dto.Quantity,

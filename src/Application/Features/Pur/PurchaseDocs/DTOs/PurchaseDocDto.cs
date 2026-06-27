@@ -33,7 +33,6 @@ public class PurchaseDocProductDto
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
-    public short ItemTypeId { get; set; }
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
     public decimal Quantity { get; set; }

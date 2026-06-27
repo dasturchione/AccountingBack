@@ -33,12 +33,10 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             ContractId       = x.ContractId,
             ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
             Lines = x.PurchaseDocProducts
-                .Where(l => l.ItemTypeId == PurchaseItemTypeIdConst.PRODUCT)
                 .Select(l => new PurchaseDocProductDto
                 {
                     Id                 = l.Id,
                     OwnerId            = l.OwnerId,
-                    ItemTypeId         = l.ItemTypeId,
                     ProductId          = l.ProductId,
                     ProductName        = l.Product.Name,
                     Quantity           = l.Quantity,

@@ -16,9 +16,6 @@ public partial class PurchaseDocProduct
     [Column("owner_id")]
     public long OwnerId { get; set; }
 
-    [Column("item_type_id")]
-    public short ItemTypeId { get; set; }
-
     [Column("product_id")]
     public int ProductId { get; set; }
 
@@ -47,10 +44,6 @@ public partial class PurchaseDocProduct
     [Column("unit_price")]
     [Precision(24, 8)]
     public decimal UnitPrice { get; set; }
-
-    [ForeignKey("ItemTypeId")]
-    [InverseProperty("PurchaseDocProducts")]
-    public virtual PurchaseItemType ItemType { get; set; } = null!;
 
     [ForeignKey("OwnerId")]
     [InverseProperty("PurchaseDocProducts")]

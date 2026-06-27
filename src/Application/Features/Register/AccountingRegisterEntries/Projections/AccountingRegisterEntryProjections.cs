@@ -69,6 +69,8 @@ public class AccountingPostingDtoProjection : IProjectionBuilder<AccountingRegis
                 Id = s.Id,
                 EntityId = s.EntityId,
                 SubkontoTypeId = s.SubkontoTypeId,
+                SubkontoTypeName = s.SubkontoType.Name,
+                SubkontoTypeCode = s.SubkontoType.Code,
                 Side = s.Side,
                 CreatedDate = s.CreatedDate,
                 EntryId = s.EntryId,

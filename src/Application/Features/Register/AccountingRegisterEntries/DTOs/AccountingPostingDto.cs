@@ -29,6 +29,8 @@
         public long EntryId { get; set; }
         public string Side { get; set; } = null!;
         public short SubkontoTypeId { get; set; }
+        public string SubkontoTypeCode { get; set; } = null!;
+        public string SubkontoTypeName { get; set; } = null!;
         public int SortOrder { get; set; }
         public long? EntityId { get; set; }
         public string? DisplayValue { get; set; }

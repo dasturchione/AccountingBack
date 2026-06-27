@@ -223,6 +223,20 @@ INSERT INTO sys_module (id, code, short_name, full_name, sub_group_id, state_id,
 (1025, 'MONEY_REG_BALANCE_DELETE',      'Pul qoldig''i o''chirish','O''chirish',10,1,now()),
 
 -- ---- MANUAL: Ma'lumotnoma (sub_group_id = 11) ----
-(1101, 'MANUAL_VIEW', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlarini ko''rish', 11, 1, now())
+(1101, 'MANUAL_VIEW', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlarini ko''rish', 11, 1, now()),
+
+-- ---- REGISTER: PRICING_CONDITION (sub_group_id = 12) ----
+(1026, 'PRICING_CONDITION_VIEW',        'Narxlash qoidasi',				'Ro''yxat',		12, 1, now()),
+(1027, 'PRICING_CONDITION_VIEW_DETAIL', 'Narxlash qoidasi detail',		'Batafsil',		12, 1, now()),
+(1028, 'PRICING_CONDITION_CREATE',      'Narxlash qoidasi yaratish',	'Yangi',		12, 1, now()),
+(1029, 'PRICING_CONDITION_UPDATE',      'Narxlash qoidasi tahrirlash',	'Tahrirlash',	12,1,now()),
+(1030, 'PRICING_CONDITION_DELETE',      'Narxlash qoidasi o''chirish',	'O''chirish',	12,1,now()),
+
+-- ---- REGISTER: SALE_CONDITION (sub_group_id = 13) ----
+(1031, 'SALE_CONDITION_VIEW',			'Sotuv qoidasi',			'Ro''yxat',		13, 1, now()),
+(1032, 'SALE_CONDITION_VIEW_DETAIL',	'Sotuv qoidasi detail',		'Batafsil',		13, 1, now()),
+(1033, 'SALE_CONDITION_CREATE',			'Sotuv qoidasi yaratish',	'Yangi',		13, 1, now()),
+(1034, 'SALE_CONDITION_UPDATE',			'Sotuv qoidasi tahrirlash',	'Tahrirlash',	13,1,now()),
+(1035, 'SALE_CONDITION_DELETE',			'Sotuv qoidasi o''chirish',	'O''chirish',	13,1,now())
 
 ON CONFLICT (id) DO NOTHING;

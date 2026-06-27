@@ -16,8 +16,6 @@ namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocService : BaseService, IPurchaseDocService
 {
-    private const short AverageCostPriceTypeId = 1;
-
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
@@ -526,7 +524,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             .Where(x => x.OrganizationId == organizationId &&
                         x.ProductId == productId &&
                         x.CurrencyId == currencyId &&
-                        x.PriceTypeId == AverageCostPriceTypeId &&
+                        x.PriceTypeId == PriceTypeIdConst.AVERAGE_COST_PRICE &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StartDate <= now &&
                         (x.EndDate == null || x.EndDate >= now))
@@ -559,7 +557,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 OrganizationId = organizationId,
                 ProductId = productId,
                 CurrencyId = currencyId,
-                PriceTypeId = AverageCostPriceTypeId,
+                PriceTypeId = PriceTypeIdConst.AVERAGE_COST_PRICE,
                 UnitId = unitId,
                 Price = price,
                 StartDate = now,

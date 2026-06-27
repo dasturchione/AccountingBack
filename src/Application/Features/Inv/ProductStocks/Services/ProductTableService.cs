@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.ProductPrices;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -14,19 +15,19 @@ public class ProductStockService : IProductStockService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductTable> _query;
-    private readonly IQueryRepository<ProductPrice> _priceQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+    private readonly IProductSalePriceService _productSalePriceService;
     public ProductStockService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<ProductTable> query,
-                               IQueryRepository<ProductPrice> priceQuery,
-                               IQueryRepository<PurchaseDocTable> purchaseDocTableQuery)
+                               IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                               IProductSalePriceService productSalePriceService)
     {
         _userContext           = userContext;
         _queryBuilder          = queryBuilder;
         _query                 = query;
-        _priceQuery            = priceQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
+        _productSalePriceService = productSalePriceService;
     }
 
     public async Task<Result<ProductTableByMarkingDto>> GetByMarkingNumberAsync(string markingNumber, CancellationToken ct = default)
@@ -234,24 +235,8 @@ public class ProductStockService : IProductStockService
 
     private async Task<Dictionary<int, decimal>> GetPriceMapAsync(List<ProductTable> entities, CancellationToken ct)
     {
-        if (_userContext.OrganizationId is null)
-            return new Dictionary<int, decimal>();
-
-        var orgId = _userContext.OrganizationId.Value;
-        var now = DateTime.Now;
         var productIds = entities.Select(x => x.ProductId).Distinct().ToList();
-
-        var priceQuery = _queryBuilder.For<ProductPrice>()
-            .Where(x => productIds.Contains(x.ProductId)
-                     && x.OrganizationId == orgId
-                     && x.StateId == StateIdConst.ACTIVE
-                     && x.StartDate <= now
-                     && (x.EndDate == null || x.EndDate >= now))
-            .Build();
-
-        var prices = await _priceQuery.GetAllAsync(priceQuery, ct);
-        return prices.GroupBy(p => p.ProductId)
-                     .ToDictionary(g => g.Key, g => g.First().Price);
+        return await _productSalePriceService.GetSalePriceMapAsync(productIds, ct);
     }
 
     private async Task<Dictionary<int, decimal>> GetCostPriceMapAsync(List<ProductTable> entities, CancellationToken ct)

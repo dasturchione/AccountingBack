@@ -161,6 +161,57 @@ public class ProductStockService : IProductStockService
         return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
+    public async Task<Result<List<ProductStockPurchaseDto>>> GetPurchasesByProductIdAsync(int productId, CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+            return Result.Success(new List<ProductStockPurchaseDto>());
+
+        var orgId = _userContext.OrganizationId.Value;
+
+        var query = _queryBuilder.For<ProductTable>()
+            .Where(x => x.OrganizationId == orgId &&
+                        x.ProductId == productId &&
+                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.StateId == StateIdConst.ACTIVE)
+            .Build();
+
+        var productTables = await _query.GetAllAsync(query, ct);
+
+        if (productTables.Count == 0)
+            return Result.Success(new List<ProductStockPurchaseDto>());
+
+        var productTableIds = productTables.Select(x => x.Id).ToList();
+
+        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
+            .Where(x => productTableIds.Contains(x.ProductTableId))
+            .As(x => new
+            {
+                x.ProductTableId,
+                x.TotalAmount,
+                PurchaseId = x.Owner.Owner.Id,
+                DocNumber = x.Owner.Owner.DocNumber,
+                DocDate = x.Owner.Owner.DocDate,
+            })
+            .Build();
+
+        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
+
+        var result = purchases
+            .GroupBy(x => x.PurchaseId)
+            .Select(g => new ProductStockPurchaseDto
+            {
+                PurchaseId = g.Key,
+                DocNumber = g.First().DocNumber,
+                Date = g.First().DocDate,
+                CostPrice = g.Sum(x => x.TotalAmount),
+                ProductTableIds = g.Select(x => x.ProductTableId).ToList(),
+            })
+            .OrderByDescending(x => x.Date)
+            .ToList();
+
+        return Result.Success(result);
+    }
+
     private async Task<List<ProductTable>> GetInStockEntitiesAsync(CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)

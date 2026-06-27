@@ -76,6 +76,9 @@ public partial class Organization
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<PricingCondition> PricingConditions { get; set; } = new List<PricingCondition>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
     [InverseProperty("Organization")]

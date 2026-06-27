@@ -38,6 +38,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<BankOperation>(modelBuilder);
             ApplyScopedFilter<ProductPrice>(modelBuilder);
             ApplyScopedFilter<ProductGroup>(modelBuilder);
+            ApplyScopedFilter<PricingCondition>(modelBuilder);
             //ApplyScopedFilter<ChartAccount>(modelBuilder);
             ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
             ApplyScopedFilter<Product>(modelBuilder);

@@ -51,4 +51,12 @@ public class ProductStockController : ControllerBase
         var result = await _service.GetProductTablesStockAsync(filter, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
+
+    [HttpGet("{productId:int}/purchases")]
+    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    public async Task<IResult> GetPurchasesByProductId([FromRoute] int productId, CancellationToken ct = default)
+    {
+        var result = await _service.GetPurchasesByProductIdAsync(productId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }

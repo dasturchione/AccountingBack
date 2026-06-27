@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc_product")]
-[Index("ItemTypeId", Name = "ix_pur_doc_product_item_type_id")]
 [Index("OwnerId", Name = "ix_pur_doc_product_owner_id")]
 public partial class PurDocProduct
 {

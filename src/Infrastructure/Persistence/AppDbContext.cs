@@ -26,6 +26,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Language> Languages { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
+    public virtual DbSet<PriceRoundingMethod> PriceRoundingMethods { get; set; }
+    public virtual DbSet<PricingCondition> PricingConditions { get; set; }
+    public virtual DbSet<PricingMethod> PricingMethods { get; set; }
     public virtual DbSet<Region> Regions { get; set; }
     public virtual DbSet<State> States { get; set; }
     public virtual DbSet<TaxType> TaxTypes { get; set; }
@@ -72,6 +75,37 @@ public partial class AppDbContext : DbContext
             .HasOne(x => x.Organization)
             .WithOne(x => x.OrganizationConfig)
             .HasForeignKey<OrganizationConfig>(x => x.OrganizationId);
+
+        modelBuilder.Entity<PricingCondition>(entity =>
+        {
+            entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(x => x.RoundingPrecision).HasDefaultValue(1m);
+            entity.Property(x => x.StartDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(x => x.Organization)
+                .WithMany(x => x.PricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_organization_id_fkey");
+
+            entity.HasOne(x => x.PricingMethod)
+                .WithMany(x => x.PricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_pricing_method_id_fkey");
+
+            entity.HasOne(x => x.RoundingMethod)
+                .WithMany(x => x.PricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_rounding_method_id_fkey");
+
+            entity.HasOne(x => x.State)
+                .WithMany(x => x.PricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_state_id_fkey");
+        });
+
+        modelBuilder.Entity<PricingMethod>()
+            .Property(x => x.Id)
+            .ValueGeneratedNever();
 
         ApplyOrganizationFilters(modelBuilder);
     }

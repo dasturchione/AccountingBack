@@ -68,6 +68,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnPricingMethod> CmnPricingMethods { get; set; }
 
+    public virtual DbSet<CmnProductPriceType> CmnProductPriceTypes { get; set; }
+
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
@@ -539,6 +541,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id).ValueGeneratedNever();
         });
 
+        modelBuilder.Entity<CmnProductPriceType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_product_price_type_pkey");
+        });
+
         modelBuilder.Entity<CmnProductTableStatus>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_product_table_status_pkey");
@@ -758,6 +765,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_price_organization_id_fkey");
 
+            entity.HasOne(d => d.PriceType).WithMany(p => p.InvProductPrices)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_price_price_type_id_fkey");
+
             entity.HasOne(d => d.Product).WithMany(p => p.InvProductPrices)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_price_product_id_fkey");
@@ -765,6 +776,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.InvProductPrices)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_price_state_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvProductPrices)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_product_price_unit_id_fkey");
         });
 
         modelBuilder.Entity<InvProductTable>(entity =>

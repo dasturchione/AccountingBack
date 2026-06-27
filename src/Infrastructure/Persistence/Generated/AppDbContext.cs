@@ -60,9 +60,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnPaymentType> CmnPaymentTypes { get; set; }
 
-    public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
+    public virtual DbSet<CmnPriceRoundingMethod> CmnPriceRoundingMethods { get; set; }
 
-    public virtual DbSet<CmnPurchaseItemType> CmnPurchaseItemTypes { get; set; }
+    public virtual DbSet<CmnPricingCondition> CmnPricingConditions { get; set; }
+
+    public virtual DbSet<CmnPricingMethod> CmnPricingMethods { get; set; }
+
+    public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
@@ -489,6 +493,43 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_payment_type_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnPriceRoundingMethod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_price_rounding_method_pkey");
+        });
+
+        modelBuilder.Entity<CmnPricingCondition>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_pricing_condition_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.RoundingPrecision).HasDefaultValue(1m);
+            entity.Property(e => e.StartDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.CmnPricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_organization_id_fkey");
+
+            entity.HasOne(d => d.PricingMethod).WithMany(p => p.CmnPricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_pricing_method_id_fkey");
+
+            entity.HasOne(d => d.RoundingMethod).WithMany(p => p.CmnPricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_rounding_method_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnPricingConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_pricing_condition_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnPricingMethod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_pricing_method_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
         modelBuilder.Entity<CmnProductTableStatus>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_product_table_status_pkey");
@@ -496,17 +537,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnProductTableStatuses)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_product_table_status_state_id_fkey");
-        });
-
-        modelBuilder.Entity<CmnPurchaseItemType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_purchase_item_type_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.State).WithMany(p => p.CmnPurchaseItemTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_purchase_item_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnRegion>(entity =>
@@ -972,10 +1002,6 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("pur_doc_product_pkey");
 
             entity.HasIndex(e => e.ProductId, "ix_pur_doc_product_product_id").HasFilter("(product_id IS NOT NULL)");
-
-            entity.HasOne(d => d.ItemType).WithMany(p => p.PurDocProducts)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("pur_doc_product_item_type_id_fkey");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.PurDocProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)

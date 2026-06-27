@@ -9,6 +9,12 @@ public class ProductPriceDto
     public string ProductName { get; set; } = null!;
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;
+    public short PriceTypeId { get; set; }
+    public string PriceTypeCode { get; set; } = null!;
+    public string PriceTypeName { get; set; } = null!;
+    public short UnitId { get; set; }
+    public string UnitCode { get; set; } = null!;
+    public string UnitName { get; set; } = null!;
     public decimal Price { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }

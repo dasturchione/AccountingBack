@@ -35,6 +35,8 @@ public class ProductPriceService : IProductPriceService
             OrganizationId = orgId,
             ProductId = dto.ProductId,
             CurrencyId = dto.CurrencyId,
+            PriceTypeId = dto.PriceTypeId,
+            UnitId = dto.UnitId,
             Price = dto.Price,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
@@ -85,6 +87,8 @@ public class ProductPriceService : IProductPriceService
 
         entity.ProductId = dto.ProductId;
         entity.CurrencyId = dto.CurrencyId;
+        entity.PriceTypeId = dto.PriceTypeId;
+        entity.UnitId = dto.UnitId;
         entity.Price = dto.Price;
         entity.StartDate = dto.StartDate;
         entity.EndDate = dto.EndDate;

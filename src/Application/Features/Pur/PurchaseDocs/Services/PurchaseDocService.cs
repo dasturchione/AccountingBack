@@ -16,6 +16,8 @@ namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocService : BaseService, IPurchaseDocService
 {
+    private const short AverageCostPriceTypeId = 1;
+
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
@@ -25,6 +27,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly IQueryRepository<Contract> _contractQuery;
+    private readonly IQueryRepository<ProductTable> _productTableQuery;
+    private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+    private readonly IQueryRepository<ProductPrice> _productPriceQuery;
+    private readonly ICommandRepository<ProductPrice> _productPriceCommand;
+    private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
     private readonly ICommandRepository<PurchaseDocProduct> _productLineCommand;
     private readonly ICommandRepository<PurchaseDocTable> _tableLineCommand;
     private readonly IDocNumberGenerator _docNumberGenerator;
@@ -38,6 +45,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               IQueryRepository<Contract> contractQuery,
+                              IQueryRepository<ProductTable> productTableQuery,
+                              IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                              IQueryRepository<ProductPrice> productPriceQuery,
+                              ICommandRepository<ProductPrice> productPriceCommand,
+                              IQueryRepository<SaleCondition> saleConditionQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocProduct> productLineCommand,
                               ICommandRepository<PurchaseDocTable> tableLineCommand,
@@ -45,24 +57,29 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
     {
-        _query               = query;
-        _command             = command;
-        _dispatcher          = dispatcher;
-        _productLineCommand  = productLineCommand;
-        _tableLineCommand    = tableLineCommand;
-        _userContext         = userContext;
-        _queryBuilder        = queryBuilder;
-        _auditLogService     = auditLogService;
-        _vatRateQuery        = vatRateQuery;
-        _contractQuery       = contractQuery;
+        _query = query;
+        _command = command;
+        _dispatcher = dispatcher;
+        _productLineCommand = productLineCommand;
+        _tableLineCommand = tableLineCommand;
+        _userContext = userContext;
+        _queryBuilder = queryBuilder;
+        _auditLogService = auditLogService;
+        _vatRateQuery = vatRateQuery;
+        _contractQuery = contractQuery;
+        _productTableQuery = productTableQuery;
+        _purchaseDocTableQuery = purchaseDocTableQuery;
+        _productPriceQuery = productPriceQuery;
+        _productPriceCommand = productPriceCommand;
+        _saleConditionQuery = saleConditionQuery;
         _inventoryDispatcher = inventoryDispatcher;
-        _docNumberGenerator  = docNumberGenerator;
+        _docNumberGenerator = docNumberGenerator;
     }
 
     public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
-            var query     = _queryBuilder.BuildPaged<PurchaseDoc, PurchaseDocListDto, PurchaseDocListFilter>(filter);
+            var query = _queryBuilder.BuildPaged<PurchaseDoc, PurchaseDocListDto, PurchaseDocListFilter>(filter);
             var pagedList = await _query.GetPagedAsync(query, ct);
             return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
         });
@@ -70,7 +87,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result<PurchaseDocDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query  = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+            var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity == null)
@@ -102,21 +119,21 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             var doc = new PurchaseDoc
             {
-                OrganizationId      = _userContext.OrganizationId.Value,
-                DocNumber           = docNumber,
-                DocDate             = dto.DocDate,
-                CurrencyId          = dto.CurrencyId,
+                OrganizationId = _userContext.OrganizationId.Value,
+                DocNumber = docNumber,
+                DocDate = dto.DocDate,
+                CurrencyId = dto.CurrencyId,
                 PurchaseDocProducts = allLines,
-                TotalAmount         = allLines.Sum(l => l.Amount),
-                VatAmount           = allLines.Sum(l => l.VatAmount),
-                FinalAmount         = allLines.Sum(l => l.TotalAmount),
-                StatusId            = DocumentStatusIdConst.DRAFT,
-                Comment             = dto.Comment,
-                StateId             = StateIdConst.ACTIVE,
-                CreatedDate         = DateTime.Now,
-                WarehouseId         = dto.WarehouseId,
-                CounterpartyId      = dto.CounterpartyId,
-                ContractId          = dto.ContractId,
+                TotalAmount = allLines.Sum(l => l.Amount),
+                VatAmount = allLines.Sum(l => l.VatAmount),
+                FinalAmount = allLines.Sum(l => l.TotalAmount),
+                StatusId = DocumentStatusIdConst.DRAFT,
+                Comment = dto.Comment,
+                StateId = StateIdConst.ACTIVE,
+                CreatedDate = DateTime.Now,
+                WarehouseId = dto.WarehouseId,
+                CounterpartyId = dto.CounterpartyId,
+                ContractId = dto.ContractId,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -137,6 +154,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (!inventoryDispatch.IsSuccess)
                 return Result.Failure<long>(inventoryDispatch.Error);
 
+            await UpdateProductCostPricesAsync(fullDoc, ct);
+
             var docDto = await GetByIdInternalAsync(doc.Id, ct);
             if (docDto != null)
             {
@@ -154,7 +173,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
-            var doc   = await _query.GetAsync(query, ct);
+            var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
                 return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
@@ -182,15 +201,15 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             await _productLineCommand.CreateAsync(newLines, ct);
 
             doc.OrganizationId = _userContext.OrganizationId.Value;
-            doc.DocDate        = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
+            doc.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.CounterpartyId = dto.CounterpartyId;
-            doc.WarehouseId    = dto.WarehouseId;
-            doc.CurrencyId     = dto.CurrencyId;
-            doc.TotalAmount    = newLines.Sum(l => l.Amount);
-            doc.VatAmount      = newLines.Sum(l => l.VatAmount);
-            doc.FinalAmount    = newLines.Sum(l => l.TotalAmount);
-            doc.Comment        = dto.Comment;
-            doc.StateId        = dto.StateId;
+            doc.WarehouseId = dto.WarehouseId;
+            doc.CurrencyId = dto.CurrencyId;
+            doc.TotalAmount = newLines.Sum(l => l.Amount);
+            doc.VatAmount = newLines.Sum(l => l.VatAmount);
+            doc.FinalAmount = newLines.Sum(l => l.TotalAmount);
+            doc.Comment = dto.Comment;
+            doc.StateId = dto.StateId;
 
             await _command.UpdateAsync(doc, ct);
 
@@ -208,7 +227,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
             var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
-            var doc   = await _query.GetAsync(query, ct);
+            var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
                 return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
@@ -332,13 +351,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                     TotalAmount = dto.UnitPrice + itemVatAmounts[index],
                     ProductTable = new ProductTable
                     {
-                        ProductId      = dto.ProductId,
-                        SerialNumber   = item.SerialNumber,
-                        MarkingNumber  = item.MarkingNumber.Trim(),
-                        CreatedDate    = DateTime.Now,
+                        ProductId = dto.ProductId,
+                        SerialNumber = item.SerialNumber,
+                        MarkingNumber = item.MarkingNumber.Trim(),
+                        CreatedDate = DateTime.Now,
                         OrganizationId = organizationId,
-                        StateId        = StateIdConst.ACTIVE,
-                        StatusId       = ProductTableStatusIdConst.IN_STOCK
+                        StateId = StateIdConst.ACTIVE,
+                        StatusId = ProductTableStatusIdConst.IN_STOCK
                     }
                 }).ToList()
             });
@@ -346,6 +365,222 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
         return lines;
     }
+
+    private async Task UpdateProductCostPricesAsync(PurchaseDoc doc, CancellationToken ct)
+    {
+        var lines = doc.PurchaseDocProducts
+            .Where(x => x.PurchaseDocTables.Count > 0)
+            .ToList();
+
+        if (lines.Count == 0)
+            return;
+
+        var valuationMethod = await GetCurrentValuationMethodAsync(doc.OrganizationId, ct);
+        var now = DateTime.Now;
+
+        foreach (var group in lines.GroupBy(x => new { x.ProductId, x.UnitId }))
+        {
+            var purchaseTables = group.SelectMany(x => x.PurchaseDocTables).ToList();
+            var newProductTableIds = purchaseTables
+                .Select(x => x.ProductTableId)
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+
+            if (newProductTableIds.Count == 0)
+                continue;
+
+            var newTotalCost = purchaseTables.Sum(x => x.TotalAmount);
+            var price = valuationMethod == InventoryValuationMethodConst.AVERAGE
+                ? await CalculateAverageCostPriceAsync(
+                    doc.OrganizationId,
+                    group.Key.ProductId,
+                    doc.CurrencyId,
+                    newProductTableIds,
+                    newTotalCost,
+                    now,
+                    ct)
+                : CalculateUnitCost(newTotalCost, newProductTableIds.Count);
+
+            await UpsertProductCostPriceAsync(
+                doc.OrganizationId,
+                group.Key.ProductId,
+                doc.CurrencyId,
+                group.Key.UnitId,
+                price,
+                now,
+                ct);
+        }
+    }
+
+    private async Task<string> GetCurrentValuationMethodAsync(int organizationId, CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        var query = _queryBuilder.For<SaleCondition>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.StartDate <= now &&
+                        (x.EndDate == null || x.EndDate >= now))
+            .As(x => new SaleConditionValuationMethod
+            {
+                Id = x.Id,
+                StartDate = x.StartDate,
+                CostingMethodCode = x.CostingMethod.Code
+            })
+            .OrderBy(x => x.StartDate)
+            .Desc()
+            .Build();
+
+        var conditions = await _saleConditionQuery.GetAllAsync(query, ct);
+        var current = conditions
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefault();
+
+        return NormalizeValuationMethod(current?.CostingMethodCode);
+    }
+
+    private static string NormalizeValuationMethod(string? method)
+    {
+        var normalized = method?.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
+            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
+            _ => InventoryValuationMethodConst.FIFO
+        };
+    }
+
+    private async Task<decimal> CalculateAverageCostPriceAsync(
+        int organizationId,
+        int productId,
+        short currencyId,
+        IReadOnlyCollection<int> newProductTableIds,
+        decimal newTotalCost,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var oldProductTableIds = await GetOldInStockProductTableIdsAsync(organizationId, productId, newProductTableIds, ct);
+        var newQuantity = newProductTableIds.Count;
+
+        if (oldProductTableIds.Count == 0)
+            return CalculateUnitCost(newTotalCost, newQuantity);
+
+        var currentPrice = await GetCurrentProductCostPriceAsync(organizationId, productId, currencyId, now, ct);
+        var oldTotalCost = currentPrice is not null
+            ? currentPrice.Price * oldProductTableIds.Count
+            : await GetPurchaseCostTotalAsync(oldProductTableIds, ct);
+
+        return CalculateUnitCost(oldTotalCost + newTotalCost, oldProductTableIds.Count + newQuantity);
+    }
+
+    private async Task<List<int>> GetOldInStockProductTableIdsAsync(
+        int organizationId,
+        int productId,
+        IReadOnlyCollection<int> newProductTableIds,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<ProductTable>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.ProductId == productId &&
+                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        !newProductTableIds.Contains(x.Id))
+            .As(x => x.Id)
+            .Build();
+
+        return await _productTableQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<decimal> GetPurchaseCostTotalAsync(IReadOnlyCollection<int> productTableIds, CancellationToken ct)
+    {
+        if (productTableIds.Count == 0)
+            return 0;
+
+        var query = _queryBuilder.For<PurchaseDocTable>()
+            .Where(x => productTableIds.Contains(x.ProductTableId))
+            .As(x => new ProductTablePurchaseCost
+            {
+                ProductTableId = x.ProductTableId,
+                DocDate = x.Owner.Owner.DocDate,
+                TotalAmount = x.TotalAmount
+            })
+            .Build();
+
+        var costs = await _purchaseDocTableQuery.GetAllAsync(query, ct);
+
+        return costs
+            .GroupBy(x => x.ProductTableId)
+            .Sum(x => x.OrderByDescending(c => c.DocDate).First().TotalAmount);
+    }
+
+    private async Task<ProductPrice?> GetCurrentProductCostPriceAsync(
+        int organizationId,
+        int productId,
+        short currencyId,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<ProductPrice>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.ProductId == productId &&
+                        x.CurrencyId == currencyId &&
+                        x.PriceTypeId == AverageCostPriceTypeId &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.StartDate <= now &&
+                        (x.EndDate == null || x.EndDate >= now))
+            .OrderBy(x => x.StartDate)
+            .Desc()
+            .Build();
+
+        var prices = await _productPriceQuery.GetAllAsync(query, ct);
+        return prices
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefault();
+    }
+
+    private async Task UpsertProductCostPriceAsync(
+        int organizationId,
+        int productId,
+        short currencyId,
+        short unitId,
+        decimal price,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var current = await GetCurrentProductCostPriceAsync(organizationId, productId, currencyId, now, ct);
+
+        if (current is null)
+        {
+            await _productPriceCommand.CreateAsync(new ProductPrice
+            {
+                OrganizationId = organizationId,
+                ProductId = productId,
+                CurrencyId = currencyId,
+                PriceTypeId = AverageCostPriceTypeId,
+                UnitId = unitId,
+                Price = price,
+                StartDate = now,
+                EndDate = null,
+                StateId = StateIdConst.ACTIVE,
+                CreatedDate = now
+            }, ct);
+
+            return;
+        }
+
+        current.UnitId = unitId;
+        current.Price = price;
+        current.EndDate = null;
+        current.StateId = StateIdConst.ACTIVE;
+
+        await _productPriceCommand.UpdateAsync(current, ct);
+    }
+
+    private static decimal CalculateUnitCost(decimal totalCost, int quantity) =>
+        quantity > 0 ? Math.Round(totalCost / quantity, 2) : 0;
 
     private static List<decimal> SplitAmount(decimal amount, int count)
     {
@@ -356,5 +591,19 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         var result = Enumerable.Repeat(split, count).ToList();
         result[^1] += amount - result.Sum();
         return result;
+    }
+
+    private sealed class SaleConditionValuationMethod
+    {
+        public long Id { get; set; }
+        public DateTime StartDate { get; set; }
+        public string CostingMethodCode { get; set; } = null!;
+    }
+
+    private sealed class ProductTablePurchaseCost
+    {
+        public int ProductTableId { get; set; }
+        public DateTime DocDate { get; set; }
+        public decimal TotalAmount { get; set; }
     }
 }

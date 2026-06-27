@@ -278,13 +278,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<List<PurchaseDocProduct>>(
                     PurchaseDocTableErrors.InvalidProductUnitPrice(dto.ProductId, dto.UnitPrice, _userContext.LanguageId));
 
-            if (dto.Items.Count == 0)
-                return Result.Failure<List<PurchaseDocProduct>>(
-                    PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
+            //if (dto.Items.Count == 0)
+            //    return Result.Failure<List<PurchaseDocProduct>>(
+            //        PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
 
-            if (dto.Quantity != dto.Items.Count)
-                return Result.Failure<List<PurchaseDocProduct>>(
-                    PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
+            //if (dto.Quantity != dto.Items.Count)
+            //    return Result.Failure<List<PurchaseDocProduct>>(
+            //        PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
 
             foreach (var item in dto.Items)
             {

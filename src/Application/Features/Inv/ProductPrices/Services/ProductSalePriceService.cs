@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.Inv.ProductStocks;
 using Application.Features.PricingConditions;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -11,18 +12,21 @@ public class ProductSalePriceService : IProductSalePriceService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
     private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
 
     public ProductSalePriceService(IUserContext userContext,
                                    IQueryBuilder queryBuilder,
+                                   IQueryRepository<OrganizationConfig> organizationConfigQuery,
                                    IQueryRepository<PricingCondition> pricingConditionQuery,
                                    IQueryRepository<ProductPrice> productPriceQuery,
                                    IQueryRepository<PurchaseDocTable> purchaseDocTableQuery)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
+        _organizationConfigQuery = organizationConfigQuery;
         _pricingConditionQuery = pricingConditionQuery;
         _productPriceQuery = productPriceQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
@@ -59,6 +63,20 @@ public class ProductSalePriceService : IProductSalePriceService
         return result;
     }
 
+    public async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceDetailsMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
+    {
+        var ids = productIds.Distinct().ToList();
+        if (ids.Count == 0 || _userContext.OrganizationId is null)
+            return new Dictionary<int, ProductCostPriceDto>();
+
+        var valuationMethod = await GetCurrentInventoryValuationMethodAsync(ct);
+        var now = DateTime.Now;
+
+        return valuationMethod == InventoryValuationMethodConst.AVERAGE
+            ? await GetAverageCostPriceDetailsMapAsync(ids, now, ct)
+            : await GetStockCostPriceDetailsMapAsync(ids, valuationMethod, ct);
+    }
+
     private async Task<PricingConditionDto?> GetCurrentPricingConditionAsync(DateTime now, CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)
@@ -77,6 +95,32 @@ public class ProductSalePriceService : IProductSalePriceService
             .OrderByDescending(x => x.StartDate)
             .ThenByDescending(x => x.Id)
             .FirstOrDefault();
+    }
+
+    private async Task<string> GetCurrentInventoryValuationMethodAsync(CancellationToken ct)
+    {
+        if (_userContext.OrganizationId is null)
+            return InventoryValuationMethodConst.FIFO;
+
+        var query = _queryBuilder.For<OrganizationConfig>()
+            .Where(x => x.OrganizationId == _userContext.OrganizationId.Value)
+            .As(x => x.InventoryValuationMethod)
+            .Build();
+
+        var method = await _organizationConfigQuery.GetAsync(query, ct);
+        return NormalizeValuationMethod(method);
+    }
+
+    private static string NormalizeValuationMethod(string? method)
+    {
+        var normalized = method?.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
+            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
+            _ => InventoryValuationMethodConst.FIFO
+        };
     }
 
     private async Task<Dictionary<(int ProductId, short PriceTypeId), decimal>> GetCurrentProductPricesAsync(
@@ -113,6 +157,69 @@ public class ProductSalePriceService : IProductSalePriceService
                 g => g.OrderByDescending(x => x.StartDate).ThenByDescending(x => x.Id).First().Price);
     }
 
+    private async Task<Dictionary<int, ProductCostPriceDto>> GetAverageCostPriceDetailsMapAsync(
+        IReadOnlyCollection<int> productIds,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var currentProductPrices = await GetCurrentProductPricesAsync(productIds, now, ct);
+        var fallbackCostPrices = await GetFallbackCostPricesAsync(productIds, ct);
+        var purchaseBatches = await GetPurchaseBatchesAsync(productIds, ct);
+
+        var result = new Dictionary<int, ProductCostPriceDto>(productIds.Count);
+
+        foreach (var productId in productIds)
+        {
+            purchaseBatches.TryGetValue(productId, out var batches);
+            var orderedBatches = OrderPurchaseBatches(batches, descending: true);
+
+            var costPrice = currentProductPrices.TryGetValue((productId, PriceTypeIdConst.AVERAGE_COST_PRICE), out var averageCostPrice)
+                ? averageCostPrice
+                : orderedBatches.Count > 0
+                    ? GetBatchUnitCost(orderedBatches[0])
+                    : fallbackCostPrices.GetValueOrDefault(productId);
+
+            result[productId] = new ProductCostPriceDto
+            {
+                CostPrice = costPrice,
+                Purchases = orderedBatches
+            };
+        }
+
+        return result;
+    }
+
+    private async Task<Dictionary<int, ProductCostPriceDto>> GetStockCostPriceDetailsMapAsync(
+        IReadOnlyCollection<int> productIds,
+        string valuationMethod,
+        CancellationToken ct)
+    {
+        var fallbackCostPrices = await GetFallbackCostPricesAsync(productIds, ct);
+        var purchaseBatches = await GetPurchaseBatchesAsync(productIds, ct);
+        var descending = valuationMethod == InventoryValuationMethodConst.LIFO;
+
+        var result = new Dictionary<int, ProductCostPriceDto>(productIds.Count);
+
+        foreach (var productId in productIds)
+        {
+            purchaseBatches.TryGetValue(productId, out var batches);
+            var orderedBatches = OrderPurchaseBatches(batches, descending);
+            var selectedBatch = orderedBatches.FirstOrDefault();
+
+            var costPrice = selectedBatch is not null
+                ? GetBatchUnitCost(selectedBatch)
+                : fallbackCostPrices.GetValueOrDefault(productId);
+
+            result[productId] = new ProductCostPriceDto
+            {
+                CostPrice = costPrice,
+                Purchases = orderedBatches
+            };
+        }
+
+        return result;
+    }
+
     private async Task<Dictionary<int, decimal>> GetFallbackCostPricesAsync(
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
@@ -121,7 +228,8 @@ public class ProductSalePriceService : IProductSalePriceService
             return new Dictionary<int, decimal>();
 
         var query = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productIds.Contains(x.Owner.ProductId))
+            .Where(x => productIds.Contains(x.Owner.ProductId) &&
+                        x.Owner.Owner.OrganizationId == _userContext.OrganizationId.Value)
             .As(x => new PurchaseCostSnapshot
             {
                 Id = x.Id,
@@ -139,6 +247,60 @@ public class ProductSalePriceService : IProductSalePriceService
                 g => g.Key,
                 g => g.OrderByDescending(x => x.DocDate).ThenByDescending(x => x.Id).First().CostPrice);
     }
+
+    private async Task<Dictionary<int, List<ProductStockPurchaseDto>>> GetPurchaseBatchesAsync(
+        IReadOnlyCollection<int> productIds,
+        CancellationToken ct)
+    {
+        if (_userContext.OrganizationId is null || productIds.Count == 0)
+            return new Dictionary<int, List<ProductStockPurchaseDto>>();
+
+        var query = _queryBuilder.For<PurchaseDocTable>()
+            .Where(x => productIds.Contains(x.Owner.ProductId) &&
+                        x.ProductTable.OrganizationId == _userContext.OrganizationId.Value &&
+                        x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.ProductTable.StateId == StateIdConst.ACTIVE)
+            .As(x => new PurchaseBatchSnapshot
+            {
+                ProductId = x.Owner.ProductId,
+                PurchaseId = x.Owner.OwnerId,
+                DocNumber = x.Owner.Owner.DocNumber,
+                DocDate = x.Owner.Owner.DocDate,
+                ProductTableId = x.ProductTableId,
+                TotalAmount = x.TotalAmount
+            })
+            .Build();
+
+        var items = await _purchaseDocTableQuery.GetAllAsync(query, ct);
+
+        return items
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(x => new { x.PurchaseId, x.DocNumber, x.DocDate })
+                    .Select(batch => new ProductStockPurchaseDto
+                    {
+                        PurchaseId = batch.Key.PurchaseId,
+                        DocNumber = batch.Key.DocNumber,
+                        Date = batch.Key.DocDate,
+                        TotalAmount = batch.Sum(x => x.TotalAmount),
+                        ProductTableIds = batch.Select(x => x.ProductTableId).Distinct().OrderBy(id => id).ToList()
+                    })
+                    .ToList());
+    }
+
+    private static List<ProductStockPurchaseDto> OrderPurchaseBatches(List<ProductStockPurchaseDto>? batches, bool descending)
+    {
+        if (batches is null || batches.Count == 0)
+            return new List<ProductStockPurchaseDto>();
+
+        return descending
+            ? batches.OrderByDescending(x => x.Date).ThenByDescending(x => x.PurchaseId).ToList()
+            : batches.OrderBy(x => x.Date).ThenBy(x => x.PurchaseId).ToList();
+    }
+
+    private static decimal GetBatchUnitCost(ProductStockPurchaseDto batch) =>
+        batch.Quantity > 0 ? Math.Round(batch.TotalAmount / batch.Quantity, 8) : 0m;
 
     private static decimal CalculatePrice(
         PricingConditionDto? pricingCondition,
@@ -214,5 +376,15 @@ public class ProductSalePriceService : IProductSalePriceService
         public int ProductId { get; set; }
         public DateTime DocDate { get; set; }
         public decimal CostPrice { get; set; }
+    }
+
+    private sealed class PurchaseBatchSnapshot
+    {
+        public int ProductId { get; set; }
+        public long PurchaseId { get; set; }
+        public string DocNumber { get; set; } = null!;
+        public DateTime DocDate { get; set; }
+        public int ProductTableId { get; set; }
+        public decimal TotalAmount { get; set; }
     }
 }

@@ -63,7 +63,7 @@ public class ProductStockService : IProductStockService
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
-        var costPriceMap = await GetCostPriceMapAsync(inStockEntities, ct);
+        var costPriceMap = await GetCostPriceDetailsMapAsync(inStockEntities, ct);
 
         var items = inStockEntities
             .Where(x => x.Product.ProductGroup != null)
@@ -72,7 +72,7 @@ public class ProductStockService : IProductStockService
             {
                 var qty = g.Count();
                 var totalAmount = g.Sum(x => priceMap.GetValueOrDefault(x.ProductId));
-                var totalCostAmount = g.Sum(x => costPriceMap.GetValueOrDefault(x.Id));
+                var totalCostAmount = g.Sum(x => costPriceMap.GetValueOrDefault(x.ProductId)?.CostPrice ?? 0m);
                 return new ProductGroupStockDto
                 {
                     Id       = g.Key.ProductGroupId ?? 0,
@@ -95,7 +95,7 @@ public class ProductStockService : IProductStockService
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
-        var costPriceMap = await GetCostPriceMapAsync(inStockEntities, ct);
+        var costPriceMap = await GetCostPriceDetailsMapAsync(inStockEntities, ct);
 
         if (filter.ProductGroupId.HasValue)
             inStockEntities = inStockEntities.Where(x => x.Product.ProductGroupId == filter.ProductGroupId.Value).ToList();
@@ -111,7 +111,7 @@ public class ProductStockService : IProductStockService
             {
                 var price = priceMap.GetValueOrDefault(g.Key.ProductId);
                 var qty = g.Count();
-                var totalCostAmount = g.Sum(x => costPriceMap.GetValueOrDefault(x.Id));
+                var totalCostAmount = (costPriceMap.GetValueOrDefault(g.Key.ProductId)?.CostPrice ?? 0m) * qty;
                 return new ProductStockDto
                 {
                     Id               = g.Key.ProductId,
@@ -238,29 +238,13 @@ public class ProductStockService : IProductStockService
         return await _productSalePriceService.GetSalePriceMapAsync(productIds, ct);
     }
 
-    private async Task<Dictionary<int, decimal>> GetCostPriceMapAsync(List<ProductTable> entities, CancellationToken ct)
+    private async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceDetailsMapAsync(List<ProductTable> entities, CancellationToken ct)
     {
-        var productTableIds = entities.Select(x => x.Id).Distinct().ToList();
+        var productIds = entities.Select(x => x.ProductId).Distinct().ToList();
 
-        if (productTableIds.Count == 0)
-            return new Dictionary<int, decimal>();
+        if (productIds.Count == 0)
+            return new Dictionary<int, ProductCostPriceDto>();
 
-        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productTableIds.Contains(x.ProductTableId))
-            .As(x => new
-            {
-                ProductTableId = x.ProductTableId,
-                DocDate = x.Owner.Owner.DocDate,
-                CostPrice = x.TotalAmount
-            })
-            .Build();
-
-        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
-
-        return purchases
-            .GroupBy(x => x.ProductTableId)
-            .ToDictionary(
-                x => x.Key,
-                x => x.OrderByDescending(p => p.DocDate).First().CostPrice);
+        return await _productSalePriceService.GetCostPriceDetailsMapAsync(productIds, ct);
     }
 }

@@ -139,6 +139,9 @@ public partial class Organization
     public virtual Region Region { get; set; } = null!;
 
     [InverseProperty("Organization")]
+    public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [ForeignKey("StateId")]

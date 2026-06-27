@@ -39,6 +39,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<ProductPrice>(modelBuilder);
             ApplyScopedFilter<ProductGroup>(modelBuilder);
             ApplyScopedFilter<PricingCondition>(modelBuilder);
+            ApplyScopedFilter<SaleCondition>(modelBuilder);
             //ApplyScopedFilter<ChartAccount>(modelBuilder);
             ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
             ApplyScopedFilter<Product>(modelBuilder);

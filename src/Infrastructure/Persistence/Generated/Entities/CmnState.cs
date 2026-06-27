@@ -139,6 +139,9 @@ public partial class CmnState
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("State")]
+    public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
+
+    [InverseProperty("State")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [InverseProperty("State")]

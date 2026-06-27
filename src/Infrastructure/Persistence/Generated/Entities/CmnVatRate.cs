@@ -40,6 +40,9 @@ public partial class CmnVatRate
     public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
 
     [InverseProperty("VatRate")]
+    public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
+
+    [InverseProperty("VatRate")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [InverseProperty("VatRate")]

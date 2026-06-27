@@ -19,6 +19,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CashOperation> CashOperations { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
     public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
+    public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }
     public virtual DbSet<District> Districts { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
@@ -55,6 +56,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MoneyRegisterBalance> MoneyRegisterBalances { get; set; }
     public virtual DbSet<RegisterBalance> RegisterBalances { get; set; }
     public virtual DbSet<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; }
+    public virtual DbSet<SaleCondition> SaleConditions { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
     public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
@@ -106,6 +108,32 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<PricingMethod>()
             .Property(x => x.Id)
             .ValueGeneratedNever();
+
+        modelBuilder.Entity<SaleCondition>(entity =>
+        {
+            entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(x => x.StartDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(x => x.CostingMethod)
+                .WithMany(x => x.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_costing_method_id_fkey");
+
+            entity.HasOne(x => x.Organization)
+                .WithMany(x => x.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_organization_id_fkey");
+
+            entity.HasOne(x => x.State)
+                .WithMany(x => x.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_state_id_fkey");
+
+            entity.HasOne(x => x.VatRate)
+                .WithMany(x => x.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_vat_rate_id_fkey");
+        });
 
         ApplyOrganizationFilters(modelBuilder);
     }

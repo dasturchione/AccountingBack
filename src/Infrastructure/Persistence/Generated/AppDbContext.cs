@@ -44,6 +44,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnContractType> CmnContractTypes { get; set; }
 
+    public virtual DbSet<CmnCostingMethod> CmnCostingMethods { get; set; }
+
     public virtual DbSet<CmnCounterpartyType> CmnCounterpartyTypes { get; set; }
 
     public virtual DbSet<CmnCurrency> CmnCurrencies { get; set; }
@@ -119,6 +121,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PurDocProduct> PurDocProducts { get; set; }
 
     public virtual DbSet<PurDocTable> PurDocTables { get; set; }
+
+    public virtual DbSet<SaleCondition> SaleConditions { get; set; }
 
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
 
@@ -411,6 +415,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnContractTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_contract_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnCostingMethod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_costing_method_pkey");
         });
 
         modelBuilder.Entity<CmnCounterpartyType>(entity =>
@@ -1031,6 +1040,30 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("pur_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleCondition>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_condition_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StartDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CostingMethod).WithMany(p => p.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_costing_method_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_state_id_fkey");
+
+            entity.HasOne(d => d.VatRate).WithMany(p => p.SaleConditions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_condition_vat_rate_id_fkey");
         });
 
         modelBuilder.Entity<SaleDoc>(entity =>

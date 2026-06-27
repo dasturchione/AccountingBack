@@ -39,6 +39,7 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
                     OwnerId            = l.OwnerId,
                     ProductId          = l.ProductId,
                     ProductName        = l.Product.Name,
+                    ProductMxik        = l.Product.Mxik,
                     Quantity           = l.Quantity,
                     UnitId             = l.UnitId,
                     UnitName           = l.Unit.Name,

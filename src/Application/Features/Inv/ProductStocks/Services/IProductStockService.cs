@@ -9,4 +9,5 @@ public interface IProductStockService
     Task<Result<PagedResponse<ProductGroupStockDto>>> GetProductGroupsStockAsync(ProductGroupStockFilter filter, CancellationToken ct = default);
     Task<Result<PagedResponse<ProductStockDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default);
     Task<Result<PagedResponse<ProductTableStockDto>>> GetProductTablesStockAsync(ProductTableStockFilter filter, CancellationToken ct = default);
+    Task<Result<List<ProductStockPurchaseDto>>> GetPurchasesByProductIdAsync(int productId, CancellationToken ct = default);
 }

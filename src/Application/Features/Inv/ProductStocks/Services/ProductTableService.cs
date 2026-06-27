@@ -197,13 +197,14 @@ public class ProductStockService : IProductStockService
         var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
 
         var result = purchases
-            .GroupBy(x => x.PurchaseId)
+            .GroupBy(x => new { x.PurchaseId, x.DocNumber, x.DocDate, x.TotalAmount })
             .Select(g => new ProductStockPurchaseDto
             {
-                PurchaseId = g.Key,
-                DocNumber = g.First().DocNumber,
-                Date = g.First().DocDate,
-                CostPrice = g.Sum(x => x.TotalAmount),
+                PurchaseId = g.Key.PurchaseId,
+                DocNumber = g.Key.DocNumber,
+                Date = g.Key.DocDate,
+                Qty = g.Count(),
+                TotalAmount = g.Key.TotalAmount,
                 ProductTableIds = g.Select(x => x.ProductTableId).ToList(),
             })
             .OrderByDescending(x => x.Date)

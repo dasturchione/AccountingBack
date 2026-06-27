@@ -20,6 +20,9 @@ public class ManualService : IManualService
     private readonly IQueryRepository<DocumentStatus> _documentStatusQuery;
     private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+    private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
+    private readonly IQueryRepository<PricingMethod> _pricingMethodQuery;
+    private readonly IQueryRepository<CostingMethod> _costingMethodQuery;
     private readonly IQueryRepository<Bank> _bankQuery;
     private readonly IQueryRepository<DocumentType> _documentTypeQuery;
     private readonly IQueryRepository<OperationType> _operationTypeQuery;
@@ -55,6 +58,9 @@ public class ManualService : IManualService
         IQueryRepository<DocumentStatus> documentStatusQuery,
         IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
+        IQueryRepository<PricingMethod> pricingMethodQuery,
+        IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
@@ -90,6 +96,9 @@ public class ManualService : IManualService
         _documentStatusQuery   = documentStatusQuery;
         _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery      = paymentTypeQuery;
+        _priceRoundingMethodQuery = priceRoundingMethodQuery;
+        _pricingMethodQuery = pricingMethodQuery;
+        _costingMethodQuery = costingMethodQuery;
         _bankQuery             = bankQuery;
         _documentTypeQuery     = documentTypeQuery;
         _operationTypeQuery    = operationTypeQuery;
@@ -202,6 +211,39 @@ public class ManualService : IManualService
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<PriceRoundingMethod, SelectListDto>
+        {
+            Criteria = x => true,
+            OrderBy = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return await _priceRoundingMethodQuery.GetAllAsync(spec, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<PricingMethod, SelectListDto>
+        {
+            Criteria = x => true,
+            OrderBy = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return await _pricingMethodQuery.GetAllAsync(spec, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<CostingMethod, SelectListDto>
+        {
+            Criteria = x => true,
+            OrderBy = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return await _costingMethodQuery.GetAllAsync(spec, ct);
     }
 
     public async Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default)

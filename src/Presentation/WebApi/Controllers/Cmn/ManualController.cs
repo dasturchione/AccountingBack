@@ -77,6 +77,27 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("price-rounding-methods")]
+    public async Task<IActionResult> GetPriceRoundingMethods(CancellationToken ct)
+    {
+        var result = await _manualService.GetPriceRoundingMethodsAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("pricing-methods")]
+    public async Task<IActionResult> GetPricingMethods(CancellationToken ct)
+    {
+        var result = await _manualService.GetPricingMethodsAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("costing-methods")]
+    public async Task<IActionResult> GetCostingMethods(CancellationToken ct)
+    {
+        var result = await _manualService.GetCostingMethodsAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("banks")]
     public async Task<IActionResult> GetBanks(CancellationToken ct)
     {

@@ -14,16 +14,19 @@ public class ProductPriceService : IProductPriceService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductPrice> _query;
     private readonly ICommandRepository<ProductPrice> _command;
+    private readonly IProductPriceCalculateService _priceCalculateService;
 
     public ProductPriceService(IUserContext userContext,
                                IQueryBuilder queryBuilder, 
                                IQueryRepository<ProductPrice> query,
-                               ICommandRepository<ProductPrice> command)
+                               ICommandRepository<ProductPrice> command,
+                               IProductPriceCalculateService priceCalculateService)
     {
         _query = query;
         _command = command;
         _userContext = userContext; 
         _queryBuilder = queryBuilder;
+        _priceCalculateService = priceCalculateService;
     }
 
     public async Task<Result<long>> CreateAsync(ProductPriceCreateDto dto, CancellationToken ct = default)
@@ -76,6 +79,32 @@ public class ProductPriceService : IProductPriceService
         if (entity == null) 
             return Result.Failure<ProductPriceDto>(ProductPriceErrors.NotFound(id, _userContext.LanguageId));
         return entity;
+    }
+
+    public async Task<Result<List<ProductPricePurchaseDto>>> GetPurchasesByProductIdAsync(int productId, CancellationToken ct = default)
+    {
+        var productIds = new[] { productId };
+        var salePriceMap = await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
+        var costPriceDetailsMap = await _priceCalculateService.GetCostPriceDetailsMapAsync(productIds, ct);
+
+        costPriceDetailsMap.TryGetValue(productId, out var costPriceDetails);
+        var salePrice = salePriceMap.GetValueOrDefault(productId);
+        var costPrice = costPriceDetails?.CostPrice ?? 0m;
+
+        var result = (costPriceDetails?.Purchases ?? new())
+            .Select(x => new ProductPricePurchaseDto
+            {
+                PurchaseId = x.PurchaseId,
+                DocNumber = x.DocNumber,
+                Date = x.Date,
+                TotalAmount = x.TotalAmount,
+                ProductTableIds = x.ProductTableIds,
+                SalePrice = salePrice,
+                CostPrice = costPrice
+            })
+            .ToList();
+
+        return result;
     }
 
     public async Task<Result> UpdateAsync(long id, ProductPriceUpdateDto dto, CancellationToken ct = default)

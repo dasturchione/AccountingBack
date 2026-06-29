@@ -36,6 +36,14 @@ public class ProductPriceController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("{productId:int}/purchases")]
+    [ModuleAuthorize(PermissionCodeConst.ProductPriceView)]
+    public async Task<IResult> GetPurchasesByProductId([FromRoute] int productId, CancellationToken ct = default)
+    {
+        var result = await _service.GetPurchasesByProductIdAsync(productId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.ProductPriceCreate)]
     public async Task<IResult> CreateAsync([FromBody] ProductPriceCreateDto dto, CancellationToken ct = default)

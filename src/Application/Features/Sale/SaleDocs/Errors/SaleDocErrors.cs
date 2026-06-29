@@ -131,6 +131,15 @@ public static partial class SaleDocErrors
             _                       => $"ProductTable id {productTableId} product ({actualProductId}) does not match SaleDocProduct product ({expectedProductId})."
         });
 
+    public static Error InvalidInventorySelection(short? languageId = null) =>
+        Error.Conflict("SaleDoc.InvalidInventorySelection", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Tanlangan partiyalar inventar baholash usuliga mos kelmaydi.",
+            LanguageIdConst.UZ_CYRL => $"Танланган партиялар инвентар баҳолаш усулига мос келмайди.",
+            LanguageIdConst.RU      => $"Выбранные партии не соответствуют методу оценки запасов.",
+            _                       => $"Selected inventory batches do not match the inventory valuation method."
+        });
+
     public static Error CannotUpdateInCurrentStatus(long id, short statusId, short? languageId = null) =>
         Error.Conflict("SaleDoc.CannotUpdateInCurrentStatus", languageId switch
         {

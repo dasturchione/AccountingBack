@@ -129,7 +129,7 @@ public class SaleDocService : BaseService, ISaleDocService
             if (counterparty is null)
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
-            var productsResult = await BuildProductLinesAsync(dto.Products, ct);
+            var productsResult = await BuildProductLinesAsync(dto.Lines, ct);
             if (!productsResult.IsSuccess)
                 return Result.Failure<long>(productsResult.Error);
 
@@ -288,7 +288,8 @@ public class SaleDocService : BaseService, ISaleDocService
                 if (line == null)
                     return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
 
-                line.Amount = lineDto.Amount;
+                line.Amount = lineDto.UnitPrice;
+                line.CostPrice = lineDto.CostPrice;
 
                 if (line.VatRateId.HasValue)
                 {

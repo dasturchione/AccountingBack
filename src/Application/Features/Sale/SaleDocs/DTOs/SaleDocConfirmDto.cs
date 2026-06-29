@@ -8,5 +8,6 @@ public class SaleDocConfirmDto
 public class SaleDocConfirmLineDto
 {
     public long Id { get; set; }
-    public decimal Amount { get; set; }
+    public decimal CostPrice { get; set; }
+    public decimal UnitPrice { get; set; }
 }

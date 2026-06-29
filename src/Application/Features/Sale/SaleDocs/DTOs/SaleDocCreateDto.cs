@@ -7,7 +7,7 @@ public class SaleDocCreateDto
     public short CurrencyId { get; set; }
     public long? ContractId { get; set; }
     public string? Comment { get; set; }
-    public List<SaleDocCreateProductDto> Products { get; set; } = new();
+    public List<SaleDocCreateProductDto> Lines { get; set; } = new();
 }
 
 public class SaleDocCreateProductDto

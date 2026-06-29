@@ -106,7 +106,7 @@ public class ProductStockService : IProductStockService
                 .ToList();
 
         var items = inStockEntities
-            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.Mxik, x.Product.ProductGroup, x.Product.Unit })
+            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.Mxik, x.Product.ProductGroup, x.Product.Unit, x.Product.Unit.Code, x.Product.UnitId })
             .Select(g => 
             {
                 var price = priceMap.GetValueOrDefault(g.Key.ProductId);
@@ -120,6 +120,8 @@ public class ProductStockService : IProductStockService
                     Mxik             = g.Key.Mxik,
                     ProductGroupName = g.Key.ProductGroup?.Name,
                     UnitName         = g.Key.Unit.Name,
+                    UnitCode         = g.Key.Unit.Code,
+                    UnitId           = g.Key.UnitId,
                     Quantity         = qty,
                     Price            = price,
                     CostPrice        = qty > 0 ? Math.Round(totalCostAmount / qty, 2) : 0,

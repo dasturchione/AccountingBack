@@ -7,6 +7,8 @@ public class ProductStockDto
     public string? Barcode { get; set; }
     public string? Mxik { get; set; }
     public string? ProductGroupName { get; set; }
+    public short UnitId { get; set; } 
+    public string UnitCode { get; set; } = null!;
     public string UnitName { get; set; } = null!;
     public int Quantity { get; set; }
     public decimal Price { get; set; }

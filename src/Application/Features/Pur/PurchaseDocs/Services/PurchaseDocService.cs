@@ -373,7 +373,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         if (lines.Count == 0)
             return;
 
-        var valuationMethod = await GetCurrentValuationMethodAsync(doc.OrganizationId, ct);
+        var costingMethodId = await GetCurrentCostingMethodIdAsync(doc.OrganizationId, ct);
         var now = DateTime.Now;
 
         foreach (var group in lines.GroupBy(x => new { x.ProductId, x.UnitId }))
@@ -389,7 +389,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 continue;
 
             var newTotalCost = purchaseTables.Sum(x => x.TotalAmount);
-            var price = valuationMethod == InventoryValuationMethodConst.AVERAGE
+            var price = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? await CalculateAverageCostPriceAsync(
                     doc.OrganizationId,
                     group.Key.ProductId,
@@ -411,7 +411,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         }
     }
 
-    private async Task<string> GetCurrentValuationMethodAsync(int organizationId, CancellationToken ct)
+    private async Task<short> GetCurrentCostingMethodIdAsync(int organizationId, CancellationToken ct)
     {
         var now = DateTime.Now;
         var query = _queryBuilder.For<SaleCondition>()
@@ -423,7 +423,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             {
                 Id = x.Id,
                 StartDate = x.StartDate,
-                CostingMethodCode = x.CostingMethod.Code
+                CostingMethodId = x.CostingMethodId
             })
             .OrderBy(x => x.StartDate)
             .Desc()
@@ -435,18 +435,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             .ThenByDescending(x => x.Id)
             .FirstOrDefault();
 
-        return NormalizeValuationMethod(current?.CostingMethodCode);
-    }
-
-    private static string NormalizeValuationMethod(string? method)
-    {
-        var normalized = method?.Trim().ToLowerInvariant();
-
-        return normalized switch
+        return current?.CostingMethodId switch
         {
-            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
-            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
-            _ => InventoryValuationMethodConst.FIFO
+            CostingMethodIdConst.LIFO => CostingMethodIdConst.LIFO,
+            CostingMethodIdConst.AVERAGE => CostingMethodIdConst.AVERAGE,
+            _ => CostingMethodIdConst.FIFO
         };
     }
 
@@ -595,7 +588,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     {
         public long Id { get; set; }
         public DateTime StartDate { get; set; }
-        public string CostingMethodCode { get; set; } = null!;
+        public short CostingMethodId { get; set; }
     }
 
     private sealed class ProductTablePurchaseCost

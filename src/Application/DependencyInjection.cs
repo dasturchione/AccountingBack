@@ -62,7 +62,7 @@ namespace Application
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
             services.AddScoped<IProductStockService, ProductStockService>();
-            services.AddScoped<IProductSalePriceService, ProductSalePriceService>();
+            services.AddScoped<IProductPriceCalculateService, ProductPriceCalculateService>();
             services.AddScoped<IProductPriceService, ProductPriceService>();
             services.AddScoped<IPricingConditionService, PricingConditionService>();
             services.AddScoped<ISaleConditionService, SaleConditionService>();

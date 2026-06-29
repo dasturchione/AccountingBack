@@ -16,18 +16,18 @@ public class ProductStockService : IProductStockService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductTable> _query;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
-    private readonly IProductSalePriceService _productSalePriceService;
+    private readonly IProductPriceCalculateService _priceCalculateService;
     public ProductStockService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<ProductTable> query,
                                IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
-                               IProductSalePriceService productSalePriceService)
+                               IProductPriceCalculateService priceCalculateService)
     {
-        _userContext           = userContext;
-        _queryBuilder          = queryBuilder;
-        _query                 = query;
-        _purchaseDocTableQuery = purchaseDocTableQuery;
-        _productSalePriceService = productSalePriceService;
+        _query                  = query;
+        _userContext            = userContext;
+        _queryBuilder           = queryBuilder;
+        _priceCalculateService  = priceCalculateService;
+        _purchaseDocTableQuery  = purchaseDocTableQuery;
     }
 
     public async Task<Result<ProductTableByMarkingDto>> GetByMarkingNumberAsync(string markingNumber, CancellationToken ct = default)
@@ -235,7 +235,7 @@ public class ProductStockService : IProductStockService
     private async Task<Dictionary<int, decimal>> GetPriceMapAsync(List<ProductTable> entities, CancellationToken ct)
     {
         var productIds = entities.Select(x => x.ProductId).Distinct().ToList();
-        return await _productSalePriceService.GetSalePriceMapAsync(productIds, ct);
+        return await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
     }
 
     private async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceDetailsMapAsync(List<ProductTable> entities, CancellationToken ct)
@@ -245,6 +245,6 @@ public class ProductStockService : IProductStockService
         if (productIds.Count == 0)
             return new Dictionary<int, ProductCostPriceDto>();
 
-        return await _productSalePriceService.GetCostPriceDetailsMapAsync(productIds, ct);
+        return await _priceCalculateService.GetCostPriceDetailsMapAsync(productIds, ct);
     }
 }

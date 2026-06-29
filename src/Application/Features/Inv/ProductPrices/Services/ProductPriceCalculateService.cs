@@ -8,28 +8,27 @@ using SharedKernel.Query;
 
 namespace Application.Features.ProductPrices;
 
-public class ProductSalePriceService : IProductSalePriceService
+public class ProductPriceCalculateService : IProductPriceCalculateService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
-    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
-    private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
+    private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
-
-    public ProductSalePriceService(IUserContext userContext,
-                                   IQueryBuilder queryBuilder,
-                                   IQueryRepository<OrganizationConfig> organizationConfigQuery,
-                                   IQueryRepository<PricingCondition> pricingConditionQuery,
-                                   IQueryRepository<ProductPrice> productPriceQuery,
-                                   IQueryRepository<PurchaseDocTable> purchaseDocTableQuery)
+    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
+    public ProductPriceCalculateService(IUserContext userContext,
+                                        IQueryBuilder queryBuilder,
+                                        IQueryRepository<ProductPrice> productPriceQuery,
+                                        IQueryRepository<PricingCondition> pricingConditionQuery,
+                                        IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                                        IQueryRepository<OrganizationConfig> organizationConfigQuery)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
-        _organizationConfigQuery = organizationConfigQuery;
-        _pricingConditionQuery = pricingConditionQuery;
         _productPriceQuery = productPriceQuery;
+        _pricingConditionQuery = pricingConditionQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
+        _organizationConfigQuery = organizationConfigQuery;
     }
 
     public async Task<Dictionary<int, decimal>> GetSalePriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)

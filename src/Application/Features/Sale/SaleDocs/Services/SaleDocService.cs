@@ -537,7 +537,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 if (vatRate == null)
                     return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
 
-                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 2);
+                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 8);
             }
 
             var amount = p.Quantity * p.UnitPrice;
@@ -548,7 +548,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = p.Quantity,
                 UnitId = p.UnitId,
                 UnitPrice = p.UnitPrice,
-                CostPrice = 0,
+                CostPrice = p.CostPrice,
                 Amount = amount,
                 VatRateId = p.VatRateId,
                 VatAmount = vatAmount,

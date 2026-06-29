@@ -14,6 +14,7 @@ public class SaleDocCreateProductDto
 {
     public int ProductId { get; set; }
     public decimal Quantity { get; set; }
+    public decimal CostPrice { get; set; }
     public short UnitId { get; set; }
     public decimal UnitPrice { get; set; }
     public short? VatRateId { get; set; }

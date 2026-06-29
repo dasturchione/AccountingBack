@@ -1,12 +1,11 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Features.Inv.ProductStocks;
 using Application.Features.PricingConditions;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceCalculateService : IProductPriceCalculateService
 {
@@ -31,38 +30,57 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         _organizationConfigQuery = organizationConfigQuery;
     }
 
-    public async Task<Dictionary<int, decimal>> GetSalePriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
+    public async Task<Dictionary<int, ProductSalePriceDto>> GetSalePriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
     {
         var ids = productIds.Distinct().ToList();
         if (ids.Count == 0 || _userContext.OrganizationId is null)
-            return new Dictionary<int, decimal>();
+            return new Dictionary<int, ProductSalePriceDto>();
 
         var now = DateTime.Now;
         var pricingCondition = await GetCurrentPricingConditionAsync(now, ct);
+        var valuationMethod = await GetCurrentInventoryValuationMethodAsync(ct);
         var currentProductPrices = await GetCurrentProductPricesAsync(ids, now, ct);
         var fallbackCostPrices = await GetFallbackCostPricesAsync(ids, ct);
+        var purchaseBatches = await GetPurchaseBatchesAsync(ids, ct);
 
-        var result = new Dictionary<int, decimal>(ids.Count);
+        var result = new Dictionary<int, ProductSalePriceDto>(ids.Count);
 
         foreach (var productId in ids)
         {
             var hasFixedSalePrice = currentProductPrices.TryGetValue((productId, PriceTypeIdConst.FIXED_SALE_PRICE), out var fixedSalePrice);
             var hasAverageCostPrice = currentProductPrices.TryGetValue((productId, PriceTypeIdConst.AVERAGE_COST_PRICE), out var averageCostPrice);
 
-            if (!hasAverageCostPrice && fallbackCostPrices.TryGetValue(productId, out var purchaseCostPrice))
+            if (!hasAverageCostPrice && fallbackCostPrices.TryGetValue(productId, out var fallbackCostPrice))
             {
-                averageCostPrice = purchaseCostPrice;
+                averageCostPrice = fallbackCostPrice;
                 hasAverageCostPrice = true;
             }
 
-            var price = CalculatePrice(pricingCondition, hasFixedSalePrice, fixedSalePrice, hasAverageCostPrice, averageCostPrice);
-            result[productId] = ApplyRounding(price, pricingCondition);
+            purchaseBatches.TryGetValue(productId, out var costBatches);
+            var salePrices = BuildSalePrices(
+                costBatches,
+                valuationMethod,
+                pricingCondition,
+                hasFixedSalePrice,
+                fixedSalePrice,
+                hasAverageCostPrice,
+                averageCostPrice);
+
+            var salePrice = salePrices.Count > 0
+                ? CalculateWeightedAverageSalePrice(salePrices)
+                : CalculateDefaultSalePrice(pricingCondition, hasFixedSalePrice, fixedSalePrice, hasAverageCostPrice, averageCostPrice);
+
+            result[productId] = new ProductSalePriceDto
+            {
+                SalePrice = ApplyRounding(salePrice, pricingCondition),
+                SalePrices = salePrices
+            };
         }
 
         return result;
     }
 
-    public async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceDetailsMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
+    public async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
     {
         var ids = productIds.Distinct().ToList();
         if (ids.Count == 0 || _userContext.OrganizationId is null)
@@ -219,6 +237,73 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         return result;
     }
 
+    private static List<ProductSalePriceTableDto> BuildSalePrices(
+        IReadOnlyCollection<ProductCostPriceTableDto>? batches,
+        string valuationMethod,
+        PricingConditionDto? pricingCondition,
+        bool hasFixedSalePrice,
+        decimal fixedSalePrice,
+        bool hasAverageCostPrice,
+        decimal averageCostPrice)
+    {
+        if (batches is null || batches.Count == 0)
+            return new List<ProductSalePriceTableDto>();
+
+        var descending = valuationMethod != InventoryValuationMethodConst.FIFO;
+        var orderedBatches = OrderPurchaseBatches(batches.ToList(), descending);
+        var result = new List<ProductSalePriceTableDto>(orderedBatches.Count);
+
+        foreach (var batch in orderedBatches)
+        {
+            var baseCostPrice = valuationMethod == InventoryValuationMethodConst.AVERAGE && hasAverageCostPrice
+                ? averageCostPrice
+                : batch.UnitPrice;
+
+            var saleUnitPrice = CalculatePrice(
+                pricingCondition,
+                hasFixedSalePrice,
+                fixedSalePrice,
+                true,
+                baseCostPrice);
+
+            result.Add(new ProductSalePriceTableDto
+            {
+                PurchaseId = batch.PurchaseId,
+                PurchaseDate = batch.Date,
+                UnitPrice = saleUnitPrice,
+                ProductTableIds = batch.ProductTableIds.ToList()
+            });
+        }
+
+        return result;
+    }
+
+    private static decimal CalculateWeightedAverageSalePrice(IReadOnlyCollection<ProductSalePriceTableDto> salePrices)
+    {
+        var totalQuantity = salePrices.Sum(x => x.Quantity);
+
+        if (totalQuantity <= 0)
+            return 0m;
+
+        var totalAmount = salePrices.Sum(x => x.UnitPrice * x.Quantity);
+        return Math.Round(totalAmount / totalQuantity, 8);
+    }
+
+    private static decimal CalculateDefaultSalePrice(
+        PricingConditionDto? pricingCondition,
+        bool hasFixedSalePrice,
+        decimal fixedSalePrice,
+        bool hasAverageCostPrice,
+        decimal averageCostPrice)
+    {
+        return CalculatePrice(
+            pricingCondition,
+            hasFixedSalePrice,
+            fixedSalePrice,
+            hasAverageCostPrice,
+            averageCostPrice);
+    }
+
     private async Task<Dictionary<int, decimal>> GetFallbackCostPricesAsync(
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
@@ -247,12 +332,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                 g => g.OrderByDescending(x => x.DocDate).ThenByDescending(x => x.Id).First().CostPrice);
     }
 
-    private async Task<Dictionary<int, List<ProductStockPurchaseDto>>> GetPurchaseBatchesAsync(
+    private async Task<Dictionary<int, List<ProductCostPriceTableDto>>> GetPurchaseBatchesAsync(
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
     {
         if (_userContext.OrganizationId is null || productIds.Count == 0)
-            return new Dictionary<int, List<ProductStockPurchaseDto>>();
+            return new Dictionary<int, List<ProductCostPriceTableDto>>();
 
         var query = _queryBuilder.For<PurchaseDocTable>()
             .Where(x => productIds.Contains(x.Owner.ProductId) &&
@@ -277,29 +362,31 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             .ToDictionary(
                 g => g.Key,
                 g => g.GroupBy(x => new { x.PurchaseId, x.DocNumber, x.DocDate })
-                    .Select(batch => new ProductStockPurchaseDto
+                    .Select(batch => new ProductCostPriceTableDto
                     {
-                        PurchaseId = batch.Key.PurchaseId,
-                        DocNumber = batch.Key.DocNumber,
                         Date = batch.Key.DocDate,
-                        TotalAmount = batch.Sum(x => x.TotalAmount),
+                        DocNumber = batch.Key.DocNumber,
+                        PurchaseId = batch.Key.PurchaseId,
+                        UnitPrice = batch.Count() > 0
+                            ? Math.Round(batch.Sum(x => x.TotalAmount) / batch.Count(), 8)
+                            : 0m,
                         ProductTableIds = batch.Select(x => x.ProductTableId).Distinct().OrderBy(id => id).ToList()
                     })
                     .ToList());
     }
 
-    private static List<ProductStockPurchaseDto> OrderPurchaseBatches(List<ProductStockPurchaseDto>? batches, bool descending)
+    private static List<ProductCostPriceTableDto> OrderPurchaseBatches(List<ProductCostPriceTableDto>? batches, bool descending)
     {
         if (batches is null || batches.Count == 0)
-            return new List<ProductStockPurchaseDto>();
+            return new List<ProductCostPriceTableDto>();
 
         return descending
             ? batches.OrderByDescending(x => x.Date).ThenByDescending(x => x.PurchaseId).ToList()
             : batches.OrderBy(x => x.Date).ThenBy(x => x.PurchaseId).ToList();
     }
 
-    private static decimal GetBatchUnitCost(ProductStockPurchaseDto batch) =>
-        batch.Quantity > 0 ? Math.Round(batch.TotalAmount / batch.Quantity, 8) : 0m;
+    private static decimal GetBatchUnitCost(ProductCostPriceTableDto batch) =>
+        batch.UnitPrice;
 
     private static decimal CalculatePrice(
         PricingConditionDto? pricingCondition,

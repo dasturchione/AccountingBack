@@ -1,4 +1,4 @@
-using Application.Features.ProductPrices;
+using Application.Features.Inv.ProductPrices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -36,11 +36,11 @@ public class ProductPriceController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("{productId:int}/purchases")]
-    [ModuleAuthorize(PermissionCodeConst.ProductPriceView)]
-    public async Task<IResult> GetPurchasesByProductId([FromRoute] int productId, CancellationToken ct = default)
+    [HttpGet("{productId:int}/details")]
+    [ModuleAuthorize(PermissionCodeConst.ProductPriceViewDetail)]
+    public async Task<IResult> GetPriceDetailsByProductIdAsync([FromRoute] int productId, CancellationToken ct = default)
     {
-        var result = await _service.GetPurchasesByProductIdAsync(productId, ct);
+        var result = await _service.GetPriceDetailsByProductIdAsync(productId, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

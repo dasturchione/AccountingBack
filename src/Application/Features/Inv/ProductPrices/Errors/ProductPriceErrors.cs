@@ -1,7 +1,7 @@
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public static class ProductPriceErrors
 {

@@ -22,7 +22,7 @@ using Application.Features.Organizations;
 using Application.Features.OrgBankAccounts;
 using Application.Features.Positions;
 using Application.Features.ProductGroups;
-using Application.Features.ProductPrices;
+using Application.Features.Inv.ProductPrices;
 using Application.Features.Products;
 using Application.Features.PricingConditions;
 using Application.Features.PurchaseDocs;

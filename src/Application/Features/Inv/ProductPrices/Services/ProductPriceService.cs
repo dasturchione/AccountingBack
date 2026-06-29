@@ -6,7 +6,7 @@ using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceService : IProductPriceService
 {
@@ -81,30 +81,20 @@ public class ProductPriceService : IProductPriceService
         return entity;
     }
 
-    public async Task<Result<List<ProductPricePurchaseDto>>> GetPurchasesByProductIdAsync(int productId, CancellationToken ct = default)
+    public async Task<Result<ProductPriceDetailsDto>> GetPriceDetailsByProductIdAsync(int productId, CancellationToken ct = default)
     {
         var productIds = new[] { productId };
         var salePriceMap = await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
-        var costPriceDetailsMap = await _priceCalculateService.GetCostPriceDetailsMapAsync(productIds, ct);
+        var costPriceMap = await _priceCalculateService.GetCostPriceMapAsync(productIds, ct);
 
-        costPriceDetailsMap.TryGetValue(productId, out var costPriceDetails);
-        var salePrice = salePriceMap.GetValueOrDefault(productId);
-        var costPrice = costPriceDetails?.CostPrice ?? 0m;
+        salePriceMap.TryGetValue(productId, out var salePrice);
+        costPriceMap.TryGetValue(productId, out var costPrice);
 
-        var result = (costPriceDetails?.Purchases ?? new())
-            .Select(x => new ProductPricePurchaseDto
-            {
-                PurchaseId = x.PurchaseId,
-                DocNumber = x.DocNumber,
-                Date = x.Date,
-                TotalAmount = x.TotalAmount,
-                ProductTableIds = x.ProductTableIds,
-                SalePrice = salePrice,
-                CostPrice = costPrice
-            })
-            .ToList();
-
-        return result;
+        return new ProductPriceDetailsDto
+        {
+            Sale = salePrice ?? new ProductSalePriceDto(),
+            Cost = costPrice ?? new ProductCostPriceDto()
+        };
     }
 
     public async Task<Result> UpdateAsync(long id, ProductPriceUpdateDto dto, CancellationToken ct = default)

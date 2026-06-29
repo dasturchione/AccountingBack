@@ -2,7 +2,7 @@ using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceDtoProjection : IProjectionBuilder<ProductPrice, ProductPriceDto>
 {

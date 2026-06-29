@@ -1,7 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
-using Application.Features.ProductPrices;
+using Application.Features.Inv.ProductPrices;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -63,7 +63,7 @@ public class ProductStockService : IProductStockService
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
-        var costPriceMap = await GetCostPriceDetailsMapAsync(inStockEntities, ct);
+        var costPriceMap = await GetCostPriceMapAsync(inStockEntities, ct);
 
         var items = inStockEntities
             .Where(x => x.Product.ProductGroup != null)
@@ -95,7 +95,7 @@ public class ProductStockService : IProductStockService
     {
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
-        var costPriceMap = await GetCostPriceDetailsMapAsync(inStockEntities, ct);
+        var costPriceMap = await GetCostPriceMapAsync(inStockEntities, ct);
 
         if (filter.ProductGroupId.HasValue)
             inStockEntities = inStockEntities.Where(x => x.Product.ProductGroupId == filter.ProductGroupId.Value).ToList();
@@ -162,57 +162,6 @@ public class ProductStockService : IProductStockService
         return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
-    public async Task<Result<List<ProductStockPurchaseDto>>> GetPurchasesByProductIdAsync(int productId, CancellationToken ct = default)
-    {
-        if (_userContext.OrganizationId is null)
-            return Result.Success(new List<ProductStockPurchaseDto>());
-
-        var orgId = _userContext.OrganizationId.Value;
-
-        var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == orgId &&
-                        x.ProductId == productId &&
-                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.StateId == StateIdConst.ACTIVE)
-            .Build();
-
-        var productTables = await _query.GetAllAsync(query, ct);
-
-        if (productTables.Count == 0)
-            return Result.Success(new List<ProductStockPurchaseDto>());
-
-        var productTableIds = productTables.Select(x => x.Id).ToList();
-
-        var purchaseQuery = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productTableIds.Contains(x.ProductTableId))
-            .As(x => new
-            {
-                x.ProductTableId,
-                x.TotalAmount,
-                PurchaseId = x.Owner.Owner.Id,
-                DocNumber = x.Owner.Owner.DocNumber,
-                DocDate = x.Owner.Owner.DocDate,
-            })
-            .Build();
-
-        var purchases = await _purchaseDocTableQuery.GetAllAsync(purchaseQuery, ct);
-
-        var result = purchases
-            .GroupBy(x => new { x.PurchaseId, x.DocNumber, x.DocDate, x.TotalAmount })
-            .Select(g => new ProductStockPurchaseDto
-            {
-                PurchaseId = g.Key.PurchaseId,
-                DocNumber = g.Key.DocNumber,
-                Date = g.Key.DocDate,
-                TotalAmount = g.Key.TotalAmount,
-                ProductTableIds = g.Select(x => x.ProductTableId).ToList(),
-            })
-            .OrderByDescending(x => x.Date)
-            .ToList();
-
-        return Result.Success(result);
-    }
-
     private async Task<List<ProductTable>> GetInStockEntitiesAsync(CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)
@@ -238,16 +187,18 @@ public class ProductStockService : IProductStockService
     private async Task<Dictionary<int, decimal>> GetPriceMapAsync(List<ProductTable> entities, CancellationToken ct)
     {
         var productIds = entities.Select(x => x.ProductId).Distinct().ToList();
-        return await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
+        var salePriceMap = await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
+
+        return salePriceMap.ToDictionary(x => x.Key, x => x.Value.SalePrice);
     }
 
-    private async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceDetailsMapAsync(List<ProductTable> entities, CancellationToken ct)
+    private async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceMapAsync(List<ProductTable> entities, CancellationToken ct)
     {
         var productIds = entities.Select(x => x.ProductId).Distinct().ToList();
 
         if (productIds.Count == 0)
             return new Dictionary<int, ProductCostPriceDto>();
 
-        return await _priceCalculateService.GetCostPriceDetailsMapAsync(productIds, ct);
+        return await _priceCalculateService.GetCostPriceMapAsync(productIds, ct);
     }
 }

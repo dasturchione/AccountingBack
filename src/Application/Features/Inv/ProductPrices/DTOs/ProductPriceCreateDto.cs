@@ -1,3 +1,3 @@
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceCreateDto : ProductPriceBaseDto { }

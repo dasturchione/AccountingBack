@@ -1,7 +1,7 @@
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
-namespace Application.Features.ProductPrices;
+namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<ProductPriceListDto, ProductPriceListFilter>
 {

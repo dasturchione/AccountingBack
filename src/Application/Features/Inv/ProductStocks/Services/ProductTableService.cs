@@ -226,8 +226,11 @@ public class ProductStockService : IProductStockService
                         x.StateId == StateIdConst.ACTIVE)
             .Build();
 
-        query.AddIncludes(b => b.Include(x => x.Product).ThenInclude(p => p.ProductGroup));
-        query.AddIncludes(b => b.Include(x => x.Product).ThenInclude(p => p.Unit));
+        query.AddIncludes(b => 
+        {
+            b.Include(x => x.Product).ThenInclude(p => p.ProductGroup);
+            b.Include(x => x.Product).ThenInclude(p => p.Unit);
+        });
 
         return await _query.GetAllAsync(query, ct);
     }

@@ -16,20 +16,20 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
     private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
-    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
+    private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
     public ProductPriceCalculateService(IUserContext userContext,
                                         IQueryBuilder queryBuilder,
                                         IQueryRepository<ProductPrice> productPriceQuery,
                                         IQueryRepository<PricingCondition> pricingConditionQuery,
                                         IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
-                                        IQueryRepository<OrganizationConfig> organizationConfigQuery)
+                                        IQueryRepository<SaleCondition> saleConditionQuery)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _productPriceQuery = productPriceQuery;
         _pricingConditionQuery = pricingConditionQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
-        _organizationConfigQuery = organizationConfigQuery;
+        _saleConditionQuery = saleConditionQuery;
     }
 
     public async Task<Dictionary<int, ProductSalePriceDto>> GetSalePriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
@@ -40,7 +40,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var now = DateTime.Now;
         var pricingCondition = await GetCurrentPricingConditionAsync(now, ct);
-        var valuationMethod = await GetCurrentInventoryValuationMethodAsync(ct);
+        var costingMethodId = await GetCurrentCostingMethodIdAsync(ct);
         var currentProductPrices = await GetCurrentProductPricesAsync(ids, now, ct);
         var fallbackCostPrices = await GetFallbackCostPricesAsync(ids, ct);
         var purchaseBatches = await GetPurchaseBatchesAsync(ids, ct);
@@ -61,7 +61,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             purchaseBatches.TryGetValue(productId, out var costBatches);
             var salePrices = BuildSalePrices(
                 costBatches,
-                valuationMethod,
+                costingMethodId,
                 pricingCondition,
                 hasFixedSalePrice,
                 fixedSalePrice,
@@ -88,12 +88,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         if (ids.Count == 0 || _userContext.OrganizationId is null)
             return new Dictionary<int, ProductCostPriceDto>();
 
-        var valuationMethod = await GetCurrentInventoryValuationMethodAsync(ct);
+        var costingMethodId = await GetCurrentCostingMethodIdAsync(ct);
         var now = DateTime.Now;
 
-        return valuationMethod == InventoryValuationMethodConst.AVERAGE
+        return costingMethodId == CostingMethodIdConst.AVERAGE
             ? await GetAverageCostPriceDetailsMapAsync(ids, now, ct)
-            : await GetStockCostPriceDetailsMapAsync(ids, valuationMethod, ct);
+            : await GetStockCostPriceDetailsMapAsync(ids, costingMethodId, ct);
     }
 
     public async Task<Result<List<ProductTableSelectionDto>>> SelectInventoryAsync(
@@ -106,11 +106,11 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         if (productLines.Count == 0)
             return Result.Success(new List<ProductTableSelectionDto>());
 
-        var valuationMethod = await GetInventoryValuationMethodAsync(organizationId, ct);
-        if (valuationMethod is not InventoryValuationMethodConst.FIFO
-            and not InventoryValuationMethodConst.LIFO
-            and not InventoryValuationMethodConst.AVERAGE)
-            return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventoryValuationMethod(valuationMethod, _userContext.LanguageId));
+        var costingMethodId = await GetCurrentCostingMethodIdAsync(organizationId, ct);
+        if (costingMethodId is not CostingMethodIdConst.FIFO
+            and not CostingMethodIdConst.LIFO
+            and not CostingMethodIdConst.AVERAGE)
+            return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventoryValuationMethod(costingMethodId.ToString(), _userContext.LanguageId));
 
         foreach (var productLine in productLines)
         {
@@ -147,7 +147,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             var productCandidates = candidatesByProductId.GetValueOrDefault(productId) ?? new List<InventoryCandidateSnapshot>();
             var orderedCandidates = OrderInventoryCandidates(
                 productCandidates,
-                valuationMethod == InventoryValuationMethodConst.LIFO);
+                costingMethodId == CostingMethodIdConst.LIFO);
 
             if (orderedCandidates.Count < requiredQuantity)
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InsufficientStock(
@@ -165,15 +165,15 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                 .Select(x => x.ProductTableId)
                 .ToList();
 
-            if (valuationMethod != InventoryValuationMethodConst.AVERAGE &&
+            if (costingMethodId != CostingMethodIdConst.AVERAGE &&
                 !selectedIdsForProduct.OrderBy(x => x).SequenceEqual(expectedIds.OrderBy(x => x)))
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
 
-            var averageCost = valuationMethod == InventoryValuationMethodConst.AVERAGE
+            var averageCost = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? CalculateWeightedAverageCost(orderedCandidates)
                 : 0m;
 
-            var orderedSelectedIds = valuationMethod == InventoryValuationMethodConst.AVERAGE
+            var orderedSelectedIds = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? selectedIdsForProduct.OrderBy(x => x).ToList()
                 : selectedIdsForProduct
                     .OrderBy(x =>
@@ -202,7 +202,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                         LineId = line.LineId,
                         ProductId = productId,
                         ProductTableId = selectedId,
-                        CostPrice = valuationMethod == InventoryValuationMethodConst.AVERAGE
+                        CostPrice = costingMethodId == CostingMethodIdConst.AVERAGE
                             ? averageCost
                             : candidate.CostAmount
                     });
@@ -233,29 +233,48 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             .FirstOrDefault();
     }
 
-    private async Task<string> GetCurrentInventoryValuationMethodAsync(CancellationToken ct)
+    private async Task<short> GetCurrentCostingMethodIdAsync(CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)
-            return InventoryValuationMethodConst.FIFO;
+            return CostingMethodIdConst.FIFO;
 
-        var query = _queryBuilder.For<OrganizationConfig>()
-            .Where(x => x.OrganizationId == _userContext.OrganizationId.Value)
-            .As(x => x.InventoryValuationMethod)
-            .Build();
-
-        var method = await _organizationConfigQuery.GetAsync(query, ct);
-        return NormalizeValuationMethod(method);
+        return await GetCurrentCostingMethodIdAsync(_userContext.OrganizationId.Value, ct);
     }
 
-    private static string NormalizeValuationMethod(string? method)
+    private async Task<short> GetCurrentCostingMethodIdAsync(int organizationId, CancellationToken ct)
     {
-        var normalized = method?.Trim().ToLowerInvariant();
+        var now = DateTime.Now;
+        var query = _queryBuilder.For<SaleCondition>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.StartDate <= now &&
+                        (x.EndDate == null || x.EndDate >= now))
+            .As(x => new SaleConditionCostingMethodSnapshot
+            {
+                Id = x.Id,
+                StartDate = x.StartDate,
+                CostingMethodId = x.CostingMethodId
+            })
+            .OrderBy(x => x.StartDate)
+            .Desc()
+            .Build();
 
-        return normalized switch
+        var items = await _saleConditionQuery.GetAllAsync(query, ct);
+        var current = items
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefault();
+
+        return NormalizeCostingMethodId(current?.CostingMethodId);
+    }
+
+    private static short NormalizeCostingMethodId(short? costingMethodId)
+    {
+        return costingMethodId switch
         {
-            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
-            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
-            _ => InventoryValuationMethodConst.FIFO
+            CostingMethodIdConst.LIFO => CostingMethodIdConst.LIFO,
+            CostingMethodIdConst.AVERAGE => CostingMethodIdConst.AVERAGE,
+            _ => CostingMethodIdConst.FIFO
         };
     }
 
@@ -327,12 +346,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
     private async Task<Dictionary<int, ProductCostPriceDto>> GetStockCostPriceDetailsMapAsync(
         IReadOnlyCollection<int> productIds,
-        string valuationMethod,
+        short costingMethodId,
         CancellationToken ct)
     {
         var fallbackCostPrices = await GetFallbackCostPricesAsync(productIds, ct);
         var purchaseBatches = await GetPurchaseBatchesAsync(productIds, ct);
-        var descending = valuationMethod == InventoryValuationMethodConst.LIFO;
+        var descending = costingMethodId == CostingMethodIdConst.LIFO;
 
         var result = new Dictionary<int, ProductCostPriceDto>(productIds.Count);
 
@@ -358,7 +377,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
     private static List<ProductSalePriceTableDto> BuildSalePrices(
         IReadOnlyCollection<ProductCostPriceTableDto>? batches,
-        string valuationMethod,
+        short costingMethodId,
         PricingConditionDto? pricingCondition,
         bool hasFixedSalePrice,
         decimal fixedSalePrice,
@@ -368,13 +387,13 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         if (batches is null || batches.Count == 0)
             return new List<ProductSalePriceTableDto>();
 
-        var descending = valuationMethod != InventoryValuationMethodConst.FIFO;
+        var descending = costingMethodId != CostingMethodIdConst.FIFO;
         var orderedBatches = OrderPurchaseBatches(batches.ToList(), descending);
         var result = new List<ProductSalePriceTableDto>(orderedBatches.Count);
 
         foreach (var batch in orderedBatches)
         {
-            var baseCostPrice = valuationMethod == InventoryValuationMethodConst.AVERAGE && hasAverageCostPrice
+            var baseCostPrice = costingMethodId == CostingMethodIdConst.AVERAGE && hasAverageCostPrice
                 ? averageCostPrice
                 : batch.UnitPrice;
 
@@ -492,17 +511,6 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                         ProductTableIds = batch.Select(x => x.ProductTableId).Distinct().OrderBy(id => id).ToList()
                     })
                     .ToList());
-    }
-
-    private async Task<string> GetInventoryValuationMethodAsync(int organizationId, CancellationToken ct)
-    {
-        var query = _queryBuilder.For<OrganizationConfig>()
-            .Where(x => x.OrganizationId == organizationId)
-            .As(x => x.InventoryValuationMethod)
-            .Build();
-
-        var method = await _organizationConfigQuery.GetAsync(query, ct);
-        return NormalizeValuationMethod(method);
     }
 
     private async Task<List<InventoryCandidateSnapshot>> GetInventoryCandidatesAsync(
@@ -659,5 +667,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         public long PurchaseDocId { get; set; }
         public DateTime PurchaseDate { get; set; }
         public decimal CostAmount { get; set; }
+    }
+
+    private sealed class SaleConditionCostingMethodSnapshot
+    {
+        public long Id { get; set; }
+        public DateTime StartDate { get; set; }
+        public short CostingMethodId { get; set; }
     }
 }

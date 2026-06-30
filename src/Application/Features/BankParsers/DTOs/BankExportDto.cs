@@ -23,6 +23,12 @@ public class AccountStatementDto
     [JsonPropertyName("bankAccountId")]
     public int? BankAccountId { get; set; }
 
+    [JsonPropertyName("bankId")]
+    public int? BankId { get; set; }
+
+    [JsonPropertyName("bankInn")]
+    public string? BankInn { get; set; }
+
     [JsonPropertyName("companyName")]
     public string CompanyName { get; set; } = "";
 
@@ -63,7 +69,6 @@ public class TransactionDto
     public string DocNumber { get; set; } = "";
 
     [JsonPropertyName("operationTypeId")]
-
     public short OperationTypeId => Debit > Credit ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT;
 
     [JsonPropertyName("operationCode")]
@@ -83,6 +88,9 @@ public class TransactionDto
 
     [JsonPropertyName("counterpartyId")]
     public int? CounterpartyId { get; set; }
+
+    [JsonPropertyName("counterpartyBankAccountId")]
+    public int? CounterpartyBankAccountId { get; set; }
 
     [JsonPropertyName("debit")]
     public decimal Debit { get; set; }

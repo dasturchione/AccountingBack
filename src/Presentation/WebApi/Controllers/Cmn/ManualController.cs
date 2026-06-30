@@ -77,6 +77,20 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("posting-aliases")]
+    public async Task<IActionResult> GetPostingAliases(CancellationToken ct)
+    {
+        var result = await _manualService.GetPostingAliasesAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("payment-purposes")]
+    public async Task<IActionResult> GetPaymentPurposes(CancellationToken ct)
+    {
+        var result = await _manualService.GetPaymentPurposesAsync(ct);
+        return Ok(result);
+    }
+
     [HttpGet("price-rounding-methods")]
     public async Task<IActionResult> GetPriceRoundingMethods(CancellationToken ct)
     {

@@ -1,0 +1,54 @@
+-- Table: public.acc_posting_rule_line
+
+CREATE TABLE public.acc_posting_rule_line (
+    id integer NOT NULL,
+    template_id smallint NOT NULL,
+    order_number smallint NOT NULL,
+    debit_alias character varying(250) NOT NULL,
+    credit_alias character varying(250) NOT NULL,
+    amount_source character varying(20),
+    is_optional boolean DEFAULT true NOT NULL
+);
+
+CREATE SEQUENCE public.acc_posting_rule_line_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.acc_posting_rule_line_id_seq OWNED BY public.acc_posting_rule_line.id;
+
+ALTER TABLE ONLY public.acc_posting_rule_line ALTER COLUMN id SET DEFAULT nextval('public.acc_posting_rule_line_id_seq'::regclass);
+
+insert into public.acc_posting_rule_line (id, template_id, order_number, debit_alias, credit_alias, amount_source, is_optional) values
+    ('1', '1', '1', 'Inventory', 'Supplier', 'Base', 'f'),
+    ('2', '1', '2', 'VATIn', 'Supplier', 'VAT', 'f'),
+    ('3', '2', '1', 'Expense', 'Supplier', 'Base', 'f'),
+    ('4', '2', '2', 'VATIn', 'Supplier', 'VAT', 'f'),
+    ('5', '3', '1', 'Customer', 'SalesRevenue', 'Base', 'f'),
+    ('6', '3', '2', 'Customer', 'VATOut', 'VAT', 'f'),
+    ('7', '3', '3', 'CostOfGoods', 'Inventory', 'Cost', 'f'),
+    ('8', '4', '1', 'Customer', 'ServiceRevenue', 'Base', 'f'),
+    ('9', '4', '2', 'Customer', 'VATOut', 'VAT', 'f'),
+    ('10', '4', '3', 'CostOfService', 'AssetWriteOff', 'Cost', 't'),
+    ('11', '5', '1', 'PaymentAccount', 'Customer', 'Total', 't'),
+    ('12', '5', '1', 'PaymentAccount', 'CustomerAdvance', 'Total', 't'),
+    ('13', '5', '1', 'PaymentAccount', 'LoanReceived', 'Total', 't'),
+    ('14', '5', '1', 'PaymentAccount', 'EmployeeAdvance', 'Total', 't'),
+    ('15', '6', '1', 'Supplier', 'PaymentAccount', 'Total', 't'),
+    ('16', '6', '1', 'SupplierAdvance', 'PaymentAccount', 'Total', 't'),
+    ('17', '6', '1', 'Employee', 'PaymentAccount', 'Total', 't'),
+    ('18', '6', '1', 'EmployeeAdvance', 'PaymentAccount', 'Total', 't'),
+    ('19', '6', '1', 'Founder', 'PaymentAccount', 'Total', 't'),
+    ('20', '6', '1', 'TaxAuthority', 'PaymentAccount', 'Total', 't'),
+    ('21', '6', '1', 'LoanGiven', 'PaymentAccount', 'Total', 't');
+
+SELECT pg_catalog.setval('public.acc_posting_rule_line_id_seq', 21, true);
+
+ALTER TABLE ONLY public.acc_posting_rule_line
+    ADD CONSTRAINT acc_posting_rule_line_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.acc_posting_rule_line
+    ADD CONSTRAINT acc_posting_rule_line_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.acc_posting_rule(id);

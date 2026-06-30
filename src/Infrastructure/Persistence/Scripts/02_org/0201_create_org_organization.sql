@@ -1,0 +1,64 @@
+-- Table: public.org_organization
+
+CREATE TABLE public.org_organization (
+    id integer NOT NULL,
+    short_name character varying(250) NOT NULL,
+    full_name character varying(500) NOT NULL,
+    inn character varying(20) NOT NULL,
+    phone_number character varying(50),
+    region_id integer NOT NULL,
+    district_id integer,
+    address character varying(1000),
+    director character varying(250),
+    is_parent boolean DEFAULT false NOT NULL,
+    state_id smallint NOT NULL,
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    default_language_id smallint
+);
+
+CREATE SEQUENCE public.org_organization_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.org_organization_id_seq OWNED BY public.org_organization.id;
+
+ALTER TABLE ONLY public.org_organization ALTER COLUMN id SET DEFAULT nextval('public.org_organization_id_seq'::regclass);
+
+insert into public.org_organization (id, short_name, full_name, inn, phone_number, region_id, district_id, address, director, is_parent, state_id, created_date, default_language_id) values
+    ('8', 'baraka_market', 'Baraka market', '1599789', '+998 99 897-06-42', '8', '127', 'Alisher Navoiy 17', 'Hafizov Sardorbek', 'f', '1', '2026-06-12 11:24:38.218896', '1'),
+    ('2', 'Najot Ta''lim', 'Najot Ta''lim Xususiy', '310540000', '+998 99 871-23-12', '8', '125', 'Toshkent shahar, Mirzo Ulug''bek tumani, Amir Temur ko''chasi 1-uy test', 'Karimov Jasur test', 't', '1', '2026-06-05 16:49:46.331959', '2');
+
+SELECT pg_catalog.setval('public.org_organization_id_seq', 13, true);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_org_organization_default_language_id ON public.org_organization USING btree (default_language_id);
+
+CREATE INDEX idx_org_organization_district_id ON public.org_organization USING btree (district_id);
+
+CREATE INDEX idx_org_organization_full_name ON public.org_organization USING btree (full_name);
+
+CREATE INDEX idx_org_organization_inn ON public.org_organization USING btree (inn);
+
+CREATE INDEX idx_org_organization_region_id ON public.org_organization USING btree (region_id);
+
+CREATE INDEX idx_org_organization_short_name ON public.org_organization USING btree (short_name);
+
+CREATE INDEX idx_org_organization_state_id ON public.org_organization USING btree (state_id);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_default_language_id_fkey FOREIGN KEY (default_language_id) REFERENCES public.cmn_language(id);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.cmn_district(id);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.cmn_region(id);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);

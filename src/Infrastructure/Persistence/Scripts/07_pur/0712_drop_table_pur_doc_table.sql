@@ -1,1 +1,0 @@
-drop table pur_doc_table;

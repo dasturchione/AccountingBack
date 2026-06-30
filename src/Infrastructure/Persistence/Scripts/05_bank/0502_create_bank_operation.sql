@@ -1,0 +1,128 @@
+-- Table: public.bank_operation
+
+CREATE TABLE public.bank_operation (
+    id bigint NOT NULL,
+    organization_id integer NOT NULL,
+    bank_account_id integer NOT NULL,
+    operation_type_id smallint NOT NULL,
+    payment_type_id smallint,
+    counterparty_id integer,
+    doc_number character varying(100) NOT NULL,
+    doc_date timestamp without time zone NOT NULL,
+    currency_id smallint NOT NULL,
+    amount numeric(18,2) NOT NULL,
+    comment character varying(1000),
+    status_id smallint NOT NULL,
+    state_id smallint NOT NULL,
+    created_date timestamp without time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE public.bank_operation_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.bank_operation_id_seq OWNED BY public.bank_operation.id;
+
+ALTER TABLE ONLY public.bank_operation ALTER COLUMN id SET DEFAULT nextval('public.bank_operation_id_seq'::regclass);
+
+CREATE SEQUENCE public.doc_number_bank_operation_seq
+    START WITH 100000001
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE FUNCTION public.set_bank_operation_doc_number() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    new.doc_number := lpad(nextval('doc_number_bank_operation_seq')::text, 9, '0');
+    return new;
+end;
+$$;
+
+insert into public.bank_operation (id, organization_id, bank_account_id, operation_type_id, payment_type_id, counterparty_id, doc_number, doc_date, currency_id, amount, comment, status_id, state_id, created_date) values
+    ('2', '2', '1', '2', NULL, NULL, '100000001', '2026-06-24 15:02:59', '4', '1000.00', 'Codex single create test', '2', '2', '2026-06-24 15:02:59.985932'),
+    ('3', '2', '1', '2', NULL, NULL, '100000002', '2026-06-24 15:03:00', '4', '1001.00', 'Codex many create test 1', '2', '2', '2026-06-24 15:03:00.548019'),
+    ('4', '2', '1', '2', NULL, NULL, '100000003', '2026-06-24 15:03:00', '4', '1002.00', 'Codex many create test 2', '2', '2', '2026-06-24 15:03:00.548021'),
+    ('5', '2', '1', '2', '2', NULL, '100000004', '2026-06-24 15:34:52', '4', '1100.00', 'Codex paymentType single test', '2', '2', '2026-06-24 15:34:52.995844'),
+    ('6', '2', '1', '2', '2', NULL, '100000005', '2026-06-24 15:34:53', '4', '1101.00', 'Codex paymentType many test 1', '2', '2', '2026-06-24 15:34:53.638813'),
+    ('7', '2', '1', '2', '2', NULL, '100000006', '2026-06-24 15:34:53', '4', '1102.00', 'Codex paymentType many test 2', '2', '2', '2026-06-24 15:34:53.638815'),
+    ('10', '8', '11', '2', '2', '21', '100000009', '2026-01-13 05:24:28', '1', '5000000.00', '00634 2026 йил январь-феврал ойилари хисобидан ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911372'),
+    ('11', '8', '11', '1', '2', '20', '100000010', '2026-01-13 05:30:01', '1', '5000000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2026 йил январь-феврал ойилари хисобидан ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911373'),
+    ('12', '8', '11', '2', '2', '21', '100000011', '2026-02-04 07:20:40', '1', '5720000.00', '00634 2026 йил январь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911375'),
+    ('13', '8', '11', '2', '2', '21', '100000012', '2026-03-03 10:39:54', '1', '9520000.00', '00634 2024 йил июнь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911376'),
+    ('14', '8', '11', '1', '2', '21', '100000013', '2026-03-03 10:52:07', '1', '9520000.00', '00634 2024 йил июнь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди. (Тулов максадига аниклик киритинг)', '2', '1', '2026-06-25 11:46:02.911377'),
+    ('15', '8', '11', '2', '2', '21', '100000014', '2026-03-03 10:47:26', '1', '9520000.00', '00634 2026 йил февраль ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911378'),
+    ('16', '8', '11', '1', '2', '20', '100000015', '2026-03-03 10:49:19', '1', '3800000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2026 йил февраль ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911383'),
+    ('17', '8', '11', '2', '2', '21', '100000016', '2026-04-03 11:33:28', '1', '7392000.00', '00634 2026 йил март ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911385'),
+    ('18', '8', '11', '1', '2', '20', '100000017', '2026-04-03 11:34:49', '1', '4400000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2026 йил март ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911386'),
+    ('19', '8', '11', '2', '2', '21', '100000018', '2026-05-04 10:09:31', '1', '7392000.00', '00634 2026 йил апрель йи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911387'),
+    ('20', '8', '11', '1', '2', '20', '100000019', '2026-05-04 10:10:55', '1', '4400000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2026 йил апрель ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911388'),
+    ('21', '8', '11', '2', '2', '21', '100000020', '2026-05-21 09:42:11', '1', '4400000.00', '00634 2026 йил май ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.91139'),
+    ('22', '8', '11', '1', '2', '20', '100000021', '2026-05-21 09:42:46', '1', '4400000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2026 йил май ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911391'),
+    ('23', '8', '11', '2', '2', '21', '100000022', '2026-06-04 12:24:52', '1', '5016000.00', '00634 00634 2026 йил май ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 11:46:02.911392'),
+    ('9', '8', '11', '1', '2', '20', '100000008', '2026-01-05 10:24:55', '1', '4400000.00', '00634Зачисление на счет пласт. карты 8600300486606289 КИБ: 2025 йил декабрь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '2', '2026-06-25 11:46:02.911371'),
+    ('8', '8', '11', '2', '2', '21', '100000007', '2026-01-05 10:21:34', '1', '10120000.00', '00634 2025 йил декабрь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '2', '2026-06-25 11:46:02.911305'),
+    ('24', '8', '12', '1', '2', '18', '100000023', '2026-06-25 06:58:33', '1', '2550000.00', NULL, '2', '2', '2026-06-25 12:00:56.882823'),
+    ('25', '8', '12', '1', '2', '18', '100000024', '2026-01-05 10:21:34', '1', '10120000.00', '00634 2025 йил декабрь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328908'),
+    ('26', '8', '12', '1', '2', '18', '100000025', '2026-01-13 05:24:28', '1', '5000000.00', '00634 2026 йил январь-феврал ойилари хисобидан ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328911'),
+    ('27', '8', '12', '1', '2', '18', '100000026', '2026-02-04 07:20:40', '1', '5720000.00', '00634 2026 йил январь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328912'),
+    ('28', '8', '12', '1', '2', '18', '100000027', '2026-03-03 10:39:54', '1', '9520000.00', '00634 2024 йил июнь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328914'),
+    ('29', '8', '12', '2', '2', '18', '100000028', '2026-03-03 10:52:07', '1', '9520000.00', '00634 2024 йил июнь ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди. (Тулов максадига аниклик киритинг)', '2', '1', '2026-06-25 12:49:53.328916'),
+    ('30', '8', '12', '1', '2', '18', '100000029', '2026-03-03 10:47:26', '1', '9520000.00', '00634 2026 йил февраль ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328917'),
+    ('31', '8', '12', '1', '2', '18', '100000030', '2026-04-03 11:33:28', '1', '7392000.00', '00634 2026 йил март ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328919'),
+    ('32', '8', '12', '1', '2', '18', '100000031', '2026-05-04 10:09:31', '1', '7392000.00', '00634 2026 йил апрель йи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328927'),
+    ('33', '8', '12', '1', '2', '18', '100000032', '2026-05-21 09:42:11', '1', '4400000.00', '00634 2026 йил май ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328928'),
+    ('34', '8', '12', '1', '2', '18', '100000033', '2026-06-04 12:24:52', '1', '5016000.00', '00634 00634 2026 йил май ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.32893'),
+    ('35', '8', '12', '1', '2', '18', '100000034', '2026-06-04 12:25:21', '1', '1408000.00', '00634 2026 йил май ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328932');
+
+SELECT pg_catalog.setval('public.bank_operation_id_seq', 35, true);
+
+SELECT pg_catalog.setval('public.doc_number_bank_operation_seq', 100000034, true);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_bank_operation_bank_account_id ON public.bank_operation USING btree (bank_account_id);
+
+CREATE INDEX idx_bank_operation_counterparty_id ON public.bank_operation USING btree (counterparty_id);
+
+CREATE INDEX idx_bank_operation_doc_date ON public.bank_operation USING btree (doc_date);
+
+CREATE INDEX idx_bank_operation_operation_type_id ON public.bank_operation USING btree (operation_type_id);
+
+CREATE INDEX idx_bank_operation_organization_id ON public.bank_operation USING btree (organization_id);
+
+CREATE INDEX idx_bank_operation_state_id ON public.bank_operation USING btree (state_id);
+
+CREATE INDEX idx_bank_operation_status_id ON public.bank_operation USING btree (status_id);
+
+CREATE TRIGGER set_bank_operation_doc_number_trigger BEFORE INSERT ON public.bank_operation FOR EACH ROW EXECUTE FUNCTION public.set_bank_operation_doc_number();
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_bank_account_id_fkey FOREIGN KEY (bank_account_id) REFERENCES public.org_bank_account(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_counterparty_id_fkey FOREIGN KEY (counterparty_id) REFERENCES public.counterparty_card(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.cmn_currency(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_operation_type_id_fkey FOREIGN KEY (operation_type_id) REFERENCES public.cmn_operation_type(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.org_organization(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_payment_type_id_fkey FOREIGN KEY (payment_type_id) REFERENCES public.cmn_payment_type(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+ALTER TABLE ONLY public.bank_operation
+    ADD CONSTRAINT bank_operation_status_id_fkey FOREIGN KEY (status_id) REFERENCES public.cmn_document_status(id);

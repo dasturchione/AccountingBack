@@ -7,11 +7,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("cash_operation")]
+[Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
 [Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
 [Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
+[Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_cash_operation_state_id")]
 [Index("StatusId", Name = "idx_cash_operation_status_id")]
 public partial class CashOperation
@@ -62,6 +64,26 @@ public partial class CashOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("exchange_rate")]
+    [Precision(18, 6)]
+    public decimal ExchangeRate { get; set; }
+
+    [Column("posted_at", TypeName = "timestamp without time zone")]
+    public DateTime? PostedAt { get; set; }
+
+    [Column("posted_by_user_id")]
+    public int? PostedByUserId { get; set; }
+
+    [Column("cancelled_at", TypeName = "timestamp without time zone")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    public int? CancelledByUserId { get; set; }
+
+    [ForeignKey("CancelledByUserId")]
+    [InverseProperty("CashOperationCancelledByUsers")]
+    public virtual SysUser? CancelledByUser { get; set; }
+
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperations")]
     public virtual CashBox CashBox { get; set; } = null!;
@@ -85,6 +107,10 @@ public partial class CashOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }
+
+    [ForeignKey("PostedByUserId")]
+    [InverseProperty("CashOperationPostedByUsers")]
+    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("CashOperations")]

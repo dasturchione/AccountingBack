@@ -12,8 +12,10 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("FullName", Name = "idx_org_organization_full_name")]
 [Index("Inn", Name = "idx_org_organization_inn")]
 [Index("RegionId", Name = "idx_org_organization_region_id")]
+[Index("SetupStatus", Name = "idx_org_organization_setup_status")]
 [Index("ShortName", Name = "idx_org_organization_short_name")]
 [Index("StateId", Name = "idx_org_organization_state_id")]
+[Index("TenantId", Name = "idx_org_organization_tenant_id")]
 public partial class OrgOrganization
 {
     [Key]
@@ -62,8 +64,36 @@ public partial class OrgOrganization
     [Column("default_language_id")]
     public short? DefaultLanguageId { get; set; }
 
+    [Column("tenant_id")]
+    public int? TenantId { get; set; }
+
+    [Column("setup_status")]
+    [StringLength(30)]
+    public string SetupStatus { get; set; } = null!;
+
+    [Column("setup_completed_at", TypeName = "timestamp without time zone")]
+    public DateTime? SetupCompletedAt { get; set; }
+
+    [Column("email")]
+    [StringLength(200)]
+    public string? Email { get; set; }
+
+    [Column("website")]
+    [StringLength(250)]
+    public string? Website { get; set; }
+
+    [Column("oked")]
+    [StringLength(20)]
+    public string? Oked { get; set; }
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<AccAccountingPeriod> AccAccountingPeriods { get; set; } = new List<AccAccountingPeriod>();
+
     [InverseProperty("Organization")]
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<AccPostingBatch> AccPostingBatches { get; set; } = new List<AccPostingBatch>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
@@ -79,6 +109,9 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<CmnDocumentSequence> CmnDocumentSequences { get; set; } = new List<CmnDocumentSequence>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<CmnPricingCondition> CmnPricingConditions { get; set; } = new List<CmnPricingCondition>();
@@ -131,6 +164,12 @@ public partial class OrgOrganization
     public virtual ICollection<OrgBranch> OrgBranches { get; set; } = new List<OrgBranch>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<OrgClaimRequest> OrgClaimRequests { get; set; } = new List<OrgClaimRequest>();
+
+    [InverseProperty("Organization")]
+    public virtual OrgDefault? OrgDefault { get; set; }
+
+    [InverseProperty("Organization")]
     public virtual ICollection<OrgDepartment> OrgDepartments { get; set; } = new List<OrgDepartment>();
 
     [InverseProperty("Organization")]
@@ -138,6 +177,15 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
+
+    [InverseProperty("Organization")]
+    public virtual OrgSetupState? OrgSetupState { get; set; }
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<OrgTaxSetting> OrgTaxSettings { get; set; } = new List<OrgTaxSetting>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<OrgUserInvitation> OrgUserInvitations { get; set; } = new List<OrgUserInvitation>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
@@ -164,4 +212,8 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
+
+    [ForeignKey("TenantId")]
+    [InverseProperty("OrgOrganizations")]
+    public virtual PlatformTenant? Tenant { get; set; }
 }

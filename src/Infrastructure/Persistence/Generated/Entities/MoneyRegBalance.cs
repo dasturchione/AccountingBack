@@ -11,6 +11,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("DocDate", Name = "idx_money_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_money_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_money_reg_balance_organization_id")]
+[Index("PostingBatchId", Name = "idx_money_reg_balance_posting_batch_id")]
+[Index("ReversalEntryId", Name = "idx_money_reg_balance_reversal_entry_id")]
 [Index("SourceType", "SourceId", Name = "idx_money_reg_balance_source")]
 public partial class MoneyRegBalance
 {
@@ -50,6 +52,15 @@ public partial class MoneyRegBalance
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
+
     [ForeignKey("CurrencyId")]
     [InverseProperty("MoneyRegBalances")]
     public virtual CmnCurrency Currency { get; set; } = null!;
@@ -65,4 +76,8 @@ public partial class MoneyRegBalance
     [ForeignKey("OrganizationId")]
     [InverseProperty("MoneyRegBalances")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("PostingBatchId")]
+    [InverseProperty("MoneyRegBalances")]
+    public virtual AccPostingBatch? PostingBatch { get; set; }
 }

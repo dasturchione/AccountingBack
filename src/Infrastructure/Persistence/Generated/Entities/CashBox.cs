@@ -9,8 +9,10 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("cash_box")]
 [Index("BranchId", Name = "idx_cash_box_branch_id")]
 [Index("CurrencyId", Name = "idx_cash_box_currency_id")]
+[Index("IsMain", Name = "idx_cash_box_is_main")]
 [Index("OrganizationId", "Code", Name = "idx_cash_box_org_code", IsUnique = true)]
 [Index("OrganizationId", Name = "idx_cash_box_organization_id")]
+[Index("ResponsibleUserId", Name = "idx_cash_box_responsible_user_id")]
 [Index("StateId", Name = "idx_cash_box_state_id")]
 public partial class CashBox
 {
@@ -41,6 +43,19 @@ public partial class CashBox
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("is_main")]
+    public bool IsMain { get; set; }
+
+    [Column("responsible_user_id")]
+    public int? ResponsibleUserId { get; set; }
+
+    [Column("opening_balance")]
+    [Precision(18, 2)]
+    public decimal OpeningBalance { get; set; }
+
+    [Column("opening_balance_date")]
+    public DateOnly? OpeningBalanceDate { get; set; }
+
     [ForeignKey("BranchId")]
     [InverseProperty("CashBoxes")]
     public virtual OrgBranch? Branch { get; set; }
@@ -52,9 +67,16 @@ public partial class CashBox
     [InverseProperty("CashBoxes")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
+    [InverseProperty("CashBox")]
+    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("CashBoxes")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("ResponsibleUserId")]
+    [InverseProperty("CashBoxes")]
+    public virtual SysUser? ResponsibleUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("CashBoxes")]

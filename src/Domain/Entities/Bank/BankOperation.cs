@@ -84,4 +84,7 @@ public partial class BankOperation
     [ForeignKey("StatusId")]
     [InverseProperty("BankOperations")]
     public virtual DocumentStatus Status { get; set; } = null!;
+
+    [InverseProperty(nameof(BankOperationLine.BankOperation))]
+    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 }

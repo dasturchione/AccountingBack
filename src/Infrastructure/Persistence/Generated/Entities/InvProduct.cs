@@ -7,10 +7,18 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_product")]
+[Index("Article", Name = "idx_inv_product_article")]
 [Index("Barcode", Name = "idx_inv_product_barcode")]
+[Index("Code", Name = "idx_inv_product_code")]
+[Index("CogsAccountId", Name = "idx_inv_product_cogs_account_id")]
+[Index("DefaultVatRateId", Name = "idx_inv_product_default_vat_rate_id")]
+[Index("ExpenseAccountId", Name = "idx_inv_product_expense_account_id")]
+[Index("IncomeAccountId", Name = "idx_inv_product_income_account_id")]
+[Index("InventoryAccountId", Name = "idx_inv_product_inventory_account_id")]
 [Index("Name", Name = "idx_inv_product_name")]
 [Index("OrganizationId", Name = "idx_inv_product_organization_id")]
 [Index("ProductGroupId", Name = "idx_inv_product_product_group_id")]
+[Index("Sku", Name = "idx_inv_product_sku")]
 [Index("StateId", Name = "idx_inv_product_state_id")]
 [Index("UnitId", Name = "idx_inv_product_unit_id")]
 public partial class InvProduct
@@ -56,6 +64,53 @@ public partial class InvProduct
     [Column("is_piece_tracked")]
     public bool IsPieceTracked { get; set; }
 
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("sku")]
+    [StringLength(100)]
+    public string? Sku { get; set; }
+
+    [Column("article")]
+    [StringLength(100)]
+    public string? Article { get; set; }
+
+    [Column("default_vat_rate_id")]
+    public short? DefaultVatRateId { get; set; }
+
+    [Column("inventory_account_id")]
+    public int? InventoryAccountId { get; set; }
+
+    [Column("income_account_id")]
+    public int? IncomeAccountId { get; set; }
+
+    [Column("expense_account_id")]
+    public int? ExpenseAccountId { get; set; }
+
+    [Column("cogs_account_id")]
+    public int? CogsAccountId { get; set; }
+
+    [Column("min_stock")]
+    [Precision(18, 3)]
+    public decimal? MinStock { get; set; }
+
+    [ForeignKey("CogsAccountId")]
+    [InverseProperty("InvProductCogsAccounts")]
+    public virtual AccChartAccount? CogsAccount { get; set; }
+
+    [ForeignKey("DefaultVatRateId")]
+    [InverseProperty("InvProducts")]
+    public virtual CmnVatRate? DefaultVatRate { get; set; }
+
+    [ForeignKey("ExpenseAccountId")]
+    [InverseProperty("InvProductExpenseAccounts")]
+    public virtual AccChartAccount? ExpenseAccount { get; set; }
+
+    [ForeignKey("IncomeAccountId")]
+    [InverseProperty("InvProductIncomeAccounts")]
+    public virtual AccChartAccount? IncomeAccount { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
@@ -64,6 +119,10 @@ public partial class InvProduct
 
     [InverseProperty("Product")]
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [ForeignKey("InventoryAccountId")]
+    [InverseProperty("InvProductInventoryAccounts")]
+    public virtual AccChartAccount? InventoryAccount { get; set; }
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProducts")]

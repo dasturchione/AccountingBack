@@ -43,6 +43,12 @@ public partial class Language
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
 
+    [InverseProperty("Language")]
+    public virtual ICollection<PostingAliasTranslation> PostingAliasTranslations { get; set; } = new List<PostingAliasTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<PaymentPurposeTranslation> PaymentPurposeTranslations { get; set; } = new List<PaymentPurposeTranslation>();
+
     [ForeignKey("StateId")]
     [InverseProperty("Languages")]
     public virtual State State { get; set; } = null!;

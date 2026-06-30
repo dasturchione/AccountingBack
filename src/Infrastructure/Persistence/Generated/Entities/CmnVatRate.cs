@@ -8,6 +8,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("cmn_vat_rate")]
 [Index("Code", Name = "idx_cmn_vat_rate_code", IsUnique = true)]
+[Index("EffectiveFrom", "EffectiveTo", Name = "idx_cmn_vat_rate_effective_dates")]
 [Index("StateId", Name = "idx_cmn_vat_rate_state_id")]
 public partial class CmnVatRate
 {
@@ -32,6 +33,15 @@ public partial class CmnVatRate
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("effective_from")]
+    public DateOnly? EffectiveFrom { get; set; }
+
+    [Column("effective_to")]
+    public DateOnly? EffectiveTo { get; set; }
+
+    [InverseProperty("DefaultVatRate")]
+    public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
     [InverseProperty("VatRate")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();

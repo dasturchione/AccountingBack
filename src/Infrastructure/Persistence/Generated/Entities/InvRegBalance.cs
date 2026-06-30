@@ -10,7 +10,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("DocDate", Name = "idx_inv_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_inv_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_inv_reg_balance_organization_id")]
+[Index("PostingBatchId", Name = "idx_inv_reg_balance_posting_batch_id")]
 [Index("ProductId", Name = "idx_inv_reg_balance_product_id")]
+[Index("ReversalEntryId", Name = "idx_inv_reg_balance_reversal_entry_id")]
 [Index("WarehouseId", Name = "idx_inv_reg_balance_warehouse_id")]
 public partial class InvRegBalance
 {
@@ -50,6 +52,15 @@ public partial class InvRegBalance
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
+
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("InvRegBalances")]
     public virtual CmnDocumentType DocumentType { get; set; } = null!;
@@ -61,6 +72,10 @@ public partial class InvRegBalance
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvRegBalances")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("PostingBatchId")]
+    [InverseProperty("InvRegBalances")]
+    public virtual AccPostingBatch? PostingBatch { get; set; }
 
     [ForeignKey("ProductId")]
     [InverseProperty("InvRegBalances")]

@@ -8,10 +8,12 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("bank_operation")]
 [Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
+[Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
+[Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_bank_operation_state_id")]
 [Index("StatusId", Name = "idx_bank_operation_status_id")]
 public partial class BankOperation
@@ -62,9 +64,32 @@ public partial class BankOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("exchange_rate")]
+    [Precision(18, 6)]
+    public decimal ExchangeRate { get; set; }
+
+    [Column("posted_at", TypeName = "timestamp without time zone")]
+    public DateTime? PostedAt { get; set; }
+
+    [Column("posted_by_user_id")]
+    public int? PostedByUserId { get; set; }
+
+    [Column("cancelled_at", TypeName = "timestamp without time zone")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    public int? CancelledByUserId { get; set; }
+
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]
     public virtual OrgBankAccount BankAccount { get; set; } = null!;
+
+    [InverseProperty("BankOperation")]
+    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
+
+    [ForeignKey("CancelledByUserId")]
+    [InverseProperty("BankOperationCancelledByUsers")]
+    public virtual SysUser? CancelledByUser { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("BankOperations")]
@@ -85,6 +110,10 @@ public partial class BankOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }
+
+    [ForeignKey("PostedByUserId")]
+    [InverseProperty("BankOperationPostedByUsers")]
+    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("BankOperations")]

@@ -8,7 +8,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("org_bank_account")]
 [Index("BankId", Name = "idx_org_bank_account_bank_id")]
+[Index("Code", Name = "idx_org_bank_account_code")]
 [Index("CurrencyId", Name = "idx_org_bank_account_currency_id")]
+[Index("Name", Name = "idx_org_bank_account_name")]
 [Index("OrganizationId", Name = "idx_org_bank_account_organization_id")]
 [Index("StateId", Name = "idx_org_bank_account_state_id")]
 public partial class OrgBankAccount
@@ -39,6 +41,21 @@ public partial class OrgBankAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("name")]
+    [StringLength(250)]
+    public string? Name { get; set; }
+
+    [Column("opening_balance")]
+    [Precision(18, 2)]
+    public decimal OpeningBalance { get; set; }
+
+    [Column("opening_balance_date")]
+    public DateOnly? OpeningBalanceDate { get; set; }
+
     [ForeignKey("BankId")]
     [InverseProperty("OrgBankAccounts")]
     public virtual CmnBank Bank { get; set; } = null!;
@@ -49,6 +66,9 @@ public partial class OrgBankAccount
     [ForeignKey("CurrencyId")]
     [InverseProperty("OrgBankAccounts")]
     public virtual CmnCurrency Currency { get; set; } = null!;
+
+    [InverseProperty("BankAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("OrgBankAccounts")]

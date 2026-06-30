@@ -8,6 +8,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_warehouse")]
 [Index("BranchId", Name = "idx_inv_warehouse_branch_id")]
+[Index("Code", Name = "idx_inv_warehouse_code")]
+[Index("IsMain", Name = "idx_inv_warehouse_is_main")]
 [Index("OrganizationId", Name = "idx_inv_warehouse_organization_id")]
 [Index("ResponsibleUserId", Name = "idx_inv_warehouse_responsible_user_id")]
 [Index("StateId", Name = "idx_inv_warehouse_state_id")]
@@ -36,12 +38,26 @@ public partial class InvWarehouse
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("address")]
+    [StringLength(1000)]
+    public string? Address { get; set; }
+
+    [Column("is_main")]
+    public bool IsMain { get; set; }
+
     [ForeignKey("BranchId")]
     [InverseProperty("InvWarehouses")]
     public virtual OrgBranch? Branch { get; set; }
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvWarehouses")]

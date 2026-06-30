@@ -26,7 +26,7 @@ public class SaleDocDto
     public long? ContractId { get; set; }
     public string? ContractNumber { get; set; }
 
-    public List<SaleDocProductDto> Products { get; set; } = new();
+    public List<SaleDocProductDto> Lines { get; set; } = new();
 }
 
 public class SaleDocProductDto
@@ -34,6 +34,7 @@ public class SaleDocProductDto
     public long Id { get; set; }
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
+    public string? ProductMxik { get; set; }
     public decimal Quantity { get; set; }
     public short UnitId { get; set; }
     public string UnitName { get; set; } = null!;
@@ -44,7 +45,7 @@ public class SaleDocProductDto
     public string? VatRateName { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
-    public List<SaleDocProductTableDto> Tables { get; set; } = new();
+    public List<SaleDocProductTableDto> Items { get; set; } = new();
 }
 
 public class SaleDocProductTableDto

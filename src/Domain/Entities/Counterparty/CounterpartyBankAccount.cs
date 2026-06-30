@@ -60,4 +60,7 @@ public partial class CounterpartyBankAccount
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(BankOperation.CounterpartyBankAccount))]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 }

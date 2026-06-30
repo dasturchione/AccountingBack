@@ -7,12 +7,17 @@ public class BankOperationDto
     public string OrganizationName { get; set; } = null!;
     public int BankAccountId { get; set; }
     public string BankAccountNumber { get; set; } = null!;
+    public string BankAccountName { get; set; } = null!;
+    public string? BankAccountInn { get; set; }
     public short OperationTypeId { get; set; }
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
     public int? CounterpartyId { get; set; }
+    public int? CounterpartyBankAccountId { get; set; }
+    public string? CounterpartyBankAccountNumber { get; set; }
     public string? CounterpartyName { get; set; }
+    public string? CounterpartyInn { get; set; }
     public string DocNumber { get; set; } = null!;
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }

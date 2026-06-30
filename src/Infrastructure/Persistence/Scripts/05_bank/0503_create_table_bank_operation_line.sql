@@ -11,6 +11,13 @@ create table bank_operation_line
 	CONSTRAINT uq_bank_operation_line_order UNIQUE (bank_operation_id, order_number)
 );
 
+create index idx_bank_operation_line_payment_purpose_id
+    on bank_operation_line (payment_purpose_id);
+
+create index idx_bank_operation_line_counterparty_id
+    on bank_operation_line (counterparty_id);
+
+
 CREATE OR REPLACE FUNCTION fn_validate_bank_operation_lines_sum()
 RETURNS TRIGGER AS $$
 DECLARE

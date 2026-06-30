@@ -6,7 +6,6 @@ namespace Domain.Entities;
 
 [Table("cmn_bank")]
 [Index("Code", Name = "idx_cmn_bank_code", IsUnique = true)]
-[Index("StateId", Name = "idx_cmn_bank_state_id")]
 public partial class Bank
 {
     [Key]
@@ -20,6 +19,10 @@ public partial class Bank
     [Column("name")]
     [StringLength(250)]
     public string Name { get; set; } = null!;
+
+    [Column("inn")]
+    [StringLength(20)]
+    public string? Inn { get; set; } 
 
     [Column("mfo")]
     [StringLength(20)]

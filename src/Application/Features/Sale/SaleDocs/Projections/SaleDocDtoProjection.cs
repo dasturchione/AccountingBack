@@ -32,11 +32,12 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
             CreatedDate      = x.CreatedDate,
             ContractId       = x.ContractId,
             ContractNumber   = x.Contract == null ? null : x.Contract.ContractNumber,
-            Products = x.SaleDocProducts.Select(p => new SaleDocProductDto
+            Lines            = x.SaleDocProducts.Select(p => new SaleDocProductDto
             {
                 Id          = p.Id,
                 ProductId   = p.ProductId,
                 ProductName = p.Product.Name,
+                ProductMxik = p.Product.Mxik,
                 Quantity    = p.Quantity,
                 UnitId      = p.UnitId,
                 UnitName    = p.Unit.Name,
@@ -47,7 +48,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 VatRateName = p.VatRate != null ? p.VatRate.Name : null,
                 VatAmount   = p.VatAmount,
                 TotalAmount = p.TotalAmount,
-                Tables = p.SaleDocTables.Select(t => new SaleDocProductTableDto
+                Items       = p.SaleDocTables.Select(t => new SaleDocProductTableDto
                 {
                     Id             = t.Id,
                     ProductTableId = t.ProductTableId,

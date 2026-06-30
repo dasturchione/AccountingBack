@@ -48,6 +48,9 @@ namespace Application.Features.Register.PostingEngines
                         throw new ArgumentException("Для шаблона не указан источник суммы.");
                     }
 
+                    if (IsSkippedAmountSource(context, line.AmountSource))
+                        continue;
+
                     if (!context.Amounts.TryGetValue(line.AmountSource, out var amount))
                     {
                         if (line.IsOptional)
@@ -201,5 +204,11 @@ namespace Application.Features.Register.PostingEngines
                 
                 _ => ruleId
             };
+
+        private static bool IsSkippedAmountSource(PostingContext context, string amountSource)
+        {
+            return context.SkippedAmountSources is { Length: > 0 } &&
+                   context.SkippedAmountSources.Any(source => string.Equals(source, amountSource, StringComparison.OrdinalIgnoreCase));
+        }
     }
 }

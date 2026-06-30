@@ -43,9 +43,6 @@ public partial class CounterpartyBankAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("CounterpartyBankAccount")]
-    public virtual ICollection<AccCounterpartyAccountPaymentPurposeHint> AccCounterpartyAccountPaymentPurposeHints { get; set; } = new List<AccCounterpartyAccountPaymentPurposeHint>();
-
     [ForeignKey("BankId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual CmnBank Bank { get; set; } = null!;
@@ -56,6 +53,9 @@ public partial class CounterpartyBankAccount
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
+
+    [InverseProperty("CounterpartyBankAccount")]
+    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("CounterpartyBankAccounts")]

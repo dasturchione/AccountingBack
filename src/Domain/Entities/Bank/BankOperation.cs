@@ -5,13 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("bank_operation")]
-[Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
-[Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
-[Index("DocDate", Name = "idx_bank_operation_doc_date")]
-[Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
-[Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
-[Index("StateId", Name = "idx_bank_operation_state_id")]
-[Index("StatusId", Name = "idx_bank_operation_status_id")]
 public partial class BankOperation
 {
     [Key]

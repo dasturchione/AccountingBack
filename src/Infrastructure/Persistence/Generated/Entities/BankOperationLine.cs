@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("bank_operation_line")]
+[Index("CounterpartyId", Name = "idx_bank_operation_line_counterparty_id")]
+[Index("PaymentPurposeId", Name = "idx_bank_operation_line_payment_purpose_id")]
 [Index("BankOperationId", "OrderNumber", Name = "uq_bank_operation_line_order", IsUnique = true)]
 public partial class BankOperationLine
 {

@@ -29,6 +29,9 @@ public partial class AccPaymentPurpose
     public bool RequiresCounterparty { get; set; }
 
     [InverseProperty("PaymentPurpose")]
+    public virtual ICollection<AccCounterpartyAccountPaymentPurposeHint> AccCounterpartyAccountPaymentPurposeHints { get; set; } = new List<AccCounterpartyAccountPaymentPurposeHint>();
+
+    [InverseProperty("PaymentPurpose")]
     public virtual ICollection<AccPaymentPurposeTranslation> AccPaymentPurposeTranslations { get; set; } = new List<AccPaymentPurposeTranslation>();
 
     [ForeignKey("AliasId")]

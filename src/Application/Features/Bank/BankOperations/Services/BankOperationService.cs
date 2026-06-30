@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using DocumentFormat.OpenXml.Vml.Office;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -126,6 +127,15 @@ public class BankOperationService : IBankOperationService
         entity.StatusId = DocumentStatusIdConst.POSTED;
         entity.StateId = StateIdConst.ACTIVE;
 
+        entity.BankOperationLines.Add(new BankOperationLine
+        {
+            Amount = dto.Amount,
+            CounterpartyId = dto.CounterpartyId,
+            PaymentPurposeId = dto.PaymentPurposeId,
+            OrderNumber = (short)(entity.BankOperationLines.Count() + 1),
+            Comment = dto.Comment,
+        });
+
         await _command.UpdateAsync(entity, ct);
 
         var newDocDto = await GetByIdInternalAsync(id, ct);
@@ -160,6 +170,17 @@ public class BankOperationService : IBankOperationService
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             StatusId = DocumentStatusIdConst.POSTED,
             StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
+            CreatedDate = DateTime.Now,
+            BankOperationLines = new List<BankOperationLine>
+            {
+                new BankOperationLine
+                {
+                    Amount = dto.Amount,
+                    CounterpartyId = dto.CounterpartyId,
+                    PaymentPurposeId = dto.PaymentPurposeId,
+                    OrderNumber = 1,
+                    Comment = dto.Comment,
+                }
+            }
         };
 }

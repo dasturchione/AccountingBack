@@ -33,4 +33,7 @@ public partial class PaymentPurpose
 
     [InverseProperty("PaymentPurpose")]
     public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
+
+    [InverseProperty("PaymentPurpose")]
+    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
 }

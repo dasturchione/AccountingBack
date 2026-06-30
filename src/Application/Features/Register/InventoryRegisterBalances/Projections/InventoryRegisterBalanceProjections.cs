@@ -19,6 +19,9 @@ public class InventoryRegisterBalanceDtoProjection : IProjectionBuilder<Register
             Quantity = x.Quantity,
             Amount = x.Amount,
             DocDate = x.DocDate,
+            PostingBatchId = x.PostingBatchId,
+            SourceLineId = x.SourceLineId,
+            ReversalEntryId = x.ReversalEntryId,
             CreatedDate = x.CreatedDate
         };
 }

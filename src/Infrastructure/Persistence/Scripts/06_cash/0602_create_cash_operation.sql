@@ -14,7 +14,12 @@ CREATE TABLE public.cash_operation (
     comment character varying(1000),
     status_id smallint NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    exchange_rate numeric(18,6) DEFAULT 1 NOT NULL,
+    posted_at timestamp without time zone,
+    posted_by_user_id integer,
+    cancelled_at timestamp without time zone,
+    cancelled_by_user_id integer
 );
 
 CREATE SEQUENCE public.cash_operation_id_seq
@@ -90,3 +95,13 @@ ALTER TABLE ONLY public.cash_operation
 
 ALTER TABLE ONLY public.cash_operation
     ADD CONSTRAINT cash_operation_status_id_fkey FOREIGN KEY (status_id) REFERENCES public.cmn_document_status(id);
+
+CREATE INDEX idx_cash_operation_posted_by_user_id ON public.cash_operation USING btree (posted_by_user_id);
+
+CREATE INDEX idx_cash_operation_cancelled_by_user_id ON public.cash_operation USING btree (cancelled_by_user_id);
+
+ALTER TABLE ONLY public.cash_operation
+    ADD CONSTRAINT cash_operation_posted_by_user_id_fkey FOREIGN KEY (posted_by_user_id) REFERENCES public.sys_user(id);
+
+ALTER TABLE ONLY public.cash_operation
+    ADD CONSTRAINT cash_operation_cancelled_by_user_id_fkey FOREIGN KEY (cancelled_by_user_id) REFERENCES public.sys_user(id);

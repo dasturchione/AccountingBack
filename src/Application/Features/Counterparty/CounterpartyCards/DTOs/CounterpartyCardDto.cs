@@ -7,6 +7,10 @@ public class CounterpartyCardDto
     public string OrganizationName { get; set; } = null!;
     public short CounterpartyTypeId { get; set; }
     public string CounterpartyTypeName { get; set; } = null!;
+    public string? Code { get; set; }
+    public bool IsCustomer { get; set; }
+    public bool IsSupplier { get; set; }
+    public bool IsVatPayer { get; set; }
     public string ShortName { get; set; } = null!;
     public string? FullName { get; set; }
     public string? Inn { get; set; }
@@ -19,5 +23,7 @@ public class CounterpartyCardDto
     public string? Address { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
+    public string? Oked { get; set; }
+    public string? ExternalId { get; set; }
     public DateTime CreatedDate { get; set; }
 }

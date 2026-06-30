@@ -1,9 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("org_organization_config")]
+[Index("AccountingPolicyId", Name = "idx_org_organization_config_accounting_policy_id")]
+[Index("BaseCurrencyId", Name = "idx_org_organization_config_base_currency_id")]
 public partial class OrganizationConfig
 {
     [Key]
@@ -14,6 +17,18 @@ public partial class OrganizationConfig
     [StringLength(20)]
     public string InventoryValuationMethod { get; set; } = null!;
 
+
+    [Column("accounting_policy_id")]
+    public short? AccountingPolicyId { get; set; }
+
+    [Column("base_currency_id")]
+    public short? BaseCurrencyId { get; set; }
+
+    [Column("accounting_start_date")]
+    public DateOnly? AccountingStartDate { get; set; }
+
+    [Column("fiscal_year_start_month")]
+    public short FiscalYearStartMonth { get; set; }
     [ForeignKey("OrganizationId")]
     [InverseProperty("OrganizationConfig")]
     public virtual Organization Organization { get; set; } = null!;

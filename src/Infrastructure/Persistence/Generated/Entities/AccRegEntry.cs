@@ -15,6 +15,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("JournalNumber", Name = "idx_acc_reg_entry_journal_number")]
 [Index("OperationTypeId", Name = "idx_acc_reg_entry_operation_type_id")]
 [Index("OrganizationId", Name = "idx_acc_reg_entry_organization_id")]
+[Index("PostingBatchId", Name = "idx_acc_reg_entry_posting_batch_id")]
+[Index("ReversalEntryId", Name = "idx_acc_reg_entry_reversal_entry_id")]
 public partial class AccRegEntry
 {
     [Key]
@@ -68,6 +70,15 @@ public partial class AccRegEntry
     [StringLength(100)]
     public string? JournalNumber { get; set; }
 
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
+
     [InverseProperty("Entry")]
     public virtual ICollection<AccRegEntrySubkonto> AccRegEntrySubkontos { get; set; } = new List<AccRegEntrySubkonto>();
 
@@ -87,6 +98,9 @@ public partial class AccRegEntry
     [InverseProperty("AccRegEntries")]
     public virtual CmnDocumentType DocumentType { get; set; } = null!;
 
+    [InverseProperty("ReversalEntry")]
+    public virtual ICollection<AccRegEntry> InverseReversalEntry { get; set; } = new List<AccRegEntry>();
+
     [ForeignKey("OperationTypeId")]
     [InverseProperty("AccRegEntries")]
     public virtual CmnOperationType? OperationType { get; set; }
@@ -94,4 +108,12 @@ public partial class AccRegEntry
     [ForeignKey("OrganizationId")]
     [InverseProperty("AccRegEntries")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("PostingBatchId")]
+    [InverseProperty("AccRegEntries")]
+    public virtual AccPostingBatch? PostingBatch { get; set; }
+
+    [ForeignKey("ReversalEntryId")]
+    [InverseProperty("InverseReversalEntry")]
+    public virtual AccRegEntry? ReversalEntry { get; set; }
 }

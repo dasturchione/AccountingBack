@@ -121,6 +121,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 DocNumber = docNumber,
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
+                ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
                 PurchaseDocProducts = allLines,
                 TotalAmount = allLines.Sum(l => l.Amount),
                 VatAmount = allLines.Sum(l => l.VatAmount),
@@ -203,6 +204,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId = dto.WarehouseId;
             doc.CurrencyId = dto.CurrencyId;
+            doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             doc.TotalAmount = newLines.Sum(l => l.Amount);
             doc.VatAmount = newLines.Sum(l => l.VatAmount);
             doc.FinalAmount = newLines.Sum(l => l.TotalAmount);

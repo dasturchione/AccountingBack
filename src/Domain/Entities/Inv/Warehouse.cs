@@ -9,6 +9,8 @@ namespace Domain.Entities;
 [Index("OrganizationId", Name = "idx_inv_warehouse_organization_id")]
 [Index("ResponsibleUserId", Name = "idx_inv_warehouse_responsible_user_id")]
 [Index("StateId", Name = "idx_inv_warehouse_state_id")]
+[Index("Code", Name = "idx_inv_warehouse_code")]
+[Index("IsMain", Name = "idx_inv_warehouse_is_main")]
 public partial class Warehouse
 {
     [Key]
@@ -34,6 +36,17 @@ public partial class Warehouse
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("address")]
+    [StringLength(1000)]
+    public string? Address { get; set; }
+
+    [Column("is_main")]
+    public bool IsMain { get; set; }
     [ForeignKey("BranchId")]
     [InverseProperty("Warehouses")]
     public virtual Branch? Branch { get; set; }

@@ -5,6 +5,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("acc_reg_entry")]
+[Index("CreditAccountId", Name = "idx_acc_reg_entry_credit_account_id")]
+[Index("CurrencyId", Name = "idx_acc_reg_entry_currency_id")]
+[Index("DebitAccountId", Name = "idx_acc_reg_entry_debit_account_id")]
+[Index("DocDate", Name = "idx_acc_reg_entry_doc_date")]
+[Index("DocumentTypeId", "DocumentId", Name = "idx_acc_reg_entry_document")]
+[Index("JournalNumber", Name = "idx_acc_reg_entry_journal_number")]
+[Index("OperationTypeId", Name = "idx_acc_reg_entry_operation_type_id")]
+[Index("OrganizationId", Name = "idx_acc_reg_entry_organization_id")]
+[Index("PostingBatchId", Name = "idx_acc_reg_entry_posting_batch_id")]
+[Index("ReversalEntryId", Name = "idx_acc_reg_entry_reversal_entry_id")]
 public partial class AccountingRegisterEntry
 {
     [Key]
@@ -58,6 +68,15 @@ public partial class AccountingRegisterEntry
     [StringLength(100)]
     public string? JournalNumber { get; set; }
 
+
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
     [InverseProperty("Entry")]
     public virtual ICollection<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; } = new List<RegisterEntrySubkonto>();
 

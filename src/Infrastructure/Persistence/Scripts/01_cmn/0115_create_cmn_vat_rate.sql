@@ -6,7 +6,9 @@ CREATE TABLE public.cmn_vat_rate (
     name character varying(150) NOT NULL,
     rate numeric(5,2) NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    effective_from date,
+    effective_to date
 );
 
 CREATE SEQUENCE public.cmn_vat_rate_id_seq
@@ -38,3 +40,8 @@ CREATE INDEX idx_cmn_vat_rate_state_id ON public.cmn_vat_rate USING btree (state
 
 ALTER TABLE ONLY public.cmn_vat_rate
     ADD CONSTRAINT cmn_vat_rate_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_cmn_vat_rate_effective_dates ON public.cmn_vat_rate USING btree (effective_from, effective_to);
+
+ALTER TABLE ONLY public.cmn_vat_rate
+    ADD CONSTRAINT cmn_vat_rate_effective_dates_check CHECK (((effective_to IS NULL) OR (effective_from IS NULL) OR (effective_to >= effective_from)));

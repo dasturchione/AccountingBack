@@ -11,7 +11,10 @@ CREATE TABLE public.inv_reg_balance (
     quantity numeric(18,3) NOT NULL,
     amount numeric(18,2) NOT NULL,
     doc_date timestamp without time zone NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    posting_batch_id bigint,
+    source_line_id bigint,
+    reversal_entry_id bigint
 );
 
 CREATE SEQUENCE public.inv_reg_balance_id_seq
@@ -65,3 +68,10 @@ ALTER TABLE ONLY public.inv_reg_balance
 
 ALTER TABLE ONLY public.inv_reg_balance
     ADD CONSTRAINT inv_reg_balance_warehouse_id_fkey FOREIGN KEY (warehouse_id) REFERENCES public.inv_warehouse(id);
+
+CREATE INDEX idx_inv_reg_balance_posting_batch_id ON public.inv_reg_balance USING btree (posting_batch_id);
+
+CREATE INDEX idx_inv_reg_balance_reversal_entry_id ON public.inv_reg_balance USING btree (reversal_entry_id);
+
+ALTER TABLE ONLY public.inv_reg_balance
+    ADD CONSTRAINT inv_reg_balance_posting_batch_id_fkey FOREIGN KEY (posting_batch_id) REFERENCES public.acc_posting_batch(id);

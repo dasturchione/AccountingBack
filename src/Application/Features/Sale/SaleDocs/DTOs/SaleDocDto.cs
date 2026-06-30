@@ -17,6 +17,11 @@ public class SaleDocDto
     public decimal TotalAmount { get; set; }
     public decimal VatAmount { get; set; }
     public decimal FinalAmount { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public DateTime? PostedAt { get; set; }
+    public int? PostedByUserId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public int? CancelledByUserId { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public string? Comment { get; set; }

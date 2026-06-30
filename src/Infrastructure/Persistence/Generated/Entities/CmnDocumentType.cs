@@ -30,7 +30,13 @@ public partial class CmnDocumentType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("DocumentType")]
+    public virtual ICollection<AccPostingBatch> AccPostingBatches { get; set; } = new List<AccPostingBatch>();
+
+    [InverseProperty("DocumentType")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
+
+    [InverseProperty("DocumentType")]
+    public virtual ICollection<CmnDocumentSequence> CmnDocumentSequences { get; set; } = new List<CmnDocumentSequence>();
 
     [InverseProperty("DocumentType")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();

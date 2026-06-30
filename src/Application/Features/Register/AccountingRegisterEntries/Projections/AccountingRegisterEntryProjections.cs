@@ -19,6 +19,9 @@ public class AccountingRegisterEntryDtoProjection : IProjectionBuilder<Accountin
             CurrencyId = x.CurrencyId,
             Amount = x.Amount,
             DocDate = x.DocDate,
+            PostingBatchId = x.PostingBatchId,
+            SourceLineId = x.SourceLineId,
+            ReversalEntryId = x.ReversalEntryId,
             CreatedDate = x.CreatedDate
         };
 }
@@ -37,6 +40,9 @@ public class AccountingRegisterEntryListDtoProjection : IProjectionBuilder<Accou
             CurrencyId = x.CurrencyId,
             Amount = x.Amount,
             DocDate = x.DocDate,
+            PostingBatchId = x.PostingBatchId,
+            SourceLineId = x.SourceLineId,
+            ReversalEntryId = x.ReversalEntryId,
             CreatedDate = x.CreatedDate
         };
 }
@@ -56,6 +62,9 @@ public class AccountingPostingDtoProjection : IProjectionBuilder<AccountingRegis
             DocDate = x.DocDate, 
             DocumentId = x.DocumentId,
             DocumentTypeId = x.DocumentTypeId,
+            PostingBatchId = x.PostingBatchId,
+            SourceLineId = x.SourceLineId,
+            ReversalEntryId = x.ReversalEntryId,
             CreditAccountCode = x.CreditAccount != null ? x.CreditAccount.Code : null,
             CreditAccountName = x.CreditAccount != null ? x.CreditAccount.Name : null,
             DebitAccountCode = x.DebitAccount != null ? x.DebitAccount.Code : null,

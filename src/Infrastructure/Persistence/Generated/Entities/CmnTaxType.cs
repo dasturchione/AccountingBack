@@ -29,6 +29,9 @@ public partial class CmnTaxType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [InverseProperty("TaxType")]
+    public virtual ICollection<OrgTaxSetting> OrgTaxSettings { get; set; } = new List<OrgTaxSetting>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnTaxTypes")]
     public virtual CmnState State { get; set; } = null!;

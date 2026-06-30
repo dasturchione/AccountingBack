@@ -45,6 +45,11 @@ public class CashOperationService : ICashOperationService
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
+            ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
+            PostedAt = dto.StatusId == DocumentStatusIdConst.POSTED ? DateTime.Now : null,
+            PostedByUserId = dto.StatusId == DocumentStatusIdConst.POSTED ? _userContext.Id : null,
+            CancelledAt = dto.StatusId == DocumentStatusIdConst.CANCELLED ? DateTime.Now : null,
+            CancelledByUserId = dto.StatusId == DocumentStatusIdConst.CANCELLED ? _userContext.Id : null,
             Comment = dto.Comment,
             StatusId = dto.StatusId,
             StateId = StateIdConst.ACTIVE,
@@ -124,6 +129,17 @@ public class CashOperationService : ICashOperationService
         entity.DocDate = dto.DocDate;
         entity.CurrencyId = dto.CurrencyId;
         entity.Amount = dto.Amount;
+        entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
+        if (dto.StatusId == DocumentStatusIdConst.POSTED)
+        {
+            entity.PostedAt ??= DateTime.Now;
+            entity.PostedByUserId ??= _userContext.Id;
+        }
+        if (dto.StatusId == DocumentStatusIdConst.CANCELLED)
+        {
+            entity.CancelledAt ??= DateTime.Now;
+            entity.CancelledByUserId ??= _userContext.Id;
+        }
         entity.Comment = dto.Comment;
         entity.StatusId = dto.StatusId;
         entity.StateId = dto.StateId;

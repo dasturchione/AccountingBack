@@ -57,6 +57,9 @@ public class UserService : BaseService, IUserService
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 RoleId = dto.RoleId,
+                EmailVerified = dto.EmailVerified,
+                IsPlatformAdmin = dto.IsPlatformAdmin,
+                Timezone = dto.Timezone,
                 PasswordSalt = salt,
                 PasswordHash = hash,
                 StateId = StateIdConst.ACTIVE,
@@ -74,6 +77,7 @@ public class UserService : BaseService, IUserService
                         UserId = user.Id,
                         OrganizationId = orgId,
                         IsDefault = index == 0,
+                        JoinedAt = DateTime.Now,
                         StateId = StateIdConst.ACTIVE,
                         CreatedDate = DateTime.Now
                     });
@@ -123,7 +127,12 @@ public class UserService : BaseService, IUserService
                     OrganizationName = uo.Organization.ShortName,
                     RoleId = uo.RoleId,
                     RoleName = uo.Role != null ? uo.Role.FullName : null,
-                    IsDefault = uo.IsDefault
+                    IsDefault = uo.IsDefault,
+                    IsOwner = uo.IsOwner,
+                    JoinedAt = uo.JoinedAt,
+                    InvitedByUserId = uo.InvitedByUserId,
+                    LastAccessAt = uo.LastAccessAt,
+                    BlockedAt = uo.BlockedAt
                 }
             };
             entity.Organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
@@ -153,6 +162,9 @@ public class UserService : BaseService, IUserService
             user.FirstName = dto.FirstName;
             user.LastName = dto.LastName;
             user.RoleId = dto.RoleId;
+            user.EmailVerified = dto.EmailVerified;
+            user.IsPlatformAdmin = dto.IsPlatformAdmin;
+            user.Timezone = dto.Timezone;
             user.StateId = dto.StateId;
 
             await _userCommand.UpdateAsync(user, ct);

@@ -34,7 +34,7 @@ public class BankOperationService : IBankOperationService
     {
         var orgId = _userContext.OrganizationId!.Value;
 
-        var entity = BuildCreateEntity(dto, orgId);
+        var entity = BuildCreateEntity(dto, orgId, _userContext.Id);
 
         await _command.CreateAsync(entity, ct);
 
@@ -52,7 +52,7 @@ public class BankOperationService : IBankOperationService
     {
         var orgId = _userContext.OrganizationId!.Value;
         var entities = dto.Operations
-            .Select(operation => BuildCreateEntity(operation, orgId))
+            .Select(operation => BuildCreateEntity(operation, orgId, _userContext.Id))
             .ToList();
 
         await _command.CreateAsync(entities, ct);
@@ -121,6 +121,9 @@ public class BankOperationService : IBankOperationService
         entity.DocDate = dto.DocDate;
         entity.CurrencyId = dto.CurrencyId;
         entity.Amount = dto.Amount;
+        entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
+        entity.PostedAt ??= DateTime.Now;
+        entity.PostedByUserId ??= _userContext.Id;
         entity.Comment = dto.Comment;
         entity.StatusId = DocumentStatusIdConst.POSTED;
         entity.StateId = StateIdConst.ACTIVE;
@@ -143,7 +146,7 @@ public class BankOperationService : IBankOperationService
         return await _query.GetAsync(query, ct);
     }
 
-    private static BankOperation BuildCreateEntity(BankOperationCreateDto dto, int orgId) =>
+    private static BankOperation BuildCreateEntity(BankOperationCreateDto dto, int orgId, int? userId) =>
         new()
         {
             OrganizationId = orgId,
@@ -155,6 +158,9 @@ public class BankOperationService : IBankOperationService
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
+            ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
+            PostedAt = DateTime.Now,
+            PostedByUserId = userId,
             Comment = dto.Comment,
             StatusId = DocumentStatusIdConst.POSTED,
             StateId = StateIdConst.ACTIVE,

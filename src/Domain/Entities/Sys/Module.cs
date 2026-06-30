@@ -7,6 +7,9 @@ namespace Domain.Entities;
 [Table("sys_module")]
 [Index("Code", Name = "sys_module_unique_index_code", IsUnique = true)]
 [Index("SubGroupId", Name = "sys_module_unique_index_sub_group_id")]
+[Index("IsVisible", Name = "idx_sys_module_is_visible")]
+[Index("ParentId", Name = "idx_sys_module_parent_id")]
+[Index("SortOrder", Name = "idx_sys_module_sort_order")]
 public partial class Module
 {
     [Key]
@@ -34,6 +37,23 @@ public partial class Module
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+
+    [Column("route")]
+    [StringLength(250)]
+    public string? Route { get; set; }
+
+    [Column("icon")]
+    [StringLength(100)]
+    public string? Icon { get; set; }
+
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
+
+    [Column("is_visible")]
+    public bool IsVisible { get; set; }
     [ForeignKey("StateId")]
     [InverseProperty("Modules")]
     public virtual State State { get; set; } = null!;

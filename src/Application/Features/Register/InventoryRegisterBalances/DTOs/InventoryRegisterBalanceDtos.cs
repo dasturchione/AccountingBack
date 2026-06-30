@@ -11,6 +11,9 @@ public class InventoryRegisterBalanceBaseDto
     public decimal Quantity { get; set; }
     public decimal Amount { get; set; }
     public DateTime DocDate { get; set; }
+    public long? PostingBatchId { get; set; }
+    public long? SourceLineId { get; set; }
+    public long? ReversalEntryId { get; set; }
 }
 
 public class InventoryRegisterBalanceCreateDto : InventoryRegisterBalanceBaseDto { }

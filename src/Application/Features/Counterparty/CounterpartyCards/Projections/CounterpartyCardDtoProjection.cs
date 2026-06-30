@@ -14,6 +14,10 @@ public class CounterpartyCardDtoProjection : IProjectionBuilder<CounterpartyCard
             OrganizationName = x.Organization.ShortName,
             CounterpartyTypeId = x.CounterpartyTypeId,
             CounterpartyTypeName = x.CounterpartyType.Name,
+            Code = x.Code,
+            IsCustomer = x.IsCustomer,
+            IsSupplier = x.IsSupplier,
+            IsVatPayer = x.IsVatPayer,
             ShortName = x.ShortName,
             FullName = x.FullName,
             Inn = x.Inn,
@@ -26,6 +30,8 @@ public class CounterpartyCardDtoProjection : IProjectionBuilder<CounterpartyCard
             Address = x.Address,
             StateId = x.StateId,
             StateName = x.State.FullName,
+            Oked = x.Oked,
+            ExternalId = x.ExternalId,
             CreatedDate = x.CreatedDate
         };
 }

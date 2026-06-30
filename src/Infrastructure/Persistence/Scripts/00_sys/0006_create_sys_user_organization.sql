@@ -6,7 +6,12 @@ CREATE TABLE public.sys_user_organization (
     role_id integer,
     is_default boolean DEFAULT false NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    is_owner boolean DEFAULT false NOT NULL,
+    joined_at timestamp without time zone DEFAULT now() NOT NULL,
+    invited_by_user_id integer,
+    last_access_at timestamp without time zone,
+    blocked_at timestamp without time zone
 );
 
 insert into public.sys_user_organization (user_id, organization_id, role_id, is_default, state_id, created_date) values
@@ -40,3 +45,10 @@ ALTER TABLE ONLY public.sys_user_organization
 
 ALTER TABLE ONLY public.sys_user_organization
     ADD CONSTRAINT sys_user_organization_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.sys_user(id) ON DELETE CASCADE;
+
+CREATE INDEX idx_sys_user_organization_is_owner ON public.sys_user_organization USING btree (is_owner);
+
+CREATE INDEX idx_sys_user_organization_invited_by_user_id ON public.sys_user_organization USING btree (invited_by_user_id);
+
+ALTER TABLE ONLY public.sys_user_organization
+    ADD CONSTRAINT sys_user_organization_invited_by_user_id_fkey FOREIGN KEY (invited_by_user_id) REFERENCES public.sys_user(id);

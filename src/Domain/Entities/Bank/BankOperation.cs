@@ -12,6 +12,8 @@ namespace Domain.Entities;
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
 [Index("StateId", Name = "idx_bank_operation_state_id")]
 [Index("StatusId", Name = "idx_bank_operation_status_id")]
+[Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
+[Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 public partial class BankOperation
 {
     [Key]
@@ -60,6 +62,22 @@ public partial class BankOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("exchange_rate")]
+    [Precision(18, 6)]
+    public decimal ExchangeRate { get; set; }
+
+    [Column("posted_at", TypeName = "timestamp without time zone")]
+    public DateTime? PostedAt { get; set; }
+
+    [Column("posted_by_user_id")]
+    public int? PostedByUserId { get; set; }
+
+    [Column("cancelled_at", TypeName = "timestamp without time zone")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    public int? CancelledByUserId { get; set; }
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]
     public virtual BankAccount BankAccount { get; set; } = null!;

@@ -18,6 +18,11 @@ public class BankOperationDto
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;
     public decimal Amount { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public DateTime? PostedAt { get; set; }
+    public int? PostedByUserId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public int? CancelledByUserId { get; set; }
     public string? Comment { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;

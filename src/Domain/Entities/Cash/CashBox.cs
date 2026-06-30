@@ -10,6 +10,8 @@ namespace Domain.Entities;
 [Index("OrganizationId", "Code", Name = "idx_cash_box_org_code", IsUnique = true)]
 [Index("OrganizationId", Name = "idx_cash_box_organization_id")]
 [Index("StateId", Name = "idx_cash_box_state_id")]
+[Index("IsMain", Name = "idx_cash_box_is_main")]
+[Index("ResponsibleUserId", Name = "idx_cash_box_responsible_user_id")]
 public partial class CashBox
 {
     [Key]
@@ -39,6 +41,19 @@ public partial class CashBox
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("is_main")]
+    public bool IsMain { get; set; }
+
+    [Column("responsible_user_id")]
+    public int? ResponsibleUserId { get; set; }
+
+    [Column("opening_balance")]
+    [Precision(18, 2)]
+    public decimal OpeningBalance { get; set; }
+
+    [Column("opening_balance_date")]
+    public DateOnly? OpeningBalanceDate { get; set; }
     [ForeignKey("BranchId")]
     [InverseProperty("CashBoxes")]
     public virtual Branch? Branch { get; set; }

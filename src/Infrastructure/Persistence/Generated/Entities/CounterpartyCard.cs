@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("counterparty_card")]
+[Index("Code", Name = "idx_counterparty_card_code")]
 [Index("DistrictId", Name = "idx_counterparty_card_district_id")]
+[Index("ExternalId", Name = "idx_counterparty_card_external_id")]
 [Index("Inn", Name = "idx_counterparty_card_inn")]
 [Index("OrganizationId", Name = "idx_counterparty_card_organization_id")]
 [Index("RegionId", Name = "idx_counterparty_card_region_id")]
@@ -61,6 +63,27 @@ public partial class CounterpartyCard
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("is_customer")]
+    public bool IsCustomer { get; set; }
+
+    [Column("is_supplier")]
+    public bool IsSupplier { get; set; }
+
+    [Column("is_vat_payer")]
+    public bool IsVatPayer { get; set; }
+
+    [Column("oked")]
+    [StringLength(20)]
+    public string? Oked { get; set; }
+
+    [Column("external_id")]
+    [StringLength(100)]
+    public string? ExternalId { get; set; }
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();

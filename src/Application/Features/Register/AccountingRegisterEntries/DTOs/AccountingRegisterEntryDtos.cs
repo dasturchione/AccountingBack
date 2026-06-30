@@ -10,6 +10,9 @@ public class AccountingRegisterEntryBaseDto
     public short CurrencyId { get; set; }
     public decimal Amount { get; set; }
     public DateTime DocDate { get; set; }
+    public long? PostingBatchId { get; set; }
+    public long? SourceLineId { get; set; }
+    public long? ReversalEntryId { get; set; }
 }
 
 public class AccountingRegisterEntryCreateDto : AccountingRegisterEntryBaseDto { }

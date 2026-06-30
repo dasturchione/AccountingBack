@@ -6,4 +6,8 @@ public class CashBoxBaseDto
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public short CurrencyId { get; set; }
+    public bool IsMain { get; set; }
+    public int? ResponsibleUserId { get; set; }
+    public decimal OpeningBalance { get; set; }
+    public DateOnly? OpeningBalanceDate { get; set; }
 }

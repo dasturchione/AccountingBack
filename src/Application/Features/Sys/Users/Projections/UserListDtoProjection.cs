@@ -18,10 +18,16 @@ public class UserListDtoProjection : IProjectionBuilder<User, UserListDto>
             FirstName = x.FirstName,
             LastName = x.LastName,
             RoleId = x.RoleId,
+            EmailVerified = x.EmailVerified,
+            EmailVerifiedAt = x.EmailVerifiedAt,
+            LastLoginIp = x.LastLoginIp,
+            IsPlatformAdmin = x.IsPlatformAdmin,
+            Timezone = x.Timezone,
             LastAccessTime = x.LastAccessTime,
             StateId = x.StateId,
             CreatedDate = x.CreatedDate,
             RoleName = x.Role.FullName,
+            HasGlobalAccess = x.Role.HasGlobalAccess,
             StateName = x.State.FullName
         };
     }

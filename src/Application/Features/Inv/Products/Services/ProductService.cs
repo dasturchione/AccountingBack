@@ -37,6 +37,9 @@ public class ProductService : BaseService, IProductService
             var entity = new Product
             {
                 OrganizationId = _userContext.OrganizationId.Value,
+                Code = dto.Code,
+                Sku = dto.Sku,
+                Article = dto.Article,
                 ProductGroupId = dto.ProductGroupId,
                 UnitId = dto.UnitId,
                 Barcode = dto.Barcode,
@@ -45,6 +48,12 @@ public class ProductService : BaseService, IProductService
                 Description = dto.Description,
                 IsService = dto.IsService,
                 Mxik = dto.Mxik,
+                DefaultVatRateId = dto.DefaultVatRateId,
+                InventoryAccountId = dto.InventoryAccountId,
+                IncomeAccountId = dto.IncomeAccountId,
+                ExpenseAccountId = dto.ExpenseAccountId,
+                CogsAccountId = dto.CogsAccountId,
+                MinStock = dto.MinStock,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             };
@@ -61,6 +70,9 @@ public class ProductService : BaseService, IProductService
 
             var entities = dto.Products.Select(s => new Product
             {
+                Code = s.Code,
+                Sku = s.Sku,
+                Article = s.Article,
                 ProductGroupId = s.ProductGroupId,
                 CreatedDate = DateTime.Now,
                 Barcode = s.Barcode,
@@ -68,6 +80,12 @@ public class ProductService : BaseService, IProductService
                 IsPieceTracked = s.IsPieceTracked,
                 IsService = s.IsService,
                 Mxik = s.Mxik,
+                DefaultVatRateId = s.DefaultVatRateId,
+                InventoryAccountId = s.InventoryAccountId,
+                IncomeAccountId = s.IncomeAccountId,
+                ExpenseAccountId = s.ExpenseAccountId,
+                CogsAccountId = s.CogsAccountId,
+                MinStock = s.MinStock,
                 StateId = StateIdConst.ACTIVE,
                 UnitId = s.UnitId,
                 OrganizationId = _userContext.OrganizationId.Value,
@@ -125,6 +143,9 @@ public class ProductService : BaseService, IProductService
                 return Result.Failure(ProductErrors.NotFound(id, _userContext.LanguageId));
 
             entity.OrganizationId = _userContext.OrganizationId.Value;
+            entity.Code = dto.Code;
+            entity.Sku = dto.Sku;
+            entity.Article = dto.Article;
             entity.ProductGroupId = dto.ProductGroupId;
             entity.UnitId = dto.UnitId;
             entity.Barcode = dto.Barcode;
@@ -134,6 +155,12 @@ public class ProductService : BaseService, IProductService
             entity.Mxik = dto.Mxik;
             entity.StateId = dto.StateId;
             entity.IsPieceTracked = dto.IsPieceTracked;
+            entity.DefaultVatRateId = dto.DefaultVatRateId;
+            entity.InventoryAccountId = dto.InventoryAccountId;
+            entity.IncomeAccountId = dto.IncomeAccountId;
+            entity.ExpenseAccountId = dto.ExpenseAccountId;
+            entity.CogsAccountId = dto.CogsAccountId;
+            entity.MinStock = dto.MinStock;
 
             await _command.UpdateAsync(entity, ct);
             return Result.Success();

@@ -8,7 +8,11 @@ CREATE TABLE public.org_bank_account (
     currency_id smallint NOT NULL,
     is_main boolean DEFAULT false NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    code character varying(100),
+    name character varying(250),
+    opening_balance numeric(18,2) DEFAULT 0 NOT NULL,
+    opening_balance_date date
 );
 
 CREATE SEQUENCE public.org_bank_account_id_seq
@@ -55,3 +59,9 @@ ALTER TABLE ONLY public.org_bank_account
 
 ALTER TABLE ONLY public.org_bank_account
     ADD CONSTRAINT org_bank_account_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_org_bank_account_code ON public.org_bank_account USING btree (code);
+
+CREATE INDEX idx_org_bank_account_name ON public.org_bank_account USING btree (name);
+
+CREATE UNIQUE INDEX uidx_org_bank_account_org_code ON public.org_bank_account USING btree (organization_id, code) WHERE (code IS NOT NULL);

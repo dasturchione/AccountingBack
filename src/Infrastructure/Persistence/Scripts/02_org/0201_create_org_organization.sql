@@ -13,7 +13,13 @@ CREATE TABLE public.org_organization (
     is_parent boolean DEFAULT false NOT NULL,
     state_id smallint NOT NULL,
     created_date timestamp without time zone DEFAULT now() NOT NULL,
-    default_language_id smallint
+    default_language_id smallint,
+    tenant_id integer,
+    setup_status character varying(30) DEFAULT 'not_started'::character varying NOT NULL,
+    setup_completed_at timestamp without time zone,
+    email character varying(200),
+    website character varying(250),
+    oked character varying(20)
 );
 
 CREATE SEQUENCE public.org_organization_id_seq
@@ -62,3 +68,10 @@ ALTER TABLE ONLY public.org_organization
 
 ALTER TABLE ONLY public.org_organization
     ADD CONSTRAINT org_organization_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_org_organization_tenant_id ON public.org_organization USING btree (tenant_id);
+
+CREATE INDEX idx_org_organization_setup_status ON public.org_organization USING btree (setup_status);
+
+ALTER TABLE ONLY public.org_organization
+    ADD CONSTRAINT org_organization_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.platform_tenant(id);

@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("sys_user")]
+[Index("Email", Name = "idx_sys_user_email")]
+[Index("EmailVerified", Name = "idx_sys_user_email_verified")]
+[Index("IsPlatformAdmin", Name = "idx_sys_user_is_platform_admin")]
 [Index("LanguageId", Name = "idx_sys_user_language_id")]
 [Index("OrganizationId", Name = "idx_sys_user_organization_id")]
 [Index("PhoneNumber", Name = "idx_sys_user_phone")]
@@ -64,6 +67,47 @@ public partial class SysUser
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
+    [Column("email_verified")]
+    public bool EmailVerified { get; set; }
+
+    [Column("email_verified_at", TypeName = "timestamp without time zone")]
+    public DateTime? EmailVerifiedAt { get; set; }
+
+    [Column("last_login_ip")]
+    [StringLength(64)]
+    public string? LastLoginIp { get; set; }
+
+    [Column("is_platform_admin")]
+    public bool IsPlatformAdmin { get; set; }
+
+    [Column("timezone")]
+    [StringLength(100)]
+    public string? Timezone { get; set; }
+
+    [InverseProperty("ClosedByUser")]
+    public virtual ICollection<AccAccountingPeriod> AccAccountingPeriods { get; set; } = new List<AccAccountingPeriod>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<AccPostingBatch> AccPostingBatchPostedByUsers { get; set; } = new List<AccPostingBatch>();
+
+    [InverseProperty("ReversedByUser")]
+    public virtual ICollection<AccPostingBatch> AccPostingBatchReversedByUsers { get; set; } = new List<AccPostingBatch>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<BankOperation> BankOperationCancelledByUsers { get; set; } = new List<BankOperation>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<BankOperation> BankOperationPostedByUsers { get; set; } = new List<BankOperation>();
+
+    [InverseProperty("ResponsibleUser")]
+    public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<CashOperation> CashOperationCancelledByUsers { get; set; } = new List<CashOperation>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<CashOperation> CashOperationPostedByUsers { get; set; } = new List<CashOperation>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
@@ -71,18 +115,57 @@ public partial class SysUser
     [InverseProperty("SysUsers")]
     public virtual CmnLanguage? Language { get; set; }
 
+    [InverseProperty("RequestedByUser")]
+    public virtual ICollection<OrgClaimRequest> OrgClaimRequestRequestedByUsers { get; set; } = new List<OrgClaimRequest>();
+
+    [InverseProperty("ReviewedByUser")]
+    public virtual ICollection<OrgClaimRequest> OrgClaimRequestReviewedByUsers { get; set; } = new List<OrgClaimRequest>();
+
+    [InverseProperty("AcceptedByUser")]
+    public virtual ICollection<OrgUserInvitation> OrgUserInvitationAcceptedByUsers { get; set; } = new List<OrgUserInvitation>();
+
+    [InverseProperty("InvitedByUser")]
+    public virtual ICollection<OrgUserInvitation> OrgUserInvitationInvitedByUsers { get; set; } = new List<OrgUserInvitation>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("SysUsers")]
     public virtual OrgOrganization? Organization { get; set; }
 
+    [InverseProperty("OwnerUser")]
+    public virtual ICollection<PlatformTenant> PlatformTenants { get; set; } = new List<PlatformTenant>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<PurDoc> PurDocCancelledByUsers { get; set; } = new List<PurDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<PurDoc> PurDocPostedByUsers { get; set; } = new List<PurDoc>();
+
     [ForeignKey("RoleId")]
     [InverseProperty("SysUsers")]
     public virtual SysRole Role { get; set; } = null!;
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<SaleDoc> SaleDocCancelledByUsers { get; set; } = new List<SaleDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<SaleDoc> SaleDocPostedByUsers { get; set; } = new List<SaleDoc>();
 
     [ForeignKey("StateId")]
     [InverseProperty("SysUsers")]
     public virtual CmnState State { get; set; } = null!;
 
     [InverseProperty("User")]
-    public virtual SysUserOrganization? SysUserOrganization { get; set; }
+    public virtual ICollection<SysEmailVerificationToken> SysEmailVerificationTokens { get; set; } = new List<SysEmailVerificationToken>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<SysPasswordResetToken> SysPasswordResetTokens { get; set; } = new List<SysPasswordResetToken>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<SysRefreshToken> SysRefreshTokens { get; set; } = new List<SysRefreshToken>();
+
+    [InverseProperty("InvitedByUser")]
+    public virtual ICollection<SysUserOrganization> SysUserOrganizationInvitedByUsers { get; set; } = new List<SysUserOrganization>();
+
+    [InverseProperty("User")]
+    public virtual SysUserOrganization? SysUserOrganizationUser { get; set; }
 }

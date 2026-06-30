@@ -10,6 +10,8 @@ namespace Domain.Entities;
 [Index("OrganizationId", Name = "idx_inv_reg_balance_organization_id")]
 [Index("ProductId", Name = "idx_inv_reg_balance_product_id")]
 [Index("WarehouseId", Name = "idx_inv_reg_balance_warehouse_id")]
+[Index("PostingBatchId", Name = "idx_inv_reg_balance_posting_batch_id")]
+[Index("ReversalEntryId", Name = "idx_inv_reg_balance_reversal_entry_id")]
 public partial class RegisterBalance
 {
     [Key]
@@ -48,6 +50,15 @@ public partial class RegisterBalance
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("RegisterBalances")]
     public virtual DocumentType DocumentType { get; set; } = null!;

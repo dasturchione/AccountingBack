@@ -69,6 +69,12 @@ public class OrganizationService : BaseService, IOrganizationService
                 Director          = dto.Director,
                 IsParent          = dto.IsParent,
                 DefaultLanguageId = dto.DefaultLanguageId,
+                TenantId          = dto.TenantId,
+                SetupStatus       = string.IsNullOrWhiteSpace(dto.SetupStatus) ? "pending" : dto.SetupStatus,
+                SetupCompletedAt  = dto.SetupCompletedAt,
+                Email             = dto.Email,
+                Website           = dto.Website,
+                Oked              = dto.Oked,
                 StateId           = StateIdConst.ACTIVE,
                 CreatedDate       = DateTime.Now
             };
@@ -133,6 +139,12 @@ public class OrganizationService : BaseService, IOrganizationService
             org.Director          = dto.Director;
             org.IsParent          = dto.IsParent;
             org.DefaultLanguageId = dto.DefaultLanguageId;
+            org.TenantId          = dto.TenantId;
+            org.SetupStatus       = string.IsNullOrWhiteSpace(dto.SetupStatus) ? org.SetupStatus : dto.SetupStatus;
+            org.SetupCompletedAt  = dto.SetupCompletedAt;
+            org.Email             = dto.Email;
+            org.Website           = dto.Website;
+            org.Oked              = dto.Oked;
             org.StateId           = dto.StateId;
 
             await _orgCommand.UpdateAsync(org, ct);

@@ -7,6 +7,9 @@ namespace Domain.Entities;
 [Table("inv_product_group")]
 [Index("OrganizationId", Name = "idx_inv_product_group_organization_id")]
 [Index("StateId", Name = "idx_inv_product_group_state_id")]
+[Index("Code", Name = "idx_inv_product_group_code")]
+[Index("ParentId", Name = "idx_inv_product_group_parent_id")]
+[Index("SortOrder", Name = "idx_inv_product_group_sort_order")]
 public partial class ProductGroup
 {
     [Key]
@@ -26,6 +29,16 @@ public partial class ProductGroup
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
     [InverseProperty("ProductGroup")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 

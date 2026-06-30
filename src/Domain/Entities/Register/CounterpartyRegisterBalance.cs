@@ -10,6 +10,8 @@ namespace Domain.Entities;
 [Index("DocDate", Name = "idx_counterparty_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_counterparty_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_counterparty_reg_balance_organization_id")]
+[Index("PostingBatchId", Name = "idx_counterparty_reg_balance_posting_batch_id")]
+[Index("ReversalEntryId", Name = "idx_counterparty_reg_balance_reversal_entry_id")]
 public partial class CounterpartyRegisterBalance
 {
     [Key]
@@ -44,6 +46,15 @@ public partial class CounterpartyRegisterBalance
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("posting_batch_id")]
+    public long? PostingBatchId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
+    [Column("reversal_entry_id")]
+    public long? ReversalEntryId { get; set; }
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CounterpartyRegisterBalances")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;

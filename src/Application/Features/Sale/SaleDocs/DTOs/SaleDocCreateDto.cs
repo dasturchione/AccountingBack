@@ -5,6 +5,7 @@ public class SaleDocCreateDto
     public int CounterpartyId { get; set; }
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
+    public decimal ExchangeRate { get; set; } = 1m;
     public long? ContractId { get; set; }
     public string? Comment { get; set; }
     public List<SaleDocCreateProductDto> Lines { get; set; } = new();

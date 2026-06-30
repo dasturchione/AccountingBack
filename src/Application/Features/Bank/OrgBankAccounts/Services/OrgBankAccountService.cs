@@ -107,9 +107,13 @@ public class OrgBankAccountService : IOrgBankAccountService
         if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
         entity.BankId = dto.BankId;
+        entity.Code = dto.Code;
+        entity.Name = dto.Name;
         entity.AccountNumber = dto.AccountNumber;
         entity.CurrencyId = dto.CurrencyId;
         entity.IsMain = dto.IsMain;
+        entity.OpeningBalance = dto.OpeningBalance;
+        entity.OpeningBalanceDate = dto.OpeningBalanceDate;
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);
@@ -121,9 +125,13 @@ public class OrgBankAccountService : IOrgBankAccountService
         {
             OrganizationId = orgId,
             BankId = dto.BankId,
+            Code = dto.Code,
+            Name = dto.Name,
             AccountNumber = dto.AccountNumber,
             CurrencyId = dto.CurrencyId,
             IsMain = dto.IsMain,
+            OpeningBalance = dto.OpeningBalance,
+            OpeningBalanceDate = dto.OpeningBalanceDate,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };

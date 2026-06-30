@@ -7,7 +7,10 @@ CREATE TABLE public.inv_warehouse (
     name character varying(250) NOT NULL,
     responsible_user_id integer,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    code character varying(100),
+    address character varying(1000),
+    is_main boolean DEFAULT false NOT NULL
 );
 
 CREATE SEQUENCE public.inv_warehouse_id_seq
@@ -49,3 +52,9 @@ ALTER TABLE ONLY public.inv_warehouse
 
 ALTER TABLE ONLY public.inv_warehouse
     ADD CONSTRAINT inv_warehouse_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_inv_warehouse_code ON public.inv_warehouse USING btree (code);
+
+CREATE INDEX idx_inv_warehouse_is_main ON public.inv_warehouse USING btree (is_main);
+
+CREATE UNIQUE INDEX uidx_inv_warehouse_org_code ON public.inv_warehouse USING btree (organization_id, code) WHERE (code IS NOT NULL);

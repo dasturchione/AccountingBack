@@ -13,6 +13,15 @@ CREATE TABLE public.inv_product (
     created_date timestamp without time zone DEFAULT now() NOT NULL,
     mxik character varying(17),
     is_piece_tracked boolean DEFAULT false NOT NULL,
+    code character varying(100),
+    sku character varying(100),
+    article character varying(100),
+    default_vat_rate_id smallint,
+    inventory_account_id integer,
+    income_account_id integer,
+    expense_account_id integer,
+    cogs_account_id integer,
+    min_stock numeric(18,3),
     CONSTRAINT ck_inv_product_mxik CHECK (((mxik IS NULL) OR ((mxik)::text ~ '^[A-Za-z0-9]{17}$'::text)))
 );
 
@@ -64,3 +73,36 @@ ALTER TABLE ONLY public.inv_product
 
 ALTER TABLE ONLY public.inv_product
     ADD CONSTRAINT inv_product_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.cmn_unit(id);
+
+CREATE INDEX idx_inv_product_code ON public.inv_product USING btree (code);
+
+CREATE INDEX idx_inv_product_sku ON public.inv_product USING btree (sku);
+
+CREATE INDEX idx_inv_product_article ON public.inv_product USING btree (article);
+
+CREATE INDEX idx_inv_product_default_vat_rate_id ON public.inv_product USING btree (default_vat_rate_id);
+
+CREATE INDEX idx_inv_product_inventory_account_id ON public.inv_product USING btree (inventory_account_id);
+
+CREATE INDEX idx_inv_product_income_account_id ON public.inv_product USING btree (income_account_id);
+
+CREATE INDEX idx_inv_product_expense_account_id ON public.inv_product USING btree (expense_account_id);
+
+CREATE INDEX idx_inv_product_cogs_account_id ON public.inv_product USING btree (cogs_account_id);
+
+CREATE UNIQUE INDEX uidx_inv_product_org_code ON public.inv_product USING btree (organization_id, code) WHERE (code IS NOT NULL);
+
+ALTER TABLE ONLY public.inv_product
+    ADD CONSTRAINT inv_product_default_vat_rate_id_fkey FOREIGN KEY (default_vat_rate_id) REFERENCES public.cmn_vat_rate(id);
+
+ALTER TABLE ONLY public.inv_product
+    ADD CONSTRAINT inv_product_inventory_account_id_fkey FOREIGN KEY (inventory_account_id) REFERENCES public.acc_chart_account(id);
+
+ALTER TABLE ONLY public.inv_product
+    ADD CONSTRAINT inv_product_income_account_id_fkey FOREIGN KEY (income_account_id) REFERENCES public.acc_chart_account(id);
+
+ALTER TABLE ONLY public.inv_product
+    ADD CONSTRAINT inv_product_expense_account_id_fkey FOREIGN KEY (expense_account_id) REFERENCES public.acc_chart_account(id);
+
+ALTER TABLE ONLY public.inv_product
+    ADD CONSTRAINT inv_product_cogs_account_id_fkey FOREIGN KEY (cogs_account_id) REFERENCES public.acc_chart_account(id);

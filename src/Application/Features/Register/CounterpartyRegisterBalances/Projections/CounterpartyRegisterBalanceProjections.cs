@@ -18,6 +18,9 @@ public class CounterpartyRegisterBalanceDtoProjection : IProjectionBuilder<Count
             CurrencyId = x.CurrencyId,
             Amount = x.Amount,
             DocDate = x.DocDate,
+            PostingBatchId = x.PostingBatchId,
+            SourceLineId = x.SourceLineId,
+            ReversalEntryId = x.ReversalEntryId,
             CreatedDate = x.CreatedDate
         };
 }

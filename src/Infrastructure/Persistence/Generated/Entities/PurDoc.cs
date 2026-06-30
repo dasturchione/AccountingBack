@@ -7,10 +7,12 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc")]
+[Index("CancelledByUserId", Name = "idx_pur_doc_cancelled_by_user_id")]
 [Index("ContractId", Name = "idx_pur_doc_contract_id")]
 [Index("CounterpartyId", Name = "idx_pur_doc_counterparty_id")]
 [Index("DocDate", Name = "idx_pur_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_pur_doc_organization_id")]
+[Index("PostedByUserId", Name = "idx_pur_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_pur_doc_state_id")]
 [Index("StatusId", Name = "idx_pur_doc_status_id")]
 [Index("WarehouseId", Name = "idx_pur_doc_warehouse_id")]
@@ -67,6 +69,26 @@ public partial class PurDoc
     [Column("contract_id")]
     public long? ContractId { get; set; }
 
+    [Column("exchange_rate")]
+    [Precision(18, 6)]
+    public decimal ExchangeRate { get; set; }
+
+    [Column("posted_at", TypeName = "timestamp without time zone")]
+    public DateTime? PostedAt { get; set; }
+
+    [Column("posted_by_user_id")]
+    public int? PostedByUserId { get; set; }
+
+    [Column("cancelled_at", TypeName = "timestamp without time zone")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    public int? CancelledByUserId { get; set; }
+
+    [ForeignKey("CancelledByUserId")]
+    [InverseProperty("PurDocCancelledByUsers")]
+    public virtual SysUser? CancelledByUser { get; set; }
+
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]
     public virtual CmnContract? Contract { get; set; }
@@ -82,6 +104,10 @@ public partial class PurDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("PurDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("PostedByUserId")]
+    [InverseProperty("PurDocPostedByUsers")]
+    public virtual SysUser? PostedByUser { get; set; }
 
     [InverseProperty("Owner")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();

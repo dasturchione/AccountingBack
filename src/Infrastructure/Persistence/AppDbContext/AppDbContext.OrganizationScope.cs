@@ -34,6 +34,13 @@ namespace Infrastructure.Persistence
         {
             // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
             ApplyScopedFilter<BankAccount>(modelBuilder);
+            ApplyScopedFilter<AccountingPeriod>(modelBuilder);
+            ApplyScopedFilter<PostingBatch>(modelBuilder);
+            ApplyScopedFilter<DocumentSequence>(modelBuilder);
+            ApplyScopedFilter<OrganizationSetupState>(modelBuilder);
+            ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);
+            ApplyScopedFilter<OrganizationDefault>(modelBuilder);
+            ApplyScopedFilter<OrganizationUserInvitation>(modelBuilder);
             ApplyScopedFilter<Warehouse>(modelBuilder);
             ApplyScopedFilter<BankOperation>(modelBuilder);
             ApplyScopedFilter<ProductPrice>(modelBuilder);
@@ -81,6 +88,14 @@ namespace Infrastructure.Persistence
 
             // Role — OrganizationId nullable: null bo'lsa global (hamma ko'ra oladi)
             modelBuilder.Entity<Role>()
+                .HasQueryFilter(e => e.OrganizationId == null
+                                  || AllowedOrgIds.Count == 0
+                                  || (CurrentOrganizationId != 0
+                                      ? e.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.OrganizationId.Value)));
+
+            // Claim request hali organization bilan bog'lanmagan bo'lishi mumkin.
+            modelBuilder.Entity<OrganizationClaimRequest>()
                 .HasQueryFilter(e => e.OrganizationId == null
                                   || AllowedOrgIds.Count == 0
                                   || (CurrentOrganizationId != 0

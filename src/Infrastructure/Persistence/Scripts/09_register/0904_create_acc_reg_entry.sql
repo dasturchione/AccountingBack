@@ -15,7 +15,10 @@ CREATE TABLE public.acc_reg_entry (
     debit_quantity numeric(18,3),
     credit_quantity numeric(18,3),
     content character varying(1000),
-    journal_number character varying(100)
+    journal_number character varying(100),
+    posting_batch_id bigint,
+    source_line_id bigint,
+    reversal_entry_id bigint
 );
 
 CREATE SEQUENCE public.acc_reg_entry_id_seq
@@ -81,3 +84,13 @@ ALTER TABLE ONLY public.acc_reg_entry
 
 ALTER TABLE ONLY public.acc_reg_entry
     ADD CONSTRAINT acc_reg_entry_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.org_organization(id);
+
+CREATE INDEX idx_acc_reg_entry_posting_batch_id ON public.acc_reg_entry USING btree (posting_batch_id);
+
+CREATE INDEX idx_acc_reg_entry_reversal_entry_id ON public.acc_reg_entry USING btree (reversal_entry_id);
+
+ALTER TABLE ONLY public.acc_reg_entry
+    ADD CONSTRAINT acc_reg_entry_posting_batch_id_fkey FOREIGN KEY (posting_batch_id) REFERENCES public.acc_posting_batch(id);
+
+ALTER TABLE ONLY public.acc_reg_entry
+    ADD CONSTRAINT acc_reg_entry_reversal_entry_id_fkey FOREIGN KEY (reversal_entry_id) REFERENCES public.acc_reg_entry(id);

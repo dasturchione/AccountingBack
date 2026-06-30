@@ -6,6 +6,9 @@ namespace Domain.Entities;
 
 [Table("sys_role")]
 [Index("OrganizationId", Name = "idx_sys_role_organization_id")]
+[Index("Code", Name = "idx_sys_role_code")]
+[Index("IsSystem", Name = "idx_sys_role_is_system")]
+[Index("SortOrder", Name = "idx_sys_role_sort_order")]
 public partial class Role
 {
     [Key]
@@ -32,6 +35,23 @@ public partial class Role
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("description")]
+    [StringLength(500)]
+    public string? Description { get; set; }
+
+    [Column("is_system")]
+    public bool IsSystem { get; set; }
+
+    [Column("is_owner_role")]
+    public bool IsOwnerRole { get; set; }
+
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
     [ForeignKey("OrganizationId")]
     [InverseProperty("Roles")]
     public virtual Organization? Organization { get; set; }

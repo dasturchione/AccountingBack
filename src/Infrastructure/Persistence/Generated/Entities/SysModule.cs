@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("sys_module")]
+[Index("IsVisible", Name = "idx_sys_module_is_visible")]
+[Index("ParentId", Name = "idx_sys_module_parent_id")]
+[Index("SortOrder", Name = "idx_sys_module_sort_order")]
 [Index("Code", Name = "sys_module_unique_index_code", IsUnique = true)]
 [Index("SubGroupId", Name = "sys_module_unique_index_sub_group_id")]
 public partial class SysModule
@@ -35,6 +38,30 @@ public partial class SysModule
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("parent_id")]
+    public int? ParentId { get; set; }
+
+    [Column("route")]
+    [StringLength(250)]
+    public string? Route { get; set; }
+
+    [Column("icon")]
+    [StringLength(100)]
+    public string? Icon { get; set; }
+
+    [Column("sort_order")]
+    public int SortOrder { get; set; }
+
+    [Column("is_visible")]
+    public bool IsVisible { get; set; }
+
+    [InverseProperty("Parent")]
+    public virtual ICollection<SysModule> InverseParent { get; set; } = new List<SysModule>();
+
+    [ForeignKey("ParentId")]
+    [InverseProperty("InverseParent")]
+    public virtual SysModule? Parent { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("SysModules")]

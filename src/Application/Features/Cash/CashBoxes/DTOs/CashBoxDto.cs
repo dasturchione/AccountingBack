@@ -11,6 +11,10 @@ public class CashBoxDto
     public string Name { get; set; } = null!;
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;
+    public bool IsMain { get; set; }
+    public int? ResponsibleUserId { get; set; }
+    public decimal OpeningBalance { get; set; }
+    public DateOnly? OpeningBalanceDate { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }

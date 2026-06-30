@@ -61,8 +61,44 @@ public partial class AccChartAccount
     [InverseProperty("AccChartAccounts")]
     public virtual AccAccountType? AccountType { get; set; }
 
+    [InverseProperty("CogsAccount")]
+    public virtual ICollection<InvProduct> InvProductCogsAccounts { get; set; } = new List<InvProduct>();
+
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<InvProduct> InvProductExpenseAccounts { get; set; } = new List<InvProduct>();
+
+    [InverseProperty("IncomeAccount")]
+    public virtual ICollection<InvProduct> InvProductIncomeAccounts { get; set; } = new List<InvProduct>();
+
+    [InverseProperty("InventoryAccount")]
+    public virtual ICollection<InvProduct> InvProductInventoryAccounts { get; set; } = new List<InvProduct>();
+
     [InverseProperty("Parent")]
     public virtual ICollection<AccChartAccount> InverseParent { get; set; } = new List<AccChartAccount>();
+
+    [InverseProperty("BankAccountingAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultBankAccountingAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("CashAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultCashAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("CogsAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultCogsAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultExpenseAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("InventoryAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultInventoryAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("PayableAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultPayableAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("ReceivableAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultReceivableAccounts { get; set; } = new List<OrgDefault>();
+
+    [InverseProperty("RevenueAccount")]
+    public virtual ICollection<OrgDefault> OrgDefaultRevenueAccounts { get; set; } = new List<OrgDefault>();
 
     [ForeignKey("ParentId")]
     [InverseProperty("InverseParent")]

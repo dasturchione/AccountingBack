@@ -101,6 +101,10 @@ public class CounterpartyCardService : ICounterpartyCardService
         if (entity.ShortName != dto.ShortName && await _query.AnyAsync(x => x.ShortName == dto.ShortName, ct))
             return Result.Failure(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
         entity.CounterpartyTypeId = dto.CounterpartyTypeId;
+        entity.Code = dto.Code;
+        entity.IsCustomer = dto.IsCustomer;
+        entity.IsSupplier = dto.IsSupplier;
+        entity.IsVatPayer = dto.IsVatPayer;
         entity.ShortName = dto.ShortName;
         entity.FullName = dto.FullName;
         entity.Inn = dto.Inn;
@@ -109,6 +113,8 @@ public class CounterpartyCardService : ICounterpartyCardService
         entity.RegionId = dto.RegionId;
         entity.DistrictId = dto.DistrictId;
         entity.Address = dto.Address;
+        entity.Oked = dto.Oked;
+        entity.ExternalId = dto.ExternalId;
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);
@@ -120,6 +126,10 @@ public class CounterpartyCardService : ICounterpartyCardService
         {
             OrganizationId = orgId,
             CounterpartyTypeId = dto.CounterpartyTypeId,
+            Code = dto.Code,
+            IsCustomer = dto.IsCustomer,
+            IsSupplier = dto.IsSupplier,
+            IsVatPayer = dto.IsVatPayer,
             ShortName = dto.ShortName,
             FullName = dto.FullName,
             Inn = dto.Inn,
@@ -128,6 +138,8 @@ public class CounterpartyCardService : ICounterpartyCardService
             RegionId = dto.RegionId,
             DistrictId = dto.DistrictId,
             Address = dto.Address,
+            Oked = dto.Oked,
+            ExternalId = dto.ExternalId,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };

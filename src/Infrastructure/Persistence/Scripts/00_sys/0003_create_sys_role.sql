@@ -7,7 +7,12 @@ CREATE TABLE public.sys_role (
     state_id smallint NOT NULL,
     created_date timestamp without time zone DEFAULT now() NOT NULL,
     organization_id integer,
-    has_global_access boolean DEFAULT false NOT NULL
+    has_global_access boolean DEFAULT false NOT NULL,
+    code character varying(100),
+    description character varying(500),
+    is_system boolean DEFAULT false NOT NULL,
+    is_owner_role boolean DEFAULT false NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL
 );
 
 CREATE SEQUENCE public.sys_role_id_seq
@@ -41,3 +46,11 @@ ALTER TABLE ONLY public.sys_role
 
 ALTER TABLE ONLY public.sys_role
     ADD CONSTRAINT sys_role_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_sys_role_code ON public.sys_role USING btree (code);
+
+CREATE INDEX idx_sys_role_is_system ON public.sys_role USING btree (is_system);
+
+CREATE INDEX idx_sys_role_sort_order ON public.sys_role USING btree (sort_order);
+
+CREATE UNIQUE INDEX uidx_sys_role_org_code ON public.sys_role USING btree (organization_id, code) WHERE (code IS NOT NULL);

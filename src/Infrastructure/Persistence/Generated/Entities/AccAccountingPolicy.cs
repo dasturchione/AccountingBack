@@ -28,6 +28,9 @@ public partial class AccAccountingPolicy
     [InverseProperty("Policy")]
     public virtual ICollection<AccAccountResolveRule> AccAccountResolveRules { get; set; } = new List<AccAccountResolveRule>();
 
+    [InverseProperty("AccountingPolicy")]
+    public virtual ICollection<OrgOrganizationConfig> OrgOrganizationConfigs { get; set; } = new List<OrgOrganizationConfig>();
+
     [ForeignKey("StateId")]
     [InverseProperty("AccAccountingPolicies")]
     public virtual CmnState State { get; set; } = null!;

@@ -12,6 +12,8 @@ namespace Domain.Entities;
 [Index("RegionId", Name = "idx_org_organization_region_id")]
 [Index("ShortName", Name = "idx_org_organization_short_name")]
 [Index("StateId", Name = "idx_org_organization_state_id")]
+[Index("SetupStatus", Name = "idx_org_organization_setup_status")]
+[Index("TenantId", Name = "idx_org_organization_tenant_id")]
 public partial class Organization
 {
     [Key]
@@ -60,6 +62,28 @@ public partial class Organization
     [Column("default_language_id")]
     public short? DefaultLanguageId { get; set; }
 
+
+    [Column("tenant_id")]
+    public int? TenantId { get; set; }
+
+    [Column("setup_status")]
+    [StringLength(30)]
+    public string SetupStatus { get; set; } = null!;
+
+    [Column("setup_completed_at", TypeName = "timestamp without time zone")]
+    public DateTime? SetupCompletedAt { get; set; }
+
+    [Column("email")]
+    [StringLength(200)]
+    public string? Email { get; set; }
+
+    [Column("website")]
+    [StringLength(250)]
+    public string? Website { get; set; }
+
+    [Column("oked")]
+    [StringLength(20)]
+    public string? Oked { get; set; }
     [InverseProperty("Organization")]
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 

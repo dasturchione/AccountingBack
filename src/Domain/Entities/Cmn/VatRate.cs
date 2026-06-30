@@ -7,6 +7,7 @@ namespace Domain.Entities;
 [Table("cmn_vat_rate")]
 [Index("Code", Name = "idx_cmn_vat_rate_code", IsUnique = true)]
 [Index("StateId", Name = "idx_cmn_vat_rate_state_id")]
+[Index("EffectiveFrom", "EffectiveTo", Name = "idx_cmn_vat_rate_effective_dates")]
 public partial class VatRate
 {
     [Key]
@@ -31,6 +32,12 @@ public partial class VatRate
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("effective_from")]
+    public DateOnly? EffectiveFrom { get; set; }
+
+    [Column("effective_to")]
+    public DateOnly? EffectiveTo { get; set; }
     [InverseProperty("VatRate")]
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 

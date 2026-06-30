@@ -64,6 +64,9 @@ public partial class CmnState
     public virtual ICollection<CmnCurrency> CmnCurrencies { get; set; } = new List<CmnCurrency>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CmnDocumentSequence> CmnDocumentSequences { get; set; } = new List<CmnDocumentSequence>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CmnDocumentStatus> CmnDocumentStatuses { get; set; } = new List<CmnDocumentStatus>();
 
     [InverseProperty("State")]
@@ -134,6 +137,15 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<OrgTaxSetting> OrgTaxSettings { get; set; } = new List<OrgTaxSetting>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<OrgUserInvitation> OrgUserInvitations { get; set; } = new List<OrgUserInvitation>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PlatformTenant> PlatformTenants { get; set; } = new List<PlatformTenant>();
 
     [InverseProperty("State")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();

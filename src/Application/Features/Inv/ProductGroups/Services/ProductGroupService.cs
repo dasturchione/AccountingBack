@@ -37,7 +37,10 @@ public class ProductGroupService : BaseService, IProductGroupService
             var entity = new ProductGroup
             {
                 OrganizationId = _userContext.OrganizationId.Value,
+                Code = dto.Code,
+                ParentId = dto.ParentId,
                 Name = dto.Name,
+                SortOrder = dto.SortOrder,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             };
@@ -47,12 +50,21 @@ public class ProductGroupService : BaseService, IProductGroupService
                 entity.Products.Add(new Product
                 {
                     OrganizationId = _userContext.OrganizationId.Value,
+                    Code = p.Code,
+                    Sku = p.Sku,
+                    Article = p.Article,
                     UnitId = p.UnitId,
                     Barcode = p.Barcode,
                     Name = p.Name,
                     Description = p.Description,
                     IsService = p.IsService,
                     IsPieceTracked = p.IsPieceTracked,
+                    DefaultVatRateId = p.DefaultVatRateId,
+                    InventoryAccountId = p.InventoryAccountId,
+                    IncomeAccountId = p.IncomeAccountId,
+                    ExpenseAccountId = p.ExpenseAccountId,
+                    CogsAccountId = p.CogsAccountId,
+                    MinStock = p.MinStock,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });
@@ -115,7 +127,10 @@ public class ProductGroupService : BaseService, IProductGroupService
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
             entity.OrganizationId = _userContext.OrganizationId.Value;
+            entity.Code = dto.Code;
+            entity.ParentId = dto.ParentId;
             entity.Name = dto.Name;
+            entity.SortOrder = dto.SortOrder;
             entity.StateId = dto.StateId;
 
             foreach (var dtoProduct in dto.Products)
@@ -141,12 +156,21 @@ public class ProductGroupService : BaseService, IProductGroupService
                     entity.Products.Add(product);
                 }
 
+                product.Code = dtoProduct.Code;
+                product.Sku = dtoProduct.Sku;
+                product.Article = dtoProduct.Article;
                 product.Name = dtoProduct.Name;
                 product.Barcode = dtoProduct.Barcode;
                 product.Description = dtoProduct.Description;
                 product.UnitId = dtoProduct.UnitId;
                 product.IsPieceTracked = dtoProduct.IsPieceTracked;
                 product.IsService = dtoProduct.IsService;
+                product.DefaultVatRateId = dtoProduct.DefaultVatRateId;
+                product.InventoryAccountId = dtoProduct.InventoryAccountId;
+                product.IncomeAccountId = dtoProduct.IncomeAccountId;
+                product.ExpenseAccountId = dtoProduct.ExpenseAccountId;
+                product.CogsAccountId = dtoProduct.CogsAccountId;
+                product.MinStock = dtoProduct.MinStock;
                 product.StateId = dtoProduct.StateId ?? StateIdConst.ACTIVE;
             }
 

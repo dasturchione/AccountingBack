@@ -12,6 +12,8 @@ namespace Domain.Entities;
 [Index("StateId", Name = "idx_pur_doc_state_id")]
 [Index("StatusId", Name = "idx_pur_doc_status_id")]
 [Index("WarehouseId", Name = "idx_pur_doc_warehouse_id")]
+[Index("CancelledByUserId", Name = "idx_pur_doc_cancelled_by_user_id")]
+[Index("PostedByUserId", Name = "idx_pur_doc_posted_by_user_id")]
 public partial class PurchaseDoc
 {
     [Key]
@@ -65,6 +67,22 @@ public partial class PurchaseDoc
     [Column("contract_id")]
     public long? ContractId { get; set; }
 
+
+    [Column("exchange_rate")]
+    [Precision(18, 6)]
+    public decimal ExchangeRate { get; set; }
+
+    [Column("posted_at", TypeName = "timestamp without time zone")]
+    public DateTime? PostedAt { get; set; }
+
+    [Column("posted_by_user_id")]
+    public int? PostedByUserId { get; set; }
+
+    [Column("cancelled_at", TypeName = "timestamp without time zone")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    public int? CancelledByUserId { get; set; }
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]
     public virtual Contract? Contract { get; set; }

@@ -10,6 +10,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ChartAccount> ChartAccounts { get; set; }
     public virtual DbSet<ChartAccountSubkonto> ChartAccountSubkontos { get; set; }
     public virtual DbSet<AccountingPolicy> AccountingPolicies { get; set; }
+    public virtual DbSet<AccountingPeriod> AccountingPeriods { get; set; }
+    public virtual DbSet<PaymentPurpose> PaymentPurposes { get; set; }
+    public virtual DbSet<PaymentPurposeTranslation> PaymentPurposeTranslations { get; set; }
+    public virtual DbSet<PostingAlias> PostingAliases { get; set; }
+    public virtual DbSet<PostingAliasTranslation> PostingAliasTranslations { get; set; }
+    public virtual DbSet<PostingBatch> PostingBatches { get; set; }
     public virtual DbSet<PostingRule> PostingRules { get; set; }
     public virtual DbSet<PostingRuleLine> PostingRuleLines { get; set; }
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }
@@ -22,6 +28,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }
     public virtual DbSet<District> Districts { get; set; }
+    public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
     public virtual DbSet<Language> Languages { get; set; }
@@ -48,6 +55,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<Position> Positions { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
+    public virtual DbSet<OrganizationClaimRequest> OrganizationClaimRequests { get; set; }
+    public virtual DbSet<OrganizationDefault> OrganizationDefaults { get; set; }
+    public virtual DbSet<OrganizationSetupState> OrganizationSetupStates { get; set; }
+    public virtual DbSet<OrganizationTaxSetting> OrganizationTaxSettings { get; set; }
+    public virtual DbSet<OrganizationUserInvitation> OrganizationUserInvitations { get; set; }
+    public virtual DbSet<PlatformTenant> PlatformTenants { get; set; }
     public virtual DbSet<PurchaseDoc> PurchaseDocs { get; set; }
     public virtual DbSet<PurchaseDocProduct> PurchaseDocProducts { get; set; }
     public virtual DbSet<PurchaseDocTable> PurchaseDocTables { get; set; }
@@ -64,6 +77,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ModuleSubGroup> ModuleSubGroups { get; set; }
     public virtual DbSet<Role> Roles { get; set; }
     public virtual DbSet<RoleModule> RoleModules { get; set; }
+    public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
     public virtual DbSet<Contract> Contracts { get; set; }

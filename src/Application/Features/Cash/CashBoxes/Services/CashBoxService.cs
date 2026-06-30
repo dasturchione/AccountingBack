@@ -40,6 +40,10 @@ public class CashBoxService : ICashBoxService
             Code = dto.Code,
             Name = dto.Name,
             CurrencyId = dto.CurrencyId,
+            IsMain = dto.IsMain,
+            ResponsibleUserId = dto.ResponsibleUserId,
+            OpeningBalance = dto.OpeningBalance,
+            OpeningBalanceDate = dto.OpeningBalanceDate,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };
@@ -89,6 +93,10 @@ public class CashBoxService : ICashBoxService
         entity.Code = dto.Code;
         entity.Name = dto.Name;
         entity.CurrencyId = dto.CurrencyId;
+        entity.IsMain = dto.IsMain;
+        entity.ResponsibleUserId = dto.ResponsibleUserId;
+        entity.OpeningBalance = dto.OpeningBalance;
+        entity.OpeningBalanceDate = dto.OpeningBalanceDate;
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);

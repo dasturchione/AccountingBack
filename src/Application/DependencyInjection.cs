@@ -19,7 +19,9 @@ using Application.Features.InventoryRegisterBalances;
 using Application.Features.Manual;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Organizations;
+using Application.Features.OrganizationSetup;
 using Application.Features.OrgBankAccounts;
+using Application.Features.Platform;
 using Application.Features.Positions;
 using Application.Features.ProductGroups;
 using Application.Features.Inv.ProductPrices;
@@ -51,6 +53,8 @@ namespace Application
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IOrganizationService, OrganizationService>();
+            services.AddScoped<IOrganizationSetupService, OrganizationSetupService>();
+            services.AddScoped<IPlatformService, PlatformService>();
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IPositionService, PositionService>();

@@ -11,6 +11,14 @@ namespace Domain.Entities;
 [Index("ProductGroupId", Name = "idx_inv_product_product_group_id")]
 [Index("StateId", Name = "idx_inv_product_state_id")]
 [Index("UnitId", Name = "idx_inv_product_unit_id")]
+[Index("Article", Name = "idx_inv_product_article")]
+[Index("Code", Name = "idx_inv_product_code")]
+[Index("CogsAccountId", Name = "idx_inv_product_cogs_account_id")]
+[Index("DefaultVatRateId", Name = "idx_inv_product_default_vat_rate_id")]
+[Index("ExpenseAccountId", Name = "idx_inv_product_expense_account_id")]
+[Index("IncomeAccountId", Name = "idx_inv_product_income_account_id")]
+[Index("InventoryAccountId", Name = "idx_inv_product_inventory_account_id")]
+[Index("Sku", Name = "idx_inv_product_sku")]
 public partial class Product
 {
     [Key]
@@ -54,6 +62,37 @@ public partial class Product
     [StringLength(17)]
     public string? Mxik { get; set; }
 
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("sku")]
+    [StringLength(100)]
+    public string? Sku { get; set; }
+
+    [Column("article")]
+    [StringLength(100)]
+    public string? Article { get; set; }
+
+    [Column("default_vat_rate_id")]
+    public short? DefaultVatRateId { get; set; }
+
+    [Column("inventory_account_id")]
+    public int? InventoryAccountId { get; set; }
+
+    [Column("income_account_id")]
+    public int? IncomeAccountId { get; set; }
+
+    [Column("expense_account_id")]
+    public int? ExpenseAccountId { get; set; }
+
+    [Column("cogs_account_id")]
+    public int? CogsAccountId { get; set; }
+
+    [Column("min_stock")]
+    [Precision(18, 3)]
+    public decimal? MinStock { get; set; }
     [InverseProperty("Product")]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 

@@ -18,5 +18,11 @@ public class OrganizationDto
     public string StateName { get; set; } = null!;
     public short? DefaultLanguageId { get; set; }
     public string? DefaultLanguageName { get; set; }
+    public int? TenantId { get; set; }
+    public string SetupStatus { get; set; } = null!;
+    public DateTime? SetupCompletedAt { get; set; }
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public string? Oked { get; set; }
     public DateTime CreatedDate { get; set; }
 }

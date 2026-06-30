@@ -10,6 +10,9 @@ namespace Domain.Entities;
 [Index("PhoneNumber", Name = "idx_sys_user_phone")]
 [Index("RoleId", Name = "idx_sys_user_role_id")]
 [Index("UserName", Name = "uidx_sys_user_user_name", IsUnique = true)]
+[Index("Email", Name = "idx_sys_user_email")]
+[Index("EmailVerified", Name = "idx_sys_user_email_verified")]
+[Index("IsPlatformAdmin", Name = "idx_sys_user_is_platform_admin")]
 public partial class User
 {
     [Key]
@@ -62,6 +65,23 @@ public partial class User
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
+
+    [Column("email_verified")]
+    public bool EmailVerified { get; set; }
+
+    [Column("email_verified_at", TypeName = "timestamp without time zone")]
+    public DateTime? EmailVerifiedAt { get; set; }
+
+    [Column("last_login_ip")]
+    [StringLength(64)]
+    public string? LastLoginIp { get; set; }
+
+    [Column("is_platform_admin")]
+    public bool IsPlatformAdmin { get; set; }
+
+    [Column("timezone")]
+    [StringLength(100)]
+    public string? Timezone { get; set; }
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 

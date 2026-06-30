@@ -78,6 +78,9 @@ public class RoleService : IRoleService
     // ------------------------------------------------------------------ //
     public async Task<Result<int>> CreateAsync(RoleCreateDto dto, CancellationToken ct = default)
     {
+        if (dto.HasGlobalAccess && !_userContext.HasGlobalAccess)
+            return Result.Failure<int>(Error.Forbidden("Role.GlobalAccessRequired", "Only global access users can create a global role."));
+
         var exists = await _roleQuery.AnyAsync(r => r.ShortName == dto.ShortName, ct);
         if (exists)
             return Result.Failure<int>(RoleErrors.Conflict(dto.ShortName, _userContext.LanguageId));
@@ -86,6 +89,12 @@ public class RoleService : IRoleService
         {
             ShortName   = dto.ShortName,
             FullName    = dto.FullName,
+            Code        = dto.Code,
+            Description = dto.Description,
+            HasGlobalAccess = dto.HasGlobalAccess,
+            IsSystem    = dto.IsSystem,
+            IsOwnerRole = dto.IsOwnerRole,
+            SortOrder   = dto.SortOrder,
             StateId     = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };
@@ -119,6 +128,9 @@ public class RoleService : IRoleService
         if (role is null)
             return Result.Failure(RoleErrors.NotFound(id, _userContext.LanguageId));
 
+        if (role.HasGlobalAccess != dto.HasGlobalAccess && !_userContext.HasGlobalAccess)
+            return Result.Failure(Error.Forbidden("Role.GlobalAccessRequired", "Only global access users can change global role access."));
+
         if (role.ShortName != dto.ShortName)
         {
             var exists = await _roleQuery.AnyAsync(r => r.ShortName == dto.ShortName, ct);
@@ -128,6 +140,12 @@ public class RoleService : IRoleService
 
         role.ShortName = dto.ShortName;
         role.FullName  = dto.FullName;
+        role.Code      = dto.Code;
+        role.Description = dto.Description;
+        role.HasGlobalAccess = dto.HasGlobalAccess;
+        role.IsSystem  = dto.IsSystem;
+        role.IsOwnerRole = dto.IsOwnerRole;
+        role.SortOrder = dto.SortOrder;
         role.StateId   = dto.StateId;
 
         await _roleCommand.UpdateAsync(role, ct);

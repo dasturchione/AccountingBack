@@ -14,7 +14,12 @@ CREATE TABLE public.sys_user (
     state_id smallint NOT NULL,
     created_date timestamp without time zone DEFAULT now() NOT NULL,
     language_id smallint,
-    organization_id integer
+    organization_id integer,
+    email_verified boolean DEFAULT false NOT NULL,
+    email_verified_at timestamp without time zone,
+    last_login_ip character varying(64),
+    is_platform_admin boolean DEFAULT false NOT NULL,
+    timezone character varying(100)
 );
 
 CREATE SEQUENCE public.sys_user_id_seq
@@ -76,3 +81,9 @@ ALTER TABLE ONLY public.sys_user
 --
 
 \unrestrict ECw6Seh1B4Oet0luhL1bPdG19lSQmbvNuJBeCmzsUhbvhzX4wOwsiyCfA4Cf4VN;
+
+CREATE INDEX idx_sys_user_email ON public.sys_user USING btree (email);
+
+CREATE INDEX idx_sys_user_email_verified ON public.sys_user USING btree (email_verified);
+
+CREATE INDEX idx_sys_user_is_platform_admin ON public.sys_user USING btree (is_platform_admin);

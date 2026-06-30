@@ -7,7 +7,12 @@ CREATE TABLE public.sys_module (
     full_name character varying(300) NOT NULL,
     sub_group_id integer NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    parent_id integer,
+    route character varying(250),
+    icon character varying(100),
+    sort_order integer DEFAULT 0 NOT NULL,
+    is_visible boolean DEFAULT true NOT NULL
 );
 
 CREATE SEQUENCE public.sys_module_id_seq
@@ -197,3 +202,12 @@ ALTER TABLE ONLY public.sys_module
 
 ALTER TABLE ONLY public.sys_module
     ADD CONSTRAINT sys_module_sub_group_id_fkey FOREIGN KEY (sub_group_id) REFERENCES public.sys_module_sub_group(id);
+
+CREATE INDEX idx_sys_module_parent_id ON public.sys_module USING btree (parent_id);
+
+CREATE INDEX idx_sys_module_sort_order ON public.sys_module USING btree (sort_order);
+
+CREATE INDEX idx_sys_module_is_visible ON public.sys_module USING btree (is_visible);
+
+ALTER TABLE ONLY public.sys_module
+    ADD CONSTRAINT sys_module_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.sys_module(id);

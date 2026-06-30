@@ -19,6 +19,7 @@ public class UserResponseDto
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
     public string RoleName { get; set; } = null!;
+    public bool HasGlobalAccess { get; set; }
     public string StateName { get; set; } = null!;
     public List<UserOrgDto> Organizations { get; set; } = [];
     public List<string> Permissions { get; set; } = [];

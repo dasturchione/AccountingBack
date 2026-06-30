@@ -34,7 +34,10 @@ public class WarehouseService : IWarehouseService
         {
             OrganizationId = orgId,
             BranchId = dto.BranchId,
+            Code = dto.Code,
             Name = dto.Name,
+            Address = dto.Address,
+            IsMain = dto.IsMain,
             ResponsibleUserId = dto.ResponsibleUserId,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
@@ -81,7 +84,10 @@ public class WarehouseService : IWarehouseService
             return Result.Failure(WarehouseErrors.NotFound(id, _userContext.LanguageId));
 
         entity.BranchId = dto.BranchId;
+        entity.Code = dto.Code;
         entity.Name = dto.Name;
+        entity.Address = dto.Address;
+        entity.IsMain = dto.IsMain;
         entity.ResponsibleUserId = dto.ResponsibleUserId;
         entity.StateId = dto.StateId;
 

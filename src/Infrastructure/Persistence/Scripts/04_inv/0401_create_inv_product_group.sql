@@ -5,7 +5,10 @@ CREATE TABLE public.inv_product_group (
     organization_id integer NOT NULL,
     name character varying(250) NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    code character varying(100),
+    parent_id integer,
+    sort_order integer DEFAULT 0 NOT NULL
 );
 
 CREATE SEQUENCE public.inv_product_group_id_seq
@@ -38,3 +41,14 @@ ALTER TABLE ONLY public.inv_product_group
 
 ALTER TABLE ONLY public.inv_product_group
     ADD CONSTRAINT inv_product_group_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_inv_product_group_code ON public.inv_product_group USING btree (code);
+
+CREATE INDEX idx_inv_product_group_parent_id ON public.inv_product_group USING btree (parent_id);
+
+CREATE INDEX idx_inv_product_group_sort_order ON public.inv_product_group USING btree (sort_order);
+
+CREATE UNIQUE INDEX uidx_inv_product_group_org_code ON public.inv_product_group USING btree (organization_id, code) WHERE (code IS NOT NULL);
+
+ALTER TABLE ONLY public.inv_product_group
+    ADD CONSTRAINT inv_product_group_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.inv_product_group(id);

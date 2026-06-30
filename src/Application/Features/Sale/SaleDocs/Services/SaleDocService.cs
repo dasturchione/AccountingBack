@@ -139,6 +139,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 DocNumber = docNumber,
                 DocDate = now,
                 CurrencyId = dto.CurrencyId,
+                ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
                 SaleDocProducts = productLines,
                 TotalAmount = productLines.Sum(l => l.Amount),
                 VatAmount = productLines.Sum(l => l.VatAmount),
@@ -331,6 +332,8 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.VatAmount = existingLines.Sum(l => l.VatAmount);
             doc.FinalAmount = existingLines.Sum(l => l.TotalAmount);
             doc.StatusId = DocumentStatusIdConst.POSTED;
+            doc.PostedAt ??= DateTime.Now;
+            doc.PostedByUserId ??= _userContext.Id;
             await _command.UpdateAsync(doc, ct);
 
             // ProductTable → SOLD
@@ -396,6 +399,8 @@ public class SaleDocService : BaseService, ISaleDocService
             }
 
             doc.StatusId = DocumentStatusIdConst.CANCELLED;
+            doc.CancelledAt ??= DateTime.Now;
+            doc.CancelledByUserId ??= _userContext.Id;
             await _command.UpdateAsync(doc, ct);
 
             var newDocDto = await GetByIdInternalAsync(id, ct);
@@ -436,6 +441,7 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId = dto.WarehouseId;
             doc.CurrencyId = dto.CurrencyId;
+            doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             doc.ContractId = dto.ContractId;
             doc.Comment = dto.Comment;
             doc.StateId = dto.StateId;

@@ -9,6 +9,8 @@ namespace Domain.Entities;
 [Index("CurrencyId", Name = "idx_org_bank_account_currency_id")]
 [Index("OrganizationId", Name = "idx_org_bank_account_organization_id")]
 [Index("StateId", Name = "idx_org_bank_account_state_id")]
+[Index("Code", Name = "idx_org_bank_account_code")]
+[Index("Name", Name = "idx_org_bank_account_name")]
 public partial class BankAccount
 {
     [Key]
@@ -37,6 +39,21 @@ public partial class BankAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("code")]
+    [StringLength(100)]
+    public string? Code { get; set; }
+
+    [Column("name")]
+    [StringLength(250)]
+    public string? Name { get; set; }
+
+    [Column("opening_balance")]
+    [Precision(18, 2)]
+    public decimal OpeningBalance { get; set; }
+
+    [Column("opening_balance_date")]
+    public DateOnly? OpeningBalanceDate { get; set; }
     [ForeignKey("BankId")]
     [InverseProperty("BankAccounts")]
     public virtual Bank Bank { get; set; } = null!;

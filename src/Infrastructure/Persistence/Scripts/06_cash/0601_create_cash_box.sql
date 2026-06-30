@@ -8,7 +8,11 @@ CREATE TABLE public.cash_box (
     name character varying(250) NOT NULL,
     currency_id smallint NOT NULL,
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    is_main boolean DEFAULT false NOT NULL,
+    responsible_user_id integer,
+    opening_balance numeric(18,2) DEFAULT 0 NOT NULL,
+    opening_balance_date date
 );
 
 CREATE SEQUENCE public.cash_box_id_seq
@@ -49,3 +53,10 @@ ALTER TABLE ONLY public.cash_box
 
 ALTER TABLE ONLY public.cash_box
     ADD CONSTRAINT cash_box_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_cash_box_is_main ON public.cash_box USING btree (is_main);
+
+CREATE INDEX idx_cash_box_responsible_user_id ON public.cash_box USING btree (responsible_user_id);
+
+ALTER TABLE ONLY public.cash_box
+    ADD CONSTRAINT cash_box_responsible_user_id_fkey FOREIGN KEY (responsible_user_id) REFERENCES public.sys_user(id);

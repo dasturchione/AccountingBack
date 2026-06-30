@@ -15,6 +15,11 @@ public class SaleDocListDto
     public string CurrencyCode { get; set; } = null!;
     public decimal TotalAmount { get; set; }
     public decimal FinalAmount { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public DateTime? PostedAt { get; set; }
+    public int? PostedByUserId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public int? CancelledByUserId { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public short StateId { get; set; }

@@ -10,7 +10,10 @@ CREATE TABLE public.counterparty_reg_balance (
     currency_id smallint NOT NULL,
     amount numeric(18,2) NOT NULL,
     doc_date timestamp without time zone NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    posting_batch_id bigint,
+    source_line_id bigint,
+    reversal_entry_id bigint
 );
 
 CREATE SEQUENCE public.counterparty_reg_balance_id_seq
@@ -53,3 +56,10 @@ ALTER TABLE ONLY public.counterparty_reg_balance
 
 ALTER TABLE ONLY public.counterparty_reg_balance
     ADD CONSTRAINT counterparty_reg_balance_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.org_organization(id);
+
+CREATE INDEX idx_counterparty_reg_balance_posting_batch_id ON public.counterparty_reg_balance USING btree (posting_batch_id);
+
+CREATE INDEX idx_counterparty_reg_balance_reversal_entry_id ON public.counterparty_reg_balance USING btree (reversal_entry_id);
+
+ALTER TABLE ONLY public.counterparty_reg_balance
+    ADD CONSTRAINT counterparty_reg_balance_posting_batch_id_fkey FOREIGN KEY (posting_batch_id) REFERENCES public.acc_posting_batch(id);

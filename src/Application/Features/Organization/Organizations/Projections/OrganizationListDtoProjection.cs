@@ -25,6 +25,12 @@ public class OrganizationListDtoProjection : IProjectionBuilder<Organization, Or
             StateName           = x.State.FullName,
             DefaultLanguageId   = x.DefaultLanguageId,
             DefaultLanguageName = x.DefaultLanguage != null ? x.DefaultLanguage.Name : null,
+            TenantId            = x.TenantId,
+            SetupStatus         = x.SetupStatus,
+            SetupCompletedAt    = x.SetupCompletedAt,
+            Email               = x.Email,
+            Website             = x.Website,
+            Oked                = x.Oked,
             CreatedDate         = x.CreatedDate
         };
     }

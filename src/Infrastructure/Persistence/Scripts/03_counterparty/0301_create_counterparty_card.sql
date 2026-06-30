@@ -13,7 +13,13 @@ CREATE TABLE public.counterparty_card (
     district_id integer,
     address character varying(1000),
     state_id smallint NOT NULL,
-    created_date timestamp without time zone DEFAULT now() NOT NULL
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    code character varying(100),
+    is_customer boolean DEFAULT true NOT NULL,
+    is_supplier boolean DEFAULT true NOT NULL,
+    is_vat_payer boolean DEFAULT false NOT NULL,
+    oked character varying(20),
+    external_id character varying(100)
 );
 
 CREATE SEQUENCE public.counterparty_card_id_seq
@@ -69,3 +75,9 @@ ALTER TABLE ONLY public.counterparty_card
 
 ALTER TABLE ONLY public.counterparty_card
     ADD CONSTRAINT counterparty_card_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);
+
+CREATE INDEX idx_counterparty_card_code ON public.counterparty_card USING btree (code);
+
+CREATE INDEX idx_counterparty_card_external_id ON public.counterparty_card USING btree (external_id);
+
+CREATE UNIQUE INDEX uidx_counterparty_card_org_code ON public.counterparty_card USING btree (organization_id, code) WHERE (code IS NOT NULL);

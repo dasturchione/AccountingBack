@@ -18,6 +18,10 @@ public class CashBoxListDtoProjection : IProjectionBuilder<CashBox, CashBoxListD
             Name = x.Name,
             CurrencyId = x.CurrencyId,
             CurrencyName = x.Currency.Name,
+            IsMain = x.IsMain,
+            ResponsibleUserId = x.ResponsibleUserId,
+            OpeningBalance = x.OpeningBalance,
+            OpeningBalanceDate = x.OpeningBalanceDate,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate

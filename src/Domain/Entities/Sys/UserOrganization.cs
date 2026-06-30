@@ -9,6 +9,8 @@ namespace Domain.Entities;
 [Index("OrganizationId", Name = "idx_sys_user_organization_organization_id")]
 [Index("RoleId", Name = "idx_sys_user_organization_role_id")]
 [Index("StateId", Name = "idx_sys_user_organization_state_id")]
+[Index("InvitedByUserId", Name = "idx_sys_user_organization_invited_by_user_id")]
+[Index("IsOwner", Name = "idx_sys_user_organization_is_owner")]
 public partial class UserOrganization
 {
     [Key]
@@ -31,6 +33,21 @@ public partial class UserOrganization
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
+    [Column("is_owner")]
+    public bool IsOwner { get; set; }
+
+    [Column("joined_at", TypeName = "timestamp without time zone")]
+    public DateTime JoinedAt { get; set; }
+
+    [Column("invited_by_user_id")]
+    public int? InvitedByUserId { get; set; }
+
+    [Column("last_access_at", TypeName = "timestamp without time zone")]
+    public DateTime? LastAccessAt { get; set; }
+
+    [Column("blocked_at", TypeName = "timestamp without time zone")]
+    public DateTime? BlockedAt { get; set; }
     [ForeignKey("OrganizationId")]
     [InverseProperty("UserOrganizations")]
     public virtual Organization Organization { get; set; } = null!;

@@ -1,5 +1,4 @@
 ﻿using Application.Features.Auth;
-using Application.Features.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Extensions;
@@ -7,7 +6,7 @@ using WebApi.Infrastructure;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/auth")]
 [ApiController]
 public class AuthController : ControllerBase
 {
@@ -21,6 +20,13 @@ public class AuthController : ControllerBase
     public async Task<IResult> Login([FromBody] LoginDto dto, CancellationToken ct = default)
     {
         var result = await _authService.LoginAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("login-superadmin")]
+    public async Task<IResult> SuperAdminLogin([FromBody] LoginDto dto, CancellationToken ct = default)
+    {
+        var result = await _authService.SuperAdminLoginAsync(dto, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

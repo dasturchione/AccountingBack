@@ -6,6 +6,7 @@ public class PurchaseDocBaseDto
     public int CounterpartyId { get; set; }
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }
+    public decimal ExchangeRate { get; set; } = 1m;
     public string? Comment { get; set; }
     public List<PurchaseDocLineDto> Lines { get; set; } = new();
 }

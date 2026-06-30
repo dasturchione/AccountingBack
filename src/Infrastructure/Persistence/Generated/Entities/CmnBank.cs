@@ -33,6 +33,10 @@ public partial class CmnBank
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("inn")]
+    [StringLength(20)]
+    public string? Inn { get; set; }
+
     [InverseProperty("Bank")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 

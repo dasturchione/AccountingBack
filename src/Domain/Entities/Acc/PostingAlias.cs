@@ -19,4 +19,10 @@ public partial class PostingAlias
     [Column("name")]
     [StringLength(250)]
     public string Name { get; set; } = null!;
+
+    [InverseProperty("Alias")]
+    public virtual ICollection<PaymentPurpose> PaymentPurposes { get; set; } = new List<PaymentPurpose>();
+
+    [InverseProperty("PostingAlias")]
+    public virtual ICollection<PostingAliasTranslation> PostingAliasTranslations { get; set; } = new List<PostingAliasTranslation>();
 }

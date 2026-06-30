@@ -92,6 +92,10 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual CounterpartyCard? Counterparty { get; set; }
 
+    [ForeignKey("CounterpartyBankAccountId")]
+    [InverseProperty("BankOperations")]
+    public virtual CounterpartyBankAccount? CounterpartyBankAccount { get; set; }
+
     [ForeignKey("CurrencyId")]
     [InverseProperty("BankOperations")]
     public virtual CmnCurrency Currency { get; set; } = null!;

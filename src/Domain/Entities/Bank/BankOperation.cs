@@ -35,6 +35,9 @@ public partial class BankOperation
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
 
+    [Column("counterparty_bank_account_id")]
+    public int? CounterpartyBankAccountId { get; set; }
+
     [Column("doc_number")]
     [StringLength(100)]
     public string DocNumber { get; set; } = null!;
@@ -86,6 +89,10 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual CounterpartyCard? Counterparty { get; set; }
 
+    [ForeignKey(nameof(CounterpartyBankAccountId))]
+    [InverseProperty(nameof(CounterpartyBankAccount.BankOperations))]
+    public virtual CounterpartyBankAccount? CounterpartyBankAccount { get; set; }
+
     [ForeignKey("CurrencyId")]
     [InverseProperty("BankOperations")]
     public virtual Currency Currency { get; set; } = null!;
@@ -109,4 +116,7 @@ public partial class BankOperation
     [ForeignKey("StatusId")]
     [InverseProperty("BankOperations")]
     public virtual DocumentStatus Status { get; set; } = null!;
+
+    [InverseProperty(nameof(BankOperationLine.BankOperation))]
+    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 }

@@ -160,14 +160,38 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             if (selectedIdsForProduct.Count != requiredQuantity || selectedIdsForProduct.Count != selectedIdsForProduct.Distinct().Count())
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
 
-            var expectedIds = orderedCandidates
-                .Take(requiredCount)
-                .Select(x => x.ProductTableId)
+            var selectedCandidatesForProduct = selectedIdsForProduct
+                .Select(id => candidateByTableId[id])
                 .ToList();
 
-            if (costingMethodId != CostingMethodIdConst.AVERAGE &&
-                !selectedIdsForProduct.OrderBy(x => x).SequenceEqual(expectedIds.OrderBy(x => x)))
-                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+            var expectedBatches = orderedCandidates
+                .Take(requiredCount)
+                .GroupBy(x => (x.PurchaseDate, x.PurchaseDocId))
+                .Select(g => new
+                {
+                    g.Key.PurchaseDate,
+                    g.Key.PurchaseDocId,
+                    Count = g.Count()
+                })
+                .ToList();
+
+            if (costingMethodId != CostingMethodIdConst.AVERAGE)
+            {
+                var selectedBatchCounts = selectedCandidatesForProduct
+                    .GroupBy(x => (x.PurchaseDate, x.PurchaseDocId))
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Count());
+
+                foreach (var expectedBatch in expectedBatches)
+                {
+                    if (!selectedBatchCounts.TryGetValue((expectedBatch.PurchaseDate, expectedBatch.PurchaseDocId), out var selectedCount) ||
+                        selectedCount != expectedBatch.Count)
+                    {
+                        return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+                    }
+                }
+            }
 
             var averageCost = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? CalculateWeightedAverageCost(orderedCandidates)
@@ -176,11 +200,8 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             var orderedSelectedIds = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? selectedIdsForProduct.OrderBy(x => x).ToList()
                 : selectedIdsForProduct
-                    .OrderBy(x =>
-                    {
-                        var index = expectedIds.IndexOf(x);
-                        return index >= 0 ? index : int.MaxValue;
-                    })
+                    .Where(id => orderedCandidates.Any(candidate => candidate.ProductTableId == id))
+                    .OrderBy(id => orderedCandidates.FindIndex(candidate => candidate.ProductTableId == id))
                     .ToList();
 
             var selectedIndex = 0;

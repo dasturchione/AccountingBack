@@ -20,6 +20,8 @@ public class ManualService : IManualService
     private readonly IQueryRepository<DocumentStatus> _documentStatusQuery;
     private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+    private readonly IQueryRepository<PostingAlias> _postingAliasQuery;
+    private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
     private readonly IQueryRepository<PricingMethod> _pricingMethodQuery;
     private readonly IQueryRepository<CostingMethod> _costingMethodQuery;
@@ -58,6 +60,8 @@ public class ManualService : IManualService
         IQueryRepository<DocumentStatus> documentStatusQuery,
         IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<PostingAlias> postingAliasQuery,
+        IQueryRepository<PaymentPurpose> paymentPurposeQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
@@ -96,6 +100,8 @@ public class ManualService : IManualService
         _documentStatusQuery   = documentStatusQuery;
         _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery      = paymentTypeQuery;
+        _postingAliasQuery     = postingAliasQuery;
+        _paymentPurposeQuery   = paymentPurposeQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
@@ -211,6 +217,46 @@ public class ManualService : IManualService
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+
+        var query = _queryBuilder.For<PostingAlias>()
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Code = s.Code,
+                                     Name = s.PostingAliasTranslations
+                                                .Where(t => t.LanguageId == languageId)
+                                                .Select(t => t.Name)
+                                                .FirstOrDefault() ?? s.Name,
+                                 })
+                                .OrderBy(o => o.Name)
+                                .Build();
+
+        return await _postingAliasQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPaymentPurposesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+
+        var query = _queryBuilder.For<PaymentPurpose>()
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Code = s.Code,
+                                     Name = s.PaymentPurposeTranslations
+                                                .Where(t => t.LanguageId == languageId)
+                                                .Select(t => t.Name)
+                                                .FirstOrDefault() ?? s.Name,
+                                 })
+                                .OrderBy(o => o.Name)
+                                .Build();
+
+        return await _paymentPurposeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)

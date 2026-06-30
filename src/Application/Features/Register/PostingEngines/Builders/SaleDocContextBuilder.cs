@@ -102,6 +102,7 @@ namespace Application.Features.Register.PostingEngines
                 {
                     [AmountSourceConst.Cost] = costAmount
                 },
+                SkippedAmountSources = new[] { AmountSourceConst.Base, AmountSourceConst.VAT },
                 Subkontos = new List<SubkontoValue>
                 {
                     new()
@@ -167,6 +168,7 @@ namespace Application.Features.Register.PostingEngines
                             [AmountSourceConst.Base] = baseAmount,
                             [AmountSourceConst.VAT] = vatAmount
                         },
+                        SkippedAmountSources = new[] { AmountSourceConst.Cost },
                         Subkontos = new List<SubkontoValue>
                         {
                             new()

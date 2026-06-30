@@ -296,24 +296,27 @@ public class SaleDocService : BaseService, ISaleDocService
 
             foreach (var lineDto in dto.Lines)
             {
-                var line = existingLines.FirstOrDefault(l => l.Id == lineDto.Id);
-                if (line == null)
+                var lineTables = existingLines.Where(l => l.OwnerId == lineDto.Id).ToList();
+                if (lineTables.Count == 0)
                     return Result.Failure(SaleDocErrors.LineNotFound(lineDto.Id, _userContext.LanguageId));
 
-                line.Amount = lineDto.UnitPrice;
-                line.CostPrice = lineDto.CostPrice;
-
-                if (line.VatRateId.HasValue)
+                foreach (var line in lineTables)
                 {
-                    var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == line.VatRateId.Value).Build();
-                    var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
+                    line.Amount = lineDto.UnitPrice;
+                    line.CostPrice = lineDto.CostPrice;
 
-                    if (vatRate != null)
-                        line.VatAmount = Math.Round(line.Amount * vatRate.Rate / 100, 2);
+                    if (line.VatRateId.HasValue)
+                    {
+                        var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == line.VatRateId.Value).Build();
+                        var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
+
+                        if (vatRate != null)
+                            line.VatAmount = Math.Round(line.Amount * vatRate.Rate / 100, 2);
+                    }
+
+                    line.TotalAmount = line.Amount + line.VatAmount;
+                    await _lineCommand.UpdateAsync(line, ct);
                 }
-
-                line.TotalAmount = line.Amount + line.VatAmount;
-                await _lineCommand.UpdateAsync(line, ct);
             }
 
             // SaleDocProduct summalarini qayta hisoblash
@@ -447,17 +450,17 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.StateId = dto.StateId;
 
             // DRAFT da mahsulot liniyalarini ham o'zgartirish mumkin
-            if (doc.StatusId == DocumentStatusIdConst.DRAFT && dto.Products.Count > 0)
+            if (doc.StatusId == DocumentStatusIdConst.DRAFT && dto.Lines.Count > 0)
             {
                 var existingProductsQuery = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == id).Build();
                 var existingProducts = await _productLineQuery.GetAllAsync(existingProductsQuery, ct);
 
-                // Mavjud liniyalarni o'chirish
+                // Mavjud liniyalarni o'chirishs
                 foreach (var existing in existingProducts)
                     await _productLineCommand.DeleteAsync(existing, ct);
 
                 // Yangi liniyalarni yaratish
-                var productsResult = await BuildProductLinesFromUpdateAsync(dto.Products, ct);
+                var productsResult = await BuildProductLinesFromUpdateAsync(dto.Lines, ct);
                 if (!productsResult.IsSuccess)
                     return Result.Failure(productsResult.Error);
 

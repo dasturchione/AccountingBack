@@ -46,6 +46,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BankOperation> BankOperations { get; set; }
 
+    public virtual DbSet<BankOperationLine> BankOperationLines { get; set; }
+
     public virtual DbSet<CashBox> CashBoxes { get; set; }
 
     public virtual DbSet<CashOperation> CashOperations { get; set; }
@@ -263,6 +265,33 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("acc_chart_account_subkonto_subkonto_type_id_fkey");
         });
 
+        modelBuilder.Entity<AccCounterpartyAccountPaymentPurposeHint>(entity =>
+        {
+            entity.HasKey(e => new { e.CounterpartyBankAccountId, e.PaymentPurposeId }).HasName("acc_counterparty_account_payment_purpose_hint_pkey");
+
+            entity.Property(e => e.LastUsedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UsageCount).HasDefaultValue(1);
+
+            entity.HasOne(d => d.CounterpartyBankAccount).WithMany(p => p.AccCounterpartyAccountPaymentPurposeHints)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_counterparty_account_paym_counterparty_bank_account_id_fkey");
+
+            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.AccCounterpartyAccountPaymentPurposeHints)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_counterparty_account_payment_purpos_payment_purpose_id_fkey");
+        });
+
+        modelBuilder.Entity<AccPaymentPurpose>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_payment_purpose_pkey");
+
+            entity.Property(e => e.RequiresCounterparty).HasDefaultValue(true);
+
+            entity.HasOne(d => d.Alias).WithMany(p => p.AccPaymentPurposes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_payment_purpose_alias_id_fkey");
+        });
+
         modelBuilder.Entity<AccPaymentPurpose>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_payment_purpose_pkey");
@@ -405,8 +434,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_bank_account_id_fkey");
 
-            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.BankOperationCancelledByUsers).HasConstraintName("bank_operation_cancelled_by_user_id_fkey");
-
             entity.HasOne(d => d.Counterparty).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_counterparty_id_fkey");
 
             entity.HasOne(d => d.Currency).WithMany(p => p.BankOperations)
@@ -432,6 +459,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Status).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_status_id_fkey");
+        });
+
+        modelBuilder.Entity<BankOperationLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("bank_operation_line_pkey");
+
+            entity.HasOne(d => d.BankOperation).WithMany(p => p.BankOperationLines).HasConstraintName("bank_operation_line_bank_operation_id_fkey");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.BankOperationLines).HasConstraintName("bank_operation_line_counterparty_id_fkey");
+
+            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.BankOperationLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("bank_operation_line_payment_purpose_id_fkey");
         });
 
         modelBuilder.Entity<CashBox>(entity =>
@@ -1528,6 +1568,17 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.SysPasswordResetTokens)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sys_password_reset_token_user_id_fkey");
+        });
+
+        modelBuilder.Entity<SysRefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sys_refresh_token_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SysRefreshTokens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_refresh_token_user_id_fkey");
         });
 
         modelBuilder.Entity<SysRefreshToken>(entity =>

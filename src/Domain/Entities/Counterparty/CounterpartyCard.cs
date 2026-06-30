@@ -87,6 +87,9 @@ public partial class CounterpartyCard
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [InverseProperty("Counterparty")]
+    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
+
+    [InverseProperty("Counterparty")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("Counterparty")]

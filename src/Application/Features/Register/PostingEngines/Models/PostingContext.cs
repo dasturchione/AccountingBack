@@ -37,6 +37,6 @@
         // ---- Субконто, которые нужно прикрепить к проводкам этого документа ----
         public List<SubkontoValue> Subkontos { get; set; } = new();
 
-        public Dictionary<string, string> Extra { get; set; } = new();
+        public string[] SkippedAmountSources { get; set; } = Array.Empty<string>();
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
@@ -19,4 +20,12 @@ public partial class PaymentPurposeTranslation
     [Column("name")]
     [StringLength(250)]
     public string Name { get; set; } = null!;
+
+    [ForeignKey("LanguageId")]
+    [InverseProperty("PaymentPurposeTranslations")]
+    public virtual Language Language { get; set; } = null!;
+
+    [ForeignKey("PaymentPurposeId")]
+    [InverseProperty("PaymentPurposeTranslations")]
+    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
 }

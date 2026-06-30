@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
@@ -19,4 +20,12 @@ public partial class PostingAliasTranslation
     [Column("name")]
     [StringLength(250)]
     public string Name { get; set; } = null!;
+
+    [ForeignKey("LanguageId")]
+    [InverseProperty("PostingAliasTranslations")]
+    public virtual Language Language { get; set; } = null!;
+
+    [ForeignKey("PostingAliasId")]
+    [InverseProperty("PostingAliasTranslations")]
+    public virtual PostingAlias PostingAlias { get; set; } = null!;
 }

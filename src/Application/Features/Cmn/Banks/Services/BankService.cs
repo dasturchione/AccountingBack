@@ -37,6 +37,7 @@ public class BankService : IBankService
             Code = dto.Code,
             Name = dto.Name,
             Mfo = dto.Mfo,
+            Inn = dto.Inn,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };
@@ -91,6 +92,7 @@ public class BankService : IBankService
         entity.Code = dto.Code;
         entity.Name = dto.Name;
         entity.Mfo = dto.Mfo;
+        entity.Inn = dto.Inn;
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);

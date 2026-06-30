@@ -25,4 +25,17 @@ public partial class PaymentPurpose
 
     [Column("requires_counterparty")]
     public bool RequiresCounterparty { get; set; }
+
+    [InverseProperty("PaymentPurpose")]
+    public virtual ICollection<PaymentPurposeTranslation> PaymentPurposeTranslations { get; set; } = new List<PaymentPurposeTranslation>();
+
+    [ForeignKey("AliasId")]
+    [InverseProperty("PaymentPurposes")]
+    public virtual PostingAlias Alias { get; set; } = null!;
+
+    [InverseProperty("PaymentPurpose")]
+    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
+
+    [InverseProperty("PaymentPurpose")]
+    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
 }

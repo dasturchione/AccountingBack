@@ -3,7 +3,7 @@ namespace Application.Features.SaleDocs;
 public class SaleDocUpdateDto : SaleDocBaseDto
 {
     public short StateId { get; set; }
-    public List<SaleDocUpdateProductDto> Products { get; set; } = new();
+    public List<SaleDocUpdateProductDto> Lines { get; set; } = new();
 }
 
 public class SaleDocUpdateProductDto

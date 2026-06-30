@@ -1,0 +1,95 @@
+-- Table: public.cmn_translation
+
+CREATE TABLE public.cmn_translation (
+    id bigint NOT NULL,
+    language_id smallint NOT NULL,
+    table_name character varying(100) NOT NULL,
+    record_id bigint NOT NULL,
+    column_name character varying(100) NOT NULL,
+    value text NOT NULL,
+    created_date timestamp without time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE public.cmn_translation_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.cmn_translation_id_seq OWNED BY public.cmn_translation.id;
+
+ALTER TABLE ONLY public.cmn_translation ALTER COLUMN id SET DEFAULT nextval('public.cmn_translation_id_seq'::regclass);
+
+insert into public.cmn_translation (id, language_id, table_name, record_id, column_name, value, created_date) values
+    ('1', '3', 'cmn_currency', '1', 'name', 'Uzbek sum', '2026-06-06 10:44:54.451195'),
+    ('2', '2', 'cmn_currency', '1', 'name', 'Узбекский сум', '2026-06-06 10:44:54.451195'),
+    ('3', '1', 'cmn_currency', '1', 'name', 'So''m', '2026-06-06 10:44:54.451195'),
+    ('4', '3', 'cmn_currency', '2', 'name', 'US Dollar', '2026-06-06 10:44:54.451195'),
+    ('5', '2', 'cmn_currency', '2', 'name', 'Доллар США', '2026-06-06 10:44:54.451195'),
+    ('6', '1', 'cmn_currency', '2', 'name', 'AQSH dollari', '2026-06-06 10:44:54.451195'),
+    ('7', '3', 'cmn_currency', '3', 'name', 'Russian Ruble', '2026-06-06 10:44:54.451195'),
+    ('8', '2', 'cmn_currency', '3', 'name', 'Российский рубль', '2026-06-06 10:44:54.451195'),
+    ('9', '1', 'cmn_currency', '3', 'name', 'Rossiya rubli', '2026-06-06 10:44:54.451195'),
+    ('10', '3', 'cmn_currency', '4', 'name', 'Euro', '2026-06-06 10:44:54.451195'),
+    ('11', '2', 'cmn_currency', '4', 'name', 'Евро', '2026-06-06 10:44:54.451195'),
+    ('12', '1', 'cmn_currency', '4', 'name', 'Yevro', '2026-06-06 10:44:54.451195'),
+    ('13', '3', 'cmn_unit', '1', 'name', 'Piece', '2026-06-06 10:44:54.451195'),
+    ('14', '2', 'cmn_unit', '1', 'name', 'Штука', '2026-06-06 10:44:54.451195'),
+    ('15', '1', 'cmn_unit', '1', 'name', 'Dona', '2026-06-06 10:44:54.451195'),
+    ('16', '3', 'cmn_unit', '2', 'name', 'Kilogram', '2026-06-06 10:44:54.451195'),
+    ('17', '2', 'cmn_unit', '2', 'name', 'Килограмм', '2026-06-06 10:44:54.451195'),
+    ('18', '1', 'cmn_unit', '2', 'name', 'Kilogram', '2026-06-06 10:44:54.451195'),
+    ('19', '3', 'cmn_unit', '3', 'name', 'Liter', '2026-06-06 10:44:54.451195'),
+    ('20', '2', 'cmn_unit', '3', 'name', 'Литр', '2026-06-06 10:44:54.451195'),
+    ('21', '1', 'cmn_unit', '3', 'name', 'Litr', '2026-06-06 10:44:54.451195'),
+    ('22', '3', 'cmn_unit', '4', 'name', 'Meter', '2026-06-06 10:44:54.451195'),
+    ('23', '2', 'cmn_unit', '4', 'name', 'Метр', '2026-06-06 10:44:54.451195'),
+    ('24', '1', 'cmn_unit', '4', 'name', 'Metr', '2026-06-06 10:44:54.451195'),
+    ('25', '3', 'cmn_unit', '5', 'name', 'Service', '2026-06-06 10:44:54.451195'),
+    ('26', '2', 'cmn_unit', '5', 'name', 'Услуга', '2026-06-06 10:44:54.451195'),
+    ('27', '1', 'cmn_unit', '5', 'name', 'Xizmat', '2026-06-06 10:44:54.451195'),
+    ('28', '3', 'cmn_document_status', '1', 'name', 'Draft', '2026-06-06 10:44:54.451195'),
+    ('29', '2', 'cmn_document_status', '1', 'name', 'Черновик', '2026-06-06 10:44:54.451195'),
+    ('30', '1', 'cmn_document_status', '1', 'name', 'Qoralama', '2026-06-06 10:44:54.451195'),
+    ('31', '3', 'cmn_document_status', '2', 'name', 'Posted', '2026-06-06 10:44:54.451195'),
+    ('32', '2', 'cmn_document_status', '2', 'name', 'Проведён', '2026-06-06 10:44:54.451195'),
+    ('33', '1', 'cmn_document_status', '2', 'name', 'O''tkazilgan', '2026-06-06 10:44:54.451195'),
+    ('34', '3', 'cmn_document_status', '3', 'name', 'Cancelled', '2026-06-06 10:44:54.451195'),
+    ('35', '2', 'cmn_document_status', '3', 'name', 'Отменён', '2026-06-06 10:44:54.451195'),
+    ('36', '1', 'cmn_document_status', '3', 'name', 'Bekor qilingan', '2026-06-06 10:44:54.451195'),
+    ('37', '3', 'cmn_counterparty_type', '1', 'name', 'Client', '2026-06-06 10:44:54.451195'),
+    ('38', '2', 'cmn_counterparty_type', '1', 'name', 'Клиент', '2026-06-06 10:44:54.451195'),
+    ('39', '1', 'cmn_counterparty_type', '1', 'name', 'Mijoz', '2026-06-06 10:44:54.451195'),
+    ('40', '3', 'cmn_counterparty_type', '2', 'name', 'Supplier', '2026-06-06 10:44:54.451195'),
+    ('41', '2', 'cmn_counterparty_type', '2', 'name', 'Поставщик', '2026-06-06 10:44:54.451195'),
+    ('42', '1', 'cmn_counterparty_type', '2', 'name', 'Yetkazib beruvchi', '2026-06-06 10:44:54.451195'),
+    ('43', '3', 'cmn_counterparty_type', '3', 'name', 'Client and supplier', '2026-06-06 10:44:54.451195'),
+    ('44', '2', 'cmn_counterparty_type', '3', 'name', 'Клиент и поставщик', '2026-06-06 10:44:54.451195'),
+    ('45', '1', 'cmn_counterparty_type', '3', 'name', 'Mijoz va yetkazib beruvchi', '2026-06-06 10:44:54.451195'),
+    ('46', '3', 'cmn_payment_type', '1', 'name', 'Cash', '2026-06-06 10:44:54.451195'),
+    ('47', '2', 'cmn_payment_type', '1', 'name', 'Наличные', '2026-06-06 10:44:54.451195'),
+    ('48', '1', 'cmn_payment_type', '1', 'name', 'Naqd', '2026-06-06 10:44:54.451195'),
+    ('49', '3', 'cmn_payment_type', '2', 'name', 'Bank', '2026-06-06 10:44:54.451195'),
+    ('50', '2', 'cmn_payment_type', '2', 'name', 'Банк', '2026-06-06 10:44:54.451195'),
+    ('51', '1', 'cmn_payment_type', '2', 'name', 'Bank', '2026-06-06 10:44:54.451195'),
+    ('52', '3', 'cmn_payment_type', '3', 'name', 'Card', '2026-06-06 10:44:54.451195'),
+    ('53', '2', 'cmn_payment_type', '3', 'name', 'Карта', '2026-06-06 10:44:54.451195'),
+    ('54', '1', 'cmn_payment_type', '3', 'name', 'Karta', '2026-06-06 10:44:54.451195'),
+    ('55', '3', 'cmn_payment_type', '4', 'name', 'Transfer', '2026-06-06 10:44:54.451195'),
+    ('56', '2', 'cmn_payment_type', '4', 'name', 'Перевод', '2026-06-06 10:44:54.451195'),
+    ('57', '1', 'cmn_payment_type', '4', 'name', 'O''tkazma', '2026-06-06 10:44:54.451195');
+
+SELECT pg_catalog.setval('public.cmn_translation_id_seq', 57, true);
+
+ALTER TABLE ONLY public.cmn_translation
+    ADD CONSTRAINT cmn_translation_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_cmn_translation_language_id ON public.cmn_translation USING btree (language_id);
+
+CREATE INDEX idx_cmn_translation_lookup ON public.cmn_translation USING btree (table_name, record_id, column_name);
+
+CREATE UNIQUE INDEX idx_cmn_translation_unique ON public.cmn_translation USING btree (language_id, table_name, record_id, column_name);
+
+ALTER TABLE ONLY public.cmn_translation
+    ADD CONSTRAINT cmn_translation_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.cmn_language(id);

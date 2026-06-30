@@ -1,0 +1,57 @@
+-- Table: public.cmn_pricing_condition
+
+CREATE TABLE public.cmn_pricing_condition (
+    id bigint NOT NULL,
+    organization_id integer NOT NULL,
+    pricing_method_id smallint NOT NULL,
+    pricing_value numeric(18,2) NOT NULL,
+    rounding_method_id smallint NOT NULL,
+    rounding_precision numeric(12,2) DEFAULT 1 NOT NULL,
+    start_date timestamp without time zone DEFAULT now() NOT NULL,
+    end_date timestamp without time zone,
+    state_id smallint NOT NULL,
+    created_date timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_cmn_pricing_condition_dates CHECK (((end_date IS NULL) OR (end_date >= start_date))),
+    CONSTRAINT ck_cmn_pricing_condition_pricing_value CHECK ((pricing_value >= (0)::numeric)),
+    CONSTRAINT ck_cmn_pricing_condition_rounding_precision CHECK ((rounding_precision > (0)::numeric))
+);
+
+CREATE SEQUENCE public.cmn_pricing_condition_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.cmn_pricing_condition_id_seq OWNED BY public.cmn_pricing_condition.id;
+
+ALTER TABLE ONLY public.cmn_pricing_condition ALTER COLUMN id SET DEFAULT nextval('public.cmn_pricing_condition_id_seq'::regclass);
+
+insert into public.cmn_pricing_condition (id, organization_id, pricing_method_id, pricing_value, rounding_method_id, rounding_precision, start_date, end_date, state_id, created_date) values
+    ('1', '8', '1', '10.00', '4', '100000.00', '2026-06-27 16:26:44', NULL, '2', '2026-06-27 16:29:09.970103'),
+    ('8', '8', '1', '10.00', '4', '1.00', '2026-06-01 00:00:00', NULL, '1', '2026-06-29 15:47:45.47747');
+
+SELECT pg_catalog.setval('public.cmn_pricing_condition_id_seq', 8, true);
+
+ALTER TABLE ONLY public.cmn_pricing_condition
+    ADD CONSTRAINT cmn_pricing_condition_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_cmn_pricing_condition_dates ON public.cmn_pricing_condition USING btree (start_date, end_date);
+
+CREATE INDEX idx_cmn_pricing_condition_organization_id ON public.cmn_pricing_condition USING btree (organization_id);
+
+CREATE INDEX idx_cmn_pricing_condition_pricing_method_id ON public.cmn_pricing_condition USING btree (pricing_method_id);
+
+CREATE INDEX idx_cmn_pricing_condition_rounding_method_id ON public.cmn_pricing_condition USING btree (rounding_method_id);
+
+ALTER TABLE ONLY public.cmn_pricing_condition
+    ADD CONSTRAINT cmn_pricing_condition_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.org_organization(id);
+
+ALTER TABLE ONLY public.cmn_pricing_condition
+    ADD CONSTRAINT cmn_pricing_condition_pricing_method_id_fkey FOREIGN KEY (pricing_method_id) REFERENCES public.cmn_pricing_method(id);
+
+ALTER TABLE ONLY public.cmn_pricing_condition
+    ADD CONSTRAINT cmn_pricing_condition_rounding_method_id_fkey FOREIGN KEY (rounding_method_id) REFERENCES public.cmn_price_rounding_method(id);
+
+ALTER TABLE ONLY public.cmn_pricing_condition
+    ADD CONSTRAINT cmn_pricing_condition_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.cmn_state(id);

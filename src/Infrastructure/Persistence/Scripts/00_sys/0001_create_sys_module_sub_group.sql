@@ -1,0 +1,43 @@
+-- Table: public.sys_module_sub_group
+
+CREATE TABLE public.sys_module_sub_group (
+    id integer NOT NULL,
+    code character varying(100) NOT NULL,
+    short_name character varying(250) NOT NULL,
+    full_name character varying(300) NOT NULL,
+    created_date timestamp without time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE public.sys_module_sub_group_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.sys_module_sub_group_id_seq OWNED BY public.sys_module_sub_group.id;
+
+ALTER TABLE ONLY public.sys_module_sub_group ALTER COLUMN id SET DEFAULT nextval('public.sys_module_sub_group_id_seq'::regclass);
+
+insert into public.sys_module_sub_group (id, code, short_name, full_name, created_date) values
+    ('1', 'SYS', 'Tizim', 'Tizim sozlamalari', '2026-06-08 11:44:36.687616'),
+    ('2', 'ORG', 'Tashkilot', 'Tashkilot boshqaruvi', '2026-06-08 11:44:36.687616'),
+    ('3', 'COUNTERPARTY', 'Kontragent', 'Kontragentlar', '2026-06-08 11:44:36.687616'),
+    ('4', 'INVENTORY', 'Inventar', 'Tovar va ombor', '2026-06-08 11:44:36.687616'),
+    ('5', 'BANK', 'Bank', 'Bank operatsiyalari', '2026-06-08 11:44:36.687616'),
+    ('6', 'CASH', 'Kassa', 'Kassa operatsiyalari', '2026-06-08 11:44:36.687616'),
+    ('7', 'PURCHASE', 'Xarid', 'Xarid hujjatlari', '2026-06-08 11:44:36.687616'),
+    ('8', 'SALE', 'Sotuv', 'Sotuv hujjatlari', '2026-06-08 11:44:36.687616'),
+    ('9', 'ACCOUNTING', 'Buxgalteriya', 'Buxgalteriya registrlari', '2026-06-08 11:44:36.687616'),
+    ('10', 'REGISTER', 'Registrlar', 'Qoldiq registrlari', '2026-06-08 11:44:36.687616'),
+    ('11', 'MANUAL', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlari', '2026-06-08 11:44:36.687616'),
+    ('12', 'PRICING_CONDITION', 'Narxlash qoidasi', 'Narxlash qoidasi', '2026-06-27 16:21:38.259971'),
+    ('13', 'SALE_CONDITION', 'Sotuv qoidasi', 'Sotuv qoidasi', '2026-06-27 16:21:38.259971');
+
+SELECT pg_catalog.setval('public.sys_module_sub_group_id_seq', 13, true);
+
+ALTER TABLE ONLY public.sys_module_sub_group
+    ADD CONSTRAINT sys_module_sub_group_pkey PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX sys_module_sub_group_unique_index_code ON public.sys_module_sub_group USING btree (code);

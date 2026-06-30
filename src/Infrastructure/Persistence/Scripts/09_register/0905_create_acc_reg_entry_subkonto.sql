@@ -1,0 +1,89 @@
+-- Table: public.acc_reg_entry_subkonto
+
+CREATE TABLE public.acc_reg_entry_subkonto (
+    id bigint NOT NULL,
+    entry_id bigint NOT NULL,
+    side character varying(2) NOT NULL,
+    subkonto_type_id smallint NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    entity_id bigint,
+    display_value character varying(500),
+    created_date timestamp without time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE public.acc_reg_entry_subkonto_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.acc_reg_entry_subkonto_id_seq OWNED BY public.acc_reg_entry_subkonto.id;
+
+ALTER TABLE ONLY public.acc_reg_entry_subkonto ALTER COLUMN id SET DEFAULT nextval('public.acc_reg_entry_subkonto_id_seq'::regclass);
+
+insert into public.acc_reg_entry_subkonto (id, entry_id, side, subkonto_type_id, sort_order, entity_id, display_value, created_date) values
+    ('763', '234', 'CR', '3', '4', '18', 'Artel', '2026-06-27 18:07:18.419193'),
+    ('764', '234', 'CR', '9', '5', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-27 18:07:18.419326'),
+    ('765', '234', 'DR', '1', '1', '23', 'ARTEL, икки камерали HD 316 FND ECO FROST қора-жилосиз ранг', '2026-06-27 18:07:18.419534'),
+    ('766', '234', 'DR', '2', '2', '7', 'amonov', '2026-06-27 18:07:18.419535'),
+    ('767', '234', 'DR', '10', '3', '92', '{"number":"PUR-2026-000001","date":"2026-06-27T18:05:43"}', '2026-06-27 18:07:18.419536'),
+    ('768', '235', 'CR', '3', '4', '18', 'Artel', '2026-06-27 18:07:18.419828'),
+    ('769', '235', 'CR', '9', '5', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-27 18:07:18.419829'),
+    ('770', '235', 'DR', '10', '3', '92', '{"number":"PUR-2026-000001","date":"2026-06-27T18:05:43"}', '2026-06-27 18:07:18.420028'),
+    ('771', '235', 'DR', '3', '4', '18', 'Artel', '2026-06-27 18:07:18.420029'),
+    ('772', '236', 'CR', '3', '2', '18', 'Artel', '2026-06-27 18:07:50.821664'),
+    ('773', '236', 'CR', '9', '3', '10', '{"number":"100000010","date":"2026-06-23T05:58:06"}', '2026-06-27 18:07:50.821666'),
+    ('774', '237', 'CR', '3', '2', '18', 'Artel', '2026-06-27 18:07:50.82171'),
+    ('775', '237', 'CR', '9', '3', '10', '{"number":"100000010","date":"2026-06-23T05:58:06"}', '2026-06-27 18:07:50.821711'),
+    ('776', '237', 'DR', '10', '1', '93', '{"number":"PUR-2026-000001","date":"2026-06-27T18:07:17"}', '2026-06-27 18:07:50.821713'),
+    ('777', '237', 'DR', '3', '2', '18', 'Artel', '2026-06-27 18:07:50.821714'),
+    ('778', '238', 'CR', '3', '2', '18', 'Artel', '2026-06-29 10:13:54.422262'),
+    ('779', '238', 'CR', '9', '3', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 10:13:54.422265'),
+    ('780', '239', 'CR', '3', '2', '18', 'Artel', '2026-06-29 10:13:54.42228'),
+    ('781', '239', 'CR', '9', '3', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 10:13:54.422282'),
+    ('782', '239', 'DR', '10', '1', '94', '{"number":"PUR-2026-000001","date":"2026-06-29T10:06:32"}', '2026-06-29 10:13:54.422286'),
+    ('783', '239', 'DR', '3', '2', '18', 'Artel', '2026-06-29 10:13:54.422288'),
+    ('784', '240', 'CR', '3', '4', '18', 'Artel', '2026-06-29 14:59:15.871554'),
+    ('785', '240', 'CR', '9', '5', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 14:59:15.87172'),
+    ('786', '240', 'DR', '1', '1', '23', 'ARTEL, икки камерали HD 316 FND ECO FROST қора-жилосиз ранг', '2026-06-29 14:59:15.871928'),
+    ('787', '240', 'DR', '2', '2', '7', 'amonov', '2026-06-29 14:59:15.87193'),
+    ('788', '240', 'DR', '10', '3', '95', '{"number":"PUR-2026-000001","date":"2026-06-15T14:58:00"}', '2026-06-29 14:59:15.871933'),
+    ('789', '241', 'CR', '3', '4', '18', 'Artel', '2026-06-29 14:59:15.872167'),
+    ('790', '241', 'CR', '9', '5', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 14:59:15.87217'),
+    ('791', '241', 'DR', '10', '3', '95', '{"number":"PUR-2026-000001","date":"2026-06-15T14:58:00"}', '2026-06-29 14:59:15.872368'),
+    ('792', '241', 'DR', '3', '4', '18', 'Artel', '2026-06-29 14:59:15.87237'),
+    ('793', '242', 'CR', '3', '4', '18', 'Artel', '2026-06-29 15:01:54.065364'),
+    ('794', '242', 'CR', '9', '5', '10', '{"number":"100000010","date":"2026-06-23T05:58:06"}', '2026-06-29 15:01:54.065366'),
+    ('795', '242', 'DR', '1', '1', '24', 'ARTEL, икки камерали HD 341 FND ECO FROST ёмғирли-асфалт ранг', '2026-06-29 15:01:54.065371'),
+    ('796', '242', 'DR', '2', '2', '7', 'amonov', '2026-06-29 15:01:54.065373'),
+    ('797', '242', 'DR', '10', '3', '96', '{"number":"PUR-2026-000001","date":"2026-06-29T14:59:15"}', '2026-06-29 15:01:54.065375'),
+    ('798', '243', 'CR', '3', '4', '18', 'Artel', '2026-06-29 15:01:54.065401'),
+    ('799', '243', 'CR', '9', '5', '10', '{"number":"100000010","date":"2026-06-23T05:58:06"}', '2026-06-29 15:01:54.065403'),
+    ('800', '243', 'DR', '10', '3', '96', '{"number":"PUR-2026-000001","date":"2026-06-29T14:59:15"}', '2026-06-29 15:01:54.065407'),
+    ('801', '243', 'DR', '3', '4', '18', 'Artel', '2026-06-29 15:01:54.065409'),
+    ('802', '244', 'CR', '3', '2', '18', 'Artel', '2026-06-29 17:57:52.698151'),
+    ('803', '244', 'CR', '9', '3', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 17:57:52.698316'),
+    ('804', '245', 'CR', '3', '2', '18', 'Artel', '2026-06-29 17:57:52.69854'),
+    ('805', '245', 'CR', '9', '3', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 17:57:52.698543'),
+    ('806', '245', 'DR', '10', '1', '97', '{"number":"PUR-2026-000001","date":"2026-06-29T17:55:00"}', '2026-06-29 17:57:52.698858'),
+    ('807', '245', 'DR', '3', '2', '18', 'Artel', '2026-06-29 17:57:52.698862');
+
+SELECT pg_catalog.setval('public.acc_reg_entry_subkonto_id_seq', 807, true);
+
+ALTER TABLE ONLY public.acc_reg_entry_subkonto
+    ADD CONSTRAINT acc_reg_entry_subkonto_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_acc_reg_entry_subkonto_entity ON public.acc_reg_entry_subkonto USING btree (subkonto_type_id, entity_id);
+
+CREATE INDEX idx_acc_reg_entry_subkonto_entry_id ON public.acc_reg_entry_subkonto USING btree (entry_id);
+
+CREATE INDEX idx_acc_reg_entry_subkonto_side ON public.acc_reg_entry_subkonto USING btree (side);
+
+CREATE INDEX idx_acc_reg_entry_subkonto_type_id ON public.acc_reg_entry_subkonto USING btree (subkonto_type_id);
+
+ALTER TABLE ONLY public.acc_reg_entry_subkonto
+    ADD CONSTRAINT acc_reg_entry_subkonto_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES public.acc_reg_entry(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.acc_reg_entry_subkonto
+    ADD CONSTRAINT acc_reg_entry_subkonto_subkonto_type_id_fkey FOREIGN KEY (subkonto_type_id) REFERENCES public.acc_subkonto_type(id);

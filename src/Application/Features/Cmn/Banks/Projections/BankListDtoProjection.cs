@@ -13,6 +13,7 @@ public class BankListDtoProjection : IProjectionBuilder<Bank, BankListDto>
             Code = x.Code,
             Name = x.Name,
             Mfo = x.Mfo,
+            Inn = x.Inn,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate

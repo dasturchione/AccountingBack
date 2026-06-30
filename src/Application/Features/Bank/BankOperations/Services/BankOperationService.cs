@@ -119,6 +119,7 @@ public class BankOperationService : IBankOperationService
         entity.PaymentTypeId = 2;
         entity.CounterpartyId = dto.CounterpartyId;
         entity.DocDate = dto.DocDate;
+        entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
         entity.CurrencyId = dto.CurrencyId;
         entity.Amount = dto.Amount;
         entity.Comment = dto.Comment;
@@ -156,6 +157,7 @@ public class BankOperationService : IBankOperationService
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
             Comment = dto.Comment,
+            CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             StatusId = DocumentStatusIdConst.POSTED,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now

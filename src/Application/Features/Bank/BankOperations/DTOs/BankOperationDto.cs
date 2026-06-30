@@ -9,6 +9,10 @@ public class BankOperationDto
     public string BankAccountNumber { get; set; } = null!;
     public string BankAccountName { get; set; } = null!;
     public string? BankAccountInn { get; set; }
+    public int BankId { get; set; }
+    public string BankName { get; set; } = null!;
+    public string? BankMfo { get; set; }
+    public string? BankInn { get; set; }
     public short OperationTypeId { get; set; }
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }

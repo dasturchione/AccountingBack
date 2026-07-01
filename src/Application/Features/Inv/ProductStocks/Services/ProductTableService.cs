@@ -15,15 +15,18 @@ public class ProductStockService : IProductStockService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductTable> _query;
+    private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
     public ProductStockService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<ProductTable> query,
+                               IQueryRepository<Product> productQuery,
                                IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
                                IProductPriceCalculateService priceCalculateService)
     {
         _query                  = query;
+        _productQuery           = productQuery;
         _userContext            = userContext;
         _queryBuilder           = queryBuilder;
         _priceCalculateService  = priceCalculateService;
@@ -96,6 +99,7 @@ public class ProductStockService : IProductStockService
         var inStockEntities = await GetInStockEntitiesAsync(ct);
         var priceMap = await GetPriceMapAsync(inStockEntities, ct);
         var costPriceMap = await GetCostPriceMapAsync(inStockEntities, ct);
+        var serviceProducts = await GetServiceProductsAsync(filter, ct);
 
         if (filter.ProductGroupId.HasValue)
             inStockEntities = inStockEntities.Where(x => x.Product.ProductGroupId == filter.ProductGroupId.Value).ToList();
@@ -106,7 +110,7 @@ public class ProductStockService : IProductStockService
                 .ToList();
 
         var items = inStockEntities
-            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.Mxik, x.Product.ProductGroup, x.Product.Unit, x.Product.Unit.Code, x.Product.UnitId })
+            .GroupBy(x => new { x.ProductId, x.Product.Name, x.Product.Barcode, x.Product.Mxik, x.Product.ProductGroup, x.Product.Unit, x.Product.Unit.Code, x.Product.UnitId, x.Product.IsService })
             .Select(g => 
             {
                 var price = priceMap.GetValueOrDefault(g.Key.ProductId);
@@ -122,6 +126,7 @@ public class ProductStockService : IProductStockService
                     UnitName         = g.Key.Unit.Name,
                     UnitCode         = g.Key.Unit.Code,
                     UnitId           = g.Key.UnitId,
+                    IsService        = g.Key.IsService,
                     Quantity         = qty,
                     Price            = price,
                     CostPrice        = qty > 0 ? Math.Round(totalCostAmount / qty, 2) : 0,
@@ -129,6 +134,9 @@ public class ProductStockService : IProductStockService
             })
             .OrderBy(x => x.Name)
             .ToList();
+
+        items.AddRange(serviceProducts);
+        items = items.OrderBy(x => x.Name).ToList();
 
         var pagedList = new PagedList<ProductStockDto>(items, items.Count);
 
@@ -184,6 +192,45 @@ public class ProductStockService : IProductStockService
         });
 
         return await _query.GetAllAsync(query, ct);
+    }
+
+    private async Task<List<ProductStockDto>> GetServiceProductsAsync(ProductStockFilter filter, CancellationToken ct)
+    {
+        if (_userContext.OrganizationId is null)
+            return new List<ProductStockDto>();
+
+        var orgId = _userContext.OrganizationId.Value;
+        var query = _queryBuilder.For<Product>()
+            .Where(x => x.OrganizationId == orgId &&
+                        x.IsService &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        (!filter.ProductGroupId.HasValue || x.ProductGroupId == filter.ProductGroupId.Value) &&
+                        (string.IsNullOrEmpty(filter.Search) || x.Name.Contains(filter.Search)))
+            .Build();
+
+        query.AddIncludes(b =>
+        {
+            b.Include(x => x.ProductGroup);
+            b.Include(x => x.Unit);
+        });
+
+        var products = await _productQuery.GetAllAsync(query, ct);
+
+        return products.Select(product => new ProductStockDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Barcode = product.Barcode,
+            Mxik = product.Mxik,
+            ProductGroupName = product.ProductGroup?.Name,
+            UnitId = product.UnitId,
+            UnitCode = product.Unit.Code,
+            UnitName = product.Unit.Name,
+            IsService = true,
+            Quantity = 0,
+            Price = 0,
+            CostPrice = 0,
+        }).ToList();
     }
 
     private async Task<Dictionary<int, decimal>> GetPriceMapAsync(List<ProductTable> entities, CancellationToken ct)

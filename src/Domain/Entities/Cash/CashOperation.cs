@@ -26,6 +26,9 @@ public partial class CashOperation
     [Column("cash_box_id")]
     public int CashBoxId { get; set; }
 
+    [Column("destination_cash_box_id")]
+    public int? DestinationCashBoxId { get; set; }
+
     [Column("operation_type_id")]
     public short OperationTypeId { get; set; }
 
@@ -81,6 +84,9 @@ public partial class CashOperation
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperations")]
     public virtual CashBox CashBox { get; set; } = null!;
+
+    [ForeignKey("DestinationCashBoxId")]
+    public virtual CashBox? DestinationCashBox { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CashOperations")]

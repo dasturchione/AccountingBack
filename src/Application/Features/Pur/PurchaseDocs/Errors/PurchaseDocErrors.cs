@@ -102,6 +102,41 @@ public static class PurchaseDocErrors
             _ => $"Draft item rows for purchase document with id {id} are not ready for confirmation."
         });
 
+    public static Error ProductNotFound(int productId, short? languageId = null) =>
+        Error.NotFound("PurchaseDoc.ProductNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {productId} bo'lgan mahsulot topilmadi.",
+            _ => $"Product with id {productId} was not found."
+        });
+
+    public static Error ServiceItemsNotAllowed(int productId, short? languageId = null) =>
+        Error.Business("PurchaseDoc.ServiceItemsNotAllowed", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {productId} bo'lgan xizmat uchun marking/serial itemlar kiritilmasligi kerak.",
+            _ => $"Service product id {productId} must not contain marking or serial items."
+        });
+
+    public static Error MissingAccountingRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("PurchaseDoc.MissingAccountingRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan xarid hujjati uchun buxgalteriya registr yozuvlari topilmadi.",
+            _ => $"Accounting register entries were not found for purchase document with id {id}."
+        });
+
+    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("PurchaseDoc.MissingInventoryRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan xarid hujjati uchun ombor registr yozuvlari to'liq emas.",
+            _ => $"Inventory register entries are missing or incomplete for purchase document with id {id}."
+        });
+
+    public static Error MissingCounterpartyRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("PurchaseDoc.MissingCounterpartyRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan xarid hujjati uchun kontragent registr yozuvlari topilmadi.",
+            _ => $"Counterparty register entries were not found for purchase document with id {id}."
+        });
+
     public static Error HasLines(long id, short? languageId = null) =>
         Error.Conflict("PurchaseDoc.HasLines", languageId switch
         {

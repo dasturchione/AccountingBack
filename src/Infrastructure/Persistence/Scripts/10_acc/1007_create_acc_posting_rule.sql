@@ -26,10 +26,11 @@ insert into public.acc_posting_rule (id, code, name) values
     ('5', 'DEBIT_OPERATION', 'Банковская/кассовая операция — приход'),
     ('6', 'CREDIT_OPERATION', 'Банковская/кассовая операция — расход');
 
-SELECT pg_catalog.setval('public.acc_posting_rule_id_seq', 6, true);
+SELECT pg_catalog.setval('public.acc_posting_rule_id_seq', 7, true);
 
 ALTER TABLE ONLY public.acc_posting_rule
     ADD CONSTRAINT acc_posting_rule_code_key UNIQUE (code);
 
 ALTER TABLE ONLY public.acc_posting_rule
     ADD CONSTRAINT acc_posting_rule_pkey PRIMARY KEY (id);
+insert into public.acc_posting_rule (id, code, name) values ('7', 'CASH_TRANSFER', 'Kassoviy perevod');

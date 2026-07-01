@@ -25,10 +25,6 @@ namespace Application.Features.Pur.PurchaseDocs
             RuleFor(x => x.Quantity).GreaterThan(0);
             RuleFor(x => x.UnitId).GreaterThan((short)0);
             RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0);
-            RuleFor(x => x.Items).NotEmpty();
-            RuleFor(x => x)
-                .Must(x => x.Quantity == x.Items.Count)
-                .WithMessage("Quantity must match Items count.");
             RuleForEach(x => x.Items).SetValidator(new PurchaseDocLineItemDtoValidator());
         }
     }

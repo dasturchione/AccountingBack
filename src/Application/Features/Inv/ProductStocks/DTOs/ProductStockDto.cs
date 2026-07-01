@@ -10,6 +10,7 @@ public class ProductStockDto
     public short UnitId { get; set; } 
     public string UnitCode { get; set; } = null!;
     public string UnitName { get; set; } = null!;
+    public bool IsService { get; set; }
     public int Quantity { get; set; }
     public decimal Price { get; set; }
     public decimal CostPrice { get; set; }

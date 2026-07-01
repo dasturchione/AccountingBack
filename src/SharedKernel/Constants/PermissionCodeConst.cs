@@ -151,6 +151,8 @@ public static class PermissionCodeConst
     public const string CashOperationCreate     = "CASH_OPERATION_CREATE";
     public const string CashOperationUpdate     = "CASH_OPERATION_UPDATE";
     public const string CashOperationDelete     = "CASH_OPERATION_DELETE";
+    public const string ConfirmCashOperation = "CONFIRM_CASH_OPERATION";
+    public const string CancelCashOperation  = "CANCEL_CASH_OPERATION";
     #endregion
 
     #region PurchaseDoc
@@ -159,6 +161,8 @@ public static class PermissionCodeConst
     public const string PurchaseDocCreate     = "PURCHASE_DOC_CREATE";
     public const string PurchaseDocUpdate     = "PURCHASE_DOC_UPDATE";
     public const string PurchaseDocDelete     = "PURCHASE_DOC_DELETE";
+    public const string ConfirmPurchase       = "CONFIRM_PURCHASE";
+    public const string CancelPurchase        = "CANCEL_PURCHASE";
     #endregion
 
     #region PurchaseDocTable
@@ -183,6 +187,8 @@ public static class PermissionCodeConst
     public const string SaleDocCreate     = "SALE_DOC_CREATE";
     public const string SaleDocUpdate     = "SALE_DOC_UPDATE";
     public const string SaleDocDelete     = "SALE_DOC_DELETE";
+    public const string ConfirmSale       = "CONFIRM_SALE";
+    public const string CancelSale        = "CANCEL_SALE";
     #endregion
 
     #region SaleDocTable

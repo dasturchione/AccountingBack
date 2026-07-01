@@ -71,5 +71,15 @@
         /// Asset write-off account (inventory, materials, fixed assets, etc.).
         /// </summary>
         public const string AssetWriteOff = "AssetWriteOff";
+
+        /// <summary>
+        /// Cash transfer source cashbox.
+        /// </summary>
+        public const string CashBoxSource = "CashBoxSource";
+
+        /// <summary>
+        /// Cash transfer destination cashbox.
+        /// </summary>
+        public const string CashBoxDestination = "CashBoxDestination";
     }
 }

@@ -68,7 +68,7 @@ public class PurchaseDocController : ControllerBase
     /// Hujjatni tasdiqlash va biznes registrlarga o'tkazish
     /// </summary>
     [HttpPut("{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.PurchaseDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.ConfirmPurchase)]
     public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.ConfirmAsync(id, ct);
@@ -79,7 +79,7 @@ public class PurchaseDocController : ControllerBase
     /// Hujjatni bekor qilish va o'tkazmalarni storno qilish
     /// </summary>
     [HttpPut("{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.PurchaseDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.CancelPurchase)]
     public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.CancelAsync(id, ct);

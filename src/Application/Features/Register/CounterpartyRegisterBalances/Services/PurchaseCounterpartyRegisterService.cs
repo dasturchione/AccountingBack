@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Features.PurchaseDocs;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -47,6 +48,9 @@ public class PurchaseCounterpartyRegisterService : IPurchaseCounterpartyRegister
     public async Task<Result<List<CounterpartyRegisterBalance>>> ReverseAsync(PurchaseDoc purchase, long postingBatchId, CancellationToken ct = default)
     {
         var originalEntries = await GetOriginalEntriesAsync(purchase.Id, ct);
+        if (originalEntries.Count == 0)
+            return Result.Failure<List<CounterpartyRegisterBalance>>(
+                PurchaseDocErrors.MissingCounterpartyRegisterEntries(purchase.Id, null));
         var now = DateTime.Now;
 
         var reversalEntries = originalEntries.Select(entry => new CounterpartyRegisterBalance

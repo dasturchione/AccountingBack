@@ -35,6 +35,7 @@ CREATE INDEX idx_sale_doc_table_product_id ON public.sale_doc_table USING btree 
 CREATE INDEX idx_sale_doc_table_vat_rate_id ON public.sale_doc_table USING btree (vat_rate_id);
 
 CREATE INDEX ix_sale_doc_table_owner_id ON public.sale_doc_table USING btree (owner_id);
+CREATE UNIQUE INDEX ux_sale_doc_table_owner_product_table ON public.sale_doc_table USING btree (owner_id, product_table_id);
 
 ALTER TABLE ONLY public.sale_doc_table
     ADD CONSTRAINT sale_doc_table_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.sale_doc_product(id);

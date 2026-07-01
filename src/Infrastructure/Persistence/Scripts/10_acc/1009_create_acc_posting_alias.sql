@@ -47,8 +47,10 @@ insert into public.acc_posting_alias (id, code, name) values (26, 'TaxOther', 'B
 insert into public.acc_posting_alias (id, code, name) values (27, 'SocialInsurance', 'Ijtimoiy soliq (YaIJ)');
 insert into public.acc_posting_alias (id, code, name) values (28, 'PensionFund', 'INPS');
 insert into public.acc_posting_alias (id, code, name) values (29, 'BankFee', 'Bank komissiyasi');
+insert into public.acc_posting_alias (id, code, name) values (30, 'CashBoxSource', 'Naqd pulni hisobvaraqlari (keluvchi)');
+insert into public.acc_posting_alias (id, code, name) values (31, 'CashBoxDestination', 'Naqd pulni hisobvaraqlari (chiquvchi)');
 
-SELECT pg_catalog.setval('public.acc_posting_alias_id_seq', 29, true);
+SELECT pg_catalog.setval('public.acc_posting_alias_id_seq', 31, true);
 
 ALTER TABLE ONLY public.acc_posting_alias
     ADD CONSTRAINT acc_posting_alias_code_key UNIQUE (code);

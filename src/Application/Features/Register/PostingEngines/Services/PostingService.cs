@@ -191,6 +191,11 @@ namespace Application.Features.Register.PostingEngines
                                          x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
                              .ToList();
                     break;
+                case AliasConst.CashBoxSource:
+                case AliasConst.CashBoxDestination:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+                             .ToList();
+                    break;
             };
 
             return result;
@@ -201,6 +206,7 @@ namespace Application.Features.Register.PostingEngines
             {
                 PostingRuleIdConst.PURCHASE_GOODS or PostingRuleIdConst.PURCHASE_SERVICE => DocumentTypeIdConst.PURCHASE,
                 PostingRuleIdConst.SALE_GOODS or PostingRuleIdConst.SALE_SERVICE => DocumentTypeIdConst.SALE,
+                PostingRuleIdConst.DEBIT_OPERATION or PostingRuleIdConst.CREDIT_OPERATION or PostingRuleIdConst.CASH_TRANSFER => DocumentTypeIdConst.CASHOPERATION,
                 
                 _ => ruleId
             };

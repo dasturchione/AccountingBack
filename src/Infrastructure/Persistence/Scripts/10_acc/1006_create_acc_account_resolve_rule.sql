@@ -40,9 +40,11 @@ insert into public.acc_account_resolve_rule (id, policy_id, alias, dimension_key
     ('30', '1', 'ServiceRevenue', '_none', '_default', '1044', '100'),
     ('31', '1', 'CostOfService', '_none', '_default', '1031', '100'),
     ('32', '1', 'AssetWriteOff', 'assetType', 'inventory', '1014', '10'),
-    ('33', '1', 'AssetWriteOff', 'assetType', '_default', '1014', '100');
+    ('33', '1', 'AssetWriteOff', 'assetType', '_default', '1014', '100'),
+    ('34', '1', 'CashBoxSource', '_none', '_default', '1027', '100'),
+    ('35', '1', 'CashBoxDestination', '_none', '_default', '1027', '100');
 
-SELECT pg_catalog.setval('public.acc_account_resolve_rule_id_seq', 33, true);
+SELECT pg_catalog.setval('public.acc_account_resolve_rule_id_seq', 35, true);
 
 ALTER TABLE ONLY public.acc_account_resolve_rule
     ADD CONSTRAINT acc_account_resolve_rule_pkey PRIMARY KEY (id);

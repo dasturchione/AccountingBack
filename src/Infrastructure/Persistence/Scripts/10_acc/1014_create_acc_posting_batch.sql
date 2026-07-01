@@ -5,7 +5,7 @@ CREATE TABLE public.acc_posting_batch (
     organization_id integer NOT NULL,
     document_type_id smallint NOT NULL,
     document_id bigint NOT NULL,
-    status character varying(30) DEFAULT 'posted'::character varying NOT NULL,
+    status character varying(30) DEFAULT 'POSTED'::character varying NOT NULL,
     posted_by_user_id integer,
     posted_at timestamp without time zone DEFAULT now() NOT NULL,
     reversed_by_user_id integer,
@@ -28,6 +28,10 @@ ALTER TABLE ONLY public.acc_posting_batch
     ADD CONSTRAINT acc_posting_batch_pkey PRIMARY KEY (id);
 
 CREATE INDEX idx_acc_posting_batch_document ON public.acc_posting_batch USING btree (document_type_id, document_id);
+
+CREATE UNIQUE INDEX ux_acc_posting_batch_document_posted ON public.acc_posting_batch USING btree (document_type_id, document_id) WHERE (status = 'POSTED');
+
+CREATE UNIQUE INDEX ux_acc_posting_batch_document_reversal ON public.acc_posting_batch USING btree (document_type_id, document_id) WHERE (status = 'REVERSAL');
 
 CREATE INDEX idx_acc_posting_batch_organization_id ON public.acc_posting_batch USING btree (organization_id);
 

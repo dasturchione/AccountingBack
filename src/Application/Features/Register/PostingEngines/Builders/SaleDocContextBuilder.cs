@@ -10,16 +10,19 @@ namespace Application.Features.Register.PostingEngines
     {
         private readonly IQueryBuilder _queryBuilder;
         private readonly IQueryRepository<ProductTable> _productTableQuery;
+        private readonly IQueryRepository<Product> _productQuery;
         private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
         private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
 
         public SaleDocContextBuilder(IQueryBuilder queryBuilder,
                                      IQueryRepository<ProductTable> productTableQuery,
+                                     IQueryRepository<Product> productQuery,
                                      IQueryRepository<CounterpartyCard> counterpartyQuery,
                                      IQueryRepository<PurchaseDocTable> purchaseDocTableQuery)
         {
             _queryBuilder = queryBuilder;
             _productTableQuery = productTableQuery;
+            _productQuery = productQuery;
             _counterpartyQuery = counterpartyQuery;
             _purchaseDocTableQuery = purchaseDocTableQuery;
         }
@@ -27,12 +30,15 @@ namespace Application.Features.Register.PostingEngines
         public async Task<List<PostingContext>> BuildAsync(SaleDoc document)
         {
             var result = new List<PostingContext>();
-            var saleTables = document.SaleDocProducts?
+            var productLines = document.SaleDocProducts?.ToList() ?? new List<SaleDocProduct>();
+            var serviceProductIds = await GetServiceProductIdsAsync(productLines.Select(x => x.ProductId).Distinct().ToList());
+            var saleTables = productLines
+                .Where(x => !serviceProductIds.Contains(x.ProductId))
                 .SelectMany(x => x.SaleDocTables)
                 .ToList() ?? new List<SaleDocTable>();
-
-            if (saleTables.Count == 0)
-                return result;
+            var serviceLines = productLines
+                .Where(x => serviceProductIds.Contains(x.ProductId))
+                .ToList();
 
             var counterpartyName = await GetCounterpartyNameAsync(document.CounterpartyId);
             var productTableIds = saleTables.Select(x => x.ProductTableId).Distinct().ToList();
@@ -41,6 +47,7 @@ namespace Application.Features.Register.PostingEngines
 
             result.AddRange(BuildCostContexts(document, saleTables, productTableMap, lastPurchases));
             result.AddRange(BuildSaleContexts(document, saleTables, counterpartyName));
+            result.AddRange(BuildServiceContexts(document, serviceLines, counterpartyName));
 
             return result;
         }
@@ -80,6 +87,62 @@ namespace Application.Features.Register.PostingEngines
             return salePurchaseSources
                 .GroupBy(x => new { x.ProductId, x.PurchaseId })
                 .Select(group => BuildCostContext(document, group.ToList()))
+                .ToList();
+        }
+
+        private List<PostingContext> BuildServiceContexts(SaleDoc document, List<SaleDocProduct> serviceLines, string counterpartyName)
+        {
+            return serviceLines
+                .GroupBy(x => x.VatRateId)
+                .Select(group =>
+                {
+                    var baseAmount = group.Sum(x => x.Amount);
+                    var vatAmount = group.Sum(x => x.VatAmount);
+                    var costAmount = group.Sum(x => x.CostPrice);
+                    var amounts = new Dictionary<string, decimal>
+                    {
+                        [AmountSourceConst.Base] = baseAmount,
+                        [AmountSourceConst.VAT] = vatAmount
+                    };
+
+                    if (costAmount > 0m)
+                        amounts[AmountSourceConst.Cost] = costAmount;
+
+                    return new PostingContext
+                    {
+                        OrganizationId = document.OrganizationId,
+                        AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                        RuleId = PostingRuleIdConst.SALE_SERVICE,
+                        DocumentId = document.Id,
+                        DocDate = document.DocDate,
+                        CurrencyId = document.CurrencyId,
+                        JournalNumber = document.DocNumber,
+                        ServiceType = "_default",
+                        Amounts = amounts,
+                        Subkontos = new List<SubkontoValue>
+                        {
+                            new()
+                            {
+                                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                                DisplayValue = counterpartyName,
+                                EntityId = document.CounterpartyId,
+                                SortOrder = 1
+                            },
+                            new()
+                            {
+                                SubkontoTypeId = SubkontoTypeIdConst.SALE,
+                                DisplayValue = JsonSerializer.Serialize(new
+                                {
+                                    number = document.DocNumber,
+                                    date = document.DocDate,
+                                    vatRateId = group.Key
+                                }),
+                                EntityId = document.Id,
+                                SortOrder = 2
+                            }
+                        }
+                    };
+                })
                 .ToList();
         }
 
@@ -213,6 +276,20 @@ namespace Application.Features.Register.PostingEngines
 
             var productTables = await _productTableQuery.GetAllAsync(productTableQuery);
             return productTables.ToDictionary(x => x.TableId, x => x);
+        }
+
+        private async Task<HashSet<int>> GetServiceProductIdsAsync(List<int> productIds)
+        {
+            if (productIds.Count == 0)
+                return new HashSet<int>();
+
+            var query = _queryBuilder.For<Product>()
+                .Where(x => productIds.Contains(x.Id) && x.IsService)
+                .As(x => x.Id)
+                .Build();
+
+            var serviceProductIds = await _productQuery.GetAllAsync(query);
+            return serviceProductIds.ToHashSet();
         }
 
         private async Task<string> GetCounterpartyNameAsync(int counterpartyId)

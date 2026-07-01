@@ -7,6 +7,5 @@ public class CashOperationUpdateDtoValidator : AbstractValidator<CashOperationUp
     public CashOperationUpdateDtoValidator()
     {
         Include(new CashOperationBaseDtoValidator());
-        RuleFor(x => x.StateId).GreaterThan((short)0);
     }
 }

@@ -8,7 +8,10 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
 {
     public Task<Result<List<RegisterBalance>>> HandleAsync(SaleDoc sale, CancellationToken ct = default)
     {
-        var allTables = sale.SaleDocProducts.SelectMany(p => p.SaleDocTables).ToList();
+        var allTables = sale.SaleDocProducts
+            .Where(p => !p.Product.IsService)
+            .SelectMany(p => p.SaleDocTables)
+            .ToList();
 
         var entries = allTables.Select(line => new RegisterBalance
         {
@@ -21,7 +24,8 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
             Quantity        = 1,
             Amount          = line.CostPrice,
             DocDate         = sale.DocDate,
-            CreatedDate     = DateTime.Now
+            CreatedDate     = DateTime.Now,
+            SourceLineId    = line.Id
         }).ToList();
 
         return Task.FromResult(Result.Success(entries));

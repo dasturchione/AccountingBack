@@ -4,6 +4,7 @@ CREATE TABLE public.cash_operation (
     id bigint NOT NULL,
     organization_id integer NOT NULL,
     cash_box_id integer NOT NULL,
+    destination_cash_box_id integer,
     operation_type_id smallint NOT NULL,
     payment_type_id smallint,
     counterparty_id integer,
@@ -57,6 +58,7 @@ ALTER TABLE ONLY public.cash_operation
     ADD CONSTRAINT cash_operation_pkey PRIMARY KEY (id);
 
 CREATE INDEX idx_cash_operation_cash_box_id ON public.cash_operation USING btree (cash_box_id);
+CREATE INDEX idx_cash_operation_destination_cash_box_id ON public.cash_operation USING btree (destination_cash_box_id);
 
 CREATE INDEX idx_cash_operation_counterparty_id ON public.cash_operation USING btree (counterparty_id);
 
@@ -74,6 +76,9 @@ CREATE TRIGGER set_cash_operation_doc_number_trigger BEFORE INSERT ON public.cas
 
 ALTER TABLE ONLY public.cash_operation
     ADD CONSTRAINT cash_operation_cash_box_id_fkey FOREIGN KEY (cash_box_id) REFERENCES public.cash_box(id);
+
+ALTER TABLE ONLY public.cash_operation
+    ADD CONSTRAINT cash_operation_destination_cash_box_id_fkey FOREIGN KEY (destination_cash_box_id) REFERENCES public.cash_box(id);
 
 ALTER TABLE ONLY public.cash_operation
     ADD CONSTRAINT cash_operation_counterparty_id_fkey FOREIGN KEY (counterparty_id) REFERENCES public.counterparty_card(id);

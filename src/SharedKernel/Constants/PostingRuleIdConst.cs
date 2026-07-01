@@ -13,5 +13,7 @@
 		public const short DEBIT_OPERATION = 5;
 
 		public const short CREDIT_OPERATION = 6;
+
+		public const short CASH_TRANSFER = 7;
     }
 }

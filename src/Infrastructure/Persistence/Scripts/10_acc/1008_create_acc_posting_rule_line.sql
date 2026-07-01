@@ -45,10 +45,11 @@ insert into public.acc_posting_rule_line (id, template_id, order_number, debit_a
     ('20', '6', '1', 'TaxAuthority', 'PaymentAccount', 'Total', 't'),
     ('21', '6', '1', 'LoanGiven', 'PaymentAccount', 'Total', 't');
 
-SELECT pg_catalog.setval('public.acc_posting_rule_line_id_seq', 21, true);
+SELECT pg_catalog.setval('public.acc_posting_rule_line_id_seq', 22, true);
 
 ALTER TABLE ONLY public.acc_posting_rule_line
     ADD CONSTRAINT acc_posting_rule_line_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.acc_posting_rule_line
     ADD CONSTRAINT acc_posting_rule_line_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.acc_posting_rule(id);
+insert into public.acc_posting_rule_line (id, template_id, order_number, debit_alias, credit_alias, amount_source, is_optional) values ('22', '7', '1', 'CashBoxSource', 'CashBoxDestination', 'Total', 'f');

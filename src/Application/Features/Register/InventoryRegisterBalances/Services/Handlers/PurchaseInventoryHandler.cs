@@ -10,6 +10,7 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
     public Task<Result<List<RegisterBalance>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
     {
         var entries = purchase.PurchaseDocProducts
+            .Where(line => !line.Product.IsService)
             .SelectMany(line => line.PurchaseDocTables.Select(table => new RegisterBalance
             {
                 OrganizationId  = purchase.OrganizationId,

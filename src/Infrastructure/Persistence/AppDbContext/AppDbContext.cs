@@ -89,6 +89,23 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PostingBatch>()
+            .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
+            .HasDatabaseName("ux_acc_posting_batch_document_posted")
+            .IsUnique()
+            .HasFilter("status = 'POSTED'");
+
+        modelBuilder.Entity<PostingBatch>()
+            .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
+            .HasDatabaseName("ux_acc_posting_batch_document_reversal")
+            .IsUnique()
+            .HasFilter("status = 'REVERSAL'");
+
+        modelBuilder.Entity<SaleDocTable>()
+            .HasIndex(x => new { x.OwnerId, x.ProductTableId })
+            .HasDatabaseName("ux_sale_doc_table_owner_product_table")
+            .IsUnique();
+
         modelBuilder.Entity<OrganizationConfig>()
             .HasOne(x => x.Organization)
             .WithOne(x => x.OrganizationConfig)

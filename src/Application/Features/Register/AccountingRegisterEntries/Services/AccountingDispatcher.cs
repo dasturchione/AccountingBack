@@ -12,16 +12,19 @@ namespace Application.Features.Register.AccountingRegisterEntries
         private readonly IUserContext _userContext;
         private readonly IPostingContextDispatcher _postingContextDispatcher;
         private readonly IPostingService _postingService;
+        private readonly IAccountingPostingValidator _postingValidator;
         private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
 
         public AccountingDispatcher(IUserContext userContext,
                                     IPostingContextDispatcher postingContextDispatcher,
                                     IPostingService postingService,
+                                    IAccountingPostingValidator postingValidator,
                                     ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand)
         {
             _userContext = userContext;
             _postingContextDispatcher = postingContextDispatcher;
             _postingService = postingService;
+            _postingValidator = postingValidator;
             _accountingRegisterCommand = accountingRegisterCommand;
         }
 
@@ -44,6 +47,10 @@ namespace Application.Features.Register.AccountingRegisterEntries
                     foreach (var entry in accountingEntries)
                         entry.PostingBatchId = postingBatchId.Value;
                 }
+
+                var validation = _postingValidator.Validate(accountingEntries);
+                if (!validation.IsSuccess)
+                    return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
 
                 if (accountingEntries.Count > 0)
                     await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);

@@ -266,6 +266,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("counterparty-bank-accounts")]
+    public async Task<IActionResult> GetCounterpartyBankAccounts([FromQuery] int? counterpartyId, [FromQuery] int? bankId, CancellationToken ct)
+    {
+        var result = await _manualService.GetCounterpartyBankAccountsAsync(counterpartyId, bankId, ct);
+        return Ok(result);
+    }
+
     [HttpGet("cash-boxes")]
     public async Task<IActionResult> GetCashBoxes([FromQuery] int? branchId, CancellationToken ct)
     {

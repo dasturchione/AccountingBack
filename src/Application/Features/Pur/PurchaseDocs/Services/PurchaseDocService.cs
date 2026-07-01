@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.Contracts;
+using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -21,14 +22,23 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IPurchaseCounterpartyRegisterService _purchaseCounterpartyRegisterService;
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
+    private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
     private readonly ICommandRepository<ProductPrice> _productPriceCommand;
+    private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
+    private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
+    private readonly IQueryRepository<AccountingRegisterEntry> _accountingRegisterQuery;
+    private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
+    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
+    private readonly ICommandRepository<RegisterBalance> _inventoryRegisterCommand;
+    private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
     private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
     private readonly ICommandRepository<PurchaseDocProduct> _productLineCommand;
     private readonly ICommandRepository<PurchaseDocTable> _tableLineCommand;
@@ -39,14 +49,23 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IAuditLogService auditLogService,
                               IAccountingDispatcher dispatcher,
                               IInventoryDispatcher inventoryDispatcher,
+                              IPurchaseCounterpartyRegisterService purchaseCounterpartyRegisterService,
                               IDocNumberGenerator docNumberGenerator,
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               IQueryRepository<Contract> contractQuery,
                               IQueryRepository<ProductTable> productTableQuery,
+                              ICommandRepository<ProductTable> productTableCommand,
                               IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
                               IQueryRepository<ProductPrice> productPriceQuery,
                               ICommandRepository<ProductPrice> productPriceCommand,
+                              IQueryRepository<PostingBatch> postingBatchQuery,
+                              ICommandRepository<PostingBatch> postingBatchCommand,
+                              IQueryRepository<AccountingRegisterEntry> accountingRegisterQuery,
+                              ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
+                              IQueryRepository<RegisterBalance> inventoryRegisterQuery,
+                              ICommandRepository<RegisterBalance> inventoryRegisterCommand,
+                              IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
                               IQueryRepository<SaleCondition> saleConditionQuery,
                               ICommandRepository<PurchaseDoc> command,
                               ICommandRepository<PurchaseDocProduct> productLineCommand,
@@ -58,6 +77,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _query = query;
         _command = command;
         _dispatcher = dispatcher;
+        _purchaseCounterpartyRegisterService = purchaseCounterpartyRegisterService;
         _productLineCommand = productLineCommand;
         _tableLineCommand = tableLineCommand;
         _userContext = userContext;
@@ -66,9 +86,17 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _vatRateQuery = vatRateQuery;
         _contractQuery = contractQuery;
         _productTableQuery = productTableQuery;
+        _productTableCommand = productTableCommand;
         _purchaseDocTableQuery = purchaseDocTableQuery;
         _productPriceQuery = productPriceQuery;
         _productPriceCommand = productPriceCommand;
+        _postingBatchQuery = postingBatchQuery;
+        _postingBatchCommand = postingBatchCommand;
+        _accountingRegisterQuery = accountingRegisterQuery;
+        _accountingRegisterCommand = accountingRegisterCommand;
+        _inventoryRegisterQuery = inventoryRegisterQuery;
+        _inventoryRegisterCommand = inventoryRegisterCommand;
+        _counterpartyRegisterQuery = counterpartyRegisterQuery;
         _saleConditionQuery = saleConditionQuery;
         _inventoryDispatcher = inventoryDispatcher;
         _docNumberGenerator = docNumberGenerator;
@@ -137,24 +165,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             await _command.CreateAsync(doc, ct);
 
-            // Inventory handler uchun ProductTable navigation kerak
-            var fullDocQuery = _queryBuilder.For<PurchaseDoc>().Where(d => d.Id == doc.Id).Build();
-            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
-            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Unit));
-            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.VatRate));
-            fullDocQuery.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable));
-            var fullDoc = await _query.GetAsync(fullDocQuery, ct) ?? doc;
-
-            var dispatch = await _dispatcher.ProcessAsync(fullDoc, ct);
-            if (!dispatch.IsSuccess)
-                return Result.Failure<long>(dispatch.Error);
-
-            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(fullDoc, ct);
-            if (!inventoryDispatch.IsSuccess)
-                return Result.Failure<long>(inventoryDispatch.Error);
-
-            await UpdateProductCostPricesAsync(fullDoc, ct);
-
             var docDto = await GetByIdInternalAsync(doc.Id, ct);
             if (docDto != null)
             {
@@ -177,8 +187,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (doc == null)
                 return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
 
-            if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(PurchaseDocErrors.CannotUpdateInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
@@ -189,10 +199,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure(allLinesResult.Error);
 
             var newLines = allLinesResult.Value;
+            var oldProductTableIds = await GetPurchaseProductTableIdsAsync(id, ct);
 
             // Eski qatorlarni o'chirib, yangilarini yozamiz
             await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
             await _productLineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+            if (oldProductTableIds.Count > 0)
+                await _productTableCommand.DeleteAsync(x => oldProductTableIds.Contains(x.Id), ct);
 
             foreach (var line in newLines)
                 line.OwnerId = id;
@@ -223,6 +236,138 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             return Result.Success();
         }, ct);
 
+    public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var doc = await GetPurchaseDocForLifecycleAsync(id, ct);
+            if (doc == null)
+                return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
+                return Result.Failure(PurchaseDocErrors.AlreadyCancelled(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+                return Result.Success();
+
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT && doc.StatusId != DocumentStatusIdConst.PENDING)
+                return Result.Failure(PurchaseDocErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            var validation = ValidateForConfirm(doc);
+            if (!validation.IsSuccess)
+                return validation;
+
+            if (await GetActivePostingBatchAsync(id, ct) != null || await HasBusinessEffectsAsync(id, ct))
+                return Result.Failure(PurchaseDocErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            var postingBatch = await CreatePostingBatchAsync(doc, "Purchase confirmed", ct);
+
+            await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.IN_STOCK, StateIdConst.ACTIVE, ct);
+
+            var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
+            if (!dispatch.IsSuccess)
+                return Result.Failure(dispatch.Error);
+
+            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct, postingBatch.Id);
+            if (!inventoryDispatch.IsSuccess)
+                return Result.Failure(inventoryDispatch.Error);
+
+            var counterpartyDispatch = await _purchaseCounterpartyRegisterService.PostAsync(doc, postingBatch.Id, ct);
+            if (!counterpartyDispatch.IsSuccess)
+                return Result.Failure(counterpartyDispatch.Error);
+
+            await UpdateProductCostPricesAsync(doc, ct);
+
+            doc.StatusId = DocumentStatusIdConst.POSTED;
+            doc.PostedAt ??= DateTime.Now;
+            doc.PostedByUserId ??= _userContext.Id;
+            await _command.UpdateAsync(doc, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.PurchaseDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
+            }
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
+        {
+            var doc = await GetPurchaseDocForLifecycleAsync(id, ct);
+            if (doc == null)
+                return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
+                return Result.Success();
+
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT &&
+                doc.StatusId != DocumentStatusIdConst.PENDING &&
+                doc.StatusId != DocumentStatusIdConst.POSTED)
+                return Result.Failure(PurchaseDocErrors.CannotCancelInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+            {
+                var inventoryValidation = ValidateInventoryCanBeCancelled(doc);
+                if (!inventoryValidation.IsSuccess)
+                    return inventoryValidation;
+
+                var activePostingBatch = await GetActivePostingBatchAsync(id, ct);
+                var hasBusinessEffects = await HasBusinessEffectsAsync(id, ct);
+                if (activePostingBatch == null && !hasBusinessEffects)
+                    return Result.Failure(PurchaseDocErrors.MissingPostingBatch(id, _userContext.LanguageId));
+
+                var reversalBatch = await CreatePostingBatchAsync(doc, "Purchase cancelled", ct);
+
+                await ReverseAccountingEntriesAsync(id, reversalBatch.Id, ct);
+                await ReverseInventoryEntriesAsync(id, reversalBatch.Id, ct);
+
+                var counterpartyReverse = await _purchaseCounterpartyRegisterService.ReverseAsync(doc, reversalBatch.Id, ct);
+                if (!counterpartyReverse.IsSuccess)
+                    return Result.Failure(counterpartyReverse.Error);
+
+                if (activePostingBatch != null)
+                {
+                    activePostingBatch.Status = PostingBatchStatusConst.REVERSED;
+                    activePostingBatch.ReversedAt = DateTime.Now;
+                    activePostingBatch.ReversedByUserId = _userContext.Id;
+                    await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
+                }
+
+                await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.RETURNED_TO_SUPPLIER, StateIdConst.PASSIVE, ct);
+            }
+            else
+            {
+                await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.BLOCKED, StateIdConst.PASSIVE, ct);
+            }
+
+            doc.StatusId = DocumentStatusIdConst.CANCELLED;
+            doc.CancelledAt ??= DateTime.Now;
+            doc.CancelledByUserId ??= _userContext.Id;
+            await _command.UpdateAsync(doc, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.PurchaseDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
+            }
+
+            return Result.Success();
+        }, ct);
+
     public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
@@ -232,16 +377,20 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (doc == null)
                 return Result.Failure(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
 
-            if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Failure(PurchaseDocErrors.AlreadyPosted(id, _userContext.LanguageId));
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(PurchaseDocErrors.CannotDeleteInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
+            var productTableIds = await GetPurchaseProductTableIdsAsync(id, ct);
+
             // Avval barcha qatorlarni o'chiramiz, keyin hujjatni
             await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
             await _productLineCommand.DeleteAsync(l => l.OwnerId == id, ct);
+            if (productTableIds.Count > 0)
+                await _productTableCommand.DeleteAsync(x => productTableIds.Contains(x.Id), ct);
 
             doc.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(doc, ct);
@@ -261,6 +410,224 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private async Task<PurchaseDoc?> GetPurchaseDocForLifecycleAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
+        query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
+        query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable));
+
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<List<int>> GetPurchaseProductTableIdsAsync(long purchaseDocId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PurchaseDocTable>()
+            .Where(x => x.Owner.OwnerId == purchaseDocId)
+            .As(x => x.ProductTableId)
+            .Build();
+
+        return await _purchaseDocTableQuery.GetAllAsync(query, ct);
+    }
+
+    private Result ValidateForConfirm(PurchaseDoc doc)
+    {
+        if (doc.PurchaseDocProducts.Count == 0)
+            return Result.Failure(PurchaseDocErrors.LinesRequired(doc.Id, _userContext.LanguageId));
+
+        foreach (var line in doc.PurchaseDocProducts)
+        {
+            if (!line.Product.IsService && line.PurchaseDocTables.Count != (int)line.Quantity)
+            {
+                return Result.Failure(PurchaseDocTableErrors.ProductQuantityItemsMismatch(
+                    line.ProductId,
+                    line.Quantity,
+                    line.PurchaseDocTables.Count,
+                    _userContext.LanguageId));
+            }
+
+            var hasInvalidDraftItem = line.PurchaseDocTables.Any(x =>
+                x.ProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
+                x.ProductTable.StateId != StateIdConst.ACTIVE);
+
+            if (hasInvalidDraftItem)
+                return Result.Failure(PurchaseDocErrors.InvalidDraftInventoryState(doc.Id, _userContext.LanguageId));
+        }
+
+        return Result.Success();
+    }
+
+    private Result ValidateInventoryCanBeCancelled(PurchaseDoc doc)
+    {
+        var productTables = GetPurchaseProductTables(doc);
+        var hasMovedItem = productTables.Any(x =>
+            x.StatusId != ProductTableStatusIdConst.IN_STOCK ||
+            x.StateId != StateIdConst.ACTIVE);
+
+        return hasMovedItem
+            ? Result.Failure(PurchaseDocErrors.CannotCancelMovedInventory(doc.Id, _userContext.LanguageId))
+            : Result.Success();
+    }
+
+    private async Task<PostingBatch> CreatePostingBatchAsync(PurchaseDoc doc, string comment, CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        var batch = new PostingBatch
+        {
+            OrganizationId = doc.OrganizationId,
+            DocumentTypeId = DocumentTypeIdConst.PURCHASE,
+            DocumentId = doc.Id,
+            Status = PostingBatchStatusConst.POSTED,
+            PostedByUserId = _userContext.Id,
+            PostedAt = now,
+            Comment = comment
+        };
+
+        await _postingBatchCommand.CreateAsync(batch, ct);
+        return batch;
+    }
+
+    private async Task<PostingBatch?> GetActivePostingBatchAsync(long purchaseDocId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PostingBatch>()
+            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+                        x.DocumentId == purchaseDocId &&
+                        x.Status == PostingBatchStatusConst.POSTED)
+            .Build();
+
+        return await _postingBatchQuery.GetAsync(query, ct);
+    }
+
+    private async Task<bool> HasBusinessEffectsAsync(long purchaseDocId, CancellationToken ct)
+    {
+        var hasAccounting = await _accountingRegisterQuery.AnyAsync(x =>
+            x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+            x.DocumentId == purchaseDocId &&
+            x.ReversalEntryId == null, ct);
+
+        if (hasAccounting)
+            return true;
+
+        var hasInventory = await _inventoryRegisterQuery.AnyAsync(x =>
+            x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+            x.DocumentId == purchaseDocId &&
+            x.ReversalEntryId == null, ct);
+
+        if (hasInventory)
+            return true;
+
+        return await _counterpartyRegisterQuery.AnyAsync(x =>
+            x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+            x.DocumentId == purchaseDocId &&
+            x.ReversalEntryId == null, ct);
+    }
+
+    private async Task UpdatePurchaseProductTablesAsync(PurchaseDoc doc, short statusId, short stateId, CancellationToken ct)
+    {
+        var productTables = GetPurchaseProductTables(doc);
+        if (productTables.Count == 0)
+            return;
+
+        foreach (var productTable in productTables)
+        {
+            productTable.StatusId = statusId;
+            productTable.StateId = stateId;
+        }
+
+        await _productTableCommand.UpdateAsync(productTables, ct);
+    }
+
+    private async Task ReverseAccountingEntriesAsync(long purchaseDocId, long reversalBatchId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<AccountingRegisterEntry>()
+            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+                        x.DocumentId == purchaseDocId &&
+                        x.ReversalEntryId == null)
+            .Build();
+        query.AddIncludes(b => b.Include(x => x.RegisterEntrySubkontos));
+
+        var entries = await _accountingRegisterQuery.GetAllAsync(query, ct);
+        var now = DateTime.Now;
+
+        var reversalEntries = entries.Select(entry => new AccountingRegisterEntry
+        {
+            OrganizationId = entry.OrganizationId,
+            DocumentTypeId = entry.DocumentTypeId,
+            DocumentId = entry.DocumentId,
+            DebitAccountId = entry.CreditAccountId,
+            CreditAccountId = entry.DebitAccountId,
+            CurrencyId = entry.CurrencyId,
+            Amount = entry.Amount,
+            DocDate = now,
+            CreatedDate = now,
+            OperationTypeId = entry.OperationTypeId,
+            DebitQuantity = entry.CreditQuantity,
+            CreditQuantity = entry.DebitQuantity,
+            Content = $"Reversal: {entry.Content}",
+            JournalNumber = entry.JournalNumber,
+            PostingBatchId = reversalBatchId,
+            SourceLineId = entry.SourceLineId,
+            ReversalEntryId = entry.Id,
+            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
+            {
+                Side = ReverseSubkontoSide(subkonto.Side),
+                SubkontoTypeId = subkonto.SubkontoTypeId,
+                SortOrder = subkonto.SortOrder,
+                EntityId = subkonto.EntityId,
+                DisplayValue = subkonto.DisplayValue,
+                CreatedDate = now
+            }).ToList()
+        }).ToList();
+
+        if (reversalEntries.Count > 0)
+            await _accountingRegisterCommand.CreateAsync(reversalEntries, ct);
+    }
+
+    private async Task ReverseInventoryEntriesAsync(long purchaseDocId, long reversalBatchId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<RegisterBalance>()
+            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
+                        x.DocumentId == purchaseDocId &&
+                        x.ReversalEntryId == null &&
+                        x.OperationTypeId == OperationTypeIdConst.IN)
+            .Build();
+
+        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
+        var now = DateTime.Now;
+
+        var reversalEntries = entries.Select(entry => new RegisterBalance
+        {
+            OrganizationId = entry.OrganizationId,
+            DocumentTypeId = entry.DocumentTypeId,
+            DocumentId = entry.DocumentId,
+            WarehouseId = entry.WarehouseId,
+            ProductId = entry.ProductId,
+            OperationTypeId = OperationTypeIdConst.OUT,
+            Quantity = entry.Quantity,
+            Amount = entry.Amount,
+            DocDate = now,
+            CreatedDate = now,
+            PostingBatchId = reversalBatchId,
+            SourceLineId = entry.SourceLineId,
+            ReversalEntryId = entry.Id
+        }).ToList();
+
+        if (reversalEntries.Count > 0)
+            await _inventoryRegisterCommand.CreateAsync(reversalEntries, ct);
+    }
+
+    private static List<ProductTable> GetPurchaseProductTables(PurchaseDoc doc) =>
+        doc.PurchaseDocProducts
+            .SelectMany(x => x.PurchaseDocTables)
+            .Select(x => x.ProductTable)
+            .GroupBy(x => x.Id)
+            .Select(x => x.First())
+            .ToList();
+
+    private static string ReverseSubkontoSide(string side) =>
+        side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT :
+        side == SubkontoSideConst.CREDIT ? SubkontoSideConst.DEBIT :
+        side;
 
     private async Task<Result<List<PurchaseDocProduct>>> BuildAllLinesAsync(
         int organizationId,
@@ -297,13 +664,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<List<PurchaseDocProduct>>(
                     PurchaseDocTableErrors.InvalidProductUnitPrice(dto.ProductId, dto.UnitPrice, _userContext.LanguageId));
 
-            //if (dto.Items.Count == 0)
-            //    return Result.Failure<List<PurchaseDocProduct>>(
-            //        PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
+            if (dto.Items.Count == 0)
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
 
-            //if (dto.Quantity != dto.Items.Count)
-            //    return Result.Failure<List<PurchaseDocProduct>>(
-            //        PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
+            if (dto.Quantity != dto.Items.Count)
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
 
             foreach (var item in dto.Items)
             {
@@ -357,7 +724,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                         CreatedDate = DateTime.Now,
                         OrganizationId = organizationId,
                         StateId = StateIdConst.ACTIVE,
-                        StatusId = ProductTableStatusIdConst.IN_STOCK
+                        StatusId = ProductTableStatusIdConst.RESERVED
                     }
                 }).ToList()
             });

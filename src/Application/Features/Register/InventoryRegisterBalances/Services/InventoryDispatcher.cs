@@ -19,7 +19,7 @@ public class InventoryDispatcher : IInventoryDispatcher
         _command         = command;
     }
 
-    public async Task<Result<List<RegisterBalance>>> ProcessAsync(object document, CancellationToken ct = default)
+    public async Task<Result<List<RegisterBalance>>> ProcessAsync(object document, CancellationToken ct = default, long? postingBatchId = null)
     {
         var result = document switch
         {
@@ -30,6 +30,12 @@ public class InventoryDispatcher : IInventoryDispatcher
 
         if (!result.IsSuccess)
             return result;
+
+        if (postingBatchId.HasValue)
+        {
+            foreach (var entry in result.Value)
+                entry.PostingBatchId = postingBatchId.Value;
+        }
 
         await _command.CreateAsync(result.Value, ct);
         return result;

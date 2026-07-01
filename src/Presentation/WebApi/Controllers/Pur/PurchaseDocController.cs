@@ -65,6 +65,28 @@ public class PurchaseDocController : ControllerBase
     }
 
     /// <summary>
+    /// Hujjatni tasdiqlash va biznes registrlarga o'tkazish
+    /// </summary>
+    [HttpPut("{id:long}/confirm")]
+    [ModuleAuthorize(PermissionCodeConst.PurchaseDocUpdate)]
+    public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    /// <summary>
+    /// Hujjatni bekor qilish va o'tkazmalarni storno qilish
+    /// </summary>
+    [HttpPut("{id:long}/cancel")]
+    [ModuleAuthorize(PermissionCodeConst.PurchaseDocUpdate)]
+    public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.CancelAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    /// <summary>
     /// Hujjatni o'chirish — qatorlari ham birga o'chiriladi (faqat Draft holati)
     /// </summary>
     [HttpDelete("{id:long}")]

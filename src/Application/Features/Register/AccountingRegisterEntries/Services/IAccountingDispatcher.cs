@@ -5,6 +5,6 @@ namespace Application.Features.Register.AccountingRegisterEntries
 {
     public interface IAccountingDispatcher
     {
-        Task<Result<List<AccountingRegisterEntry>>> ProcessAsync(object document, CancellationToken ct = default);
+        Task<Result<List<AccountingRegisterEntry>>> ProcessAsync(object document, CancellationToken ct = default, long? postingBatchId = null);
     }
 }

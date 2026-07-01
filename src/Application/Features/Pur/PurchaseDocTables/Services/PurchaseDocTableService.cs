@@ -16,15 +16,17 @@ public class PurchaseDocTableService : IPurchaseDocTableService
     private readonly ICommandRepository<PurchaseDocTable> _command;
     private readonly IQueryRepository<PurchaseDoc> _docQuery;
     private readonly ICommandRepository<PurchaseDoc> _docCommand;
+    private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
 
     public PurchaseDocTableService(IUserContext userContext,
                                    IQueryBuilder queryBuilder,
                                    IQueryRepository<PurchaseDocTable> query,
-                                   ICommandRepository<PurchaseDocTable> command,
-                                   IQueryRepository<PurchaseDoc> docQuery,
-                                   ICommandRepository<PurchaseDoc> docCommand,
-                                   IQueryRepository<VatRate> vatRateQuery)
+                                    ICommandRepository<PurchaseDocTable> command,
+                                    IQueryRepository<PurchaseDoc> docQuery,
+                                    ICommandRepository<PurchaseDoc> docCommand,
+                                    ICommandRepository<ProductTable> productTableCommand,
+                                    IQueryRepository<VatRate> vatRateQuery)
     {
         _query        = query;
         _command      = command;
@@ -32,6 +34,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         _queryBuilder = queryBuilder;
         _docQuery     = docQuery;
         _docCommand   = docCommand;
+        _productTableCommand = productTableCommand;
         _vatRateQuery = vatRateQuery;
     }
 
@@ -62,6 +65,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
     public async Task<Result> UpdateAsync(long id, PurchaseDocTableUpdateDto dto, CancellationToken ct = default)
     {
         var lineQuery = _queryBuilder.For<PurchaseDocTable>().Where(e => e.Id == id).Build();
+        lineQuery.AddIncludes(b => b.Include(e => e.Owner));
         var entity    = await _query.GetAsync(lineQuery, ct);
 
         if (entity == null)
@@ -73,7 +77,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         if (doc == null)
             return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.Owner.OwnerId, _userContext.LanguageId));
 
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
+        if (doc.StatusId != DocumentStatusIdConst.DRAFT)
             return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.Owner.OwnerId, _userContext.LanguageId));
 
         var (newAmount, newVatAmount, newTotalAmount, error) = await CalculateAmountsAsync(1, dto.Price, dto.VatRateId, ct);
@@ -100,6 +104,7 @@ public class PurchaseDocTableService : IPurchaseDocTableService
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
         var lineQuery = _queryBuilder.For<PurchaseDocTable>().Where(e => e.Id == id).Build();
+        lineQuery.AddIncludes(b => b.Include(e => e.Owner));
         var entity    = await _query.GetAsync(lineQuery, ct);
 
         if (entity == null)
@@ -111,14 +116,16 @@ public class PurchaseDocTableService : IPurchaseDocTableService
         if (doc == null)
             return Result.Failure(PurchaseDocTableErrors.OwnerNotFound(entity.Owner.OwnerId, _userContext.LanguageId));
 
-        if (doc.StatusId == DocumentStatusIdConst.POSTED)
+        if (doc.StatusId != DocumentStatusIdConst.DRAFT)
             return Result.Failure(PurchaseDocTableErrors.OwnerAlreadyPosted(entity.Owner.OwnerId, _userContext.LanguageId));
 
         doc.TotalAmount -= entity.Amount;
         doc.VatAmount   -= entity.VatAmount;
         doc.FinalAmount -= entity.TotalAmount;
+        var productTableId = entity.ProductTableId;
 
         await _command.DeleteAsync(entity, ct);
+        await _productTableCommand.DeleteAsync(x => x.Id == productTableId, ct);
         await _docCommand.UpdateAsync(doc, ct);
 
         return Result.Success();

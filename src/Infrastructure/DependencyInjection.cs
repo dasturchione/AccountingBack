@@ -118,6 +118,7 @@ namespace Infrastructure
             services.AddScoped<IChartAccountService, ChartAccountService>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
+            services.AddScoped<IPurchaseCounterpartyRegisterService, PurchaseCounterpartyRegisterService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IManualService, ManualService>();

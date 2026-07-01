@@ -28,6 +28,9 @@ public partial class AccPaymentPurpose
     [Column("requires_counterparty")]
     public bool RequiresCounterparty { get; set; }
 
+    [Column("operation_type_id")]
+    public short OperationTypeId { get; set; }
+
     [InverseProperty("PaymentPurpose")]
     public virtual ICollection<AccPaymentPurposeTranslation> AccPaymentPurposeTranslations { get; set; } = new List<AccPaymentPurposeTranslation>();
 
@@ -40,4 +43,8 @@ public partial class AccPaymentPurpose
 
     [InverseProperty("PaymentPurpose")]
     public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
+
+    [ForeignKey("OperationTypeId")]
+    [InverseProperty("AccPaymentPurposes")]
+    public virtual CmnOperationType OperationType { get; set; } = null!;
 }

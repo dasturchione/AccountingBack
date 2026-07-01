@@ -85,9 +85,9 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("payment-purposes")]
-    public async Task<IActionResult> GetPaymentPurposes(CancellationToken ct)
+    public async Task<IActionResult> GetPaymentPurposes([FromQuery] short? operationTypeId, CancellationToken ct)
     {
-        var result = await _manualService.GetPaymentPurposesAsync(ct);
+        var result = await _manualService.GetPaymentPurposesAsync(operationTypeId, ct);
         return Ok(result);
     }
 

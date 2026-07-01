@@ -8,7 +8,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("cmn_contract")]
 [Index("ContractDate", Name = "idx_cmn_contract_contract_date")]
-[Index("ContractTypeId", Name = "idx_cmn_contract_contract_type_id")]
 [Index("CounterpartyId", Name = "idx_cmn_contract_counterparty_id")]
 [Index("OrganizationId", "CounterpartyId", "ContractNumber", Name = "idx_cmn_contract_number", IsUnique = true)]
 [Index("OrganizationId", Name = "idx_cmn_contract_organization_id")]
@@ -50,6 +49,9 @@ public partial class CmnContract
 
     [Column("contract_type_id")]
     public short ContractTypeId { get; set; }
+
+    [InverseProperty("Contract")]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [ForeignKey("ContractTypeId")]
     [InverseProperty("CmnContracts")]

@@ -67,6 +67,9 @@ public partial class Contract
     [InverseProperty("Contract")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty("Contract")]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+
     [ForeignKey("StateId")]
     [InverseProperty("Contracts")]
     public virtual State State { get; set; } = null!;

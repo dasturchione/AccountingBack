@@ -12,4 +12,5 @@ public class BankOperationBaseDto
     public decimal Amount { get; set; }
     public decimal ExchangeRate { get; set; } = 1m;
     public string? Comment { get; set; }
+    public long? ContractId { get; set; }
 }

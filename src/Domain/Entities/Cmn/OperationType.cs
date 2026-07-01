@@ -45,6 +45,9 @@ public partial class OperationType
     [InverseProperty("OperationType")]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
+    [InverseProperty("OperationType")]
+    public virtual ICollection<PaymentPurpose> PaymentPurposes { get; set; } = new List<PaymentPurpose>();
+
     [ForeignKey("StateId")]
     [InverseProperty("OperationTypes")]
     public virtual State State { get; set; } = null!;

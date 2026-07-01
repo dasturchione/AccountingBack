@@ -239,11 +239,12 @@ public class ManualService : IManualService
         return await _postingAliasQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetPaymentPurposesAsync(CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetPaymentPurposesAsync(short? operationTypeId, CancellationToken ct = default)
     {
         var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<PaymentPurpose>()
+                                 .Where(x => operationTypeId == null || x.OperationTypeId == operationTypeId)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,

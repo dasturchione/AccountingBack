@@ -8,7 +8,8 @@ create table acc_payment_purpose
 	code						varchar(50) not null unique,
 	alias_id					smallint not null references acc_posting_alias(id),
 	name						varchar(250) not null,
-	requires_counterparty		boolean not null default true
+	requires_counterparty		boolean not null default true,
+	operation_type_id			smallint null references cmn_operation_type(id)
 );
 
 create table acc_payment_purpose_translation
@@ -24,29 +25,30 @@ create table acc_payment_purpose_translation
 -- INSERT acc_payment_purpose (name заполняется английским значением как fallback)
 -- =========================================================
 
-insert into acc_payment_purpose (code, alias_id, name, requires_counterparty)
-select v.code, a.id, v.name, v.requires_counterparty
+insert into acc_payment_purpose (code, alias_id, operation_type_id, name, requires_counterparty)
+select v.code, a.id, ot.id, v.name, v.requires_counterparty
 from (values
-	('SUPPLIER_PAYMENT',    'Supplier',         'Supplier payment',        true),
-	('SUPPLIER_ADVANCE',    'SupplierAdvance',  'Advance to supplier',     true),
-	('CUSTOMER_RECEIPT',    'Customer',         'Payment from customer',   true),
-	('CUSTOMER_ADVANCE',    'CustomerAdvance',  'Advance from customer',   true),
-	('SALARY',              'Employee',         'Salary',                  true),
-	('ACCOUNTABLE_ADVANCE', 'EmployeeAdvance',  'Accountable amounts',     true),
-	('DIVIDENDS',           'Founder',          'Dividend payment',        true),
-	('LOAN_GIVEN',          'LoanGiven',        'Loan given',              true),
-	('LOAN_RECEIVED',       'LoanReceived',     'Loan received',           false),
-	('LOAN_REPAYMENT',      'LoanReceived',     'Loan repayment',          false),
-	('TAX_VAT',             'TaxVAT',           'VAT',                     false),
-	('TAX_NDFL',            'TaxNDFL',          'Personal income tax',     false),
-	('TAX_PROFIT',          'TaxProfit',        'Profit tax',              false),
-	('TAX_PROPERTY',        'TaxProperty',      'Property tax',            false),
-	('TAX_LAND',            'TaxLand',          'Land tax',                false),
-	('SOCIAL_INSURANCE',    'SocialInsurance',  'Social insurance tax',    false),
-	('PENSION_FUND',        'PensionFund',      'Pension fund',            false),
-	('BANK_FEE',            'BankFee',          'Bank fee',                false)
-) as v(code, alias_code, name, requires_counterparty)
-join acc_posting_alias a on a.code = v.alias_code;
+	('SUPPLIER_PAYMENT',    'Supplier',         'out', 'Supplier payment',        true),
+	('SUPPLIER_ADVANCE',    'SupplierAdvance',  'out', 'Advance to supplier',     true),
+	('CUSTOMER_RECEIPT',    'Customer',         'in',  'Payment from customer',   true),
+	('CUSTOMER_ADVANCE',    'CustomerAdvance',  'in',  'Advance from customer',   true),
+	('SALARY',              'Employee',        'out', 'Salary',                  true),
+	('ACCOUNTABLE_ADVANCE', 'EmployeeAdvance',  'out', 'Accountable amounts',     true),
+	('DIVIDENDS',           'Founder',         'out', 'Dividend payment',        true),
+	('LOAN_GIVEN',          'LoanGiven',       'out', 'Loan given',              true),
+	('LOAN_RECEIVED',       'LoanReceived',    'in',  'Loan received',           false),
+	('LOAN_REPAYMENT',      'LoanReceived',    'out', 'Loan repayment',          false),
+	('TAX_VAT',             'TaxVAT',          'out', 'VAT',                     false),
+	('TAX_NDFL',            'TaxNDFL',         'out', 'Personal income tax',     false),
+	('TAX_PROFIT',          'TaxProfit',       'out', 'Profit tax',              false),
+	('TAX_PROPERTY',        'TaxProperty',     'out', 'Property tax',            false),
+	('TAX_LAND',            'TaxLand',         'out', 'Land tax',                false),
+	('SOCIAL_INSURANCE',    'SocialInsurance', 'out', 'Social insurance tax',    false),
+	('PENSION_FUND',        'PensionFund',     'out', 'Pension fund',            false),
+	('BANK_FEE',            'BankFee',         'out', 'Bank fee',                false)
+) as v(code, alias_code, operation_type_code, name, requires_counterparty)
+join acc_posting_alias a on a.code = v.alias_code
+join cmn_operation_type ot on ot.code = v.operation_type_code;
 
 -- =========================================================
 -- INSERT acc_payment_purpose_translation

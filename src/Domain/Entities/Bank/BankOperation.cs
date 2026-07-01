@@ -38,6 +38,9 @@ public partial class BankOperation
     [Column("counterparty_bank_account_id")]
     public int? CounterpartyBankAccountId { get; set; }
 
+    [Column("contract_id")]
+    public long? ContractId { get; set; }
+
     [Column("doc_number")]
     [StringLength(100)]
     public string DocNumber { get; set; } = null!;
@@ -65,6 +68,9 @@ public partial class BankOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [ForeignKey("ContractId")]
+    [InverseProperty("BankOperations")]
+    public virtual Contract? Contract { get; set; }
 
     [Column("exchange_rate")]
     [Precision(18, 6)]

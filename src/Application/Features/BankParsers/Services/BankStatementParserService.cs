@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query.Specifications;
@@ -11,21 +12,39 @@ namespace Application.Features.BankParsers;
 
 public partial class BankStatementParserService : IBankStatementParserService
 {
+    private readonly IUserContext _userContext;
+    private readonly IQueryRepository<Bank> _bankQuery;
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
+    private readonly IQueryRepository<CounterpartyAccountPaymentPurposeHint> _paymentPurposeHintQuery;
 
     public BankStatementParserService(
+        IUserContext userContext,
+        IQueryRepository<Bank> bankQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
-        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery)
+        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
+        IQueryRepository<CounterpartyAccountPaymentPurposeHint> paymentPurposeHintQuery)
     {
+        _userContext = userContext;
+        _bankQuery = bankQuery;
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
+        _paymentPurposeHintQuery = paymentPurposeHintQuery;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(Stream stream, CancellationToken ct = default)
+    {
+        var parsedResult = await ParseExcelAsync(stream, ct);
+        if (!parsedResult.IsSuccess)
+            return Result.Failure<BankExportDto>(parsedResult.Error);
+
+        return await EnrichAsync(parsedResult.Value, ct);
+    }
+
+    public async Task<Result<BankExportDto>> ParseExcelAsync(Stream stream, CancellationToken ct = default)
     {
         using var workbook = new XLWorkbook(stream);
         var export = new BankExportDto();
@@ -44,15 +63,58 @@ public partial class BankStatementParserService : IBankStatementParserService
             }
         }
 
-        await EnrichWithDatabaseIdsAsync(export, ct);
+        return Result.Success(export);
+    }
 
+    public async Task<Result<BankExportDto>> EnrichAsync(BankExportDto export, CancellationToken ct = default)
+    {
+        await EnrichWithDatabaseIdsAsync(export, ct);
         return Result.Success(export);
     }
 
     private async Task EnrichWithDatabaseIdsAsync(BankExportDto export, CancellationToken ct)
     {
+        await SetBankIdsAsync(export, ct);
         await SetBankAccountIdsAsync(export, ct);
         await SetCounterpartyIdsAsync(export, ct);
+        await SetCounterpartyBankAccountIdsAsync(export, ct);
+        await SetPaymentPurposeIdsAsync(export, ct);
+    }
+
+    private async Task SetBankIdsAsync(BankExportDto export, CancellationToken ct)
+    {
+        var bankInns = export.Accounts
+            .Select(x => NormalizeKey(x.BankInn ?? ""))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        if (bankInns.Count == 0)
+            return;
+
+        var specification = new QuerySpecification<Bank, BankMatch>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            x.Inn != null &&
+                            bankInns.Contains(x.Inn),
+            Selector = x => new BankMatch
+            {
+                Id = x.Id,
+                Inn = x.Inn!
+            }
+        };
+
+        var matches = await _bankQuery.GetAllAsync(specification, ct);
+        var idsByKey = matches
+            .GroupBy(x => NormalizeKey(x.Inn))
+            .ToDictionary(x => x.Key, x => x.First().Id);
+
+        foreach (var account in export.Accounts)
+        {
+            var key = NormalizeKey(account.BankInn ?? "");
+            if (idsByKey.TryGetValue(key, out var id))
+                account.BankId = id;
+        }
     }
 
     private async Task SetBankAccountIdsAsync(BankExportDto export, CancellationToken ct)
@@ -66,26 +128,37 @@ public partial class BankStatementParserService : IBankStatementParserService
         if (accountNumbers.Count == 0)
             return;
 
+        var organizationId = _userContext.OrganizationId;
         var specification = new QuerySpecification<BankAccount, BankAccountMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
                             accountNumbers.Contains(x.AccountNumber),
             Selector = x => new BankAccountMatch
             {
                 Id = x.Id,
-                AccountNumber = x.AccountNumber
+                AccountNumber = x.AccountNumber,
+                BankId = x.BankId,
+                BankInn = x.Bank.Inn
             }
         };
 
         var matches = await _bankAccountQuery.GetAllAsync(specification, ct);
         var idsByKey = matches
             .GroupBy(x => NormalizeKey(x.AccountNumber))
-            .ToDictionary(x => x.Key, x => x.First().Id);
+            .ToDictionary(x => x.Key, x => x.First());
 
         foreach (var account in export.Accounts)
         {
-            if (idsByKey.TryGetValue(NormalizeKey(account.AccountNumber), out var id))
-                account.BankAccountId = id;
+            if (idsByKey.TryGetValue(NormalizeKey(account.AccountNumber), out var match))
+            {
+                account.BankAccountId = match.Id;
+                if (account.BankId is null)
+                    account.BankId = match.BankId;
+
+                if (string.IsNullOrWhiteSpace(account.BankInn) && !string.IsNullOrWhiteSpace(match.BankInn))
+                    account.BankInn = match.BankInn;
+            }
         }
     }
 
@@ -98,21 +171,16 @@ public partial class BankStatementParserService : IBankStatementParserService
             .Distinct()
             .ToList();
 
-        var counterpartyAccounts = export.Accounts
-            .SelectMany(x => x.Transactions)
-            .Select(x => NormalizeKey(x.CounterpartyAccount))
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .ToList();
-
-        if (counterpartyInns.Count == 0 && counterpartyAccounts.Count == 0)
+        if (counterpartyInns.Count == 0)
             return;
 
+        var organizationId = _userContext.OrganizationId;
         var cardSpecification = new QuerySpecification<CounterpartyCard, CounterpartyMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
                             x.Inn != null &&
-                            (counterpartyInns.Contains(x.Inn) || counterpartyAccounts.Contains(x.Inn)),
+                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
+                            counterpartyInns.Contains(x.Inn),
             Selector = x => new CounterpartyMatch
             {
                 Id = x.Id,
@@ -125,12 +193,35 @@ public partial class BankStatementParserService : IBankStatementParserService
             .GroupBy(x => NormalizeKey(x.Inn))
             .ToDictionary(x => x.Key, x => x.First().Id);
 
+        foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
+        {
+            var key = NormalizeKey(transaction.CounterpartyInn);
+            if (idsByInn.TryGetValue(key, out var id))
+                transaction.CounterpartyId = id;
+        }
+    }
+
+    private async Task SetCounterpartyBankAccountIdsAsync(BankExportDto export, CancellationToken ct)
+    {
+        var counterpartyAccounts = export.Accounts
+            .SelectMany(x => x.Transactions)
+            .Select(x => NormalizeKey(x.CounterpartyAccount))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        if (counterpartyAccounts.Count == 0)
+            return;
+
+        var organizationId = _userContext.OrganizationId;
         var accountSpecification = new QuerySpecification<CounterpartyBankAccount, CounterpartyAccountMatch>
         {
             Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
                             counterpartyAccounts.Contains(x.AccountNumber),
             Selector = x => new CounterpartyAccountMatch
             {
+                Id = x.Id,
                 CounterpartyId = x.CounterpartyId,
                 AccountNumber = x.AccountNumber
             }
@@ -139,14 +230,61 @@ public partial class BankStatementParserService : IBankStatementParserService
         var accountMatches = await _counterpartyBankAccountQuery.GetAllAsync(accountSpecification, ct);
         var idsByAccount = accountMatches
             .GroupBy(x => NormalizeKey(x.AccountNumber))
-            .ToDictionary(x => x.Key, x => x.First().CounterpartyId);
+            .ToDictionary(x => x.Key, x => x.First());
 
         foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
         {
-            if (idsByInn.TryGetValue(NormalizeKey(transaction.CounterpartyInn), out var id) ||
-                idsByInn.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out id) ||
-                idsByAccount.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out id))
-                transaction.CounterpartyId = id;
+            if (idsByAccount.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out var match))
+            {
+                transaction.CounterpartyBankAccountId = match.Id;
+                transaction.CounterpartyId ??= match.CounterpartyId;
+            }
+        }
+    }
+
+    private async Task SetPaymentPurposeIdsAsync(BankExportDto export, CancellationToken ct)
+    {
+        var counterpartyBankAccountIds = export.Accounts
+            .SelectMany(x => x.Transactions)
+            .Select(x => x.CounterpartyBankAccountId)
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+
+        if (counterpartyBankAccountIds.Count == 0)
+            return;
+
+        var specification = new QuerySpecification<CounterpartyAccountPaymentPurposeHint, PaymentPurposeHintMatch>
+        {
+            Criteria = x => counterpartyBankAccountIds.Contains(x.CounterpartyBankAccountId),
+            Selector = x => new PaymentPurposeHintMatch
+            {
+                CounterpartyBankAccountId = x.CounterpartyBankAccountId,
+                PaymentPurposeId = x.PaymentPurposeId,
+                UsageCount = x.UsageCount,
+                LastUsedDate = x.LastUsedDate
+            }
+        };
+
+        var hintMatches = await _paymentPurposeHintQuery.GetAllAsync(specification, ct);
+        var idsByAccountId = hintMatches
+            .GroupBy(x => x.CounterpartyBankAccountId)
+            .ToDictionary(
+                x => x.Key,
+                x => x.OrderByDescending(h => h.UsageCount)
+                      .ThenByDescending(h => h.LastUsedDate)
+                      .Select(h => (int)h.PaymentPurposeId)
+                      .Distinct()
+                      .ToList());
+
+        foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
+        {
+            if (transaction.CounterpartyBankAccountId.HasValue &&
+                idsByAccountId.TryGetValue(transaction.CounterpartyBankAccountId.Value, out var paymentPurposeIds))
+            {
+                transaction.PaymentPurposeIds = paymentPurposeIds;
+            }
         }
     }
 
@@ -334,10 +472,18 @@ public partial class BankStatementParserService : IBankStatementParserService
     [GeneratedRegex(@"-?\d[\d\s\u00a0]*([.,]\d+)?")]
     private static partial Regex AmountRegex();
 
+    private sealed class BankMatch
+    {
+        public int Id { get; set; }
+        public string Inn { get; set; } = "";
+    }
+
     private sealed class BankAccountMatch
     {
         public int Id { get; set; }
         public string AccountNumber { get; set; } = "";
+        public int BankId { get; set; }
+        public string? BankInn { get; set; }
     }
 
     private sealed class CounterpartyMatch
@@ -348,7 +494,16 @@ public partial class BankStatementParserService : IBankStatementParserService
 
     private sealed class CounterpartyAccountMatch
     {
+        public int Id { get; set; }
         public int CounterpartyId { get; set; }
         public string AccountNumber { get; set; } = "";
+    }
+
+    private sealed class PaymentPurposeHintMatch
+    {
+        public int CounterpartyBankAccountId { get; set; }
+        public short PaymentPurposeId { get; set; }
+        public int UsageCount { get; set; }
+        public DateTime LastUsedDate { get; set; }
     }
 }

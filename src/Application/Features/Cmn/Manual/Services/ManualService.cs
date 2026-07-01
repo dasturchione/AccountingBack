@@ -42,6 +42,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
     private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
     private readonly IQueryRepository<BankAccount> _orgBankAccountQuery;
+    private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Contract> _contractQuery;
@@ -83,6 +84,7 @@ public class ManualService : IManualService
         IQueryRepository<BankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
+        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
         IQueryRepository<Contract> contractQuery,
         IQueryRepository<Language> languageQuery,
         IQueryRepository<Organization> organizationQuery,
@@ -103,10 +105,10 @@ public class ManualService : IManualService
         _postingAliasQuery     = postingAliasQuery;
         _paymentPurposeQuery   = paymentPurposeQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
-        _pricingMethodQuery = pricingMethodQuery;
-        _costingMethodQuery = costingMethodQuery;
-        _bankQuery             = bankQuery;
-        _documentTypeQuery     = documentTypeQuery;
+        _pricingMethodQuery     = pricingMethodQuery;
+        _costingMethodQuery     = costingMethodQuery;
+        _bankQuery              = bankQuery;
+        _documentTypeQuery      = documentTypeQuery;
         _operationTypeQuery    = operationTypeQuery;
         _taxTypeQuery          = taxTypeQuery;
         _vatRateQuery          = vatRateQuery;
@@ -129,6 +131,7 @@ public class ManualService : IManualService
         _moduleQuery           = moduleQuery;
         _userContext           = userContext;
         _queryBuilder          = queryBuilder;
+        _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
     }
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
@@ -239,11 +242,12 @@ public class ManualService : IManualService
         return await _postingAliasQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetPaymentPurposesAsync(CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetPaymentPurposesAsync(short? operationTypeId, CancellationToken ct = default)
     {
         var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<PaymentPurpose>()
+                                 .Where(x => operationTypeId == null || x.OperationTypeId == operationTypeId)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
@@ -571,6 +575,22 @@ public class ManualService : IManualService
             Selector = x => new SelectListDto { Id = x.Id, Name = x.AccountNumber, Code = x.AccountNumber }
         };
         return (await _orgBankAccountQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetCounterpartyBankAccountsAsync(int? counterpartyId = null, int? bankId = null, CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<CounterpartyBankAccount>()
+                            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                                        (counterpartyId == null || x.CounterpartyId == counterpartyId) &&
+                                        (bankId == null || x.BankId == bankId))
+                            .As(s => new SelectListDto
+                            {
+                                Id = s.Id,
+                                Name = s.AccountNumber,
+                                Code = s.Bank.Code 
+                            }).Build();
+
+        return await _counterpartyBankAccountQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCashBoxesAsync(int? branchId = null, CancellationToken ct = default)

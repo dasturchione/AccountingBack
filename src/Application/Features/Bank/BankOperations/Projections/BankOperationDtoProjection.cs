@@ -44,6 +44,8 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             StatusName = x.Status.Name,
             StateId = x.StateId,
             StateName = x.State.FullName,
-            CreatedDate = x.CreatedDate
+            CreatedDate = x.CreatedDate,
+            ContractId = x.ContractId,
+            ContractNumber = x.Contract != null ? x.Contract.ContractNumber : null
         };
 }

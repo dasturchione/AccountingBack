@@ -271,11 +271,16 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("acc_payment_purpose_pkey");
 
+            entity.Property(e => e.OperationTypeId).HasDefaultValue((short)1);
             entity.Property(e => e.RequiresCounterparty).HasDefaultValue(true);
 
             entity.HasOne(d => d.Alias).WithMany(p => p.AccPaymentPurposes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_payment_purpose_alias_id_fkey");
+
+            entity.HasOne(d => d.OperationType).WithMany(p => p.AccPaymentPurposes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_payment_purpose_operation_type_id_fkey");
         });
 
         modelBuilder.Entity<AccPaymentPurposeTranslation>(entity =>
@@ -411,6 +416,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CancelledByUser).WithMany(p => p.BankOperationCancelledByUsers).HasConstraintName("bank_operation_cancelled_by_user_id_fkey");
 
+            entity.HasOne(d => d.Contract).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_contract_id_fkey");
+
             entity.HasOne(d => d.CounterpartyBankAccount).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_counterparty_bank_account_id_fkey");
 
             entity.HasOne(d => d.Counterparty).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_counterparty_id_fkey");
@@ -531,6 +538,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
+            entity.Property(e => e.ContractTypeId).HasDefaultValue((short)1);
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)

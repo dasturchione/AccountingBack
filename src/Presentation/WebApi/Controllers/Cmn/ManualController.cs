@@ -85,9 +85,9 @@ public class ManualController : ControllerBase
     }
 
     [HttpGet("payment-purposes")]
-    public async Task<IActionResult> GetPaymentPurposes(CancellationToken ct)
+    public async Task<IActionResult> GetPaymentPurposes([FromQuery] short? operationTypeId, CancellationToken ct)
     {
-        var result = await _manualService.GetPaymentPurposesAsync(ct);
+        var result = await _manualService.GetPaymentPurposesAsync(operationTypeId, ct);
         return Ok(result);
     }
 
@@ -263,6 +263,13 @@ public class ManualController : ControllerBase
     public async Task<IActionResult> GetOrgBankAccounts(CancellationToken ct)
     {
         var result = await _manualService.GetOrgBankAccountsAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("counterparty-bank-accounts")]
+    public async Task<IActionResult> GetCounterpartyBankAccounts([FromQuery] int? counterpartyId, [FromQuery] int? bankId, CancellationToken ct)
+    {
+        var result = await _manualService.GetCounterpartyBankAccountsAsync(counterpartyId, bankId, ct);
         return Ok(result);
     }
 

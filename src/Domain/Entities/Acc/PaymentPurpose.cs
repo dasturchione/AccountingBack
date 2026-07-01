@@ -23,6 +23,9 @@ public partial class PaymentPurpose
     [StringLength(250)]
     public string Name { get; set; } = null!;
 
+    [Column("operation_type_id")]
+    public short OperationTypeId { get; set; }
+
     [Column("requires_counterparty")]
     public bool RequiresCounterparty { get; set; }
 
@@ -38,4 +41,8 @@ public partial class PaymentPurpose
 
     [InverseProperty("PaymentPurpose")]
     public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
+
+    [ForeignKey("OperationTypeId")]
+    [InverseProperty("PaymentPurposes")]
+    public virtual OperationType OperationType { get; set; } = null!;
 }

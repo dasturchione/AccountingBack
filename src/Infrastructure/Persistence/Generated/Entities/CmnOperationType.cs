@@ -30,6 +30,9 @@ public partial class CmnOperationType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("OperationType")]
+    public virtual ICollection<AccPaymentPurpose> AccPaymentPurposes { get; set; } = new List<AccPaymentPurpose>();
+
+    [InverseProperty("OperationType")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("OperationType")]

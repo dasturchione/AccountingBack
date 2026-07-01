@@ -127,6 +127,7 @@ public class BankOperationService : IBankOperationService
         entity.PostedAt ??= DateTime.Now;
         entity.PostedByUserId ??= _userContext.Id;
         entity.Comment = dto.Comment;
+        entity.ContractId = dto.ContractId;
         entity.StatusId = DocumentStatusIdConst.POSTED;
         entity.StateId = StateIdConst.ACTIVE;
 
@@ -169,6 +170,7 @@ public class BankOperationService : IBankOperationService
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
+            ContractId = dto.ContractId,
             ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
             PostedAt = DateTime.Now,
             PostedByUserId = userId,

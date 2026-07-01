@@ -9,6 +9,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("bank_operation")]
 [Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
 [Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
+[Index("ContractId", Name = "idx_bank_operation_contract_id")]
 [Index("CounterpartyBankAccountId", Name = "idx_bank_operation_counterparty_bank_account_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
@@ -84,6 +85,9 @@ public partial class BankOperation
     [Column("counterparty_bank_account_id")]
     public int? CounterpartyBankAccountId { get; set; }
 
+    [Column("contract_id")]
+    public long? ContractId { get; set; }
+
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]
     public virtual OrgBankAccount BankAccount { get; set; } = null!;
@@ -94,6 +98,10 @@ public partial class BankOperation
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("BankOperationCancelledByUsers")]
     public virtual SysUser? CancelledByUser { get; set; }
+
+    [ForeignKey("ContractId")]
+    [InverseProperty("BankOperations")]
+    public virtual CmnContract? Contract { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("BankOperations")]

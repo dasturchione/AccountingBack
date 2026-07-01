@@ -9,7 +9,6 @@
                 .AddDevTools()
                 .AddPersistence()
                 .AddInfrastructure()
-                .AddApplication()
                 .AddJwtToken()
                 .AddQuartz()
                 .AddExposers()

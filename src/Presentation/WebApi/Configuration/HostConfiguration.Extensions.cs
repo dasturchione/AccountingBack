@@ -15,7 +15,6 @@ using Serilog.Events;
 using System.Text;
 using System.Text.Json.Serialization;
 using WebApi.Infrastructure;
-using Application;
 using WebApi.Middlewares;
 
 namespace WebApi.Configuration
@@ -107,13 +106,6 @@ namespace WebApi.Configuration
                 .CreateLogger();
 
             builder.Host.UseSerilog();
-
-            return builder;
-        }
-
-        private static WebApplicationBuilder AddApplication(this WebApplicationBuilder builder)
-        {
-            builder.Services.AddApplication();
 
             return builder;
         }

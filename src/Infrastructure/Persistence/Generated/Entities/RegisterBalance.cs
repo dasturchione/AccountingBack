@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -75,11 +75,15 @@ public partial class RegisterBalance
     [InverseProperty("RegisterBalances")]
     public virtual Organization Organization { get; set; } = null!;
 
+    [ForeignKey("PostingBatchId")]
+    public virtual PostingBatch? PostingBatch { get; set; }
+
     [ForeignKey("ProductId")]
     [InverseProperty("RegisterBalances")]
     public virtual Product Product { get; set; } = null!;
 
     [ForeignKey("ProductTableId")]
+    [InverseProperty("RegisterBalances")]
     public virtual ProductTable? ProductTable { get; set; }
 
     [ForeignKey("WarehouseId")]

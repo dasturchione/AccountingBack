@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -123,6 +123,12 @@ public partial class Organization
     public virtual District? District { get; set; }
 
     [InverseProperty("Organization")]
+    public virtual ICollection<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; } = new List<InventoryAdjustmentDoc>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<InventoryCountDoc> InventoryCountDocs { get; set; } = new List<InventoryCountDoc>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<ProductGroup> ProductGroups { get; set; } = new List<ProductGroup>();
 
     [InverseProperty("Organization")]
@@ -139,6 +145,9 @@ public partial class Organization
 
     [InverseProperty("Organization")]
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<WarehouseTransferDoc> WarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();

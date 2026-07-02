@@ -155,6 +155,7 @@ namespace Infrastructure
             services.AddScoped<IAccountingPeriodValidator, AccountingPeriodValidator>();
             services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<List<BankOperation>>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
 

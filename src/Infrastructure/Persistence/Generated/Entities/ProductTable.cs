@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -49,6 +49,12 @@ public partial class ProductTable
     [InverseProperty("CurrentProductTables")]
     public virtual Warehouse? CurrentWarehouse { get; set; }
 
+    [InverseProperty("ProductTable")]
+    public virtual ICollection<InventoryAdjustmentDocTable> InventoryAdjustmentDocTables { get; set; } = new List<InventoryAdjustmentDocTable>();
+
+    [InverseProperty("ProductTable")]
+    public virtual ICollection<InventoryCountDocTable> InventoryCountDocTables { get; set; } = new List<InventoryCountDocTable>();
+
     [ForeignKey("ProductId")]
     [InverseProperty("ProductTables")]
     public virtual Product Product { get; set; } = null!;
@@ -58,6 +64,12 @@ public partial class ProductTable
 
     [InverseProperty("ProductTable")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
+
+    [InverseProperty("ProductTable")]
+    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
+
+    [InverseProperty("ProductTable")]
+    public virtual ICollection<WarehouseTransferDocTable> WarehouseTransferDocTables { get; set; } = new List<WarehouseTransferDocTable>();
 
     [ForeignKey("StateId")]
     [InverseProperty("ProductTables")]

@@ -6,181 +6,320 @@ using System.Text.Json;
 
 namespace Application.Features.Register.PostingEngines;
 
-public class BankOperationContextBuilder : IPostingContextBuilder<BankOperation>
+public class BankOperationContextBuilder :
+    IPostingContextBuilder<BankOperation>,
+    IPostingContextBuilder<List<BankOperation>>
 {
     private readonly IQueryBuilder _queryBuilder;
-    private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
-    private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
+    private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<Contract> _contractQuery;
-    private readonly IQueryRepository<BankAccount> _bankAccountQuery;
+    private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+    private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
 
     public BankOperationContextBuilder(
         IQueryBuilder queryBuilder,
-        IQueryRepository<PaymentType> paymentTypeQuery,
-        IQueryRepository<PaymentPurpose> paymentPurposeQuery,
+        IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<Contract> contractQuery,
-        IQueryRepository<BankAccount> bankAccountQuery)
+        IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<PaymentPurpose> paymentPurposeQuery)
     {
         _queryBuilder = queryBuilder;
-        _paymentTypeQuery = paymentTypeQuery;
-        _paymentPurposeQuery = paymentPurposeQuery;
+        _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
         _contractQuery = contractQuery;
-        _bankAccountQuery = bankAccountQuery;
+        _paymentTypeQuery = paymentTypeQuery;
+        _paymentPurposeQuery = paymentPurposeQuery;
     }
 
-    public async Task<List<PostingContext>> BuildAsync(BankOperation document)
+    public Task<List<PostingContext>> BuildAsync(BankOperation document)
+        => BuildAsync(new List<BankOperation> { document });
+
+    public async Task<List<PostingContext>> BuildAsync(List<BankOperation> documents)
     {
-        var primaryLine = document.BankOperationLines
-            .OrderBy(x => x.OrderNumber)
-            .FirstOrDefault();
+        var result = new List<PostingContext>();
 
-        if (primaryLine == null)
-            throw new InvalidOperationException($"Bank operation {document.Id} has no posting line.");
+        if (documents.Count == 0)
+            return result;
 
-        var paymentPurposeAlias = await GetPaymentPurposeAliasAsync(primaryLine.PaymentPurposeId);
-        var bankAccountNumber = await GetBankAccountNumberAsync(document.BankAccountId);
+        var operationLines = documents
+            .SelectMany(document => document.BankOperationLines)
+            .ToList();
 
-        var context = new PostingContext
+        var bankAccountIds = documents
+            .Select(document => document.BankAccountId)
+            .Distinct()
+            .ToList();
+
+        var counterpartyIds = documents
+            .Select(document => document.CounterpartyId)
+            .Concat(operationLines.Select(line => line.CounterpartyId))
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var contractIds = documents
+            .Where(document => document.ContractId.HasValue)
+            .Select(document => document.ContractId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentTypeIds = documents
+            .Select(document => document.PaymentTypeId)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentPurposeIds = operationLines
+            .Select(line => line.PaymentPurposeId)
+            .Distinct()
+            .ToList();
+
+        var bankAccountMap = await GetBankAccountMapAsync(bankAccountIds);
+        var counterpartyMap = await GetCounterpartyMapAsync(counterpartyIds);
+        var contractMap = await GetContractMapAsync(contractIds);
+        var paymentTypeMap = await GetPaymentTypeMapAsync(paymentTypeIds);
+        var paymentPurposeAliasMap = await GetPaymentPurposeAliasMapAsync(paymentPurposeIds);
+
+        foreach (var operation in documents)
         {
-            OrganizationId = document.OrganizationId,
-            DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
-            AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
-            DocumentId = document.Id,
-            CurrencyId = document.CurrencyId,
-            DocDate = document.DocDate,
-            JournalNumber = document.DocNumber,
-            RuleId = GetRuleId(document.OperationTypeId),
-            Amounts = new Dictionary<string, decimal>
-            {
-                [AmountSourceConst.Total] = document.Amount
-            },
-            PaymentMethod = await GetPaymentMethodAsync(document.PaymentTypeId),
-            AllowedAliases = string.IsNullOrWhiteSpace(paymentPurposeAlias) ? Array.Empty<string>() : [paymentPurposeAlias],
-            Subkontos = new List<SubkontoValue>
-            {
-                new()
+            var lines = operation.BankOperationLines.Count > 0
+                ? operation.BankOperationLines.OrderBy(line => line.OrderNumber).ToList()
+                : new List<BankOperationLine>
                 {
-                    SubkontoTypeId = SubkontoTypeIdConst.BANK_ACCOUNT,
-                    DisplayValue = bankAccountNumber,
-                    EntityId = document.BankAccountId,
-                    SortOrder = 1
-                },
-                new()
-                {
-                    SubkontoTypeId = SubkontoTypeIdConst.BANK_OPERATION,
-                    DisplayValue = JsonSerializer.Serialize(new
+                    new()
                     {
-                        number = document.DocNumber,
-                        date = document.DocDate
-                    }),
-                    EntityId = (int?)document.Id,
-                    SortOrder = 2
-                }
-            }
-        };
+                        Amount = operation.Amount,
+                        CounterpartyId = operation.CounterpartyId
+                    }
+                };
 
-        if (document.CounterpartyId.HasValue)
-        {
-            context.Subkontos.Add(new SubkontoValue
+            foreach (var line in lines.Where(line => line.Amount != 0))
             {
-                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
-                DisplayValue = await GetCounterpartyNameAsync(document.CounterpartyId.Value),
-                EntityId = document.CounterpartyId.Value,
-                SortOrder = 3
-            });
-        }
+                var paymentPurposeAlias = paymentPurposeAliasMap.GetValueOrDefault(line.PaymentPurposeId);
+                var counterpartyId = line.CounterpartyId ?? operation.CounterpartyId;
 
-        if (document.ContractId.HasValue)
-        {
-            var contractData = await GetContractDataAsync(document.ContractId.Value);
-            if (contractData != null)
-            {
-                context.Subkontos.Add(new SubkontoValue
+                result.Add(new PostingContext
                 {
-                    SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
-                    DisplayValue = JsonSerializer.Serialize(new
+                    OrganizationId = operation.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
+                    AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                    RuleId = ResolveRuleId(operation.OperationTypeId),
+                    DocumentId = operation.Id,
+                    SourceLineId = line.Id == 0 ? null : line.Id,
+                    DocDate = operation.DocDate,
+                    CurrencyId = operation.CurrencyId,
+                    JournalNumber = operation.DocNumber,
+                    PaymentMethod = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap),
+                    RequiredDebitAlias = ResolveRequiredDebitAlias(operation.OperationTypeId, paymentPurposeAlias),
+                    RequiredCreditAlias = ResolveRequiredCreditAlias(operation.OperationTypeId, paymentPurposeAlias),
+                    AllowedAliases = string.IsNullOrWhiteSpace(paymentPurposeAlias)
+                        ? Array.Empty<string>()
+                        : new[] { paymentPurposeAlias },
+                    Amounts = new Dictionary<string, decimal>
                     {
-                        number = contractData.Value.ContractNumber,
-                        date = contractData.Value.ContractDate
-                    }),
-                    EntityId = (int?)document.ContractId.Value,
-                    SortOrder = 4
+                        [AmountSourceConst.Total] = line.Amount
+                    },
+                    Subkontos = BuildSubkontos(operation, counterpartyId, bankAccountMap, counterpartyMap, contractMap)
                 });
             }
         }
 
-        return [context];
+        return result;
     }
 
-    private static short GetRuleId(short operationTypeId) =>
-        operationTypeId == OperationTypeIdConst.OUT
-            ? PostingRuleIdConst.CREDIT_OPERATION
-            : PostingRuleIdConst.DEBIT_OPERATION;
+    private static short ResolveRuleId(short operationTypeId) =>
+        operationTypeId switch
+        {
+            OperationTypeIdConst.IN => PostingRuleIdConst.DEBIT_OPERATION,
+            OperationTypeIdConst.OUT => PostingRuleIdConst.CREDIT_OPERATION,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(operationTypeId),
+                operationTypeId,
+                "Unsupported bank operation type for accounting posting.")
+        };
 
-    private async Task<string?> GetPaymentPurposeAliasAsync(short paymentPurposeId)
+    private static string? ResolveRequiredDebitAlias(short operationTypeId, string? paymentPurposeAlias) =>
+        operationTypeId switch
+        {
+            OperationTypeIdConst.IN when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => AliasConst.PaymentAccount,
+            OperationTypeIdConst.OUT when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => paymentPurposeAlias,
+            _ => null
+        };
+
+    private static string? ResolveRequiredCreditAlias(short operationTypeId, string? paymentPurposeAlias) =>
+        operationTypeId switch
+        {
+            OperationTypeIdConst.IN when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => paymentPurposeAlias,
+            OperationTypeIdConst.OUT when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => AliasConst.PaymentAccount,
+            _ => null
+        };
+
+    private static string ResolvePaymentMethod(short? paymentTypeId, Dictionary<short, string> paymentTypeMap) =>
+        paymentTypeId is { } id && paymentTypeMap.TryGetValue(id, out var value)
+            ? value.ToLowerInvariant()
+            : "bank";
+
+    private static List<SubkontoValue> BuildSubkontos(
+        BankOperation operation,
+        int? counterpartyId,
+        Dictionary<int, string> bankAccountMap,
+        Dictionary<int, string> counterpartyMap,
+        Dictionary<long, (string Number, DateTime Date)> contractMap)
     {
-        var query = _queryBuilder.For<PaymentPurpose>()
-            .Where(x => x.Id == paymentPurposeId)
-            .As(x => x.Alias.Code)
-            .Build();
-
-        return await _paymentPurposeQuery.GetAsync(query);
-    }
-
-    private async Task<string> GetPaymentMethodAsync(short? paymentTypeId)
-    {
-        if (paymentTypeId is null)
-            return "_default";
-
-        var query = _queryBuilder.For<PaymentType>()
-            .Where(x => x.Id == paymentTypeId.Value)
-            .As(x => x.Code)
-            .Build();
-
-        return await _paymentTypeQuery.GetAsync(query) ?? "_default";
-    }
-
-    private async Task<string> GetCounterpartyNameAsync(int counterpartyId)
-    {
-        var query = _queryBuilder.For<CounterpartyCard>()
-            .Where(x => x.Id == counterpartyId)
-            .As(x => x.ShortName)
-            .Build();
-
-        return await _counterpartyQuery.GetAsync(query) ?? string.Empty;
-    }
-
-    private async Task<(string ContractNumber, DateTime ContractDate)?> GetContractDataAsync(long contractId)
-    {
-        var query = _queryBuilder.For<Contract>()
-            .Where(x => x.Id == contractId)
-            .As(x => new ContractData
+        var subkontos = new List<SubkontoValue>
+        {
+            new()
             {
-                ContractNumber = x.ContractNumber,
-                ContractDate = x.ContractDate
+                SubkontoTypeId = SubkontoTypeIdConst.BANK_ACCOUNT,
+                DisplayValue = bankAccountMap.GetValueOrDefault(operation.BankAccountId),
+                EntityId = operation.BankAccountId,
+                SortOrder = 1
+            },
+            new()
+            {
+                SubkontoTypeId = SubkontoTypeIdConst.BANK_OPERATION,
+                DisplayValue = JsonSerializer.Serialize(new
+                {
+                    number = operation.DocNumber,
+                    date = operation.DocDate
+                }),
+                EntityId = operation.Id,
+                SortOrder = 2
+            }
+        };
+
+        if (counterpartyId.HasValue && counterpartyMap.TryGetValue(counterpartyId.Value, out var counterpartyName))
+        {
+            subkontos.Add(new SubkontoValue
+            {
+                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                DisplayValue = counterpartyName,
+                EntityId = counterpartyId.Value,
+                SortOrder = 3
+            });
+        }
+
+        if (operation.ContractId.HasValue && contractMap.TryGetValue(operation.ContractId.Value, out var contractData))
+        {
+            subkontos.Add(new SubkontoValue
+            {
+                SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
+                DisplayValue = JsonSerializer.Serialize(new
+                {
+                    number = contractData.Number,
+                    date = contractData.Date
+                }),
+                EntityId = operation.ContractId.Value,
+                SortOrder = 4
+            });
+        }
+
+        return subkontos;
+    }
+
+    private async Task<Dictionary<int, string>> GetBankAccountMapAsync(List<int> ids)
+    {
+        if (ids.Count == 0)
+            return new Dictionary<int, string>();
+
+        var query = _queryBuilder.For<BankAccount>()
+            .Where(account => ids.Contains(account.Id))
+            .As(account => new
+            {
+                account.Id,
+                Name = string.IsNullOrWhiteSpace(account.Name)
+                    ? account.AccountNumber
+                    : $"{account.Name} ({account.AccountNumber})"
             })
             .Build();
 
-        var contract = await _contractQuery.GetAsync(query);
-        return contract == null ? null : (contract.ContractNumber, contract.ContractDate);
+        var items = await _bankAccountQuery.GetAllAsync(query);
+        return items.ToDictionary(item => item.Id, item => item.Name);
     }
 
-    private async Task<string> GetBankAccountNumberAsync(int bankAccountId)
+    private async Task<Dictionary<int, string>> GetCounterpartyMapAsync(List<int> ids)
     {
-        var query = _queryBuilder.For<BankAccount>()
-            .Where(x => x.Id == bankAccountId)
-            .As(x => x.AccountNumber)
+        if (ids.Count == 0)
+            return new Dictionary<int, string>();
+
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(counterparty => ids.Contains(counterparty.Id))
+            .As(counterparty => new
+            {
+                counterparty.Id,
+                counterparty.ShortName
+            })
             .Build();
 
-        return await _bankAccountQuery.GetAsync(query) ?? string.Empty;
+        var items = await _counterpartyQuery.GetAllAsync(query);
+        return items.ToDictionary(item => item.Id, item => item.ShortName);
+    }
+
+    private async Task<Dictionary<long, (string Number, DateTime Date)>> GetContractMapAsync(List<long> ids)
+    {
+        if (ids.Count == 0)
+            return new Dictionary<long, (string Number, DateTime Date)>();
+
+        var query = _queryBuilder.For<Contract>()
+            .Where(contract => ids.Contains(contract.Id))
+            .As(contract => new ContractData
+            {
+                Id = contract.Id,
+                Number = contract.ContractNumber,
+                Date = contract.ContractDate
+            })
+            .Build();
+
+        var items = await _contractQuery.GetAllAsync(query);
+        return items.ToDictionary(item => item.Id, item => (item.Number, item.Date));
+    }
+
+    private async Task<Dictionary<short, string>> GetPaymentTypeMapAsync(List<short> ids)
+    {
+        if (ids.Count == 0)
+            return new Dictionary<short, string>();
+
+        var query = _queryBuilder.For<PaymentType>()
+            .Where(paymentType => ids.Contains(paymentType.Id))
+            .As(paymentType => new
+            {
+                paymentType.Id,
+                paymentType.Code
+            })
+            .Build();
+
+        var items = await _paymentTypeQuery.GetAllAsync(query);
+        return items.ToDictionary(item => item.Id, item => item.Code);
+    }
+
+    private async Task<Dictionary<short, string>> GetPaymentPurposeAliasMapAsync(List<short> ids)
+    {
+        if (ids.Count == 0)
+            return new Dictionary<short, string>();
+
+        var query = _queryBuilder.For<PaymentPurpose>()
+            .Where(paymentPurpose => ids.Contains(paymentPurpose.Id))
+            .As(paymentPurpose => new
+            {
+                paymentPurpose.Id,
+                AliasCode = paymentPurpose.Alias.Code
+            })
+            .Build();
+
+        var items = await _paymentPurposeQuery.GetAllAsync(query);
+        return items
+            .Where(item => !string.IsNullOrWhiteSpace(item.AliasCode))
+            .ToDictionary(item => item.Id, item => item.AliasCode);
     }
 
     private sealed class ContractData
     {
-        public string ContractNumber { get; set; } = string.Empty;
-        public DateTime ContractDate { get; set; }
+        public long Id { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
     }
 }

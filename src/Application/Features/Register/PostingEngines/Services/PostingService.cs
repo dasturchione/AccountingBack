@@ -24,7 +24,8 @@ namespace Application.Features.Register.PostingEngines
             var postingRuleIds = contexts.Select(s => s.RuleId);
 
             var postingRuleQuery = _queryBuilder.For<PostingRule>().Where(x => postingRuleIds.Contains(x.Id)).Build();
-            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines));
+            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.DebitAlias));
+            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.CreditAlias));
 
             var postingRules = await _ruleQuery.GetAllAsync(postingRuleQuery);
 
@@ -37,6 +38,8 @@ namespace Application.Features.Register.PostingEngines
                 var postingRule = postingRules.FirstOrDefault(f => f.Id == context.RuleId);
                 if (postingRule == null)
                     throw new ArgumentException($"Шаблон проводки не найден в acc_posting_template.");
+
+                var entriesCountBeforeContext = result.Count;
 
                 foreach (var line in postingRule.PostingRuleLines)
                 {
@@ -65,8 +68,11 @@ namespace Application.Features.Register.PostingEngines
                     if (amount == 0m)
                         continue;
 
-                    var debitAccountId = GetAccountId(line.DebitAlias, context, resolveRules);
-                    var creditAccountId = GetAccountId(line.CreditAlias, context, resolveRules);
+                    var debitAlias = line.DebitAlias.Code;
+                    var creditAlias = line.CreditAlias.Code;
+
+                    var debitAccountId = GetAccountId(debitAlias, context, resolveRules);
+                    var creditAccountId = GetAccountId(creditAlias, context, resolveRules);
 
                     var entry = new AccountingRegisterEntry
                     {
@@ -83,13 +89,14 @@ namespace Application.Features.Register.PostingEngines
                         CreditQuantity = context.CreditQuantity,
                         Content = postingRule.Name,
                         JournalNumber = context.JournalNumber,
+                        SourceLineId = context.SourceLineId,
                     };
 
                     // Субконто: применяем те, что относятся к DT, к дебетовой стороне,
                     // те, что к CT — к кредитовой, а без AppliesTo — к обеим сторонам.
 
-                    var ctSubkontos = GetSubkontos(line.CreditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
-                    var dtSubkontos = GetSubkontos(line.DebitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
+                    var ctSubkontos = GetSubkontos(creditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
+                    var dtSubkontos = GetSubkontos(debitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
 
                     foreach (var subkonto in ctSubkontos)
                     {
@@ -103,6 +110,12 @@ namespace Application.Features.Register.PostingEngines
 
                     result.Add(entry);
                 }
+
+                if (HasRequiredAliases(context) && result.Count == entriesCountBeforeContext)
+                {
+                    throw new ArgumentException(
+                        $"В шаблоне проводки не найдена строка для DebitAlias='{context.RequiredDebitAlias}' и CreditAlias='{context.RequiredCreditAlias}'.");
+                }
             }
 
             return result;
@@ -111,8 +124,8 @@ namespace Application.Features.Register.PostingEngines
         private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingRule> postingRules)
         {
             var aliases = postingRules
-                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias))
-                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias)))
+                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias.Code))
+                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias.Code)))
                             .Distinct()
                             .ToList();
 
@@ -214,14 +227,14 @@ namespace Application.Features.Register.PostingEngines
             if (!line.IsOptional || context.AllowedAliases.Length == 0)
                 return false;
 
-            if (string.Equals(line.DebitAlias, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
-                return !context.AllowedAliases.Contains(line.CreditAlias, StringComparer.OrdinalIgnoreCase);
+            if (string.Equals(line.DebitAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
+                return !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
 
-            if (string.Equals(line.CreditAlias, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
-                return !context.AllowedAliases.Contains(line.DebitAlias, StringComparer.OrdinalIgnoreCase);
+            if (string.Equals(line.CreditAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
+                return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase);
 
-            return !context.AllowedAliases.Contains(line.DebitAlias, StringComparer.OrdinalIgnoreCase) &&
-                   !context.AllowedAliases.Contains(line.CreditAlias, StringComparer.OrdinalIgnoreCase);
+            return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase) &&
+                   !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
         }
 
         private static bool IsSkippedAmountSource(PostingContext context, string amountSource)
@@ -229,5 +242,22 @@ namespace Application.Features.Register.PostingEngines
             return context.SkippedAmountSources is { Length: > 0 } &&
                    context.SkippedAmountSources.Any(source => string.Equals(source, amountSource, StringComparison.OrdinalIgnoreCase));
         }
+
+        private static bool IsMatchingRequiredAliases(PostingContext context, PostingRuleLine line)
+        {
+            if (!string.IsNullOrWhiteSpace(context.RequiredDebitAlias) &&
+                !string.Equals(line.DebitAlias.Code, context.RequiredDebitAlias, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(context.RequiredCreditAlias) &&
+                !string.Equals(line.CreditAlias.Code, context.RequiredCreditAlias, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return true;
+        }
+
+        private static bool HasRequiredAliases(PostingContext context) =>
+            !string.IsNullOrWhiteSpace(context.RequiredDebitAlias) ||
+            !string.IsNullOrWhiteSpace(context.RequiredCreditAlias);
     }
 }

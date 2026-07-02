@@ -99,8 +99,8 @@ public class PostingServiceTests
                 Id = index + 1,
                 TemplateId = id,
                 OrderNumber = (short)(index + 1),
-                DebitAlias = line.DebitAlias,
-                CreditAlias = line.CreditAlias,
+                DebitAlias = new PostingAlias { Code = line.DebitAlias },
+                CreditAlias = new PostingAlias { Code = line.CreditAlias },
                 AmountSource = AmountSourceConst.Total,
                 IsOptional = true
             }).ToList()

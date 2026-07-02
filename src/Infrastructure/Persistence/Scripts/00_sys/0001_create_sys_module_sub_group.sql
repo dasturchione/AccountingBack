@@ -22,6 +22,12 @@ insert into public.sys_module_sub_group (id, code, short_name, full_name, create
     ('10', 'REGISTER', 'Registrlar', 'Qoldiq registrlari', '2026-06-08 11:44:36.687616'),
     ('11', 'MANUAL', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlari', '2026-06-08 11:44:36.687616'),
     ('12', 'PRICING_CONDITION', 'Narxlash qoidasi', 'Narxlash qoidasi', '2026-06-27 16:21:38.259971'),
-    ('13', 'SALE_CONDITION', 'Sotuv qoidasi', 'Sotuv qoidasi', '2026-06-27 16:21:38.259971');
+    ('13', 'SALE_CONDITION', 'Sotuv qoidasi', 'Sotuv qoidasi', '2026-06-27 16:21:38.259971'),
+    ('14', 'POSTING_RULE', 'Postings qoidasi', 'Postings qoidasi', '2026-06-27 16:21:38.259971');
+
+SELECT pg_catalog.setval('public.sys_module_sub_group_id_seq', 15, true);
+
+ALTER TABLE ONLY public.sys_module_sub_group
+    ADD CONSTRAINT sys_module_sub_group_pkey PRIMARY KEY (id);
 
 CREATE UNIQUE INDEX sys_module_sub_group_unique_index_code ON public.sys_module_sub_group USING btree (code);

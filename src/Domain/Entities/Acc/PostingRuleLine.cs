@@ -16,13 +16,11 @@ public partial class PostingRuleLine
     [Column("order_number")]
     public short OrderNumber { get; set; }
 
-    [Column("debit_alias")]
-    [StringLength(250)]
-    public string DebitAlias { get; set; } = null!;
+    [Column("debit_alias_id")]
+    public short DebitAliasId { get; set; }
 
-    [Column("credit_alias")]
-    [StringLength(250)]
-    public string CreditAlias { get; set; } = null!;
+    [Column("credit_alias_id")]
+    public short CreditAliasId { get; set; }
 
     [Column("amount_source")]
     [StringLength(20)]
@@ -30,6 +28,14 @@ public partial class PostingRuleLine
 
     [Column("is_optional")]
     public bool IsOptional { get; set; }
+
+    [ForeignKey("CreditAliasId")]
+    [InverseProperty("PostingRuleLineCreditAliases")]
+    public virtual PostingAlias CreditAlias { get; set; } = null!;
+
+    [ForeignKey("DebitAliasId")]
+    [InverseProperty("PostingRuleLineDebitAliases")]
+    public virtual PostingAlias DebitAlias { get; set; } = null!;
 
     [ForeignKey("TemplateId")]
     [InverseProperty("PostingRuleLines")]

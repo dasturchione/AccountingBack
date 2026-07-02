@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -53,6 +53,12 @@ public partial class Warehouse
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; } = new List<InventoryAdjustmentDoc>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<InventoryCountDoc> InventoryCountDocs { get; set; } = new List<InventoryCountDoc>();
 
     [InverseProperty("CurrentWarehouse")]
     public virtual ICollection<ProductTable> CurrentProductTables { get; set; } = new List<ProductTable>();

@@ -7,6 +7,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("cash_operation")]
 [Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
 [Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
+[Index("DestinationCashBoxId", Name = "idx_cash_operation_destination_cash_box_id")]
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
@@ -82,11 +83,8 @@ public partial class CashOperation
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
     [ForeignKey("CashBoxId")]
-    [InverseProperty("CashOperations")]
+    [InverseProperty("CashOperationCashBoxes")]
     public virtual CashBox CashBox { get; set; } = null!;
-
-    [ForeignKey("DestinationCashBoxId")]
-    public virtual CashBox? DestinationCashBox { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CashOperations")]
@@ -95,6 +93,10 @@ public partial class CashOperation
     [ForeignKey("CurrencyId")]
     [InverseProperty("CashOperations")]
     public virtual Currency Currency { get; set; } = null!;
+
+    [ForeignKey("DestinationCashBoxId")]
+    [InverseProperty("CashOperationDestinationCashBoxes")]
+    public virtual CashBox? DestinationCashBox { get; set; }
 
     [ForeignKey("OperationTypeId")]
     [InverseProperty("CashOperations")]

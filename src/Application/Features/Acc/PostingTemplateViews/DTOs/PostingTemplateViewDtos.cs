@@ -21,8 +21,12 @@ public class PostingTemplateLineViewDto
 {
     public int Id { get; set; }
     public short OrderNumber { get; set; }
-    public string DebitAlias { get; set; } = null!;
-    public string CreditAlias { get; set; } = null!;
+    public short DebitAliasId { get; set; }
+    public string DebitAliasCode { get; set; } = null!;
+    public string DebitAliasName { get; set; } = null!;
+    public short CreditAliasId { get; set; }
+    public string CreditAliasCode { get; set; } = null!;
+    public string CreditAliasName { get; set; } = null!;
     public string? AmountSource { get; set; }
     public bool IsOptional { get; set; }
     public List<AccountAliasResolveDto> DebitResolveRules { get; set; } = new();

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -93,6 +93,28 @@ public partial class Product
     [Column("min_stock")]
     [Precision(18, 3)]
     public decimal? MinStock { get; set; }
+
+    [ForeignKey("CogsAccountId")]
+    public virtual ChartAccount? CogsAccount { get; set; }
+
+    [ForeignKey("DefaultVatRateId")]
+    public virtual VatRate? DefaultVatRate { get; set; }
+
+    [ForeignKey("ExpenseAccountId")]
+    public virtual ChartAccount? ExpenseAccount { get; set; }
+
+    [ForeignKey("IncomeAccountId")]
+    public virtual ChartAccount? IncomeAccount { get; set; }
+
+    [InverseProperty("Product")]
+    public virtual ICollection<InventoryAdjustmentLine> InventoryAdjustmentLines { get; set; } = new List<InventoryAdjustmentLine>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<InventoryCountLine> InventoryCountLines { get; set; } = new List<InventoryCountLine>();
+
+    [ForeignKey("InventoryAccountId")]
+    public virtual ChartAccount? InventoryAccount { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
@@ -115,6 +137,9 @@ public partial class Product
 
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<WarehouseTransferLine> WarehouseTransferLines { get; set; } = new List<WarehouseTransferLine>();
 
     [ForeignKey("StateId")]
     [InverseProperty("Products")]

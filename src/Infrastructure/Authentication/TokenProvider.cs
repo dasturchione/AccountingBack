@@ -12,6 +12,7 @@ namespace Infrastructure.Authentication
 {
     public class TokenProvider : ITokenProvider
     {
+        private const int MinimumHs256KeySizeInBytes = 32;
         private readonly JwtOptions _jwt;
         public TokenProvider(IOptions<JwtOptions> options)
         {
@@ -20,7 +21,8 @@ namespace Infrastructure.Authentication
 
         public string GenerateAccessToken(User user, int organizationId)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
+            var keyBytes = GetValidatedSigningKeyBytes();
+            var key = new SymmetricSecurityKey(keyBytes);
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = GetClaims(user, organizationId);
@@ -53,6 +55,18 @@ namespace Infrastructure.Authentication
             var hash = SHA256.HashData(bytes);
 
             return Convert.ToBase64String(hash);
+        }
+
+        private byte[] GetValidatedSigningKeyBytes()
+        {
+            if (string.IsNullOrWhiteSpace(_jwt.Key))
+                throw new InvalidOperationException("Jwt:Key is not configured.");
+
+            var keyBytes = Encoding.UTF8.GetBytes(_jwt.Key);
+            if (keyBytes.Length < MinimumHs256KeySizeInBytes)
+                throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256 signing.");
+
+            return keyBytes;
         }
 
         private List<Claim> GetClaims(User user, int organizationId)

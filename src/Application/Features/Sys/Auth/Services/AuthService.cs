@@ -5,6 +5,7 @@ using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
+using System.Security.Cryptography;
 
 namespace Application.Features.Auth;
 
@@ -49,7 +50,15 @@ public class AuthService : IAuthService
 
     private async ValueTask<Result<LoginResponseDto>> AuthenticateAsync(LoginDto dto, bool requireGlobalAccess, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<User>().Where(x => x.UserName == dto.UserName).Build();
+        var normalizedUserName = dto.UserName.Trim();
+
+        var query = _queryBuilder.For<User>().Where(x => x.UserName == normalizedUserName).Build();
+        query = new QuerySpecification<User>
+        {
+            Criteria = query.Criteria,
+            OrderBy = query.OrderBy,
+            IgnoreQueryFilters = true
+        };
 
         query.AddIncludes(b =>
         {
@@ -59,9 +68,24 @@ public class AuthService : IAuthService
 
         var user = await _userQuery.GetAsync(query, ct);
 
-        if (user is null ||
-            user.StateId != StateIdConst.ACTIVE ||
-            !_passwordHasher.Verify(dto.Password, user.PasswordSalt, user.PasswordHash))
+        if (user is null || user.Role is null || user.State is null || user.StateId != StateIdConst.ACTIVE)
+            return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+
+        bool passwordMatches;
+        try
+        {
+            passwordMatches = _passwordHasher.Verify(dto.Password, user.PasswordSalt, user.PasswordHash);
+        }
+        catch (FormatException)
+        {
+            return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
+        catch (CryptographicException)
+        {
+            return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
+
+        if (!passwordMatches)
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
 
         var hasGlobalAccess = user.Role.HasGlobalAccess;
@@ -71,6 +95,7 @@ public class AuthService : IAuthService
         var orgSpec = new QuerySpecification<UserOrganization, UserOrgDto>
         {
             Criteria = uo => uo.UserId == user.Id && uo.StateId == StateIdConst.ACTIVE,
+            IgnoreQueryFilters = true,
             Selector = uo => new UserOrgDto
             {
                 OrganizationId = uo.OrganizationId,

@@ -19,6 +19,7 @@ namespace Infrastructure.Persistence
         private int CurrentOrganizationId => _userContext?.OrganizationId ?? 0;
 
         private bool HasGlobalAccess => _userContext?.HasGlobalAccess == true;
+        private bool HasAuthenticatedUser => _userContext?.Id is not null;
 
         // User ruxsat berilgan barcha org IDlar
         private List<int> AllowedOrgIds => _userContext?.AllowedOrganizationIds ?? [];
@@ -177,6 +178,8 @@ namespace Infrastructure.Persistence
         // Boshqa tashkilot nomidan yozish/o'zgartirish/o'chirishni taqiqlaydi
         private void EnforceOrganizationScope()
         {
+            if (!HasAuthenticatedUser) return;
+
             if (HasGlobalAccess) return;
 
             if (AllowedOrgIds.Count == 0)

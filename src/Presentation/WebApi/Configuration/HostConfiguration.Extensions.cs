@@ -212,11 +212,11 @@ namespace WebApi.Configuration
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
         {
             var key = jwtSection["Key"];
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(key))
+            if (IsPlaceholderValue(key))
                 throw new InvalidOperationException("Jwt:Key is not configured with a real secret value.");
 
-            if (string.IsNullOrWhiteSpace(key) || (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && key.Length < 32))
-                throw new InvalidOperationException("Jwt:Key must be at least 32 characters.");
+            if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) < 32)
+                throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256 signing.");
 
             var issuer = jwtSection["Issuer"];
             var audience = jwtSection["Audience"];

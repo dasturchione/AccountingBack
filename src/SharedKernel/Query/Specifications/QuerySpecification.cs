@@ -7,6 +7,7 @@ namespace SharedKernel.Query.Specifications
     {
         public Expression<Func<TEntity, bool>> Criteria { get; init; } = _ => true;
         public Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? OrderBy { get; init; }
+        public bool IgnoreQueryFilters { get; init; }
 
         public IReadOnlyList<IncludeEntry<TEntity>> Includes => _includes;
 
@@ -26,5 +27,6 @@ namespace SharedKernel.Query.Specifications
         public Expression<Func<TResult, bool>> ResultCriteria { get; init; } = _ => true;
         public Func<IQueryable<TResult>, IOrderedQueryable<TResult>>? OrderBy { get; init; }
         public Expression<Func<TEntity, TResult>> Selector { get; init; } = null!;
+        public bool IgnoreQueryFilters { get; init; }
     }
 }

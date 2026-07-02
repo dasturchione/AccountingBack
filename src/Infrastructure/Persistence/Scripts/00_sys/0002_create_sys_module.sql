@@ -186,9 +186,11 @@ insert into public.sys_module (id, code, short_name, full_name, sub_group_id, st
     ('1032', 'SALE_CONDITION_VIEW_DETAIL', 'Sotuv qoidasi detail', 'Batafsil', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1033', 'SALE_CONDITION_CREATE', 'Sotuv qoidasi yaratish', 'Yangi', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1034', 'SALE_CONDITION_UPDATE', 'Sotuv qoidasi tahrirlash', 'Tahrirlash', '13', '1', '2026-06-27 16:26:12.016132'),
-    ('1035', 'SALE_CONDITION_DELETE', 'Sotuv qoidasi o''chirish', 'O''chirish', '13', '1', '2026-06-27 16:26:12.016132');
+    ('1035', 'SALE_CONDITION_DELETE', 'Sotuv qoidasi o''chirish', 'O''chirish', '13', '1', '2026-06-27 16:26:12.016132'),
+    ('1036', 'POSTING_RULE_VIEW', 'Postings qoidasi', 'Ro''yxat', '14', '1', '2026-06-27 16:26:12.016132'),
+    ('1037', 'POSTING_RULE_VIEW_DETAIL', 'Postings qoidasi detail', 'Batafsil', '14', '1', '2026-06-27 16:26:12.016132');
 
-SELECT pg_catalog.setval('public.sys_module_id_seq', 1101, true);
+SELECT pg_catalog.setval('public.sys_module_id_seq', 1037, true);
 
 ALTER TABLE ONLY public.sys_module
     ADD CONSTRAINT sys_module_pkey PRIMARY KEY (id);

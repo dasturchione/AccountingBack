@@ -2,7 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
-using DocumentFormat.OpenXml.Vml.Office;
+using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -15,12 +15,14 @@ public class BankOperationService : IBankOperationService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
+    private readonly IAccountingDispatcher _accountingDispatcher;
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
 
     public BankOperationService(IUserContext userContext,
                                 IQueryBuilder queryBuilder,
                                 IAuditLogService auditLogService,
+                                IAccountingDispatcher accountingDispatcher,
                                 IQueryRepository<BankOperation> query,
                                 ICommandRepository<BankOperation> command)
     {
@@ -29,6 +31,7 @@ public class BankOperationService : IBankOperationService
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
+        _accountingDispatcher = accountingDispatcher;
     }
 
     public async Task<Result<long>> CreateAsync(BankOperationCreateDto dto, CancellationToken ct = default)
@@ -38,6 +41,12 @@ public class BankOperationService : IBankOperationService
         var entity = BuildCreateEntity(dto, orgId, _userContext.Id);
 
         await _command.CreateAsync(entity, ct);
+
+        var postingResult = await _accountingDispatcher.ProcessAsync(new List<BankOperation> { entity }, ct);
+        if (!postingResult.IsSuccess)
+        {
+            return Result.Failure<long>(postingResult.Error);
+        }
 
         var docDto = await GetByIdInternalAsync(entity.Id, ct);
         if (docDto != null)
@@ -57,6 +66,12 @@ public class BankOperationService : IBankOperationService
             .ToList();
 
         await _command.CreateAsync(entities, ct);
+
+        var postingResult = await _accountingDispatcher.ProcessAsync(entities, ct);
+        if (!postingResult.IsSuccess)
+        {
+            return Result.Failure<List<long>>(postingResult.Error);
+        }
 
         return entities.Select(x => x.Id).ToList();
     }

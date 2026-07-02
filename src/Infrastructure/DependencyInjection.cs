@@ -127,6 +127,7 @@ namespace Infrastructure
             services.AddScoped<IPostingService, PostingService>();
             services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<List<BankOperation>>, BankOperationContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

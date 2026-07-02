@@ -167,6 +167,10 @@ namespace Application.Features.Register.PostingEngines
 
             switch (alias)
             {
+                case AliasConst.PaymentAccount:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BANK_ACCOUNT).ToList();
+                    break;
+
                 case AliasConst.VATIn:
                 case AliasConst.VATOut:
                     result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
@@ -201,6 +205,7 @@ namespace Application.Features.Register.PostingEngines
             {
                 PostingRuleIdConst.PURCHASE_GOODS or PostingRuleIdConst.PURCHASE_SERVICE => DocumentTypeIdConst.PURCHASE,
                 PostingRuleIdConst.SALE_GOODS or PostingRuleIdConst.SALE_SERVICE => DocumentTypeIdConst.SALE,
+                PostingRuleIdConst.DEBIT_OPERATION or PostingRuleIdConst.CREDIT_OPERATION => DocumentTypeIdConst.BANKOPERATION,
                 
                 _ => ruleId
             };

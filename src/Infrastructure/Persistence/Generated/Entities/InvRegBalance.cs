@@ -12,6 +12,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("OrganizationId", Name = "idx_inv_reg_balance_organization_id")]
 [Index("PostingBatchId", Name = "idx_inv_reg_balance_posting_batch_id")]
 [Index("ProductId", Name = "idx_inv_reg_balance_product_id")]
+[Index("ProductTableId", Name = "idx_inv_reg_balance_product_table_id")]
 [Index("ReversalEntryId", Name = "idx_inv_reg_balance_reversal_entry_id")]
 [Index("WarehouseId", Name = "idx_inv_reg_balance_warehouse_id")]
 public partial class InvRegBalance
@@ -61,6 +62,9 @@ public partial class InvRegBalance
     [Column("reversal_entry_id")]
     public long? ReversalEntryId { get; set; }
 
+    [Column("product_table_id")]
+    public int? ProductTableId { get; set; }
+
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("InvRegBalances")]
     public virtual CmnDocumentType DocumentType { get; set; } = null!;
@@ -80,6 +84,10 @@ public partial class InvRegBalance
     [ForeignKey("ProductId")]
     [InverseProperty("InvRegBalances")]
     public virtual InvProduct Product { get; set; } = null!;
+
+    [ForeignKey("ProductTableId")]
+    [InverseProperty("InvRegBalances")]
+    public virtual InvProductTable? ProductTable { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("InvRegBalances")]

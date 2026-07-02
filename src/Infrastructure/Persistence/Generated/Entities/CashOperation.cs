@@ -10,6 +10,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
 [Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
 [Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
+[Index("DestinationCashBoxId", Name = "idx_cash_operation_destination_cash_box_id")]
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
@@ -80,12 +81,15 @@ public partial class CashOperation
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("destination_cash_box_id")]
+    public int? DestinationCashBoxId { get; set; }
+
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("CashOperationCancelledByUsers")]
     public virtual SysUser? CancelledByUser { get; set; }
 
     [ForeignKey("CashBoxId")]
-    [InverseProperty("CashOperations")]
+    [InverseProperty("CashOperationCashBoxes")]
     public virtual CashBox CashBox { get; set; } = null!;
 
     [ForeignKey("CounterpartyId")]
@@ -95,6 +99,10 @@ public partial class CashOperation
     [ForeignKey("CurrencyId")]
     [InverseProperty("CashOperations")]
     public virtual CmnCurrency Currency { get; set; } = null!;
+
+    [ForeignKey("DestinationCashBoxId")]
+    [InverseProperty("CashOperationDestinationCashBoxes")]
+    public virtual CashBox? DestinationCashBox { get; set; }
 
     [ForeignKey("OperationTypeId")]
     [InverseProperty("CashOperations")]

@@ -8,6 +8,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("acc_payment_purpose")]
 [Index("Code", Name = "acc_payment_purpose_code_key", IsUnique = true)]
+[Index("AliasId", Name = "idx_acc_payment_purpose_alias_id")]
+[Index("OperationTypeId", Name = "idx_acc_payment_purpose_operation_type_id")]
 public partial class AccPaymentPurpose
 {
     [Key]

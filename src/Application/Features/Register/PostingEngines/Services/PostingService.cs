@@ -24,7 +24,8 @@ namespace Application.Features.Register.PostingEngines
             var postingRuleIds = contexts.Select(s => s.RuleId);
 
             var postingRuleQuery = _queryBuilder.For<PostingRule>().Where(x => postingRuleIds.Contains(x.Id)).Build();
-            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines));
+            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.DebitAlias));
+            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.CreditAlias));
 
             var postingRules = await _ruleQuery.GetAllAsync(postingRuleQuery);
 
@@ -67,8 +68,11 @@ namespace Application.Features.Register.PostingEngines
                     if (amount == 0m)
                         continue;
 
-                    var debitAccountId = GetAccountId(line.DebitAlias, context, resolveRules);
-                    var creditAccountId = GetAccountId(line.CreditAlias, context, resolveRules);
+                    var debitAlias = line.DebitAlias.Code;
+                    var creditAlias = line.CreditAlias.Code;
+
+                    var debitAccountId = GetAccountId(debitAlias, context, resolveRules);
+                    var creditAccountId = GetAccountId(creditAlias, context, resolveRules);
 
                     var entry = new AccountingRegisterEntry
                     {
@@ -91,8 +95,8 @@ namespace Application.Features.Register.PostingEngines
                     // Субконто: применяем те, что относятся к DT, к дебетовой стороне,
                     // те, что к CT — к кредитовой, а без AppliesTo — к обеим сторонам.
 
-                    var ctSubkontos = GetSubkontos(line.CreditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
-                    var dtSubkontos = GetSubkontos(line.DebitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
+                    var ctSubkontos = GetSubkontos(creditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
+                    var dtSubkontos = GetSubkontos(debitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
 
                     foreach (var subkonto in ctSubkontos)
                     {
@@ -120,8 +124,8 @@ namespace Application.Features.Register.PostingEngines
         private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingRule> postingRules)
         {
             var aliases = postingRules
-                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias))
-                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias)))
+                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias.Code))
+                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias.Code)))
                             .Distinct()
                             .ToList();
 
@@ -231,11 +235,11 @@ namespace Application.Features.Register.PostingEngines
         private static bool IsMatchingRequiredAliases(PostingContext context, PostingRuleLine line)
         {
             if (!string.IsNullOrWhiteSpace(context.RequiredDebitAlias) &&
-                !string.Equals(line.DebitAlias, context.RequiredDebitAlias, StringComparison.OrdinalIgnoreCase))
+                !string.Equals(line.DebitAlias.Code, context.RequiredDebitAlias, StringComparison.OrdinalIgnoreCase))
                 return false;
 
             if (!string.IsNullOrWhiteSpace(context.RequiredCreditAlias) &&
-                !string.Equals(line.CreditAlias, context.RequiredCreditAlias, StringComparison.OrdinalIgnoreCase))
+                !string.Equals(line.CreditAlias.Code, context.RequiredCreditAlias, StringComparison.OrdinalIgnoreCase))
                 return false;
 
             return true;

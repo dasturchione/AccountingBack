@@ -43,7 +43,8 @@ insert into acc_posting_alias (code, name) values
 	('TaxOther',          'Boshqa soliq va yig''imlar'),
 	('SocialInsurance',   'Ijtimoiy soliq (YaIJ)'),
 	('PensionFund',       'INPS'),
-	('BankFee',           'Bank komissiyasi');
+	('BankFee',           'Bank komissiyasi'),
+	('TaxAuthority',      'Soliq organi / byudjet bilan hisob-kitob');
 
 -- Узбекский (language_id = 1)
 insert into acc_posting_alias_translation (posting_alias_id, language_id, name)
@@ -78,7 +79,8 @@ join (values
 	('TaxOther',          'Boshqa soliq va yig''imlar'),
 	('SocialInsurance',   'Ijtimoiy soliq (YaIJ)'),
 	('PensionFund',       'INPS'),
-	('BankFee',           'Bank komissiyasi')
+	('BankFee',           'Bank komissiyasi'),
+	('TaxAuthority',      'Soliq organi / byudjet bilan hisob-kitob')
 ) as v(code, name) on v.code = a.code;
 
 -- Русский (language_id = 2)
@@ -114,7 +116,8 @@ join (values
 	('TaxOther',          'Прочие налоги и сборы'),
 	('SocialInsurance',   'Социальный налог (ЕСП)'),
 	('PensionFund',       'ИНПС'),
-	('BankFee',           'Банковская комиссия')
+	('BankFee',           'Банковская комиссия'),
+	('TaxAuthority',      'Налоговый орган / расчёты с бюджетом')
 ) as v(code, name) on v.code = a.code;
 
 -- English (language_id = 3)
@@ -150,5 +153,6 @@ join (values
 	('TaxOther',          'Other taxes and fees'),
 	('SocialInsurance',   'Social insurance tax'),
 	('PensionFund',       'Pension fund'),
-	('BankFee',           'Bank fee')
+	('BankFee',           'Bank fee'),
+	('TaxAuthority',      'Tax authority / budget settlements'
 ) as v(code, name) on v.code = a.code;

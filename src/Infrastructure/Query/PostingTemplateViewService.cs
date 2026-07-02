@@ -59,10 +59,23 @@ public class PostingTemplateViewService : IPostingTemplateViewService
                 Error.NotFound("PostingTemplate.NotFound", $"Posting template with id '{id}' was not found."));
 
         const string lineSql = """
-            select id, template_id, order_number, debit_alias, credit_alias, amount_source, is_optional
-            from acc_posting_rule_line
-            where template_id = @template_id
-            order by order_number, id
+            select
+                l.id,
+                l.template_id,
+                l.order_number,
+                l.debit_alias_id,
+                da.code as debit_alias_code,
+                da.name as debit_alias_name,
+                l.credit_alias_id,
+                ca.code as credit_alias_code,
+                ca.name as credit_alias_name,
+                l.amount_source,
+                l.is_optional
+            from acc_posting_rule_line l
+            join acc_posting_alias da on da.id = l.debit_alias_id
+            join acc_posting_alias ca on ca.id = l.credit_alias_id
+            where l.template_id = @template_id
+            order by l.order_number, l.id
             """;
 
         var lines = await QueryAsync(
@@ -72,7 +85,7 @@ public class PostingTemplateViewService : IPostingTemplateViewService
             ct);
 
         var aliases = lines
-            .SelectMany(x => new[] { x.DebitAlias, x.CreditAlias })
+            .SelectMany(x => new[] { x.DebitAliasCode, x.CreditAliasCode })
             .Distinct()
             .ToList();
 
@@ -86,8 +99,8 @@ public class PostingTemplateViewService : IPostingTemplateViewService
 
         foreach (var line in lines)
         {
-            line.DebitResolveRules = rulesByAlias.GetValueOrDefault(line.DebitAlias, new List<AccountAliasResolveDto>());
-            line.CreditResolveRules = rulesByAlias.GetValueOrDefault(line.CreditAlias, new List<AccountAliasResolveDto>());
+            line.DebitResolveRules = rulesByAlias.GetValueOrDefault(line.DebitAliasCode, new List<AccountAliasResolveDto>());
+            line.CreditResolveRules = rulesByAlias.GetValueOrDefault(line.CreditAliasCode, new List<AccountAliasResolveDto>());
         }
 
         var result = new PostingTemplateViewDto
@@ -189,8 +202,12 @@ public class PostingTemplateViewService : IPostingTemplateViewService
         {
             Id = Convert.ToInt32(row["id"]),
             OrderNumber = Convert.ToInt16(row["order_number"]),
-            DebitAlias = Convert.ToString(row["debit_alias"])!,
-            CreditAlias = Convert.ToString(row["credit_alias"])!,
+            DebitAliasId = Convert.ToInt16(row["debit_alias_id"]),
+            DebitAliasCode = Convert.ToString(row["debit_alias_code"])!,
+            DebitAliasName = Convert.ToString(row["debit_alias_name"])!,
+            CreditAliasId = Convert.ToInt16(row["credit_alias_id"]),
+            CreditAliasCode = Convert.ToString(row["credit_alias_code"])!,
+            CreditAliasName = Convert.ToString(row["credit_alias_name"])!,
             AmountSource = row["amount_source"] == DBNull.Value ? null : Convert.ToString(row["amount_source"]),
             IsOptional = Convert.ToBoolean(row["is_optional"])
         };

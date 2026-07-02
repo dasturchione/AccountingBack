@@ -61,7 +61,10 @@ public partial class CashBox
     public virtual OrgBranch? Branch { get; set; }
 
     [InverseProperty("CashBox")]
-    public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
+    public virtual ICollection<CashOperation> CashOperationCashBoxes { get; set; } = new List<CashOperation>();
+
+    [InverseProperty("DestinationCashBox")]
+    public virtual ICollection<CashOperation> CashOperationDestinationCashBoxes { get; set; } = new List<CashOperation>();
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("CashBoxes")]

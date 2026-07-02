@@ -112,6 +112,12 @@ public partial class InvProduct
     public virtual AccChartAccount? IncomeAccount { get; set; }
 
     [InverseProperty("Product")]
+    public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<InvInventoryCountLine> InvInventoryCountLines { get; set; } = new List<InvInventoryCountLine>();
+
+    [InverseProperty("Product")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
     [InverseProperty("Product")]
@@ -119,6 +125,9 @@ public partial class InvProduct
 
     [InverseProperty("Product")]
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
     [ForeignKey("InventoryAccountId")]
     [InverseProperty("InvProductInventoryAccounts")]

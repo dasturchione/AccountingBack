@@ -110,6 +110,18 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CounterpartyRegBalance> CounterpartyRegBalances { get; set; }
 
+    public virtual DbSet<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; }
+
+    public virtual DbSet<InvInventoryAdjustmentDocTable> InvInventoryAdjustmentDocTables { get; set; }
+
+    public virtual DbSet<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; }
+
+    public virtual DbSet<InvInventoryCountDoc> InvInventoryCountDocs { get; set; }
+
+    public virtual DbSet<InvInventoryCountDocTable> InvInventoryCountDocTables { get; set; }
+
+    public virtual DbSet<InvInventoryCountLine> InvInventoryCountLines { get; set; }
+
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
     public virtual DbSet<InvProductGroup> InvProductGroups { get; set; }
@@ -119,6 +131,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InvProductTable> InvProductTables { get; set; }
 
     public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
+
+    public virtual DbSet<InvTransferDoc> InvTransferDocs { get; set; }
+
+    public virtual DbSet<InvTransferDocTable> InvTransferDocTables { get; set; }
+
+    public virtual DbSet<InvTransferLine> InvTransferLines { get; set; }
 
     public virtual DbSet<InvWarehouse> InvWarehouses { get; set; }
 
@@ -271,7 +289,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("acc_payment_purpose_pkey");
 
-            entity.Property(e => e.OperationTypeId).HasDefaultValue((short)1);
             entity.Property(e => e.RequiresCounterparty).HasDefaultValue(true);
 
             entity.HasOne(d => d.Alias).WithMany(p => p.AccPaymentPurposes)
@@ -344,6 +361,14 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
 
             entity.Property(e => e.IsOptional).HasDefaultValue(true);
+
+            entity.HasOne(d => d.CreditAlias).WithMany(p => p.AccPostingRuleLineCreditAliases)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_acc_posting_rule_line_credit_alias");
+
+            entity.HasOne(d => d.DebitAlias).WithMany(p => p.AccPostingRuleLineDebitAliases)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_acc_posting_rule_line_debit_alias");
 
             entity.HasOne(d => d.Template).WithMany(p => p.AccPostingRuleLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -492,7 +517,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CancelledByUser).WithMany(p => p.CashOperationCancelledByUsers).HasConstraintName("cash_operation_cancelled_by_user_id_fkey");
 
-            entity.HasOne(d => d.CashBox).WithMany(p => p.CashOperations)
+            entity.HasOne(d => d.CashBox).WithMany(p => p.CashOperationCashBoxes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cash_operation_cash_box_id_fkey");
 
@@ -501,6 +526,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Currency).WithMany(p => p.CashOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cash_operation_currency_id_fkey");
+
+            entity.HasOne(d => d.DestinationCashBox).WithMany(p => p.CashOperationDestinationCashBoxes).HasConstraintName("cash_operation_destination_cash_box_id_fkey");
 
             entity.HasOne(d => d.OperationType).WithMany(p => p.CashOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -538,7 +565,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
-            entity.Property(e => e.ContractTypeId).HasDefaultValue((short)1);
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
@@ -908,6 +934,124 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.PostingBatch).WithMany(p => p.CounterpartyRegBalances).HasConstraintName("counterparty_reg_balance_posting_batch_id_fkey");
         });
 
+        modelBuilder.Entity<InvInventoryAdjustmentDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_doc_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.InvInventoryAdjustmentDocCancelledByUsers).HasConstraintName("inv_inventory_adjustment_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvInventoryAdjustmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.InvInventoryAdjustmentDocPostedByUsers).HasConstraintName("inv_inventory_adjustment_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvInventoryAdjustmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvInventoryAdjustmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_doc_status_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvInventoryAdjustmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_doc_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvInventoryAdjustmentDocTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_doc_table_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryAdjustmentDocTables).HasConstraintName("inv_inventory_adjustment_doc_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvInventoryAdjustmentDocTables).HasConstraintName("inv_inventory_adjustment_doc_table_product_table_id_fkey");
+        });
+
+        modelBuilder.Entity<InvInventoryAdjustmentLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_line_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryAdjustmentLines).HasConstraintName("inv_inventory_adjustment_line_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvInventoryAdjustmentLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_line_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvInventoryAdjustmentLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_line_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<InvInventoryCountDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_count_doc_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.InvInventoryCountDocCancelledByUsers).HasConstraintName("inv_inventory_count_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CountCompletedByUser).WithMany(p => p.InvInventoryCountDocCountCompletedByUsers).HasConstraintName("inv_inventory_count_doc_count_completed_by_user_id_fkey");
+
+            entity.HasOne(d => d.NegativeAdjustmentDoc).WithMany(p => p.InvInventoryCountDocNegativeAdjustmentDocs).HasConstraintName("inv_inventory_count_doc_negative_adjustment_doc_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvInventoryCountDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PositiveAdjustmentDoc).WithMany(p => p.InvInventoryCountDocPositiveAdjustmentDocs).HasConstraintName("inv_inventory_count_doc_positive_adjustment_doc_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.InvInventoryCountDocPostedByUsers).HasConstraintName("inv_inventory_count_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvInventoryCountDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvInventoryCountDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_doc_status_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvInventoryCountDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_doc_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvInventoryCountDocTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_count_doc_table_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryCountDocTables).HasConstraintName("inv_inventory_count_doc_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvInventoryCountDocTables).HasConstraintName("inv_inventory_count_doc_table_product_table_id_fkey");
+        });
+
+        modelBuilder.Entity<InvInventoryCountLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_inventory_count_line_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryCountLines).HasConstraintName("inv_inventory_count_line_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvInventoryCountLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_line_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvInventoryCountLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_count_line_unit_id_fkey");
+        });
+
         modelBuilder.Entity<InvProduct>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_product_pkey");
@@ -1013,6 +1157,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StatusId).HasDefaultValue((short)1);
 
+            entity.HasOne(d => d.CurrentWarehouse).WithMany(p => p.InvProductTables).HasConstraintName("inv_product_table_current_warehouse_id_fkey");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_table_organization_id_fkey");
@@ -1054,9 +1200,81 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_reg_balance_product_id_fkey");
 
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvRegBalances).HasConstraintName("inv_reg_balance_product_table_id_fkey");
+
             entity.HasOne(d => d.Warehouse).WithMany(p => p.InvRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvTransferDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_transfer_doc_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.InvTransferDocCancelledByUsers).HasConstraintName("inv_transfer_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.DestinationWarehouse).WithMany(p => p.InvTransferDocDestinationWarehouses)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_destination_warehouse_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvTransferDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.InvTransferDocPostedByUsers).HasConstraintName("inv_transfer_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.SourceWarehouse).WithMany(p => p.InvTransferDocSourceWarehouses)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_source_warehouse_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvTransferDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvTransferDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_status_id_fkey");
+        });
+
+        modelBuilder.Entity<InvTransferDocTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_transfer_doc_table_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.DestinationWarehouse).WithMany(p => p.InvTransferDocTableDestinationWarehouses)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_table_destination_warehouse_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvTransferDocTables).HasConstraintName("inv_transfer_doc_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvTransferDocTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_table_product_table_id_fkey");
+
+            entity.HasOne(d => d.SourceWarehouse).WithMany(p => p.InvTransferDocTableSourceWarehouses)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_doc_table_source_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvTransferLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_transfer_line_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvTransferLines).HasConstraintName("inv_transfer_line_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvTransferLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_line_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvTransferLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_transfer_line_unit_id_fkey");
         });
 
         modelBuilder.Entity<InvWarehouse>(entity =>

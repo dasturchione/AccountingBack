@@ -32,6 +32,15 @@ public partial class CmnDocumentStatus
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("Status")]
+    public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
+
+    [InverseProperty("Status")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocs { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("Status")]
+    public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
+
+    [InverseProperty("Status")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("Status")]

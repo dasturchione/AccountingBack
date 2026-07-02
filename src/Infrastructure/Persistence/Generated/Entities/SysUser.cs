@@ -108,6 +108,27 @@ public partial class SysUser
     [InverseProperty("PostedByUser")]
     public virtual ICollection<CashOperation> CashOperationPostedByUsers { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocCancelledByUsers { get; set; } = new List<InvInventoryAdjustmentDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocPostedByUsers { get; set; } = new List<InvInventoryAdjustmentDoc>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocCancelledByUsers { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("CountCompletedByUser")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocCountCompletedByUsers { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocPostedByUsers { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<InvTransferDoc> InvTransferDocCancelledByUsers { get; set; } = new List<InvTransferDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<InvTransferDoc> InvTransferDocPostedByUsers { get; set; } = new List<InvTransferDoc>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 

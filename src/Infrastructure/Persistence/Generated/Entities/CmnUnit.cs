@@ -26,10 +26,19 @@ public partial class CmnUnit
     public short StateId { get; set; }
 
     [InverseProperty("Unit")]
+    public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<InvInventoryCountLine> InvInventoryCountLines { get; set; } = new List<InvInventoryCountLine>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
     [InverseProperty("Unit")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
+
+    [InverseProperty("Unit")]
+    public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
     [InverseProperty("Unit")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();

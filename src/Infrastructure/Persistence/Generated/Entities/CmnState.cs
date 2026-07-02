@@ -109,6 +109,12 @@ public partial class CmnState
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
 
     [InverseProperty("State")]
+    public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocs { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("State")]
     public virtual ICollection<InvProductGroup> InvProductGroups { get; set; } = new List<InvProductGroup>();
 
     [InverseProperty("State")]
@@ -119,6 +125,9 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("State")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();

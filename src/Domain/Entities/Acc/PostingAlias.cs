@@ -25,4 +25,10 @@ public partial class PostingAlias
 
     [InverseProperty("PostingAlias")]
     public virtual ICollection<PostingAliasTranslation> PostingAliasTranslations { get; set; } = new List<PostingAliasTranslation>();
+
+    [InverseProperty("CreditAlias")]
+    public virtual ICollection<PostingRuleLine> PostingRuleLineCreditAliases { get; set; } = new List<PostingRuleLine>();
+
+    [InverseProperty("DebitAlias")]
+    public virtual ICollection<PostingRuleLine> PostingRuleLineDebitAliases { get; set; } = new List<PostingRuleLine>();
 }

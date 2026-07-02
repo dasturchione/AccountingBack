@@ -137,6 +137,12 @@ public partial class OrgOrganization
     public virtual CmnDistrict? District { get; set; }
 
     [InverseProperty("Organization")]
+    public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocs { get; set; } = new List<InvInventoryCountDoc>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<InvProductGroup> InvProductGroups { get; set; } = new List<InvProductGroup>();
 
     [InverseProperty("Organization")]
@@ -150,6 +156,9 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();

@@ -22,28 +22,6 @@ ALTER SEQUENCE public.acc_account_resolve_rule_id_seq OWNED BY public.acc_accoun
 
 ALTER TABLE ONLY public.acc_account_resolve_rule ALTER COLUMN id SET DEFAULT nextval('public.acc_account_resolve_rule_id_seq'::regclass);
 
-insert into public.acc_account_resolve_rule (id, policy_id, alias, dimension_key, dimension_value, account_id, priority) values
-    ('16', '1', 'Inventory', 'category', '_default', '1014', '100'),
-    ('17', '1', 'Supplier', '_none', '_default', '1036', '100'),
-    ('18', '1', 'Customer', '_none', '_default', '1015', '100'),
-    ('19', '1', 'CustomerAdvance', '_none', '_default', '1037', '100'),
-    ('20', '1', 'SupplierAdvance', '_none', '_default', '1016', '100'),
-    ('21', '1', 'PaymentAccount', 'paymentMethod', 'bank', '1027', '10'),
-    ('22', '1', 'PaymentAccount', 'paymentMethod', '_default', '1027', '100'),
-    ('23', '1', 'VATIn', '_none', '_default', '1017', '100'),
-    ('24', '1', 'VATOut', '_none', '_default', '1038', '100'),
-    ('25', '1', 'Expense', 'serviceType', 'production', '1013', '10'),
-    ('26', '1', 'Expense', 'serviceType', 'admin', '1034', '10'),
-    ('27', '1', 'Expense', 'serviceType', '_default', '1035', '100'),
-    ('28', '1', 'SalesRevenue', '_none', '_default', '1041', '100'),
-    ('29', '1', 'CostOfGoods', '_none', '_default', '1028', '100'),
-    ('30', '1', 'ServiceRevenue', '_none', '_default', '1044', '100'),
-    ('31', '1', 'CostOfService', '_none', '_default', '1031', '100'),
-    ('32', '1', 'AssetWriteOff', 'assetType', 'inventory', '1014', '10'),
-    ('33', '1', 'AssetWriteOff', 'assetType', '_default', '1014', '100');
-
-SELECT pg_catalog.setval('public.acc_account_resolve_rule_id_seq', 33, true);
-
 ALTER TABLE ONLY public.acc_account_resolve_rule
     ADD CONSTRAINT acc_account_resolve_rule_pkey PRIMARY KEY (id);
 
@@ -52,3 +30,101 @@ ALTER TABLE ONLY public.acc_account_resolve_rule
 
 ALTER TABLE ONLY public.acc_account_resolve_rule
     ADD CONSTRAINT acc_account_resolve_rule_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.acc_accounting_policy(id);
+
+-- ===================== Inventory: Товар на складе =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Inventory', '_none', '_default', id, 100 from acc_chart_account where code = '2910';
+ 
+-- ===================== Expense: Расход (услуга) =====================
+-- производство → 2010, продажи → 9410, администрирование → 9420, прочее → 9430
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Expense', 'serviceType', 'production', id, 10  from acc_chart_account where code = '2010'
+	union all
+select 1, 'Expense', 'serviceType', 'sales',       id, 10  from acc_chart_account where code = '9410'
+	union all
+select 1, 'Expense', 'serviceType', 'admin',       id, 10  from acc_chart_account where code = '9420'
+	union all
+select 1, 'Expense', 'serviceType', '_default',    id, 100 from acc_chart_account where code = '9430';
+ 
+-- ===================== Supplier / SupplierAdvance =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Supplier',        '_none', '_default', id, 100 from acc_chart_account where code = '6010'
+	union all
+select 1, 'SupplierAdvance', '_none', '_default', id, 100 from acc_chart_account where code = '4310';
+ 
+-- ===================== Customer / CustomerAdvance =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Customer',        '_none', '_default', id, 100 from acc_chart_account where code = '4010'
+	union all
+select 1, 'CustomerAdvance', '_none', '_default', id, 100 from acc_chart_account where code = '6310';
+ 
+-- ===================== PaymentAccount: банк/касса =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'PaymentAccount', 'paymentMethod', 'bank',     id, 10  from acc_chart_account where code = '5110'
+	union all
+select 1, 'PaymentAccount', 'paymentMethod', 'cash',     id, 10  from acc_chart_account where code = '5010'
+	union all
+select 1, 'PaymentAccount', 'paymentMethod', '_default', id, 100 from acc_chart_account where code = '5110';
+ 
+-- ===================== VAT =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'VATIn',  '_none', '_default', id, 100 from acc_chart_account where code = '4410'
+	union all
+select 1, 'VATOut', '_none', '_default', id, 100 from acc_chart_account where code = '6410';
+ 
+-- ===================== Revenue =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'SalesRevenue',   '_none', '_default', id, 100 from acc_chart_account where code = '9020'
+	union all
+select 1, 'ServiceRevenue', '_none', '_default', id, 100 from acc_chart_account where code = '9030';
+ 
+-- ===================== Cost =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'CostOfGoods',   '_none', '_default', id, 100 from acc_chart_account where code = '9120'
+	union all
+select 1, 'CostOfService', '_none', '_default', id, 100 from acc_chart_account where code = '9130';
+ 
+-- ===================== AssetWriteOff: списание актива =====================
+-- счёт приходит явно из кода (2910 или 1010-1090), _default не нужен
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'AssetWriteOff', 'assetType', 'inventory', id, 10 from acc_chart_account where code = '2910';
+ 
+-- ===================== Employee / EmployeeAdvance =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Employee',        '_none', '_default', id, 100 from acc_chart_account where code = '6710'
+	union all
+select 1, 'EmployeeAdvance', '_none', '_default', id, 100 from acc_chart_account where code = '6970';
+ 
+-- ===================== Founder =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'Founder', '_none', '_default', id, 100 from acc_chart_account where code = '6610';
+ 
+-- ===================== Loan =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'LoanGiven',    '_none', '_default', id, 100 from acc_chart_account where code = '4720'
+	union all
+select 1, 'LoanReceived', '_none', '_default', id, 100 from acc_chart_account where code = '6810';
+ 
+-- ===================== Налоги =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'TaxVAT',          '_none', '_default', id, 100 from acc_chart_account where code = '6410'
+	union all
+select 1, 'TaxNDFL',         '_none', '_default', id, 100 from acc_chart_account where code = '6420'
+	union all
+select 1, 'TaxProfit',       '_none', '_default', id, 100 from acc_chart_account where code = '6430'
+	union all
+select 1, 'TaxExcise',       '_none', '_default', id, 100 from acc_chart_account where code = '6440'
+	union all
+select 1, 'TaxProperty',     '_none', '_default', id, 100 from acc_chart_account where code = '6450'
+	union all
+select 1, 'TaxLand',         '_none', '_default', id, 100 from acc_chart_account where code = '6460'
+	union all
+select 1, 'TaxOther',        '_none', '_default', id, 100 from acc_chart_account where code = '6490'
+	union all
+select 1, 'SocialInsurance', '_none', '_default', id, 100 from acc_chart_account where code = '6510'
+	union all
+select 1, 'PensionFund',     '_none', '_default', id, 100 from acc_chart_account where code = '6530';
+ 
+-- ===================== BankFee =====================
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'BankFee', '_none', '_default', id, 100 from acc_chart_account where code = '9430';

@@ -38,8 +38,13 @@ namespace Application.Features.Register.PostingEngines
                 if (postingRule == null)
                     throw new ArgumentException($"Шаблон проводки не найден в acc_posting_template.");
 
+                var entriesCountBeforeContext = result.Count;
+
                 foreach (var line in postingRule.PostingRuleLines)
                 {
+                    if (!IsMatchingRequiredAliases(context, line))
+                        continue;
+
                     if (string.IsNullOrWhiteSpace(line.AmountSource))
                     {
                         if (line.IsOptional)
@@ -80,6 +85,7 @@ namespace Application.Features.Register.PostingEngines
                         CreditQuantity = context.CreditQuantity,
                         Content = postingRule.Name,
                         JournalNumber = context.JournalNumber,
+                        SourceLineId = context.SourceLineId,
                     };
 
                     // Субконто: применяем те, что относятся к DT, к дебетовой стороне,
@@ -99,6 +105,12 @@ namespace Application.Features.Register.PostingEngines
                     }
 
                     result.Add(entry);
+                }
+
+                if (HasRequiredAliases(context) && result.Count == entriesCountBeforeContext)
+                {
+                    throw new ArgumentException(
+                        $"В шаблоне проводки не найдена строка для DebitAlias='{context.RequiredDebitAlias}' и CreditAlias='{context.RequiredCreditAlias}'.");
                 }
             }
 
@@ -215,5 +227,22 @@ namespace Application.Features.Register.PostingEngines
             return context.SkippedAmountSources is { Length: > 0 } &&
                    context.SkippedAmountSources.Any(source => string.Equals(source, amountSource, StringComparison.OrdinalIgnoreCase));
         }
+
+        private static bool IsMatchingRequiredAliases(PostingContext context, PostingRuleLine line)
+        {
+            if (!string.IsNullOrWhiteSpace(context.RequiredDebitAlias) &&
+                !string.Equals(line.DebitAlias, context.RequiredDebitAlias, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(context.RequiredCreditAlias) &&
+                !string.Equals(line.CreditAlias, context.RequiredCreditAlias, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return true;
+        }
+
+        private static bool HasRequiredAliases(PostingContext context) =>
+            !string.IsNullOrWhiteSpace(context.RequiredDebitAlias) ||
+            !string.IsNullOrWhiteSpace(context.RequiredCreditAlias);
     }
 }

@@ -13,19 +13,22 @@ namespace Application.Features.Register.PostingEngines
         private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
         private readonly IQueryRepository<Contract> _contractQuery;
         private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+        private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
 
         public BankOperationContextBuilder(
             IQueryBuilder queryBuilder,
             IQueryRepository<BankAccount> bankAccountQuery,
             IQueryRepository<CounterpartyCard> counterpartyQuery,
             IQueryRepository<Contract> contractQuery,
-            IQueryRepository<PaymentType> paymentTypeQuery)
+            IQueryRepository<PaymentType> paymentTypeQuery,
+            IQueryRepository<PaymentPurpose> paymentPurposeQuery)
         {
             _queryBuilder = queryBuilder;
             _bankAccountQuery = bankAccountQuery;
             _counterpartyQuery = counterpartyQuery;
             _contractQuery = contractQuery;
             _paymentTypeQuery = paymentTypeQuery;
+            _paymentPurposeQuery = paymentPurposeQuery;
         }
 
         public async Task<List<PostingContext>> BuildAsync(List<BankOperation> documents)
@@ -57,10 +60,16 @@ namespace Application.Features.Register.PostingEngines
                 .Distinct()
                 .ToList();
 
+            var paymentPurposeIds = documents
+                .SelectMany(x => x.BankOperationLines.Select(l => l.PaymentPurposeId))
+                .Distinct()
+                .ToList();
+
             var bankAccountMap = await GetBankAccountMapAsync(bankAccountIds);
             var counterpartyMap = await GetCounterpartyMapAsync(counterpartyIds);
             var contractMap = await GetContractMapAsync(contractIds);
             var paymentTypeMap = await GetPaymentTypeMapAsync(paymentTypeIds);
+            var paymentPurposeAliasMap = await GetPaymentPurposeAliasMapAsync(paymentPurposeIds);
 
             foreach (var operation in documents)
             {
@@ -80,16 +89,20 @@ namespace Application.Features.Register.PostingEngines
                 foreach (var line in operationLines.Where(x => x.Amount != 0))
                 {
                     var counterpartyId = line.CounterpartyId ?? operation.CounterpartyId;
+                    var paymentPurposeAlias = paymentPurposeAliasMap.GetValueOrDefault(line.PaymentPurposeId);
                     var context = new PostingContext
                     {
                         OrganizationId = operation.OrganizationId,
                         AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                         RuleId = ruleId,
                         DocumentId = operation.Id,
+                        SourceLineId = line.Id == 0 ? null : line.Id,
                         DocDate = operation.DocDate,
                         CurrencyId = operation.CurrencyId,
                         JournalNumber = operation.DocNumber,
                         PaymentMethod = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap),
+                        RequiredDebitAlias = ResolveRequiredDebitAlias(operation.OperationTypeId, paymentPurposeAlias),
+                        RequiredCreditAlias = ResolveRequiredCreditAlias(operation.OperationTypeId, paymentPurposeAlias),
                         Amounts = new Dictionary<string, decimal>
                         {
                             [AmountSourceConst.Total] = line.Amount
@@ -110,6 +123,22 @@ namespace Application.Features.Register.PostingEngines
                 OperationTypeIdConst.IN => PostingRuleIdConst.DEBIT_OPERATION,
                 OperationTypeIdConst.OUT => PostingRuleIdConst.CREDIT_OPERATION,
                 _ => throw new ArgumentOutOfRangeException(nameof(operationTypeId), operationTypeId, "Unsupported bank operation type for accounting posting.")
+            };
+
+        private static string? ResolveRequiredDebitAlias(short operationTypeId, string? paymentPurposeAlias) =>
+            operationTypeId switch
+            {
+                OperationTypeIdConst.IN when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => AliasConst.PaymentAccount,
+                OperationTypeIdConst.OUT when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => paymentPurposeAlias,
+                _ => null
+            };
+
+        private static string? ResolveRequiredCreditAlias(short operationTypeId, string? paymentPurposeAlias) =>
+            operationTypeId switch
+            {
+                OperationTypeIdConst.IN when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => paymentPurposeAlias,
+                OperationTypeIdConst.OUT when !string.IsNullOrWhiteSpace(paymentPurposeAlias) => AliasConst.PaymentAccount,
+                _ => null
             };
 
         private static string ResolvePaymentMethod(short? paymentTypeId, Dictionary<short, string> paymentTypeMap) =>
@@ -238,6 +267,24 @@ namespace Application.Features.Register.PostingEngines
 
             var items = await _paymentTypeQuery.GetAllAsync(query);
             return items.ToDictionary(x => x.Id, x => x.Code);
+        }
+
+        private async Task<Dictionary<short, string>> GetPaymentPurposeAliasMapAsync(List<short> ids)
+        {
+            if (ids.Count == 0)
+                return new Dictionary<short, string>();
+
+            var query = _queryBuilder.For<PaymentPurpose>()
+                .Where(x => ids.Contains(x.Id))
+                .As(x => new
+                {
+                    x.Id,
+                    AliasCode = x.Alias.Code
+                })
+                .Build();
+
+            var items = await _paymentPurposeQuery.GetAllAsync(query);
+            return items.ToDictionary(x => x.Id, x => x.AliasCode);
         }
 
         private sealed class ContractData

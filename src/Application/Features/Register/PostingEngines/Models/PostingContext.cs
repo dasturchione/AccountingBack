@@ -9,13 +9,13 @@
     /// </summary>
     public class PostingContext
     {
-        // ---- Идентификация документа (попадает напрямую в acc_reg_entry) ----
         public int OrganizationId { get; set; }
         public short RuleId { get; set; }
         public long DocumentId { get; set; }
         public short CurrencyId { get; set; }
         public DateTime DocDate { get; set; }
         public string? JournalNumber { get; set; }
+        public long? SourceLineId { get; set; }
 
         /// <summary>Учётная политика организации (acc_accounting_policy.id) — НСБУ, IFRS и т.д.</summary>
         public short AccountingPolicyId { get; set; }
@@ -26,6 +26,8 @@
         public string? PaymentMethod { get; set; }
         public string? AssetType { get; set; }
         public int? FixedAssetId { get; set; }
+        public string? RequiredDebitAlias { get; set; }
+        public string? RequiredCreditAlias { get; set; }
 
         // ---- Суммы для AmountSource ----
         public Dictionary<string, decimal> Amounts { get; set; } = new();

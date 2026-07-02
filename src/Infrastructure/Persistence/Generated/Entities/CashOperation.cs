@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("cash_operation")]
-[Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
 [Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
 [Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
-[Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_cash_operation_state_id")]
 [Index("StatusId", Name = "idx_cash_operation_status_id")]
+[Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
+[Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
 public partial class CashOperation
 {
     [Key]
@@ -27,6 +25,9 @@ public partial class CashOperation
 
     [Column("cash_box_id")]
     public int CashBoxId { get; set; }
+
+    [Column("destination_cash_box_id")]
+    public int? DestinationCashBoxId { get; set; }
 
     [Column("operation_type_id")]
     public short OperationTypeId { get; set; }
@@ -64,6 +65,7 @@ public partial class CashOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
     [Column("exchange_rate")]
     [Precision(18, 6)]
     public decimal ExchangeRate { get; set; }
@@ -79,14 +81,12 @@ public partial class CashOperation
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
-
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("CashOperationCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperations")]
     public virtual CashBox CashBox { get; set; } = null!;
+
+    [ForeignKey("DestinationCashBoxId")]
+    public virtual CashBox? DestinationCashBox { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CashOperations")]
@@ -94,29 +94,25 @@ public partial class CashOperation
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("CashOperations")]
-    public virtual CmnCurrency Currency { get; set; } = null!;
+    public virtual Currency Currency { get; set; } = null!;
 
     [ForeignKey("OperationTypeId")]
     [InverseProperty("CashOperations")]
-    public virtual CmnOperationType OperationType { get; set; } = null!;
+    public virtual OperationType OperationType { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CashOperations")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
-    public virtual CmnPaymentType? PaymentType { get; set; }
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("CashOperationPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
+    public virtual PaymentType? PaymentType { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("CashOperations")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 
     [ForeignKey("StatusId")]
     [InverseProperty("CashOperations")]
-    public virtual CmnDocumentStatus Status { get; set; } = null!;
+    public virtual DocumentStatus Status { get; set; } = null!;
 }

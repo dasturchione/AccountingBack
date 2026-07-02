@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("sale_doc")]
-[Index("CancelledByUserId", Name = "idx_sale_doc_cancelled_by_user_id")]
 [Index("CounterpartyId", Name = "idx_sale_doc_counterparty_id")]
 [Index("DocDate", Name = "idx_sale_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_sale_doc_organization_id")]
-[Index("PostedByUserId", Name = "idx_sale_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_sale_doc_state_id")]
 [Index("StatusId", Name = "idx_sale_doc_status_id")]
 [Index("WarehouseId", Name = "idx_sale_doc_warehouse_id")]
+[Index("CancelledByUserId", Name = "idx_sale_doc_cancelled_by_user_id")]
+[Index("PostedByUserId", Name = "idx_sale_doc_posted_by_user_id")]
 public partial class SaleDoc
 {
     [Key]
@@ -68,6 +66,7 @@ public partial class SaleDoc
     [Column("contract_id")]
     public long? ContractId { get; set; }
 
+
     [Column("exchange_rate")]
     [Precision(18, 6)]
     public decimal ExchangeRate { get; set; }
@@ -83,14 +82,9 @@ public partial class SaleDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
-
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("SaleDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("ContractId")]
     [InverseProperty("SaleDocs")]
-    public virtual CmnContract? Contract { get; set; }
+    public virtual Contract? Contract { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("SaleDocs")]
@@ -98,28 +92,24 @@ public partial class SaleDoc
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("SaleDocs")]
-    public virtual CmnCurrency Currency { get; set; } = null!;
+    public virtual Currency Currency { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("SaleDocs")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("SaleDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
 
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [ForeignKey("StateId")]
     [InverseProperty("SaleDocs")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 
     [ForeignKey("StatusId")]
     [InverseProperty("SaleDocs")]
-    public virtual CmnDocumentStatus Status { get; set; } = null!;
+    public virtual DocumentStatus Status { get; set; } = null!;
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("SaleDocs")]
-    public virtual InvWarehouse Warehouse { get; set; } = null!;
+    public virtual Warehouse Warehouse { get; set; } = null!;
 }

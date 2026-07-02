@@ -5,6 +5,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("inv_product_table")]
+[Index("StatusId", Name = "ix_inv_product_table_status_id")]
+[Index("CurrentWarehouseId", Name = "idx_inv_product_table_current_warehouse_id")]
+[Index("OrganizationId", "CurrentWarehouseId", "StatusId", Name = "idx_inv_product_table_org_warehouse_status")]
+[Index("OrganizationId", "CurrentWarehouseId", "StatusId", "ProductId", Name = "idx_inv_product_table_org_warehouse_status_product")]
 public partial class ProductTable
 {
     [Key]
@@ -16,6 +20,9 @@ public partial class ProductTable
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }
+
+    [Column("current_warehouse_id")]
+    public int? CurrentWarehouseId { get; set; }
 
     [Column("serial_number")]
     [StringLength(250)]
@@ -37,6 +44,10 @@ public partial class ProductTable
     [ForeignKey("OrganizationId")]
     [InverseProperty("ProductTables")]
     public virtual Organization Organization { get; set; } = null!;
+
+    [ForeignKey("CurrentWarehouseId")]
+    [InverseProperty("CurrentProductTables")]
+    public virtual Warehouse? CurrentWarehouse { get; set; }
 
     [ForeignKey("ProductId")]
     [InverseProperty("ProductTables")]

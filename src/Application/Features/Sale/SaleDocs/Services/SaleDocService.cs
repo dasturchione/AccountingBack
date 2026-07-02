@@ -4,6 +4,7 @@ using Application.Common.Pagination;
 using Application.Features.Inv.ProductPrices;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyCards;
+using Application.Features.InventoryCounts;
 using Application.Features.SaleDocTables;
 using Application.Features.Warehouses;
 using Domain.Entities;
@@ -32,6 +33,7 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
     private readonly IProductTableReservationService _reservationService;
+    private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public SaleDocService(IUserContext userContext,
@@ -51,6 +53,7 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<Product> productQuery,
                           IProductPriceCalculateService priceCalculateService,
                           IProductTableReservationService reservationService,
+                          IActiveInventoryCountGuardService activeInventoryCountGuardService,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -71,6 +74,7 @@ public class SaleDocService : BaseService, ISaleDocService
         _productQuery = productQuery;
         _priceCalculateService = priceCalculateService;
         _reservationService = reservationService;
+        _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _docNumberGenerator = docNumberGenerator;
     }
 
@@ -85,7 +89,13 @@ public class SaleDocService : BaseService, ISaleDocService
     public Task<Result<SaleDocDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<SaleDocDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<SaleDoc>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .As<SaleDocDto>()
+                .Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity == null)
@@ -206,6 +216,10 @@ public class SaleDocService : BaseService, ISaleDocService
             if (doc.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(SaleDocErrors.NotDraft(id, _userContext.LanguageId));
 
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "SaleWarehouseConfirm", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
             if (goodsProductLines.Count == 0 && dto.Items.Count > 0)
                 return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
 
@@ -236,7 +250,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
             var selectedItems = selectionResult.Value;
 
-            var reserved = await _reservationService.TryReserveAsync(selectedProductTableIds, ct);
+            var reserved = await _reservationService.TryReserveAsync(doc.WarehouseId, selectedProductTableIds, ct);
             if (!reserved)
                 return Result.Failure(SaleDocErrors.InventoryReservationConflict(_userContext.LanguageId));
 
@@ -313,7 +327,9 @@ public class SaleDocService : BaseService, ISaleDocService
             if (_userContext.OrganizationId is null)
                 return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+            var query = _queryBuilder.For<SaleDoc>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .Build();
             var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
@@ -376,7 +392,12 @@ public class SaleDocService : BaseService, ISaleDocService
     public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<SaleDoc>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .Build();
             var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
@@ -412,7 +433,13 @@ public class SaleDocService : BaseService, ISaleDocService
 
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<SaleDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .As<SaleDocDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
@@ -453,12 +480,26 @@ public class SaleDocService : BaseService, ISaleDocService
     private async Task<Result<List<SaleDocProduct>>> BuildProductLinesAsync(List<SaleDocCreateProductDto> products, CancellationToken ct)
     {
         var lines = new List<SaleDocProduct>(products.Count);
+        var productIds = products.Select(x => x.ProductId).Distinct().ToList();
+        var vatRateIds = products.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
+
+        var productsQuery = _queryBuilder.For<Product>()
+            .Where(x => productIds.Contains(x.Id))
+            .Build();
+        var productById = (await _productQuery.GetAllAsync(productsQuery, ct)).ToDictionary(x => x.Id);
+
+        var vatRateById = new Dictionary<short, VatRate>();
+        if (vatRateIds.Count > 0)
+        {
+            var vatRatesQuery = _queryBuilder.For<VatRate>()
+                .Where(x => vatRateIds.Contains(x.Id))
+                .Build();
+            vatRateById = (await _vatRateQuery.GetAllAsync(vatRatesQuery, ct)).ToDictionary(x => x.Id);
+        }
 
         foreach (var p in products)
         {
-            var productQuery = _queryBuilder.For<Product>().Where(x => x.Id == p.ProductId).Build();
-            var product = await _productQuery.GetAsync(productQuery, ct);
-            if (product == null)
+            if (!productById.TryGetValue(p.ProductId, out var product))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.ProductNotFound(p.ProductId, _userContext.LanguageId));
 
             if (p.Quantity <= 0 || (!product.IsService && p.Quantity != decimal.Truncate(p.Quantity)))
@@ -473,9 +514,7 @@ public class SaleDocService : BaseService, ISaleDocService
             var vatAmount = 0m;
             if (p.VatRateId.HasValue)
             {
-                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == p.VatRateId.Value).Build();
-                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
-                if (vatRate == null)
+                if (!vatRateById.TryGetValue(p.VatRateId.Value, out var vatRate))
                     return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
 
                 vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 8);
@@ -504,12 +543,26 @@ public class SaleDocService : BaseService, ISaleDocService
     private async Task<Result<List<SaleDocProduct>>> BuildProductLinesFromUpdateAsync(List<SaleDocUpdateProductDto> products, CancellationToken ct)
     {
         var lines = new List<SaleDocProduct>(products.Count);
+        var productIds = products.Select(x => x.ProductId).Distinct().ToList();
+        var vatRateIds = products.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
+
+        var productsQuery = _queryBuilder.For<Product>()
+            .Where(x => productIds.Contains(x.Id))
+            .Build();
+        var productById = (await _productQuery.GetAllAsync(productsQuery, ct)).ToDictionary(x => x.Id);
+
+        var vatRateById = new Dictionary<short, VatRate>();
+        if (vatRateIds.Count > 0)
+        {
+            var vatRatesQuery = _queryBuilder.For<VatRate>()
+                .Where(x => vatRateIds.Contains(x.Id))
+                .Build();
+            vatRateById = (await _vatRateQuery.GetAllAsync(vatRatesQuery, ct)).ToDictionary(x => x.Id);
+        }
 
         foreach (var p in products)
         {
-            var productQuery = _queryBuilder.For<Product>().Where(x => x.Id == p.ProductId).Build();
-            var product = await _productQuery.GetAsync(productQuery, ct);
-            if (product == null)
+            if (!productById.TryGetValue(p.ProductId, out var product))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.ProductNotFound(p.ProductId, _userContext.LanguageId));
 
             if (p.Quantity <= 0 || (!product.IsService && p.Quantity != decimal.Truncate(p.Quantity)))
@@ -524,9 +577,7 @@ public class SaleDocService : BaseService, ISaleDocService
             var vatAmount = 0m;
             if (p.VatRateId.HasValue)
             {
-                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == p.VatRateId.Value).Build();
-                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
-                if (vatRate == null)
+                if (!vatRateById.TryGetValue(p.VatRateId.Value, out var vatRate))
                     return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
 
                 vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 2);

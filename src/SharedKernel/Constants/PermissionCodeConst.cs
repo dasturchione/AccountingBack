@@ -109,6 +109,37 @@ public static class PermissionCodeConst
     public const string WarehouseDelete     = "WAREHOUSE_DELETE";
     #endregion
 
+    #region WarehouseTransfer
+    public const string WarehouseTransferView       = "WAREHOUSE_TRANSFER_VIEW";
+    public const string WarehouseTransferViewDetail = "WAREHOUSE_TRANSFER_VIEW_DETAIL";
+    public const string WarehouseTransferCreate     = "WAREHOUSE_TRANSFER_CREATE";
+    public const string WarehouseTransferUpdate     = "WAREHOUSE_TRANSFER_UPDATE";
+    public const string WarehouseTransferDelete     = "WAREHOUSE_TRANSFER_DELETE";
+    public const string ConfirmWarehouseTransfer    = "CONFIRM_WAREHOUSE_TRANSFER";
+    public const string CancelWarehouseTransfer     = "CANCEL_WAREHOUSE_TRANSFER";
+    #endregion
+
+    #region InventoryAdjustment
+    public const string InventoryAdjustmentView       = "INVENTORY_ADJUSTMENT_VIEW";
+    public const string InventoryAdjustmentViewDetail = "INVENTORY_ADJUSTMENT_VIEW_DETAIL";
+    public const string InventoryAdjustmentCreate     = "INVENTORY_ADJUSTMENT_CREATE";
+    public const string InventoryAdjustmentUpdate     = "INVENTORY_ADJUSTMENT_UPDATE";
+    public const string InventoryAdjustmentDelete     = "INVENTORY_ADJUSTMENT_DELETE";
+    public const string ConfirmInventoryAdjustment    = "CONFIRM_INVENTORY_ADJUSTMENT";
+    public const string CancelInventoryAdjustment     = "CANCEL_INVENTORY_ADJUSTMENT";
+    #endregion
+
+    #region InventoryCount
+    public const string InventoryCountView       = "INVENTORY_COUNT_VIEW";
+    public const string InventoryCountViewDetail = "INVENTORY_COUNT_VIEW_DETAIL";
+    public const string InventoryCountCreate     = "INVENTORY_COUNT_CREATE";
+    public const string InventoryCountUpdate     = "INVENTORY_COUNT_UPDATE";
+    public const string InventoryCountDelete     = "INVENTORY_COUNT_DELETE";
+    public const string ConfirmInventoryCount    = "CONFIRM_INVENTORY_COUNT";
+    public const string CancelInventoryCount     = "CANCEL_INVENTORY_COUNT";
+    #endregion
+
+
     #region OrgBankAccount
     public const string OrgBankAccountView       = "ORG_BANK_ACCOUNT_VIEW";
     public const string OrgBankAccountViewDetail = "ORG_BANK_ACCOUNT_VIEW_DETAIL";
@@ -123,6 +154,8 @@ public static class PermissionCodeConst
     public const string BankOperationCreate     = "BANK_OPERATION_CREATE";
     public const string BankOperationUpdate     = "BANK_OPERATION_UPDATE";
     public const string BankOperationDelete     = "BANK_OPERATION_DELETE";
+    public const string ConfirmBankOperation    = "CONFIRM_BANK_OPERATION";
+    public const string CancelBankOperation     = "CANCEL_BANK_OPERATION";
     #endregion
 
     #region BankStatementParser

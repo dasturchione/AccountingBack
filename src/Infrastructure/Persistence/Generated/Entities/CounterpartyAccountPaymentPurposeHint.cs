@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -30,5 +30,5 @@ public partial class CounterpartyAccountPaymentPurposeHint
 
     [ForeignKey("PaymentPurposeId")]
     [InverseProperty("CounterpartyAccountPaymentPurposeHints")]
-    public virtual AccPaymentPurpose PaymentPurpose { get; set; } = null!;
+    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
 }

@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
@@ -45,27 +43,27 @@ public partial class CounterpartyBankAccount
 
     [ForeignKey("BankId")]
     [InverseProperty("CounterpartyBankAccounts")]
-    public virtual CmnBank Bank { get; set; } = null!;
-
-    [InverseProperty("CounterpartyBankAccount")]
-    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+    public virtual Bank Bank { get; set; } = null!;
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
 
-    [InverseProperty("CounterpartyBankAccount")]
-    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
-
     [ForeignKey("CurrencyId")]
     [InverseProperty("CounterpartyBankAccounts")]
-    public virtual CmnCurrency Currency { get; set; } = null!;
+    public virtual Currency Currency { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyBankAccounts")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyBankAccounts")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(BankOperation.CounterpartyBankAccount))]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(CounterpartyAccountPaymentPurposeHint.CounterpartyBankAccount))]
+    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
 }

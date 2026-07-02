@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
+using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -24,6 +25,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly ISaleCounterpartyRegisterService _saleCounterpartyRegisterService;
     private readonly ISaleMoneyRegisterService _saleMoneyRegisterService;
     private readonly IQueryRepository<SaleDoc> _query;
@@ -49,6 +51,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                                 IAuditLogService auditLogService,
                                 IAccountingDispatcher dispatcher,
                                 IInventoryDispatcher inventoryDispatcher,
+                                IActiveInventoryCountGuardService activeInventoryCountGuardService,
                                 ISaleCounterpartyRegisterService saleCounterpartyRegisterService,
                                 ISaleMoneyRegisterService saleMoneyRegisterService,
                                 IQueryRepository<SaleDoc> query,
@@ -77,6 +80,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
         _inventoryDispatcher = inventoryDispatcher;
+        _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _saleCounterpartyRegisterService = saleCounterpartyRegisterService;
         _saleMoneyRegisterService = saleMoneyRegisterService;
         _query = query;
@@ -126,6 +130,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (!periodValidation.IsSuccess)
                 return periodValidation;
 
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "SaleConfirm", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
             if (await GetActivePostingBatchAsync(id, ct) != null || await HasBusinessEffectsAsync(id, ct))
                 return Result.Failure(SaleDocErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
 
@@ -140,6 +148,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             var validation = ValidateForConfirm(doc);
             if (!validation.IsSuccess)
                 return validation;
+
+            var finalInventoryValidation = await ReloadAndValidateReservedProductTablesAsync(doc, ct);
+            if (!finalInventoryValidation.IsSuccess)
+                return finalInventoryValidation;
 
             var costSourceValidation = await ValidateCostSourcesAsync(doc, ct);
             if (!costSourceValidation.IsSuccess)
@@ -211,6 +223,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (!reversalPeriodValidation.IsSuccess)
                 return reversalPeriodValidation;
 
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "SaleCancel", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
@@ -275,13 +291,24 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).As<SaleDocDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<SaleDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .As<SaleDocDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
     private async Task<SaleDoc?> GetSaleDocForLifecycleAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<SaleDoc>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<SaleDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .Build();
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.Product));
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable));
 
@@ -398,6 +425,8 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             var hasInvalidDraftItem = line.SaleDocTables.Any(x =>
                 x.ProductTable.ProductId != line.ProductId ||
+                x.ProductTable.OrganizationId != doc.OrganizationId ||
+                x.ProductTable.CurrentWarehouseId != doc.WarehouseId ||
                 x.ProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
                 x.ProductTable.StateId != StateIdConst.ACTIVE);
 
@@ -542,6 +571,14 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         await _productTableCommand.UpdateAsync(productTables, ct);
     }
 
+    private async Task<Result> ReloadAndValidateReservedProductTablesAsync(SaleDoc doc, CancellationToken ct)
+    {
+        foreach (var productTable in GetSaleProductTables(doc))
+            await _productTableCommand.ReloadAsync(productTable, ct);
+
+        return ValidateForConfirm(doc);
+    }
+
     private async Task<Result> ReverseAccountingEntriesAsync(long saleDocId, long reversalBatchId, CancellationToken ct)
     {
         var query = _queryBuilder.For<AccountingRegisterEntry>()
@@ -619,6 +656,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             DocumentId = entry.DocumentId,
             WarehouseId = entry.WarehouseId,
             ProductId = entry.ProductId,
+            ProductTableId = entry.ProductTableId,
             OperationTypeId = OperationTypeIdConst.IN,
             Quantity = entry.Quantity,
             Amount = entry.Amount,

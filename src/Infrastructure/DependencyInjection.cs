@@ -22,7 +22,10 @@ using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.Departments;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Inv;
+using Application.Features.InventoryCounts;
+using Application.Features.InventoryAdjustments;
 using Application.Features.Inv.ProductPrices;
+using Application.Features.WarehouseTransfers;
 using Application.Features.Manual;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Organizations;
@@ -74,6 +77,7 @@ namespace Infrastructure
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
+            services.AddScoped<IInventoryReadDbContext, InventoryReadDbContext>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
             services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();
 
@@ -104,6 +108,13 @@ namespace Infrastructure
             services.AddScoped<IProductGroupService, ProductGroupService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
+            services.AddScoped<IWarehouseTransferService, WarehouseTransferService>();
+            services.AddScoped<IInventoryAdjustmentService, InventoryAdjustmentService>();
+            services.AddScoped<IInventoryCountService, InventoryCountService>();
+            services.AddScoped<IActiveInventoryCountGuardService, ActiveInventoryCountGuardService>();
+            services.AddScoped<IWarehouseTransferLifecycleService, WarehouseTransferLifecycleService>();
+            services.AddScoped<IInventoryAdjustmentLifecycleService, InventoryAdjustmentLifecycleService>();
+            services.AddScoped<IInventoryCountLifecycleService, InventoryCountLifecycleService>();
             services.AddScoped<IProductStockService, ProductStockService>();
             services.AddScoped<IProductPriceCalculateService, ProductPriceCalculateService>();
             services.AddScoped<IProductPriceService, ProductPriceService>();
@@ -111,6 +122,7 @@ namespace Infrastructure
             services.AddScoped<ISaleConditionService, SaleConditionService>();
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
             services.AddScoped<IBankOperationService, BankOperationService>();
+            services.AddScoped<IBankLifecycleService, BankLifecycleService>();
             services.AddScoped<IBankStatementParserService, BankStatementParserService>();
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<ICashBoxService, CashBoxService>();
@@ -127,10 +139,12 @@ namespace Infrastructure
             services.AddScoped<IChartAccountService, ChartAccountService>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
             services.AddScoped<ICounterpartyRegisterBalanceService, CounterpartyRegisterBalanceService>();
+            services.AddScoped<IBankCounterpartyRegisterService, BankCounterpartyRegisterService>();
             services.AddScoped<IPurchaseCounterpartyRegisterService, PurchaseCounterpartyRegisterService>();
             services.AddScoped<ISaleCounterpartyRegisterService, SaleCounterpartyRegisterService>();
             services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
+            services.AddScoped<IBankMoneyRegisterService, BankMoneyRegisterService>();
             services.AddScoped<ISaleMoneyRegisterService, SaleMoneyRegisterService>();
             services.AddScoped<IManualService, ManualService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
@@ -142,10 +156,13 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<SaleDoc>, SaleInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<WarehouseTransferDoc>, WarehouseTransferInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

@@ -54,6 +54,15 @@ public partial class Warehouse
     [InverseProperty("Warehouse")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
 
+    [InverseProperty("CurrentWarehouse")]
+    public virtual ICollection<ProductTable> CurrentProductTables { get; set; } = new List<ProductTable>();
+
+    [InverseProperty("SourceWarehouse")]
+    public virtual ICollection<WarehouseTransferDoc> SourceWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();
+
+    [InverseProperty("DestinationWarehouse")]
+    public virtual ICollection<WarehouseTransferDoc> DestinationWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("Warehouses")]
     public virtual Organization Organization { get; set; } = null!;

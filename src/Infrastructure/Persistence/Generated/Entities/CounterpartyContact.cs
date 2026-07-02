@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
@@ -54,9 +52,9 @@ public partial class CounterpartyContact
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyContacts")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyContacts")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 }

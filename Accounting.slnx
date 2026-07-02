@@ -16,6 +16,7 @@
     <Project Path="src/SharedKernel/SharedKernel.csproj" Id="0a2b058a-a20e-4755-98a3-89b88c9d274d" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/IntegrationTests/IntegrationTests.csproj" Id="5d4cd1ba-f627-4f7a-afc7-eb494ef4ec62" />
     <Project Path="tests/UnitTests/UnitTests.csproj" Id="7c5e5c2e-8820-4b54-945c-7b3e2925a054" />
   </Folder>
 </Solution>

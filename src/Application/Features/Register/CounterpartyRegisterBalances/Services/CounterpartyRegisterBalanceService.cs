@@ -27,32 +27,12 @@ public class CounterpartyRegisterBalanceService : ICounterpartyRegisterBalanceSe
 
     public async Task<Result<long>> CreateAsync(CounterpartyRegisterBalanceCreateDto dto, CancellationToken ct = default)
     {
-        var entity = new CounterpartyRegisterBalance
-        {
-            OrganizationId = dto.OrganizationId,
-            DocumentTypeId = dto.DocumentTypeId,
-            DocumentId = dto.DocumentId,
-            CounterpartyId = dto.CounterpartyId,
-            OperationTypeId = dto.OperationTypeId,
-            CurrencyId = dto.CurrencyId,
-            Amount = dto.Amount,
-            DocDate = dto.DocDate,
-            CreatedDate = DateTime.Now
-        };
-
-        await _command.CreateAsync(entity, ct);
-        return entity.Id;
+        return Result.Failure<long>(CommonErrors.Forbidden(_userContext.LanguageId));
     }
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<CounterpartyRegisterBalance>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure(CounterpartyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
-
-        //await _command.DeleteAsync(entity, ct);
-        return Result.Success();
+        return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
     }
 
     public async Task<Result<PagedResponse<CounterpartyRegisterBalanceListDto>>> GetAllAsync(CounterpartyRegisterBalanceListFilter filter, CancellationToken ct = default)
@@ -73,21 +53,6 @@ public class CounterpartyRegisterBalanceService : ICounterpartyRegisterBalanceSe
 
     public async Task<Result> UpdateAsync(long id, CounterpartyRegisterBalanceUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<CounterpartyRegisterBalance>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure(CounterpartyRegisterBalanceErrors.NotFound(id, _userContext.LanguageId));
-
-        entity.OrganizationId = dto.OrganizationId;
-        entity.DocumentTypeId = dto.DocumentTypeId;
-        entity.DocumentId = dto.DocumentId;
-        entity.CounterpartyId = dto.CounterpartyId;
-        entity.OperationTypeId = dto.OperationTypeId;
-        entity.CurrencyId = dto.CurrencyId;
-        entity.Amount = dto.Amount;
-        entity.DocDate = dto.DocDate;
-
-        await _command.UpdateAsync(entity, ct);
-        return Result.Success();
+        return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
     }
 }

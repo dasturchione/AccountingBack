@@ -1,5 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -42,17 +40,17 @@ public partial class SaleCondition
 
     [ForeignKey("CostingMethodId")]
     [InverseProperty("SaleConditions")]
-    public virtual CmnCostingMethod CostingMethod { get; set; } = null!;
+    public virtual CostingMethod CostingMethod { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("SaleConditions")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("SaleConditions")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
 
     [ForeignKey("VatRateId")]
     [InverseProperty("SaleConditions")]
-    public virtual CmnVatRate VatRate { get; set; } = null!;
+    public virtual VatRate VatRate { get; set; } = null!;
 }

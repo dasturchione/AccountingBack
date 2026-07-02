@@ -111,6 +111,7 @@ namespace Application.Features.Register.PostingEngines
                     return new PostingContext
                     {
                         OrganizationId = document.OrganizationId,
+                        DocumentTypeId = DocumentTypeIdConst.SALE,
                         AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                         RuleId = PostingRuleIdConst.SALE_SERVICE,
                         DocumentId = document.Id,
@@ -154,6 +155,7 @@ namespace Application.Features.Register.PostingEngines
             return new PostingContext
             {
                 OrganizationId = document.OrganizationId,
+                DocumentTypeId = DocumentTypeIdConst.SALE,
                 AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                 RuleId = PostingRuleIdConst.SALE_GOODS,
                 DocumentId = document.Id,
@@ -220,6 +222,7 @@ namespace Application.Features.Register.PostingEngines
                     return new PostingContext
                     {
                         OrganizationId = document.OrganizationId,
+                        DocumentTypeId = DocumentTypeIdConst.SALE,
                         AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                         RuleId = PostingRuleIdConst.SALE_GOODS,
                         DocumentId = document.Id,

@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
+using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -23,6 +24,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IPurchaseCounterpartyRegisterService _purchaseCounterpartyRegisterService;
     private readonly IQueryRepository<PurchaseDoc> _query;
     private readonly ICommandRepository<PurchaseDoc> _command;
@@ -48,6 +50,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                                     IAuditLogService auditLogService,
                                     IAccountingDispatcher dispatcher,
                                     IInventoryDispatcher inventoryDispatcher,
+                                    IActiveInventoryCountGuardService activeInventoryCountGuardService,
                                     IPurchaseCounterpartyRegisterService purchaseCounterpartyRegisterService,
                                     IQueryRepository<PurchaseDoc> query,
                                     ICommandRepository<PurchaseDoc> command,
@@ -76,6 +79,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
         _inventoryDispatcher = inventoryDispatcher;
+        _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _purchaseCounterpartyRegisterService = purchaseCounterpartyRegisterService;
         _query = query;
         _command = command;
@@ -125,6 +129,10 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             if (!periodValidation.IsSuccess)
                 return periodValidation;
 
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "PurchaseConfirm", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
             var validation = ValidateForConfirm(doc);
             if (!validation.IsSuccess)
                 return validation;
@@ -138,7 +146,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
 
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Purchase confirmed", ct);
 
-            await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.IN_STOCK, StateIdConst.ACTIVE, ct);
+            await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.IN_STOCK, StateIdConst.ACTIVE, doc.WarehouseId, ct);
 
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
@@ -200,6 +208,10 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             if (!reversalPeriodValidation.IsSuccess)
                 return reversalPeriodValidation;
 
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "PurchaseCancel", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
@@ -236,7 +248,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                 activePostingBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
 
-                await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.RETURNED_TO_SUPPLIER, StateIdConst.PASSIVE, ct);
+                await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.RETURNED_TO_SUPPLIER, StateIdConst.PASSIVE, null, ct);
                 await RecalculateProductCostPricesAfterCancelAsync(doc, ct);
             }
             else
@@ -261,13 +273,24 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
 
     private async Task<PurchaseDocDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<PurchaseDoc>()
+            .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+            .As<PurchaseDocDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
     private async Task<PurchaseDoc?> GetPurchaseDocForLifecycleAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<PurchaseDoc>()
+            .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+            .Build();
         query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
         query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable));
 
@@ -374,7 +397,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             x.ReversalEntryId == null, ct);
     }
 
-    private async Task UpdatePurchaseProductTablesAsync(PurchaseDoc doc, short statusId, short stateId, CancellationToken ct)
+    private async Task UpdatePurchaseProductTablesAsync(PurchaseDoc doc, short statusId, short stateId, int? currentWarehouseId, CancellationToken ct)
     {
         var productTables = GetPurchaseProductTables(doc);
         if (productTables.Count == 0)
@@ -384,6 +407,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         {
             productTable.StatusId = statusId;
             productTable.StateId = stateId;
+            productTable.CurrentWarehouseId = currentWarehouseId;
         }
 
         await _productTableCommand.UpdateAsync(productTables, ct);
@@ -476,6 +500,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             DocumentId = entry.DocumentId,
             WarehouseId = entry.WarehouseId,
             ProductId = entry.ProductId,
+            ProductTableId = entry.ProductTableId,
             OperationTypeId = OperationTypeIdConst.OUT,
             Quantity = entry.Quantity,
             Amount = entry.Amount,

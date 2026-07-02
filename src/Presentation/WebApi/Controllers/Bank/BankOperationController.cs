@@ -60,6 +60,22 @@ public class BankOperationController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpPost("{id:long}/confirm")]
+    [ModuleAuthorize(PermissionCodeConst.ConfirmBankOperation)]
+    public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:long}/cancel")]
+    [ModuleAuthorize(PermissionCodeConst.CancelBankOperation)]
+    public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.CancelAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpDelete("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.BankOperationDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)

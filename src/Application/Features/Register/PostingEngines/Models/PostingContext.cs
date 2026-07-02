@@ -11,6 +11,7 @@
     {
         // ---- Идентификация документа (попадает напрямую в acc_reg_entry) ----
         public int OrganizationId { get; set; }
+        public short DocumentTypeId { get; set; }
         public short RuleId { get; set; }
         public long DocumentId { get; set; }
         public short CurrencyId { get; set; }
@@ -38,5 +39,6 @@
         public List<SubkontoValue> Subkontos { get; set; } = new();
 
         public string[] SkippedAmountSources { get; set; } = Array.Empty<string>();
+        public string[] AllowedAliases { get; set; } = Array.Empty<string>();
     }
 }

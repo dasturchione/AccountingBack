@@ -26,7 +26,7 @@ namespace Infrastructure.Repositories
 
         public async Task<List<TEntity>> GetAllAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.AsQueryable();
+            var query = _dbSet.AsNoTracking().AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -42,7 +42,8 @@ namespace Infrastructure.Repositories
 
         public async Task<List<TResult>> GetAllAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
+            var query = _dbSet.AsNoTracking()
+                                .Where(specification.Criteria)
                                 .Select(specification.Selector)
                                 .AsQueryable();
 
@@ -70,7 +71,8 @@ namespace Infrastructure.Repositories
 
         public async Task<TResult?> GetAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
+            var query = _dbSet.AsNoTracking()
+                                .Where(specification.Criteria)
                                 .Select(specification.Selector)
                                 .AsQueryable();
 
@@ -79,7 +81,7 @@ namespace Infrastructure.Repositories
 
         public async Task<PagedList<TEntity>> GetPagedAsync(PagedQuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.AsQueryable();
+            var query = _dbSet.AsNoTracking().AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -102,7 +104,8 @@ namespace Infrastructure.Repositories
 
         public async Task<PagedList<TResult>> GetPagedAsync<TResult>(PagedQuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
+            var query = _dbSet.AsNoTracking()
+                                .Where(specification.Criteria)
                                 .Select(specification.Selector)
                                 .AsQueryable();
 

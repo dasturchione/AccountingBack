@@ -18,6 +18,8 @@ namespace WebApi.Middlewares
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
+                context.Items[AllowedOrgIdsKey] = new List<int>();
+
                 var userIdStr = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 if (int.TryParse(userIdStr, out var userId))
@@ -31,6 +33,7 @@ namespace WebApi.Middlewares
                     else
                     {
                         var allowedOrgIds = await db.UserOrganizations
+                            .IgnoreQueryFilters()
                             .Where(uo => uo.UserId == userId && uo.StateId == StateIdConst.ACTIVE)
                             .Select(uo => uo.OrganizationId)
                             .ToListAsync();

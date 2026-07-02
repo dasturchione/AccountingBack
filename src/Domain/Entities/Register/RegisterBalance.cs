@@ -9,6 +9,7 @@ namespace Domain.Entities;
 [Index("DocumentTypeId", "DocumentId", Name = "idx_inv_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_inv_reg_balance_organization_id")]
 [Index("ProductId", Name = "idx_inv_reg_balance_product_id")]
+[Index("ProductTableId", Name = "idx_inv_reg_balance_product_table_id")]
 [Index("WarehouseId", Name = "idx_inv_reg_balance_warehouse_id")]
 [Index("PostingBatchId", Name = "idx_inv_reg_balance_posting_batch_id")]
 [Index("ReversalEntryId", Name = "idx_inv_reg_balance_reversal_entry_id")]
@@ -32,6 +33,9 @@ public partial class RegisterBalance
 
     [Column("product_id")]
     public int ProductId { get; set; }
+
+    [Column("product_table_id")]
+    public int? ProductTableId { get; set; }
 
     [Column("operation_type_id")]
     public short OperationTypeId { get; set; }
@@ -74,6 +78,9 @@ public partial class RegisterBalance
     [ForeignKey("ProductId")]
     [InverseProperty("RegisterBalances")]
     public virtual Product Product { get; set; } = null!;
+
+    [ForeignKey("ProductTableId")]
+    public virtual ProductTable? ProductTable { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("RegisterBalances")]

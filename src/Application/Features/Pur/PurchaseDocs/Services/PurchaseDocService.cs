@@ -74,7 +74,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result<PurchaseDocDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<PurchaseDocDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<PurchaseDoc>()
+                .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+                .As<PurchaseDocDto>()
+                .Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity == null)
@@ -142,7 +148,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).Build();
+            var query = _queryBuilder.For<PurchaseDoc>()
+                .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+                .Build();
             var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
@@ -206,7 +214,12 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<PurchaseDoc>().Where(x => x.Id == id).Build();
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<PurchaseDoc>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .Build();
             var doc = await _query.GetAsync(query, ct);
 
             if (doc == null)
@@ -242,7 +255,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
     private async Task<PurchaseDocDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<PurchaseDoc>().Where(p => p.Id == id).As<PurchaseDocDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<PurchaseDoc>()
+            .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+            .As<PurchaseDocDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
@@ -280,12 +299,28 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     {
         var lines = new List<PurchaseDocProduct>();
         var markingNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var productIds = lineDtos.Select(x => x.ProductId).Distinct().ToList();
+        var vatRateIds = lineDtos.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
+
+        var productsQuery = _queryBuilder.For<Product>()
+            .Where(x => productIds.Contains(x.Id))
+            .Build();
+        var products = await _productQuery.GetAllAsync(productsQuery, ct);
+        var productById = products.ToDictionary(x => x.Id);
+
+        var vatRateById = new Dictionary<short, VatRate>();
+        if (vatRateIds.Count > 0)
+        {
+            var vatRatesQuery = _queryBuilder.For<VatRate>()
+                .Where(x => vatRateIds.Contains(x.Id))
+                .Build();
+            var vatRates = await _vatRateQuery.GetAllAsync(vatRatesQuery, ct);
+            vatRateById = vatRates.ToDictionary(x => x.Id);
+        }
 
         foreach (var dto in lineDtos)
         {
-            var productQuery = _queryBuilder.For<Product>().Where(x => x.Id == dto.ProductId).Build();
-            var product = await _productQuery.GetAsync(productQuery, ct);
-            if (product == null)
+            if (!productById.TryGetValue(dto.ProductId, out var product))
                 return Result.Failure<List<PurchaseDocProduct>>(
                     PurchaseDocErrors.ProductNotFound(dto.ProductId, _userContext.LanguageId));
 
@@ -335,10 +370,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             if (vatRateId.HasValue)
             {
-                var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == vatRateId.Value).Build();
-                var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
-
-                if (vatRate == null)
+                if (!vatRateById.TryGetValue(vatRateId.Value, out var vatRate))
                     return Result.Failure<List<PurchaseDocProduct>>(PurchaseDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId));
 
                 vatAmount = Math.Round(amount * vatRate.Rate / 100, 8);

@@ -1,5 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +5,6 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("bank_operation_line")]
-[Index("CounterpartyId", Name = "idx_bank_operation_line_counterparty_id")]
-[Index("PaymentPurposeId", Name = "idx_bank_operation_line_payment_purpose_id")]
-[Index("BankOperationId", "OrderNumber", Name = "uq_bank_operation_line_order", IsUnique = true)]
 public partial class BankOperationLine
 {
     [Key]
@@ -46,5 +41,5 @@ public partial class BankOperationLine
 
     [ForeignKey("PaymentPurposeId")]
     [InverseProperty("BankOperationLines")]
-    public virtual AccPaymentPurpose PaymentPurpose { get; set; } = null!;
+    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
 }

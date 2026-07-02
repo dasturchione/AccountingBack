@@ -8,5 +8,7 @@
         public string? Mxik { get; set; }
         public string? SerialNumber { get; set; }
         public string? MarkingNumber { get; set; }
+        public int? CurrentWarehouseId { get; set; }
+        public string? CurrentWarehouseName { get; set; }
     }
 }

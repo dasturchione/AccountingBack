@@ -56,6 +56,7 @@ public class CashOperationService : BaseService, ICashOperationService
                 CurrencyId = dto.CurrencyId,
                 Amount = dto.Amount,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
+                Comment = dto.Comment,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
@@ -118,7 +119,13 @@ public class CashOperationService : BaseService, ICashOperationService
     public Task<Result<CashOperationDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).As<CashOperationDto>().Build();
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<CashOperationDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<CashOperation>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .As<CashOperationDto>()
+                .Build();
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure<CashOperationDto>(CashOperationErrors.NotFound(id, _userContext.LanguageId));
@@ -178,7 +185,13 @@ public class CashOperationService : BaseService, ICashOperationService
 
     private async Task<CashOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).As<CashOperationDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<CashOperation>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .As<CashOperationDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 }

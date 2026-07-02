@@ -3,7 +3,10 @@
 CREATE TABLE public.sys_role_module (
     role_id integer NOT NULL,
     module_id integer NOT NULL,
-    created_date timestamp with time zone DEFAULT now() NOT NULL
+    created_date timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT sys_role_module_pkey PRIMARY KEY (role_id, module_id),
+    CONSTRAINT sys_role_module_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.sys_module(id),
+    CONSTRAINT sys_role_module_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_role(id)
 );
 
 insert into public.sys_role_module (role_id, module_id, created_date) values
@@ -483,12 +486,3 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('1', '1034', '2026-06-27 16:52:47.113099+05'),
     ('1', '1035', '2026-06-27 16:52:47.113147+05'),
     ('1', '1101', '2026-06-27 16:52:47.112923+05');
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_pkey PRIMARY KEY (role_id, module_id);
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.sys_module(id);
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_role(id);

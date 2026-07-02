@@ -64,7 +64,7 @@ public class CashCounterpartyRegisterService : ICashCounterpartyRegisterService
         var originals = await GetOriginalEntriesAsync(cashOperation.Id, ct);
         if (originals.Count == 0)
             return Result.Failure<List<CounterpartyRegisterBalance>>(
-                CashOperationErrors.MissingAccountingRegisterEntries(cashOperation.Id, null));
+                CashOperationErrors.MissingCounterpartyRegisterEntries(cashOperation.Id, null));
 
         var now = DateTime.Now;
         var reversals = originals.Select(entry => new CounterpartyRegisterBalance

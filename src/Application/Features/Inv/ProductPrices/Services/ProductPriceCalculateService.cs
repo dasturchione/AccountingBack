@@ -548,8 +548,8 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                         x.ProductTable.OrganizationId == organizationId &&
                         x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
                         x.ProductTable.StateId == StateIdConst.ACTIVE &&
-                        x.Owner.Owner.OrganizationId == organizationId &&
-                        x.Owner.Owner.WarehouseId == warehouseId)
+                        x.ProductTable.CurrentWarehouseId == warehouseId &&
+                        x.Owner.Owner.OrganizationId == organizationId)
             .As(x => new InventoryCandidateSnapshot
             {
                 ProductTableId = x.ProductTableId,

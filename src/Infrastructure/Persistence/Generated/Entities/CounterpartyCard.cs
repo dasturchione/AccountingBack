@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("counterparty_card")]
-[Index("Code", Name = "idx_counterparty_card_code")]
 [Index("DistrictId", Name = "idx_counterparty_card_district_id")]
-[Index("ExternalId", Name = "idx_counterparty_card_external_id")]
 [Index("Inn", Name = "idx_counterparty_card_inn")]
 [Index("OrganizationId", Name = "idx_counterparty_card_organization_id")]
 [Index("RegionId", Name = "idx_counterparty_card_region_id")]
 [Index("ShortName", Name = "idx_counterparty_card_short_name")]
 [Index("StateId", Name = "idx_counterparty_card_state_id")]
 [Index("CounterpartyTypeId", Name = "idx_counterparty_card_type_id")]
+[Index("Code", Name = "idx_counterparty_card_code")]
+[Index("ExternalId", Name = "idx_counterparty_card_external_id")]
 public partial class CounterpartyCard
 {
     [Key]
@@ -64,6 +62,7 @@ public partial class CounterpartyCard
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -84,18 +83,14 @@ public partial class CounterpartyCard
     [Column("external_id")]
     [StringLength(100)]
     public string? ExternalId { get; set; }
+    [InverseProperty("Counterparty")]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 
     [InverseProperty("Counterparty")]
-    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
-
-    [InverseProperty("Counterparty")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
-
-    [InverseProperty("Counterparty")]
-    public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
@@ -104,31 +99,34 @@ public partial class CounterpartyCard
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
 
     [InverseProperty("Counterparty")]
-    public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
+    public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
     [ForeignKey("CounterpartyTypeId")]
     [InverseProperty("CounterpartyCards")]
-    public virtual CmnCounterpartyType CounterpartyType { get; set; } = null!;
+    public virtual CounterpartyType CounterpartyType { get; set; } = null!;
 
     [ForeignKey("DistrictId")]
     [InverseProperty("CounterpartyCards")]
-    public virtual CmnDistrict? District { get; set; }
+    public virtual District? District { get; set; }
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyCards")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
+    public virtual Organization Organization { get; set; } = null!;
 
     [InverseProperty("Counterparty")]
-    public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
+    public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
 
     [ForeignKey("RegionId")]
     [InverseProperty("CounterpartyCards")]
-    public virtual CmnRegion? Region { get; set; }
+    public virtual Region? Region { get; set; }
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyCards")]
-    public virtual CmnState State { get; set; } = null!;
+    public virtual State State { get; set; } = null!;
+
+    [InverseProperty("Counterparty")]
+    public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 }

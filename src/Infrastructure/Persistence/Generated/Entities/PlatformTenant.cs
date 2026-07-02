@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
@@ -35,15 +33,4 @@ public partial class PlatformTenant
 
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedDate { get; set; }
-
-    [InverseProperty("Tenant")]
-    public virtual ICollection<OrgOrganization> OrgOrganizations { get; set; } = new List<OrgOrganization>();
-
-    [ForeignKey("OwnerUserId")]
-    [InverseProperty("PlatformTenants")]
-    public virtual SysUser? OwnerUser { get; set; }
-
-    [ForeignKey("StateId")]
-    [InverseProperty("PlatformTenants")]
-    public virtual CmnState State { get; set; } = null!;
 }

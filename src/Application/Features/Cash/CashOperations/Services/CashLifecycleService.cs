@@ -199,7 +199,7 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
                     return counterpartyReverse;
 
                 if (cashOperation.CounterpartyId is not null && counterpartyReverse.Value.Count == 0)
-                    return Result.Failure(CashOperationErrors.MissingAccountingRegisterEntries(id, _userContext.LanguageId));
+                    return Result.Failure(CashOperationErrors.MissingCounterpartyRegisterEntries(id, _userContext.LanguageId));
 
                 if (moneyReverse.Value.Count == 0)
                     return Result.Failure(CashOperationErrors.MissingMoneyRegisterEntries(id, _userContext.LanguageId));
@@ -227,8 +227,11 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
 
     private async Task<CashOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
+        if (_userContext.OrganizationId is null)
+            return null;
+
         var query = _queryBuilder.For<CashOperation>()
-            .Where(x => x.Id == id)
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
             .As<CashOperationDto>()
             .Build();
 
@@ -237,9 +240,15 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
 
     private async Task<CashOperation?> GetCashOperationForLifecycleAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<CashOperation>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<CashOperation>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .Build();
         query.AddIncludes(x => x.Include(d => d.CashBox));
         query.AddIncludes(x => x.Include(d => d.DestinationCashBox));
+        query.AddIncludes(x => x.Include(d => d.Counterparty));
         return await _query.GetAsync(query, ct);
     }
 
@@ -251,7 +260,8 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
         if (cashOperation.OperationTypeId is not (OperationTypeIdConst.IN or OperationTypeIdConst.OUT or OperationTypeIdConst.TRANSFER))
             return Result.Failure(CashOperationErrors.InvalidOperationType(cashOperation.OperationTypeId, _userContext.LanguageId));
 
-        if (cashOperation.CashBox.StateId != StateIdConst.ACTIVE)
+        if (cashOperation.CashBox.OrganizationId != cashOperation.OrganizationId ||
+            cashOperation.CashBox.StateId != StateIdConst.ACTIVE)
             return Result.Failure(CashOperationErrors.InvalidCashBoxMismatch(cashOperation.Id, _userContext.LanguageId));
 
         if (cashOperation.OperationTypeId == OperationTypeIdConst.TRANSFER)
@@ -259,8 +269,18 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
             if (cashOperation.DestinationCashBoxId is null || cashOperation.DestinationCashBoxId == cashOperation.CashBoxId)
                 return Result.Failure(CashOperationErrors.InvalidCashBoxMismatch(cashOperation.Id, _userContext.LanguageId));
 
-            if (cashOperation.DestinationCashBox is null || cashOperation.DestinationCashBox.StateId != StateIdConst.ACTIVE)
+            if (cashOperation.DestinationCashBox is null ||
+                cashOperation.DestinationCashBox.OrganizationId != cashOperation.OrganizationId ||
+                cashOperation.DestinationCashBox.StateId != StateIdConst.ACTIVE)
                 return Result.Failure(CashOperationErrors.InvalidCashBoxMismatch(cashOperation.Id, _userContext.LanguageId));
+        }
+
+        if (cashOperation.CounterpartyId.HasValue &&
+            (cashOperation.Counterparty == null ||
+             cashOperation.Counterparty.OrganizationId != cashOperation.OrganizationId ||
+             cashOperation.Counterparty.StateId != StateIdConst.ACTIVE))
+        {
+            return Result.Failure(CashOperationErrors.OrganizationMismatch(cashOperation.Id, _userContext.LanguageId));
         }
 
         if (cashOperation.OperationTypeId == OperationTypeIdConst.OUT || cashOperation.OperationTypeId == OperationTypeIdConst.TRANSFER)

@@ -28,6 +28,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
         var context = new PostingContext
         {
             OrganizationId = document.OrganizationId,
+            DocumentTypeId = DocumentTypeIdConst.CASHOPERATION,
             AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
             DocumentId = document.Id,
             CurrencyId = document.CurrencyId,

@@ -109,4 +109,10 @@ public static class CashOperationErrors
             LanguageIdConst.RU => $"Не найдены записи кассового регистра для операции {id}.",
             _ => $"Cash operation {id} has no money register entries."
         });
+    public static Error MissingCounterpartyRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("CashOperation.MissingCounterpartyEntries", languageId switch
+        {
+            LanguageIdConst.RU => $"ÐÐµ Ð½Ð°Ð¹Ð´ÐµÐ½Ñ‹ Ð·Ð°Ð¿Ð¸ÑÐ¸ Ñ€ÐµÐ³Ð¸ÑÑ‚Ñ€Ð° ÐºÐ¾Ð½Ñ‚Ñ€Ð°Ð³ÐµÐ½Ñ‚Ð¾Ð² Ð´Ð»Ñ Ð¾Ð¿ÐµÑ€Ð°Ñ†Ð¸Ð¸ {id}.",
+            _ => $"Cash operation {id} has no counterparty register entries."
+        });
 }

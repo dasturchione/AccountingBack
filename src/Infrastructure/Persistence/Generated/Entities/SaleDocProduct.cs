@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
@@ -57,16 +55,16 @@ public partial class SaleDocProduct
 
     [ForeignKey("ProductId")]
     [InverseProperty("SaleDocProducts")]
-    public virtual InvProduct Product { get; set; } = null!;
+    public virtual Product Product { get; set; } = null!;
 
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
     [ForeignKey("UnitId")]
     [InverseProperty("SaleDocProducts")]
-    public virtual CmnUnit Unit { get; set; } = null!;
+    public virtual Unit Unit { get; set; } = null!;
 
     [ForeignKey("VatRateId")]
     [InverseProperty("SaleDocProducts")]
-    public virtual CmnVatRate? VatRate { get; set; }
+    public virtual VatRate? VatRate { get; set; }
 }

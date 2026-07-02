@@ -1,9 +1,11 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features.CounterpartyCards;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
+using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Contracts;
@@ -12,15 +14,18 @@ public class ContractService : IContractService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Contract> _query;
+    private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly ICommandRepository<Contract> _command;
     private readonly IQueryBuilder _queryBuilder;
 
     public ContractService(IUserContext userContext,
                            IQueryBuilder queryBuilder,
                            IQueryRepository<Contract> query,
+                           IQueryRepository<CounterpartyCard> counterpartyQuery,
                            ICommandRepository<Contract> command)
     {
         _query = query;
+        _counterpartyQuery = counterpartyQuery;
         _command = command;
         _userContext = userContext;
         _queryBuilder = queryBuilder;
@@ -29,6 +34,10 @@ public class ContractService : IContractService
     public async Task<Result<long>> CreateAsync(ContractCreateDto dto, CancellationToken ct = default)
     {
         var orgId = _userContext.OrganizationId!.Value;
+        var counterparty = await ResolveCounterpartyAsync(dto.CounterpartyId, ct);
+
+        if (counterparty is null)
+            return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
         var entity = new Contract
         {
@@ -84,6 +93,10 @@ public class ContractService : IContractService
         if (entity == null)
             return Result.Failure(ContractErrors.NotFound(id, _userContext.LanguageId));
 
+        var counterparty = await ResolveCounterpartyAsync(dto.CounterpartyId, ct);
+        if (counterparty is null)
+            return Result.Failure(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
+
         entity.CounterpartyId = dto.CounterpartyId;
         entity.ContractTypeId = dto.ContractTypeId;
         entity.ContractDate = dto.ContractDate;
@@ -94,5 +107,15 @@ public class ContractService : IContractService
 
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
+    }
+
+    private async Task<CounterpartyCard?> ResolveCounterpartyAsync(int counterpartyId, CancellationToken ct)
+    {
+        var query = new QuerySpecification<CounterpartyCard>
+        {
+            Criteria = x => x.Id == counterpartyId
+        };
+
+        return await _counterpartyQuery.GetAsync(query, ct);
     }
 }

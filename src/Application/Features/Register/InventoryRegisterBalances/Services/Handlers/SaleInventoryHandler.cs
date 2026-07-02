@@ -20,6 +20,7 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
             DocumentId      = sale.Id,
             WarehouseId     = sale.WarehouseId,
             ProductId       = line.ProductTable.ProductId,
+            ProductTableId  = line.ProductTableId,
             OperationTypeId = OperationTypeIdConst.OUT,
             Quantity        = 1,
             Amount          = line.CostPrice,

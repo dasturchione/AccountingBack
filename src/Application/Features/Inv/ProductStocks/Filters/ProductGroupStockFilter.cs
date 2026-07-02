@@ -4,7 +4,7 @@ namespace Application.Features.Inv.ProductStocks
 {
     public class ProductGroupStockFilter : IPaginationFilter
     {
-        
+        public int? WarehouseId { get; set; }
 
         public int Page { get; set; } = 1;
 

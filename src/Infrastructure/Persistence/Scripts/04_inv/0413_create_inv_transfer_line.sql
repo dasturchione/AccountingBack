@@ -1,0 +1,12 @@
+create table inv_transfer_line
+(
+    id              bigint primary key,
+    owner_id        bigint not null references inv_transfer_doc(id) on delete cascade,
+    product_id      integer not null references inv_product(id),
+    unit_id         smallint not null references cmn_unit(id),
+    quantity        numeric(24,8) not null,
+    comment         varchar(1000));
+
+create index ix_inv_transfer_line_owner_id on inv_transfer_line (owner_id);
+create index idx_inv_transfer_line_product_id on inv_transfer_line (product_id);
+create index idx_inv_transfer_line_unit_id on inv_transfer_line (unit_id);

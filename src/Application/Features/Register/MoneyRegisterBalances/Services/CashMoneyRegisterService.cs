@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.Features.CashOperations;
+using Application.Features.Register;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -93,7 +94,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
         DateTime now,
         bool isReversed)
     {
-        var sourceType = "CASH_OPERATION";
+        var sourceType = RegisterDefaultsConst.CashOperation;
         return cashOperation.OperationTypeId switch
         {
             OperationTypeIdConst.IN => new List<MoneyRegisterBalance>
@@ -137,7 +138,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     OrganizationId = cashOperation.OrganizationId,
                     DocumentTypeId = DocumentTypeIdConst.CASHOPERATION,
                     DocumentId = cashOperation.Id,
-                    SourceType = "CASH_OPERATION_OUT",
+                    SourceType = RegisterDefaultsConst.CashOperationOut,
                     SourceId = cashOperation.CashBoxId,
                     OperationTypeId = isReversed ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT,
                     CurrencyId = cashOperation.CurrencyId,
@@ -151,7 +152,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     OrganizationId = cashOperation.OrganizationId,
                     DocumentTypeId = DocumentTypeIdConst.CASHOPERATION,
                     DocumentId = cashOperation.Id,
-                    SourceType = "CASH_OPERATION_IN",
+                    SourceType = RegisterDefaultsConst.CashOperationIn,
                     SourceId = cashOperation.DestinationCashBoxId!.Value,
                     OperationTypeId = isReversed ? OperationTypeIdConst.OUT : OperationTypeIdConst.IN,
                     CurrencyId = cashOperation.CurrencyId,
@@ -188,9 +189,8 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
     private async Task<List<MoneyRegisterBalance>> GetCashBoxEntriesAsync(int cashBoxId, DateTime asOfDate, CancellationToken ct)
     {
         var query = _queryBuilder.For<MoneyRegisterBalance>()
-            .Where(x => x.SourceType.Contains("CASH_OPERATION") &&
+            .Where(x => x.SourceType.StartsWith(RegisterDefaultsConst.CashOperation) &&
                         x.SourceId == cashBoxId &&
-                        x.ReversalEntryId == null &&
                         x.DocDate <= asOfDate)
             .Build();
 

@@ -31,9 +31,13 @@ public class CashCounterpartyRegisterService : ICashCounterpartyRegisterService
         if (cashOperation.Amount <= 0m || cashOperation.CounterpartyId is null)
             return Result.Success(new List<CounterpartyRegisterBalance>());
 
-        var operationType = cashOperation.OperationTypeId == OperationTypeIdConst.IN
-            ? OperationTypeIdConst.DEBT_DECREASE
-            : OperationTypeIdConst.DEBT_INCREASE;
+        var aliasCode = cashOperation.PaymentPurpose?.Alias?.Code;
+        if (!CounterpartySettlementOperationTypeResolver.IsCounterpartySettlementAlias(aliasCode))
+            return Result.Success(new List<CounterpartyRegisterBalance>());
+
+        var operationType = CounterpartySettlementOperationTypeResolver.Resolve(
+            aliasCode!,
+            cashOperation.OperationTypeId);
 
         var entry = new CounterpartyRegisterBalance
         {

@@ -8,6 +8,7 @@ public class CashOperationBaseDtoValidator : AbstractValidator<CashOperationBase
     public CashOperationBaseDtoValidator()
     {
         RuleFor(x => x.CashBoxId).GreaterThan(0);
+        RuleFor(x => x.PaymentPurposeId).GreaterThan((short)0);
         RuleFor(x => x.OperationTypeId).GreaterThan((short)0);
         RuleFor(x => x.DocNumber)
             .MaximumLength(50)

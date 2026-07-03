@@ -28,9 +28,13 @@ public class BankCounterpartyRegisterService : IBankCounterpartyRegisterService
         if (bankOperation.CounterpartyId is null || bankOperation.Amount <= 0m)
             return Result.Success(new List<CounterpartyRegisterBalance>());
 
-        var operationType = bankOperation.OperationTypeId == OperationTypeIdConst.IN
-            ? OperationTypeIdConst.DEBT_DECREASE
-            : OperationTypeIdConst.DEBT_INCREASE;
+        var aliasCode = bankOperation.PaymentPurpose?.Alias?.Code;
+        if (!CounterpartySettlementOperationTypeResolver.IsCounterpartySettlementAlias(aliasCode))
+            return Result.Success(new List<CounterpartyRegisterBalance>());
+
+        var operationType = CounterpartySettlementOperationTypeResolver.Resolve(
+            aliasCode!,
+            bankOperation.OperationTypeId);
 
         var entry = new CounterpartyRegisterBalance
         {

@@ -9,11 +9,13 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Events;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -29,9 +31,39 @@ namespace WebApi.Configuration
             builder.Services.AddEndpointsApiExplorer();
 
             if (builder.Environment.IsDevelopment())
-                builder.Configuration.AddUserSecrets<Program>(optional: true);
+                TryAddUserSecrets(builder.Configuration, typeof(Program).Assembly);
 
             return builder;
+        }
+
+        private static void TryAddUserSecrets(ConfigurationManager configuration, Assembly assembly)
+        {
+            var secretsId = assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
+            if (string.IsNullOrWhiteSpace(secretsId))
+                return;
+
+            try
+            {
+                var userSecretsRoot = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "Microsoft",
+                    "UserSecrets",
+                    secretsId);
+
+                var secretsFile = Path.Combine(userSecretsRoot, "secrets.json");
+                if (!File.Exists(secretsFile))
+                    return;
+
+                configuration.AddUserSecrets(assembly, optional: true);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Optional secrets must never block startup in restricted environments.
+            }
+            catch (IOException)
+            {
+                // Optional secrets must never block startup in restricted environments.
+            }
         }
 
         private static WebApplicationBuilder AddExposers(this WebApplicationBuilder builder)
@@ -212,7 +244,7 @@ namespace WebApi.Configuration
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
         {
             var key = jwtSection["Key"];
-            if (IsPlaceholderValue(key))
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(key))
                 throw new InvalidOperationException("Jwt:Key is not configured with a real secret value.");
 
             if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) < 32)

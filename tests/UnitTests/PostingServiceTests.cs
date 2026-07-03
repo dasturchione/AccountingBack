@@ -78,6 +78,40 @@ public class PostingServiceTests
         Assert.Equal(1015, entries[0].CreditAccountId);
     }
 
+    [Fact]
+    public async Task BuildEntriesAsync_ShouldSelectCashInTransitOptionalLine()
+    {
+        var service = CreateService(
+            [
+                CreateRule(5,
+                    ("PaymentAccount", "Customer"),
+                    ("PaymentAccount", "CashInTransit"))
+            ],
+            [
+                Resolve("PaymentAccount", 1027),
+                Resolve("Customer", 1015),
+                Resolve("CashInTransit", 1073)
+            ]);
+
+        var entries = await service.BuildEntriesAsync(
+        [
+            new PostingContext
+            {
+                OrganizationId = 1,
+                DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
+                RuleId = 5,
+                DocumentId = 14,
+                CurrencyId = 1,
+                DocDate = DateTime.Today,
+                Amounts = new Dictionary<string, decimal> { [AmountSourceConst.Total] = 350m },
+                AllowedAliases = [AliasConst.CashInTransit]
+            }
+        ]);
+
+        Assert.Single(entries);
+        Assert.Equal(1073, entries[0].CreditAccountId);
+    }
+
     private static PostingService CreateService(
         List<PostingRule> postingRules,
         List<AccountResolveRule> resolveRules)
@@ -85,7 +119,8 @@ public class PostingServiceTests
         return new PostingService(
             new FakeQueryBuilder(),
             new FakeQueryRepository<PostingRule>(postingRules),
-            new FakeQueryRepository<AccountResolveRule>(resolveRules));
+            new FakeQueryRepository<AccountResolveRule>(resolveRules),
+            new FakeQueryRepository<ChartAccount>([]));
     }
 
     private static PostingRule CreateRule(short id, params (string DebitAlias, string CreditAlias)[] lines) =>
@@ -161,7 +196,7 @@ public class PostingServiceTests
             Task.FromResult(items.AsQueryable().Where(specification.Criteria).ToList());
 
         public Task<List<TResult>> GetAllAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default) =>
-            throw new NotSupportedException();
+            Task.FromResult(items.AsQueryable().Where(specification.Criteria).Select(specification.Selector).ToList());
 
         public Task<PagedList<TEntity>> GetPagedAsync(PagedQuerySpecification<TEntity> specification, CancellationToken ct = default) =>
             throw new NotSupportedException();

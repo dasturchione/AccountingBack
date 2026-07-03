@@ -36,6 +36,12 @@ public partial class PaymentPurpose
     [InverseProperty("PaymentPurposes")]
     public virtual PostingAlias Alias { get; set; } = null!;
 
+    [InverseProperty(nameof(BankOperation.PaymentPurpose))]
+    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(CashOperation.PaymentPurpose))]
+    public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
+
     [InverseProperty("PaymentPurpose")]
     public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 

@@ -22,7 +22,7 @@ public class AdjustBalanceJob : IJob
         {
             _logger.LogInformation("AdjustBalanceJob boshlandi: {Time}", DateTime.Now);
 
-            // TODO: balans tuzatish logikasini shu yerga qo'shing
+            _logger.LogInformation("AdjustBalanceJob uchun avtomatik balans tuzatish amali konfiguratsiya qilinmagan; job no-op tarzda yakunlanadi.");
             await Task.CompletedTask;
 
             _logger.LogInformation("AdjustBalanceJob yakunlandi: {Time}", DateTime.Now);

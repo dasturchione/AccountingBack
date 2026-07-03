@@ -15,10 +15,6 @@ public class AccountingRegisterEntryBaseDto
     public long? ReversalEntryId { get; set; }
 }
 
-public class AccountingRegisterEntryCreateDto : AccountingRegisterEntryBaseDto { }
-
-public class AccountingRegisterEntryUpdateDto : AccountingRegisterEntryBaseDto { }
-
 public class AccountingRegisterEntryDto : AccountingRegisterEntryBaseDto
 {
     public long Id { get; set; }

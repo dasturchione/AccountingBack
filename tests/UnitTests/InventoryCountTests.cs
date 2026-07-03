@@ -539,6 +539,7 @@ file sealed class FakeCountPeriodValidator : IAccountingPeriodValidator
 file sealed class FakeCountPostingLock : IDocumentPostingLock
 {
     public Task AcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<bool> TryAcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default) => Task.FromResult(true);
 }
 
 file sealed class FakeCountAdjustmentLifecycleService : IInventoryAdjustmentLifecycleService

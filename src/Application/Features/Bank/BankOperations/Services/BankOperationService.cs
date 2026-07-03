@@ -18,7 +18,6 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly IBankLifecycleService _bankLifecycleService;
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
-    private readonly ICommandRepository<BankOperationLine> _lineCommand;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
     public BankOperationService(
@@ -29,7 +28,6 @@ public class BankOperationService : BaseService, IBankOperationService
         IDocNumberGenerator docNumberGenerator,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
-        ICommandRepository<BankOperationLine> lineCommand,
         ILogger<BankOperationService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -41,7 +39,6 @@ public class BankOperationService : BaseService, IBankOperationService
         _docNumberGenerator = docNumberGenerator;
         _query = query;
         _command = command;
-        _lineCommand = lineCommand;
     }
 
     public Task<Result<PagedResponse<BankOperationListDto>>> GetAllAsync(BankOperationListFilter filter, CancellationToken ct = default) =>
@@ -144,10 +141,10 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.Amount = dto.Amount;
             entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             entity.Comment = dto.Comment;
+            entity.PaymentPurposeId = dto.PaymentPurposeId;
             entity.StateId = StateIdConst.ACTIVE;
 
             await _command.UpdateAsync(entity, ct);
-            await ReplaceLinesAsync(id, dto, ct);
 
             var newDocDto = await GetByIdInternalAsync(id, ct);
             if (newDocDto != null)
@@ -199,20 +196,6 @@ public class BankOperationService : BaseService, IBankOperationService
             return Result.Success();
         }, ct);
 
-    private async Task ReplaceLinesAsync(long bankOperationId, BankOperationBaseDto dto, CancellationToken ct)
-    {
-        await _lineCommand.DeleteAsync(x => x.BankOperationId == bankOperationId, ct);
-        await _lineCommand.CreateAsync(new BankOperationLine
-        {
-            BankOperationId = bankOperationId,
-            Amount = dto.Amount,
-            CounterpartyId = dto.CounterpartyId,
-            PaymentPurposeId = dto.PaymentPurposeId,
-            OrderNumber = 1,
-            Comment = dto.Comment
-        }, ct);
-    }
-
     private async Task<BankOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)
@@ -235,6 +218,7 @@ public class BankOperationService : BaseService, IBankOperationService
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
             PaymentTypeId = dto.PaymentTypeId,
+            PaymentPurposeId = dto.PaymentPurposeId,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             ContractId = dto.ContractId,
@@ -246,18 +230,7 @@ public class BankOperationService : BaseService, IBankOperationService
             Comment = dto.Comment,
             StatusId = DocumentStatusIdConst.DRAFT,
             StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now,
-            BankOperationLines =
-            [
-                new BankOperationLine
-                {
-                    Amount = dto.Amount,
-                    CounterpartyId = dto.CounterpartyId,
-                    PaymentPurposeId = dto.PaymentPurposeId,
-                    OrderNumber = 1,
-                    Comment = dto.Comment
-                }
-            ]
+            CreatedDate = DateTime.Now
         };
     }
 }

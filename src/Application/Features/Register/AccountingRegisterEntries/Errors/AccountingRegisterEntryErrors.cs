@@ -29,6 +29,21 @@ public static class AccountingRegisterEntryErrors
             _ => $"Posting rule not found"
         };
 
+    public static Error GroupAccountNotPostable(IReadOnlyCollection<int> accountIds, short? languageId = null) =>
+        Error.Business("AccountingPosting.GroupAccountNotPostable", GetGroupAccountNotPostableDescription(accountIds, languageId));
+
+    private static string GetGroupAccountNotPostableDescription(IReadOnlyCollection<int> accountIds, short? languageId)
+    {
+        var ids = string.Join(", ", accountIds);
+        return languageId switch
+        {
+            LanguageIdConst.UZ => $"Guruh (jamlovchi) hisobga to'g'ridan-to'g'ri o'tkazma yozib bo'lmaydi: {ids}.",
+            LanguageIdConst.UZ_CYRL => $"Гуруҳ (жамловчи) ҳисобга тўғридан-тўғри ўтказма ёзиб бўлмайди: {ids}.",
+            LanguageIdConst.RU => $"Нельзя проводить проводку напрямую на групповой счёт: {ids}.",
+            _ => $"Cannot post directly to a group (header) account: {ids}."
+        };
+    }
+
     public static Error UnsupportedDocumentType(short? languageId = null) =>
         Error.Business("AccountingRegisterEntry.UnsupportedDocumentType", GetUnsupportedDocumentTypeDescription(languageId));
 

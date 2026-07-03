@@ -2,6 +2,7 @@ namespace SharedKernel.Constants;
 
 public static class AuditLogTableConst
 {
+    public const string AccountingPeriod = "acc_accounting_period";
     public const string PurchaseDoc = "pur_doc";
     public const string SaleDoc = "sale_doc";
     public const string BankOperation = "bank_operation";

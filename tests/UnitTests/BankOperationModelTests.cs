@@ -32,7 +32,10 @@ public class BankOperationModelTests
         Assert.True(result.IsSuccess);
         var created = fixture.Command.CreatedEntities.Single();
         Assert.Equal(5, created.PaymentPurposeId);
-        Assert.Empty(created.BankOperationLines);
+        Assert.Single(created.BankOperationLines);
+        var line = created.BankOperationLines.Single();
+        Assert.Equal(5, line.PaymentPurposeId);
+        Assert.Equal(1250m, line.Amount);
     }
 
     [Fact]
@@ -60,21 +63,21 @@ public class BankOperationModelTests
 
         var builder = new BankOperationContextBuilder(
             new BankOperationTestQueryBuilder(),
-            new BankOperationTestQueryRepository<BankAccount>(
-            [
-                new BankAccount { Id = 4, AccountNumber = "2020", Name = "Main", OrganizationId = 8, CurrencyId = 1, BankId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
-            ]),
-            new BankOperationTestQueryRepository<CounterpartyCard>(
-            [
-                new CounterpartyCard { Id = 18, ShortName = "Vendor", OrganizationId = 8, CounterpartyTypeId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
-            ]),
             new BankOperationTestQueryRepository<Contract>(
             [
                 new Contract { Id = 9, ContractNumber = "C-9", ContractDate = DateTime.Today, CounterpartyId = 18, ContractTypeId = 1, StartDate = DateTime.Today, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
             ]),
+            new BankOperationTestQueryRepository<BankAccount>(
+            [
+                new BankAccount { Id = 4, AccountNumber = "2020", Name = "Main", OrganizationId = 8, CurrencyId = 1, BankId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
+            ]),
             new BankOperationTestQueryRepository<PaymentType>(
             [
                 new PaymentType { Id = 2, Code = "WIRE", Name = "Wire" }
+            ]),
+            new BankOperationTestQueryRepository<CounterpartyCard>(
+            [
+                new CounterpartyCard { Id = 18, ShortName = "Vendor", OrganizationId = 8, CounterpartyTypeId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
             ]),
             new BankOperationTestQueryRepository<PaymentPurpose>(
             [

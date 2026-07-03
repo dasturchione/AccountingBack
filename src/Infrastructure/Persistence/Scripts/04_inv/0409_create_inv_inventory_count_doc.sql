@@ -1,4 +1,4 @@
-create table inv_inventory_count_doc
+﻿create table inv_inventory_count_doc
 (
     id                          bigint primary key,
     organization_id             integer not null references org_organization(id),
@@ -24,3 +24,4 @@ create index idx_inv_inventory_count_doc_warehouse_id on inv_inventory_count_doc
 create unique index ux_inv_inventory_count_doc_org_doc_number on inv_inventory_count_doc (organization_id, doc_number);
 create index idx_inv_inventory_count_doc_status_id on inv_inventory_count_doc (status_id);
 create index idx_inv_inventory_count_doc_state_id on inv_inventory_count_doc (state_id);
+

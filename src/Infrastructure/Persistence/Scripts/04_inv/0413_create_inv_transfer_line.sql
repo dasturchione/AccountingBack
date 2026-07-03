@@ -1,4 +1,4 @@
-create table inv_transfer_line
+﻿create table inv_transfer_line
 (
     id              bigint primary key,
     owner_id        bigint not null references inv_transfer_doc(id) on delete cascade,
@@ -10,3 +10,4 @@ create table inv_transfer_line
 create index ix_inv_transfer_line_owner_id on inv_transfer_line (owner_id);
 create index idx_inv_transfer_line_product_id on inv_transfer_line (product_id);
 create index idx_inv_transfer_line_unit_id on inv_transfer_line (unit_id);
+

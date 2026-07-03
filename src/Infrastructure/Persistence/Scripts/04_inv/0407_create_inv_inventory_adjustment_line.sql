@@ -1,4 +1,4 @@
-create table inv_inventory_adjustment_line
+﻿create table inv_inventory_adjustment_line
 (
     id              bigint primary key,
     owner_id        bigint not null references inv_inventory_adjustment_doc(id) on delete cascade,
@@ -10,3 +10,4 @@ create table inv_inventory_adjustment_line
 create index ix_inv_inventory_adjustment_line_owner_id on inv_inventory_adjustment_line (owner_id);
 create index idx_inv_inventory_adjustment_line_product_id on inv_inventory_adjustment_line (product_id);
 create index idx_inv_inventory_adjustment_line_unit_id on inv_inventory_adjustment_line (unit_id);
+

@@ -1,4 +1,4 @@
-create table bank_operation_line
+﻿create table bank_operation_line
 (
     id                  bigserial primary key,
     bank_operation_id   bigint not null references bank_operation(id) on delete cascade,
@@ -11,3 +11,4 @@ create table bank_operation_line
 
 create index idx_bank_operation_line_payment_purpose_id on bank_operation_line (payment_purpose_id);
 create index idx_bank_operation_line_counterparty_id on bank_operation_line (counterparty_id);
+

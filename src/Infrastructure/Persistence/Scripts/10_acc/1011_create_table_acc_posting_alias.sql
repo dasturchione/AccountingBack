@@ -1,4 +1,4 @@
-create table acc_posting_alias
+﻿create table acc_posting_alias
 (
 	id						smallserial primary key,
 	code					varchar(50) not null unique,			-- 'Inventory', 'Supplier', 'PaymentAccount', 'Employee' и т.д.

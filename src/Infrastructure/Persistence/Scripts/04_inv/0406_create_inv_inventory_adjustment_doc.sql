@@ -1,4 +1,4 @@
-create table inv_inventory_adjustment_doc
+﻿create table inv_inventory_adjustment_doc
 (
     id                          bigint primary key,
     organization_id             integer not null references org_organization(id),
@@ -24,3 +24,4 @@ create index idx_inv_inventory_adjustment_doc_status_id on inv_inventory_adjustm
 create index idx_inv_inventory_adjustment_doc_state_id on inv_inventory_adjustment_doc (state_id);
 create index idx_inv_inventory_adjustment_doc_posted_by_user_id on inv_inventory_adjustment_doc (posted_by_user_id);
 create index idx_inv_inventory_adjustment_doc_cancelled_by_user_id on inv_inventory_adjustment_doc (cancelled_by_user_id);
+

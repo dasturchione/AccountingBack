@@ -1,4 +1,4 @@
-create table inv_transfer_doc
+﻿create table inv_transfer_doc
 (
     id                          bigint primary key,
     organization_id             integer not null references org_organization(id),
@@ -24,3 +24,4 @@ create index idx_inv_transfer_doc_status_id on inv_transfer_doc (status_id);
 create index idx_inv_transfer_doc_state_id on inv_transfer_doc (state_id);
 create index idx_inv_transfer_doc_posted_by_user_id on inv_transfer_doc (posted_by_user_id);
 create index idx_inv_transfer_doc_cancelled_by_user_id on inv_transfer_doc (cancelled_by_user_id);
+

@@ -135,7 +135,7 @@ public class BankOperationService : BaseService, IBankOperationService
 
             entity.BankAccountId = dto.BankAccountId;
             entity.OperationTypeId = dto.OperationTypeId;
-            entity.PaymentTypeId = dto.PaymentTypeId;
+            entity.PaymentTypeId = PaymentTypeIdConst.BANK;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
             entity.ContractId = dto.ContractId;
@@ -234,7 +234,7 @@ public class BankOperationService : BaseService, IBankOperationService
             OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
+            PaymentTypeId = PaymentTypeIdConst.BANK,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             ContractId = dto.ContractId,

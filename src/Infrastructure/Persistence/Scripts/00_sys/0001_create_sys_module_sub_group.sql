@@ -22,7 +22,10 @@ insert into sys_module_sub_group (id, code, short_name, full_name, created_date)
     ('11', 'MANUAL', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlari', '2026-06-08 11:44:36.687616'),
     ('12', 'PRICING_CONDITION', 'Narxlash qoidasi', 'Narxlash qoidasi', '2026-06-27 16:21:38.259971'),
     ('13', 'SALE_CONDITION', 'Sotuv qoidasi', 'Sotuv qoidasi', '2026-06-27 16:21:38.259971'),
-    ('14', 'POSTING_RULE', 'Postings qoidasi', 'Postings qoidasi', '2026-06-27 16:21:38.259971');
+    ('14', 'POSTING_RULE', 'Postings qoidasi', 'Postings qoidasi', '2026-06-27 16:21:38.259971'),
+    ('15', 'WAREHOUSE_TRANSFER', 'Ombor ko''chirish', 'Omborlar o''rtasida ko''chirish', '2026-07-03 00:00:00'),
+    ('16', 'INVENTORY_ADJUSTMENT', 'Inventar tuzatish', 'Inventar tuzatish hujjatlari', '2026-07-03 00:00:00'),
+    ('17', 'INVENTORY_COUNT', 'Inventar sanog''i', 'Inventar sanog''i hujjatlari', '2026-07-03 00:00:00');
 
 select setval('sys_module_sub_group_id_seq', 15, true);
 

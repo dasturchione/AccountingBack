@@ -7,5 +7,7 @@ public class BankOperationCreateDtoValidator : AbstractValidator<BankOperationCr
     public BankOperationCreateDtoValidator()
     {
         Include(new BankOperationBaseDtoValidator());
+
+        RuleFor(x => x.PaymentPurposeId).GreaterThan((short)0);
     }
 }

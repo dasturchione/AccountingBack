@@ -147,7 +147,7 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.StateId = StateIdConst.ACTIVE;
 
             await _command.UpdateAsync(entity, ct);
-            await ReplaceLinesAsync(id, dto, ct);
+            //await ReplaceLinesAsync(id, dto, ct);
 
             var newDocDto = await GetByIdInternalAsync(id, ct);
             if (newDocDto != null)
@@ -199,19 +199,19 @@ public class BankOperationService : BaseService, IBankOperationService
             return Result.Success();
         }, ct);
 
-    private async Task ReplaceLinesAsync(long bankOperationId, BankOperationBaseDto dto, CancellationToken ct)
-    {
-        await _lineCommand.DeleteAsync(x => x.BankOperationId == bankOperationId, ct);
-        await _lineCommand.CreateAsync(new BankOperationLine
-        {
-            BankOperationId = bankOperationId,
-            Amount = dto.Amount,
-            CounterpartyId = dto.CounterpartyId,
-            PaymentPurposeId = dto.PaymentPurposeId,
-            OrderNumber = 1,
-            Comment = dto.Comment
-        }, ct);
-    }
+    //private async Task ReplaceLinesAsync(long bankOperationId, BankOperationBaseDto dto, CancellationToken ct)
+    //{
+    //    await _lineCommand.DeleteAsync(x => x.BankOperationId == bankOperationId, ct);
+    //    await _lineCommand.CreateAsync(new BankOperationLine
+    //    {
+    //        BankOperationId = bankOperationId,
+    //        Amount = dto.Amount,
+    //        CounterpartyId = dto.CounterpartyId,
+    //        PaymentPurposeId = dto.PaymentPurposeId,
+    //        OrderNumber = 1,
+    //        Comment = dto.Comment
+    //    }, ct);
+    //}
 
     private async Task<BankOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {

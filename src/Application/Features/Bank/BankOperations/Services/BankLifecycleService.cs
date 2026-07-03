@@ -278,13 +278,17 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         var query = _queryBuilder.For<BankOperation>()
             .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
             .Build();
-        query.AddIncludes(x => x.Include(d => d.BankAccount));
-        query.AddIncludes(x => x.Include(d => d.Counterparty));
-        query.AddIncludes(x => x.Include(d => d.CounterpartyBankAccount));
-        query.AddIncludes(x => x.Include(d => d.Contract));
-        query.AddIncludes(x => x.Include(d => d.BankOperationLines)
-            .ThenInclude(line => line.PaymentPurpose)
-            .ThenInclude(purpose => purpose.Alias));
+
+        query.AddIncludes(x => 
+        {
+            x.Include(d => d.Contract);
+            x.Include(d => d.BankAccount);
+            x.Include(d => d.Counterparty);
+            x.Include(d => d.CounterpartyBankAccount);
+            x.Include(d => d.BankOperationLines)
+                .ThenInclude(line => line.PaymentPurpose)
+                .ThenInclude(purpose => purpose.Alias);
+        });
 
         return await _query.GetAsync(query, ct);
     }

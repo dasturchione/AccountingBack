@@ -6,13 +6,32 @@ namespace Infrastructure.Repositories;
 
 public class DocNumberGenerator(AppDbContext db) : IDocNumberGenerator
 {
-    // Format: {PREFIX}-{YYYY}-{NNNNNN}  e.g. PUR-2024-000001
+    // Bank/Sale/Purchase/etc: {PREFIX}-{YYYY}-{NNNNNN} (e.g. PUR-2024-000001)
+    // CashOperation: 9-digit sequence (e.g. 100000001)
     public async Task<string> GenerateAsync(int organizationId, string prefix, DateTime docDate, CancellationToken ct = default)
     {
+        if (prefix == "CASH")
+        {
+            var lastNumber = await db.Database
+                .SqlQuery<int>($"""
+                    SELECT COALESCE(MAX(
+                        CASE WHEN doc_number ~ '^[0-9]+$'
+                            THEN CAST(doc_number AS INTEGER)
+                            ELSE 0
+                        END
+                    ), 100000000) AS "Value"
+                    FROM cash_operation
+                    WHERE organization_id = {organizationId}
+                """)
+                .FirstAsync(ct);
+
+            return (lastNumber + 1).ToString("D9");
+        }
+
         var year       = docDate.Year;
         var yearPrefix = $"{prefix}-{year}-";
 
-        var lastNumber = await db.Database
+        var lastNumberForPrefix = await db.Database
             .SqlQuery<int>($"""
                 SELECT COALESCE(MAX(
                     CASE WHEN doc_number LIKE {yearPrefix + "%"}
@@ -27,6 +46,6 @@ public class DocNumberGenerator(AppDbContext db) : IDocNumberGenerator
                 """)
             .FirstAsync(ct);
 
-        return $"{yearPrefix}{(lastNumber + 1):D6}";
+        return $"{yearPrefix}{(lastNumberForPrefix + 1):D6}";
     }
 }

@@ -16,6 +16,7 @@ public class CashOperationService : BaseService, ICashOperationService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly ICashLifecycleService _cashLifecycleService;
+    private readonly IDocNumberGenerator _docNumberGenerator;
     private readonly IQueryRepository<CashOperation> _query;
     private readonly ICommandRepository<CashOperation> _command;
 
@@ -23,6 +24,7 @@ public class CashOperationService : BaseService, ICashOperationService
                                IQueryBuilder queryBuilder,
                                IAuditLogService auditLogService,
                                ICashLifecycleService cashLifecycleService,
+                               IDocNumberGenerator docNumberGenerator,
                                IQueryRepository<CashOperation> query,
                                ICommandRepository<CashOperation> command,
                                ILogger<CashOperationService> logger,
@@ -33,6 +35,7 @@ public class CashOperationService : BaseService, ICashOperationService
         _userContext = userContext;
         _auditLogService = auditLogService;
         _cashLifecycleService = cashLifecycleService;
+        _docNumberGenerator = docNumberGenerator;
         _query = query;
         _command = command;
     }
@@ -43,6 +46,8 @@ public class CashOperationService : BaseService, ICashOperationService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
+            var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "CASH", dto.DocDate, ct);
+
             var entity = new CashOperation
             {
                 OrganizationId = _userContext.OrganizationId.Value,
@@ -51,7 +56,7 @@ public class CashOperationService : BaseService, ICashOperationService
                 OperationTypeId = dto.OperationTypeId,
                 PaymentTypeId = dto.PaymentTypeId,
                 CounterpartyId = dto.CounterpartyId,
-                DocNumber = dto.DocNumber,
+                DocNumber = docNumber,
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
                 Amount = dto.Amount,
@@ -158,7 +163,6 @@ public class CashOperationService : BaseService, ICashOperationService
             entity.OperationTypeId = dto.OperationTypeId;
             entity.PaymentTypeId = dto.PaymentTypeId;
             entity.CounterpartyId = dto.CounterpartyId;
-            entity.DocNumber = dto.DocNumber;
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;
             entity.Amount = dto.Amount;

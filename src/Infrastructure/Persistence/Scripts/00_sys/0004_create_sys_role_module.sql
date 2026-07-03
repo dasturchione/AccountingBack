@@ -3,7 +3,10 @@
 CREATE TABLE public.sys_role_module (
     role_id integer NOT NULL,
     module_id integer NOT NULL,
-    created_date timestamp with time zone DEFAULT now() NOT NULL
+    created_date timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT sys_role_module_pkey PRIMARY KEY (role_id, module_id),
+    CONSTRAINT sys_role_module_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.sys_module(id),
+    CONSTRAINT sys_role_module_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_role(id)
 );
 
 insert into public.sys_role_module (role_id, module_id, created_date) values
@@ -124,6 +127,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('4', '703', '2026-06-19 11:15:16.863925+05'),
     ('4', '704', '2026-06-19 11:15:16.864153+05'),
     ('4', '705', '2026-06-19 11:15:16.86441+05'),
+    ('4', '706', '2026-06-19 11:15:16.86441+05'),
+    ('4', '707', '2026-06-19 11:15:16.86441+05'),
     ('4', '711', '2026-06-19 11:15:16.864617+05'),
     ('4', '712', '2026-06-19 11:15:16.864816+05'),
     ('4', '713', '2026-06-19 11:15:16.865002+05'),
@@ -139,6 +144,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('4', '803', '2026-06-19 11:15:16.867348+05'),
     ('4', '804', '2026-06-19 11:15:16.867576+05'),
     ('4', '805', '2026-06-19 11:15:16.867807+05'),
+    ('4', '806', '2026-06-19 11:15:16.867807+05'),
+    ('4', '807', '2026-06-19 11:15:16.867807+05'),
     ('4', '811', '2026-06-19 11:15:16.868038+05'),
     ('4', '812', '2026-06-19 11:15:16.868269+05'),
     ('4', '813', '2026-06-19 11:15:16.868542+05'),
@@ -260,6 +267,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('5', '703', '2026-06-19 15:50:13.652595+05'),
     ('5', '704', '2026-06-19 15:50:13.652699+05'),
     ('5', '705', '2026-06-19 15:50:13.652816+05'),
+    ('5', '706', '2026-06-19 15:50:13.652816+05'),
+    ('5', '707', '2026-06-19 15:50:13.652816+05'),
     ('5', '711', '2026-06-19 15:50:13.652921+05'),
     ('5', '712', '2026-06-19 15:50:13.65302+05'),
     ('5', '713', '2026-06-19 15:50:13.653122+05'),
@@ -275,6 +284,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('5', '803', '2026-06-19 15:50:13.645695+05'),
     ('5', '804', '2026-06-19 15:50:13.645828+05'),
     ('5', '805', '2026-06-19 15:50:13.645947+05'),
+    ('5', '806', '2026-06-19 15:50:13.645947+05'),
+    ('5', '807', '2026-06-19 15:50:13.645947+05'),
     ('5', '811', '2026-06-19 15:50:13.646064+05'),
     ('5', '812', '2026-06-19 15:50:13.646179+05'),
     ('5', '813', '2026-06-19 15:50:13.646287+05'),
@@ -410,6 +421,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('1', '703', '2026-06-27 16:52:47.110145+05'),
     ('1', '704', '2026-06-27 16:52:47.110191+05'),
     ('1', '705', '2026-06-27 16:52:47.110238+05'),
+    ('1', '706', '2026-06-27 16:52:47.110238+05'),
+    ('1', '707', '2026-06-27 16:52:47.110238+05'),
     ('1', '711', '2026-06-27 16:52:47.11028+05'),
     ('1', '712', '2026-06-27 16:52:47.110329+05'),
     ('1', '713', '2026-06-27 16:52:47.110376+05'),
@@ -430,6 +443,8 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('1', '803', '2026-06-27 16:52:47.111107+05'),
     ('1', '804', '2026-06-27 16:52:47.111156+05'),
     ('1', '805', '2026-06-27 16:52:47.111204+05'),
+    ('1', '806', '2026-06-27 16:52:47.111204+05'),
+    ('1', '807', '2026-06-27 16:52:47.111204+05'),
     ('1', '811', '2026-06-27 16:52:47.111251+05'),
     ('1', '812', '2026-06-27 16:52:47.111296+05'),
     ('1', '813', '2026-06-27 16:52:47.111351+05'),
@@ -471,12 +486,3 @@ insert into public.sys_role_module (role_id, module_id, created_date) values
     ('1', '1034', '2026-06-27 16:52:47.113099+05'),
     ('1', '1035', '2026-06-27 16:52:47.113147+05'),
     ('1', '1101', '2026-06-27 16:52:47.112923+05');
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_pkey PRIMARY KEY (role_id, module_id);
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.sys_module(id);
-
-ALTER TABLE ONLY public.sys_role_module
-    ADD CONSTRAINT sys_role_module_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.sys_role(id);

@@ -10,6 +10,7 @@
                 .AddPersistence()
                 .AddInfrastructure()
                 .AddJwtToken()
+                .AddRateLimiting()
                 .AddQuartz()
                 .AddExposers()
                 .AddSwagger();

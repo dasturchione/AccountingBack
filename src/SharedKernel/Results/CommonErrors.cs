@@ -16,6 +16,9 @@ namespace SharedKernel.Results
         public static Error UserHasNoOrganization(short? languageId = null) =>
             Error.Business("Common.UserHasNoOrganization", GetUserHasNoOrganizationMessage(languageId));
 
+        public static Error WarehouseBlockedByInventoryCount(int warehouseId, string operationName, short? languageId = null) =>
+            Error.Business("Common.WarehouseBlockedByInventoryCount", GetWarehouseBlockedByInventoryCountMessage(warehouseId, operationName, languageId));
+
         private static string GetUnauthorizedMessage(short? languageId)
         {
             return languageId switch
@@ -73,6 +76,21 @@ namespace SharedKernel.Results
                     "Для текущего пользователя не указана организация.",
                 _ =>
                     "No organization is assigned to the current user."
+            };
+        }
+
+        private static string GetWarehouseBlockedByInventoryCountMessage(int warehouseId, string operationName, short? languageId)
+        {
+            return languageId switch
+            {
+                LanguageIdConst.UZ =>
+                    $"Warehouse {warehouseId} is blocked by an active inventory count. Operation '{operationName}' is not allowed.",
+                LanguageIdConst.UZ_CYRL =>
+                    $"Омбор {warehouseId} бўйича фаол инвентар санаш мавжуд. '{operationName}' амалига рухсат йўқ.",
+                LanguageIdConst.RU =>
+                    $"Склад {warehouseId} заблокирован активной инвентаризацией. Операция '{operationName}' недоступна.",
+                _ =>
+                    $"Warehouse {warehouseId} is blocked by an active inventory count. Operation '{operationName}' is not allowed."
             };
         }
     }

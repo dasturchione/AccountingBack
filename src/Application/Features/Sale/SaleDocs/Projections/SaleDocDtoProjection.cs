@@ -43,6 +43,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 ProductId   = p.ProductId,
                 ProductName = p.Product.Name,
                 ProductMxik = p.Product.Mxik,
+                IsService   = p.Product.IsService,
                 Quantity    = p.Quantity,
                 UnitId      = p.UnitId,
                 UnitName    = p.Unit.Name,

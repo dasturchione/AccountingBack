@@ -12,20 +12,23 @@ namespace Application.Features.Register.AccountingRegisterEntries
         private readonly IUserContext _userContext;
         private readonly IPostingContextDispatcher _postingContextDispatcher;
         private readonly IPostingService _postingService;
+        private readonly IAccountingPostingValidator _postingValidator;
         private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
 
         public AccountingDispatcher(IUserContext userContext,
                                     IPostingContextDispatcher postingContextDispatcher,
                                     IPostingService postingService,
+                                    IAccountingPostingValidator postingValidator,
                                     ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand)
         {
             _userContext = userContext;
             _postingContextDispatcher = postingContextDispatcher;
             _postingService = postingService;
+            _postingValidator = postingValidator;
             _accountingRegisterCommand = accountingRegisterCommand;
         }
 
-        public async Task<Result<List<AccountingRegisterEntry>>> ProcessAsync(object document, CancellationToken ct = default)
+        public async Task<Result<List<AccountingRegisterEntry>>> ProcessAsync(object document, CancellationToken ct = default, long? postingBatchId = null)
         {
             var contextsResult = await _postingContextDispatcher.ProcessAsync(document, ct);
             if (!contextsResult.IsSuccess)
@@ -39,6 +42,16 @@ namespace Application.Features.Register.AccountingRegisterEntries
             try
             {
                 var accountingEntries = await _postingService.BuildEntriesAsync(contextsResult.Value);
+                if (postingBatchId.HasValue)
+                {
+                    foreach (var entry in accountingEntries)
+                        entry.PostingBatchId = postingBatchId.Value;
+                }
+
+                var validation = _postingValidator.Validate(accountingEntries);
+                if (!validation.IsSuccess)
+                    return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
+
                 if (accountingEntries.Count > 0)
                     await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);
 

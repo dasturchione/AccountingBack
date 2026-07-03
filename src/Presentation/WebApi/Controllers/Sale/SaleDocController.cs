@@ -61,7 +61,7 @@ public class SaleDocController : ControllerBase
     }
 
     [HttpPut("{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.ConfirmSale)]
     public async Task<IResult> ConfirmAsync([FromRoute] long id, [FromBody] SaleDocConfirmDto dto, CancellationToken ct = default)
     {
         var result = await _service.ConfirmAsync(id, dto, ct);
@@ -69,7 +69,7 @@ public class SaleDocController : ControllerBase
     }
 
     [HttpPut("{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.CancelSale)]
     public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.CancelAsync(id, ct);

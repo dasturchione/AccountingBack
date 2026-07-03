@@ -14,6 +14,8 @@ public class CashOperationDtoProjection : IProjectionBuilder<CashOperation, Cash
             OrganizationName = x.Organization.ShortName,
             CashBoxId = x.CashBoxId,
             CashBoxName = x.CashBox.Name,
+            DestinationCashBoxId = x.DestinationCashBoxId,
+            DestinationCashBoxName = x.DestinationCashBox != null ? x.DestinationCashBox.Name : null,
             OperationTypeId = x.OperationTypeId,
             OperationTypeName = x.OperationType.Name,
             PaymentTypeId = x.PaymentTypeId,

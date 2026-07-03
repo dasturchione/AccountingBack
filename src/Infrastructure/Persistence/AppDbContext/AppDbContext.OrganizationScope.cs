@@ -18,16 +18,20 @@ namespace Infrastructure.Persistence
         // Header berilgan bo'lsa — o'sha 1 org; berilmasa 0 (ya'ni "hammasi" rejimi)
         private int CurrentOrganizationId => _userContext?.OrganizationId ?? 0;
 
+        private bool HasGlobalAccess => _userContext?.HasGlobalAccess == true;
+        private bool HasAuthenticatedUser => _userContext?.Id is not null;
+
         // User ruxsat berilgan barcha org IDlar
         private List<int> AllowedOrgIds => _userContext?.AllowedOrganizationIds ?? [];
 
         private void ApplyScopedFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class
         {
             modelBuilder.Entity<TEntity>()
-                .HasQueryFilter(e => AllowedOrgIds.Count == 0
-                                  || (CurrentOrganizationId != 0
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
                                       ? EF.Property<int>(e, OrgIdProperty) == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(EF.Property<int>(e, OrgIdProperty))));
+                                      : AllowedOrgIds.Contains(EF.Property<int>(e, OrgIdProperty)))));
         }
 
         private void ApplyOrganizationFilters(ModelBuilder modelBuilder)
@@ -50,7 +54,10 @@ namespace Infrastructure.Persistence
             //ApplyScopedFilter<ChartAccount>(modelBuilder);
             ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
             ApplyScopedFilter<Product>(modelBuilder);
+            ApplyScopedFilter<InventoryAdjustmentDoc>(modelBuilder);
+            ApplyScopedFilter<InventoryCountDoc>(modelBuilder);
             ApplyScopedFilter<SaleDoc>(modelBuilder);
+            ApplyScopedFilter<WarehouseTransferDoc>(modelBuilder);
             ApplyScopedFilter<Branch>(modelBuilder);
             ApplyScopedFilter<Department>(modelBuilder);
             ApplyScopedFilter<PurchaseDoc>(modelBuilder);
@@ -67,29 +74,81 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<UserOrganization>(modelBuilder);
             ApplyScopedFilter<ProductTable>(modelBuilder);
 
+            modelBuilder.Entity<AuditLog>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (e.OrganizationId.HasValue
+                                      && (CurrentOrganizationId != 0
+                                          ? e.OrganizationId.Value == CurrentOrganizationId
+                                          : AllowedOrgIds.Contains(e.OrganizationId.Value))));
+
             // Navigation orqali OrganizationId bo'lgan entitylar
             modelBuilder.Entity<PurchaseDocProduct>()
-                .HasQueryFilter(e => AllowedOrgIds.Count == 0
-                                  || (CurrentOrganizationId != 0
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId)));
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<PurchaseDocTable>()
-                .HasQueryFilter(e => AllowedOrgIds.Count == 0
-                                  || (CurrentOrganizationId != 0
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId)));
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<SaleDocTable>()
-                .HasQueryFilter(e => AllowedOrgIds.Count == 0
-                                  || (CurrentOrganizationId != 0
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
-                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId)));
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+            modelBuilder.Entity<WarehouseTransferLine>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<WarehouseTransferDocTable>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+            modelBuilder.Entity<InventoryAdjustmentLine>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<InventoryAdjustmentDocTable>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+            modelBuilder.Entity<InventoryCountLine>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<InventoryCountDocTable>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             // Role — OrganizationId nullable: null bo'lsa global (hamma ko'ra oladi)
             modelBuilder.Entity<Role>()
                 .HasQueryFilter(e => e.OrganizationId == null
-                                  || AllowedOrgIds.Count == 0
+                                  || HasGlobalAccess
                                   || (CurrentOrganizationId != 0
                                       ? e.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.OrganizationId.Value)));
@@ -97,7 +156,7 @@ namespace Infrastructure.Persistence
             // Claim request hali organization bilan bog'lanmagan bo'lishi mumkin.
             modelBuilder.Entity<OrganizationClaimRequest>()
                 .HasQueryFilter(e => e.OrganizationId == null
-                                  || AllowedOrgIds.Count == 0
+                                  || HasGlobalAccess
                                   || (CurrentOrganizationId != 0
                                       ? e.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.OrganizationId.Value)));
@@ -119,7 +178,12 @@ namespace Infrastructure.Persistence
         // Boshqa tashkilot nomidan yozish/o'zgartirish/o'chirishni taqiqlaydi
         private void EnforceOrganizationScope()
         {
-            if (AllowedOrgIds.Count == 0) return;
+            if (!HasAuthenticatedUser) return;
+
+            if (HasGlobalAccess) return;
+
+            if (AllowedOrgIds.Count == 0)
+                throw new InvalidOperationException("The current user has no active organization assignments.");
 
             foreach (var entry in ChangeTracker.Entries())
             {

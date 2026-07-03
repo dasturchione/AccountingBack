@@ -47,6 +47,7 @@ namespace Application.Features.Register.PostingEngines
                 var context = new PostingContext
                 {
                     OrganizationId = document.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.PURCHASE,
                     AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                     RuleId = PostingRuleIdConst.PURCHASE_GOODS,
                     DocumentId = document.Id,
@@ -122,6 +123,7 @@ namespace Application.Features.Register.PostingEngines
                 var context = new PostingContext
                 {
                     OrganizationId = document.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.PURCHASE,
                     AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
                     RuleId = PostingRuleIdConst.PURCHASE_SERVICE,
                     DocumentId = document.Id,

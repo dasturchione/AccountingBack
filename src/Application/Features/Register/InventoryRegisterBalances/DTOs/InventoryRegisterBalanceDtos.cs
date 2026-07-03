@@ -7,6 +7,7 @@ public class InventoryRegisterBalanceBaseDto
     public long DocumentId { get; set; }
     public int WarehouseId { get; set; }
     public int ProductId { get; set; }
+    public int? ProductTableId { get; set; }
     public short OperationTypeId { get; set; }
     public decimal Quantity { get; set; }
     public decimal Amount { get; set; }

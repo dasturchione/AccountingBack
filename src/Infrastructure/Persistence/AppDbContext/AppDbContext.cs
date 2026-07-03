@@ -50,6 +50,15 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ProductGroup> ProductGroups { get; set; }
     public virtual DbSet<ProductPrice> ProductPrices { get; set; }
     public virtual DbSet<ProductTable> ProductTables { get; set; }
+    public virtual DbSet<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; }
+    public virtual DbSet<InventoryAdjustmentLine> InventoryAdjustmentLines { get; set; }
+    public virtual DbSet<InventoryAdjustmentDocTable> InventoryAdjustmentDocTables { get; set; }
+    public virtual DbSet<InventoryCountDoc> InventoryCountDocs { get; set; }
+    public virtual DbSet<InventoryCountLine> InventoryCountLines { get; set; }
+    public virtual DbSet<InventoryCountDocTable> InventoryCountDocTables { get; set; }
+    public virtual DbSet<WarehouseTransferDoc> WarehouseTransferDocs { get; set; }
+    public virtual DbSet<WarehouseTransferLine> WarehouseTransferLines { get; set; }
+    public virtual DbSet<WarehouseTransferDocTable> WarehouseTransferDocTables { get; set; }
     public virtual DbSet<Warehouse> Warehouses { get; set; }
     public virtual DbSet<Branch> Branches { get; set; }
     public virtual DbSet<Department> Departments { get; set; }
@@ -89,6 +98,121 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PostingBatch>()
+            .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
+            .HasDatabaseName("ux_acc_posting_batch_document_posted")
+            .IsUnique()
+            .HasFilter("status = 'POSTED'");
+
+        modelBuilder.Entity<PostingBatch>()
+            .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
+            .HasDatabaseName("ux_acc_posting_batch_document_reversal")
+            .IsUnique()
+            .HasFilter("status = 'REVERSAL'");
+
+        modelBuilder.Entity<ProductTable>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
+
+        modelBuilder.Entity<ProductTable>()
+            .HasIndex(x => x.MarkingNumber)
+            .HasDatabaseName("ux_inv_product_table_marking_number_active")
+            .IsUnique()
+            .HasFilter("state_id = 1 AND marking_number IS NOT NULL");
+
+        modelBuilder.Entity<ProductTable>()
+            .HasIndex(x => x.CurrentWarehouseId)
+            .HasDatabaseName("idx_inv_product_table_current_warehouse_id");
+
+        modelBuilder.Entity<ProductTable>()
+            .HasIndex(x => new { x.OrganizationId, x.CurrentWarehouseId, x.StatusId })
+            .HasDatabaseName("idx_inv_product_table_org_warehouse_status");
+
+        modelBuilder.Entity<ProductTable>()
+            .HasIndex(x => new { x.OrganizationId, x.CurrentWarehouseId, x.StatusId, x.ProductId })
+            .HasDatabaseName("idx_inv_product_table_org_warehouse_status_product");
+
+        modelBuilder.Entity<ProductTable>()
+            .HasIndex(x => x.SerialNumber)
+            .HasDatabaseName("ux_inv_product_table_serial_number_active")
+            .IsUnique()
+            .HasFilter("state_id = 1 AND serial_number IS NOT NULL");
+
+        modelBuilder.Entity<ProductTable>()
+            .ToTable(t => t.HasCheckConstraint(
+                "chk_inv_product_table_active_stock_warehouse",
+                "status_id <> 1 OR current_warehouse_id IS NOT NULL"));
+
+        modelBuilder.Entity<SaleDocTable>()
+            .HasIndex(x => new { x.OwnerId, x.ProductTableId })
+            .HasDatabaseName("ux_sale_doc_table_owner_product_table")
+            .IsUnique();
+
+        modelBuilder.Entity<WarehouseTransferDoc>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_transfer_doc_source_destination_diff",
+                "source_warehouse_id <> destination_warehouse_id"));
+
+        modelBuilder.Entity<WarehouseTransferDoc>()
+            .HasIndex(x => new { x.OrganizationId, x.DocNumber })
+            .HasDatabaseName("ux_inv_transfer_doc_doc_number_org")
+            .IsUnique();
+
+        modelBuilder.Entity<WarehouseTransferLine>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_transfer_line_quantity_positive",
+                "quantity > 0"));
+
+        modelBuilder.Entity<WarehouseTransferDocTable>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_transfer_doc_table_source_destination_diff",
+                "source_warehouse_id <> destination_warehouse_id"));
+
+        modelBuilder.Entity<InventoryAdjustmentDoc>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_inventory_adjustment_doc_adjustment_type",
+                "adjustment_type in ('POSITIVE_ADJUSTMENT','NEGATIVE_ADJUSTMENT','WRITE_OFF','DAMAGE','LOSS','FOUND_STOCK','CORRECTION')"));
+
+        modelBuilder.Entity<InventoryAdjustmentDoc>()
+            .HasIndex(x => new { x.OrganizationId, x.DocNumber })
+            .HasDatabaseName("ux_inv_inventory_adjustment_doc_org_doc_number")
+            .IsUnique();
+
+        modelBuilder.Entity<InventoryAdjustmentLine>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_inventory_adjustment_line_quantity_positive",
+                "quantity > 0"));
+
+        modelBuilder.Entity<InventoryCountLine>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_inv_inventory_count_line_counted_quantity_positive", "counted_quantity > 0");
+                t.HasCheckConstraint("ck_inv_inventory_count_line_default_cost_price_nonnegative", "default_cost_price >= 0");
+            });
+
+        modelBuilder.Entity<InventoryCountDocTable>()
+            .ToTable(t => t.HasCheckConstraint(
+                "ck_inv_inventory_count_doc_table_cost_price_nonnegative",
+                "cost_price >= 0"));
+
+        modelBuilder.Entity<InventoryCountDocTable>()
+            .HasIndex(x => new { x.OwnerId, x.ProductTableId })
+            .HasDatabaseName("ux_inv_inventory_count_doc_table_owner_product_table")
+            .IsUnique()
+            .HasFilter("product_table_id IS NOT NULL");
+
+        modelBuilder.Entity<InventoryCountDoc>()
+            .HasIndex(x => new { x.OrganizationId, x.DocNumber })
+            .HasDatabaseName("ux_inv_inventory_count_doc_org_doc_number")
+            .IsUnique();
+
+        modelBuilder.Entity<InventoryCountDoc>()
+            .HasIndex(x => new { x.OrganizationId, x.WarehouseId })
+            .HasDatabaseName("ux_inv_inventory_count_doc_active_warehouse")
+            .IsUnique()
+            .HasFilter("state_id = 1 AND status_id IN (1, 4)");
+
         modelBuilder.Entity<OrganizationConfig>()
             .HasOne(x => x.Organization)
             .WithOne(x => x.OrganizationConfig)

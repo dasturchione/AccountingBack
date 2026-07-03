@@ -35,5 +35,20 @@
         /// Expense document.
         /// </summary>
         public const short EXPENSE = 6;
+
+        /// <summary>
+        /// Warehouse transfer document.
+        /// </summary>
+        public const short WAREHOUSETRANSFER = 7;
+
+        /// <summary>
+        /// Inventory adjustment document.
+        /// </summary>
+        public const short INVENTORYADJUSTMENT = 8;
+
+        /// <summary>
+        /// Inventory count document.
+        /// </summary>
+        public const short INVENTORYCOUNT = 9;
     }
 }

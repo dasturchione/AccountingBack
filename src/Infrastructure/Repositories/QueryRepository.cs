@@ -26,7 +26,9 @@ namespace Infrastructure.Repositories
 
         public async Task<List<TEntity>> GetAllAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.AsQueryable();
+            var query = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsNoTracking().AsQueryable()
+                : _dbSet.AsNoTracking().AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -42,9 +44,14 @@ namespace Infrastructure.Repositories
 
         public async Task<List<TResult>> GetAllAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
-                                .Select(specification.Selector)
-                                .AsQueryable();
+            var baseQuery = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsNoTracking()
+                : _dbSet.AsNoTracking();
+
+            var query = baseQuery
+                .Where(specification.Criteria)
+                .Select(specification.Selector)
+                .AsQueryable();
 
             if (specification.OrderBy is not null)
                 query = specification.OrderBy(query);
@@ -57,7 +64,9 @@ namespace Infrastructure.Repositories
 
         public async Task<TEntity?> GetAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.AsQueryable();
+            var query = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsQueryable()
+                : _dbSet.AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -70,16 +79,23 @@ namespace Infrastructure.Repositories
 
         public async Task<TResult?> GetAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
-                                .Select(specification.Selector)
-                                .AsQueryable();
+            var baseQuery = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsNoTracking()
+                : _dbSet.AsNoTracking();
+
+            var query = baseQuery
+                .Where(specification.Criteria)
+                .Select(specification.Selector)
+                .AsQueryable();
 
             return await query.FirstOrDefaultAsync(ct);
         }
 
         public async Task<PagedList<TEntity>> GetPagedAsync(PagedQuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.AsQueryable();
+            var query = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsNoTracking().AsQueryable()
+                : _dbSet.AsNoTracking().AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -102,9 +118,14 @@ namespace Infrastructure.Repositories
 
         public async Task<PagedList<TResult>> GetPagedAsync<TResult>(PagedQuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
         {
-            var query = _dbSet.Where(specification.Criteria)
-                                .Select(specification.Selector)
-                                .AsQueryable();
+            var baseQuery = specification.IgnoreQueryFilters
+                ? _dbSet.IgnoreQueryFilters().AsNoTracking()
+                : _dbSet.AsNoTracking();
+
+            var query = baseQuery
+                .Where(specification.Criteria)
+                .Select(specification.Selector)
+                .AsQueryable();
 
             if (specification.ResultCriteria is not null)
                 query = query.Where(specification.ResultCriteria);

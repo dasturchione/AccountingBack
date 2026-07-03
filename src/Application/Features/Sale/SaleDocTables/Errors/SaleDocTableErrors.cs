@@ -40,4 +40,10 @@ public static class SaleDocTableErrors
             LanguageIdConst.RU      => $"Ставка НДС с id {vatRateId} не найдена.",
             _                       => $"VAT rate with id {vatRateId} was not found."
         });
+    public static Error DirectTableMutationUnsupported(short? languageId = null) =>
+        Error.Business("SaleDocTable.DirectTableMutationUnsupported", languageId switch
+        {
+            LanguageIdConst.UZ => "Sotuv item qatorlari faqat sotuv hujjati aggregate orqali o'zgartiriladi.",
+            _ => "Sale item rows can only be changed through the sale document aggregate."
+        });
 }

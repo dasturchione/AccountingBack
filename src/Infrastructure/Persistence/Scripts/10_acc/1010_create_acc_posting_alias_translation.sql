@@ -3,7 +3,10 @@
 CREATE TABLE public.acc_posting_alias_translation (
     posting_alias_id smallint NOT NULL,
     language_id smallint NOT NULL,
-    name character varying(250) NOT NULL
+    name character varying(250) NOT NULL,
+    CONSTRAINT acc_posting_alias_translation_pkey PRIMARY KEY (posting_alias_id, language_id),
+    CONSTRAINT acc_posting_alias_translation_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.cmn_language(id),
+    CONSTRAINT acc_posting_alias_translation_posting_alias_id_fkey FOREIGN KEY (posting_alias_id) REFERENCES public.acc_posting_alias(id)
 );
 
 insert into public.acc_posting_alias_translation (posting_alias_id, language_id, name) values (1, 1, 'Tovar ombor qoldig''i');
@@ -93,12 +96,3 @@ insert into public.acc_posting_alias_translation (posting_alias_id, language_id,
 insert into public.acc_posting_alias_translation (posting_alias_id, language_id, name) values (27, 3, 'Social insurance tax');
 insert into public.acc_posting_alias_translation (posting_alias_id, language_id, name) values (28, 3, 'Pension fund');
 insert into public.acc_posting_alias_translation (posting_alias_id, language_id, name) values (29, 3, 'Bank fee');
-
-ALTER TABLE ONLY public.acc_posting_alias_translation
-    ADD CONSTRAINT acc_posting_alias_translation_pkey PRIMARY KEY (posting_alias_id, language_id);
-
-ALTER TABLE ONLY public.acc_posting_alias_translation
-    ADD CONSTRAINT acc_posting_alias_translation_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.cmn_language(id);
-
-ALTER TABLE ONLY public.acc_posting_alias_translation
-    ADD CONSTRAINT acc_posting_alias_translation_posting_alias_id_fkey FOREIGN KEY (posting_alias_id) REFERENCES public.acc_posting_alias(id);

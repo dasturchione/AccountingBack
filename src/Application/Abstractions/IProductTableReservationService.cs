@@ -2,5 +2,5 @@ namespace Application.Abstractions;
 
 public interface IProductTableReservationService
 {
-    Task<bool> TryReserveAsync(IReadOnlyCollection<int> productTableIds, CancellationToken ct = default);
+    Task<bool> TryReserveAsync(int warehouseId, IReadOnlyCollection<int> productTableIds, CancellationToken ct = default);
 }

@@ -15,7 +15,7 @@ public class ProductTableReservationService : IProductTableReservationService
         _context = context;
     }
 
-    public async Task<bool> TryReserveAsync(IReadOnlyCollection<int> productTableIds, CancellationToken ct = default)
+    public async Task<bool> TryReserveAsync(int warehouseId, IReadOnlyCollection<int> productTableIds, CancellationToken ct = default)
     {
         if (productTableIds.Count == 0)
             return true;
@@ -25,7 +25,8 @@ public class ProductTableReservationService : IProductTableReservationService
         var affectedRows = await _context.Set<ProductTable>()
             .Where(x => distinctIds.Contains(x.Id)
                         && x.StatusId == ProductTableStatusIdConst.IN_STOCK
-                        && x.StateId == StateIdConst.ACTIVE)
+                        && x.StateId == StateIdConst.ACTIVE
+                        && x.CurrentWarehouseId == warehouseId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(x => x.StatusId, ProductTableStatusIdConst.RESERVED), ct);
 

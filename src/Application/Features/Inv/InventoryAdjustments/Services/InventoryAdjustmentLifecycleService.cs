@@ -1,0 +1,520 @@
+using Application.Abstractions;
+using Application.Abstractions.Authentication;
+using Application.Features.Acc.AccountingPeriods;
+using Application.Features.AuditLogs;
+using Application.Features.InventoryCounts;
+using Application.Features.InventoryRegisterBalances;
+using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using SharedKernel.Constants;
+using SharedKernel.Query;
+using SharedKernel.Results;
+
+namespace Application.Features.InventoryAdjustments;
+
+public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjustmentLifecycleService
+{
+    private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
+    private readonly IDocumentPostingLock _postingLock;
+    private readonly IAccountingPeriodValidator _periodValidator;
+    private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
+    private readonly IAuditLogService _auditLogService;
+    private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IQueryRepository<InventoryAdjustmentDoc> _query;
+    private readonly ICommandRepository<InventoryAdjustmentDoc> _command;
+    private readonly ICommandRepository<InventoryAdjustmentDocTable> _tableCommand;
+    private readonly ICommandRepository<ProductTable> _productTableCommand;
+    private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
+    private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
+    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
+    private readonly ICommandRepository<RegisterBalance> _inventoryRegisterCommand;
+
+    public InventoryAdjustmentLifecycleService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IDocumentPostingLock postingLock,
+        IAccountingPeriodValidator periodValidator,
+        IActiveInventoryCountGuardService activeInventoryCountGuardService,
+        IAuditLogService auditLogService,
+        IInventoryDispatcher inventoryDispatcher,
+        IQueryRepository<InventoryAdjustmentDoc> query,
+        ICommandRepository<InventoryAdjustmentDoc> command,
+        ICommandRepository<InventoryAdjustmentDocTable> tableCommand,
+        ICommandRepository<ProductTable> productTableCommand,
+        IQueryRepository<PostingBatch> postingBatchQuery,
+        ICommandRepository<PostingBatch> postingBatchCommand,
+        IQueryRepository<RegisterBalance> inventoryRegisterQuery,
+        ICommandRepository<RegisterBalance> inventoryRegisterCommand,
+        ILogger<InventoryAdjustmentLifecycleService> logger,
+        IUnitOfWork unitOfWork)
+        : base(logger, unitOfWork)
+    {
+        _userContext = userContext;
+        _queryBuilder = queryBuilder;
+        _postingLock = postingLock;
+        _periodValidator = periodValidator;
+        _activeInventoryCountGuardService = activeInventoryCountGuardService;
+        _auditLogService = auditLogService;
+        _inventoryDispatcher = inventoryDispatcher;
+        _query = query;
+        _command = command;
+        _tableCommand = tableCommand;
+        _productTableCommand = productTableCommand;
+        _postingBatchQuery = postingBatchQuery;
+        _postingBatchCommand = postingBatchCommand;
+        _inventoryRegisterQuery = inventoryRegisterQuery;
+        _inventoryRegisterCommand = inventoryRegisterCommand;
+    }
+
+    public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            await _postingLock.AcquireAsync(DocumentTypeIdConst.INVENTORYADJUSTMENT, id, ct);
+
+            var doc = await GetForLifecycleAsync(id, ct);
+            if (doc == null)
+                return Result.Failure(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.OrganizationId != _userContext.OrganizationId.Value)
+                return Result.Failure(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
+                return Result.Failure(InventoryAdjustmentErrors.AlreadyCancelled(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+            {
+                return await GetActivePostingBatchAsync(id, ct) is not null
+                    ? Result.Success()
+                    : Result.Failure(InventoryAdjustmentErrors.MissingPostingBatch(id, _userContext.LanguageId));
+            }
+
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(InventoryAdjustmentErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
+            if (!periodValidation.IsSuccess)
+                return periodValidation;
+
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "InventoryAdjustmentConfirm", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
+            var validation = ValidateForConfirm(doc);
+            if (!validation.IsSuccess)
+                return validation;
+
+            await ReloadAdjustmentProductTablesAsync(doc, ct);
+            validation = ValidateForConfirm(doc);
+            if (!validation.IsSuccess)
+                return validation;
+
+            if (await GetActivePostingBatchAsync(id, ct) != null || await HasBusinessEffectsAsync(id, ct))
+                return Result.Failure(InventoryAdjustmentErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            var touchedProductTables = PrepareProductTablesForConfirm(doc);
+            var existingProductTables = touchedProductTables.Where(x => x.Id != 0).GroupBy(x => x.Id).Select(x => x.First()).ToList();
+            if (existingProductTables.Count != 0)
+                await _productTableCommand.UpdateAsync(existingProductTables, ct);
+
+            var createdProductTables = touchedProductTables.Where(x => x.Id == 0).ToList();
+            if (createdProductTables.Count != 0)
+            {
+                await _productTableCommand.CreateAsync(createdProductTables, ct);
+                foreach (var item in doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables).Where(x => x.WasCreated && x.ProductTable != null))
+                    item.ProductTableId = item.ProductTable!.Id;
+            }
+
+            await _tableCommand.UpdateAsync(doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables).ToList(), ct);
+
+            var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Inventory adjustment confirmed", ct);
+
+            var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct, postingBatch.Id);
+            if (!inventoryDispatch.IsSuccess)
+                return Result.Failure(inventoryDispatch.Error);
+
+            doc.StatusId = DocumentStatusIdConst.POSTED;
+            doc.PostedAt ??= DateTime.Now;
+            doc.PostedByUserId ??= _userContext.Id;
+            await _command.UpdateAsync(doc, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.InventoryAdjustmentDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
+            }
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            await _postingLock.AcquireAsync(DocumentTypeIdConst.INVENTORYADJUSTMENT, id, ct);
+
+            var doc = await GetForLifecycleAsync(id, ct);
+            if (doc == null)
+                return Result.Failure(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.OrganizationId != _userContext.OrganizationId.Value)
+                return Result.Failure(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
+
+            if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
+                return Result.Success();
+
+            if (doc.StatusId != DocumentStatusIdConst.DRAFT &&
+                doc.StatusId != DocumentStatusIdConst.POSTED)
+                return Result.Failure(InventoryAdjustmentErrors.CannotCancelInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
+            if (!periodValidation.IsSuccess)
+                return periodValidation;
+
+            var reversalPeriodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, DateTime.Now, ct);
+            if (!reversalPeriodValidation.IsSuccess)
+                return reversalPeriodValidation;
+
+            var countGuard = await _activeInventoryCountGuardService.EnsureWarehouseIsNotBlockedAsync(doc.OrganizationId, doc.WarehouseId, "InventoryAdjustmentCancel", ct: ct);
+            if (!countGuard.IsSuccess)
+                return countGuard;
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            if (doc.StatusId == DocumentStatusIdConst.POSTED)
+            {
+                var validation = ValidateForCancel(doc);
+                if (!validation.IsSuccess)
+                    return validation;
+
+                var activePostingBatch = await GetActivePostingBatchAsync(id, ct);
+                if (activePostingBatch == null)
+                    return Result.Failure(InventoryAdjustmentErrors.MissingPostingBatch(id, _userContext.LanguageId));
+
+                var reversalBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.REVERSAL, "Inventory adjustment cancelled", ct);
+
+                var inventoryReverse = await ReverseInventoryEntriesAsync(doc, reversalBatch.Id, ct);
+                if (!inventoryReverse.IsSuccess)
+                    return inventoryReverse;
+
+                activePostingBatch.Status = PostingBatchStatusConst.REVERSED;
+                activePostingBatch.ReversedAt = DateTime.Now;
+                activePostingBatch.ReversedByUserId = _userContext.Id;
+                await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
+
+                var restoredProductTables = RestoreProductTables(doc);
+                if (restoredProductTables.Count != 0)
+                    await _productTableCommand.UpdateAsync(restoredProductTables, ct);
+            }
+
+            doc.StatusId = DocumentStatusIdConst.CANCELLED;
+            doc.CancelledAt ??= DateTime.Now;
+            doc.CancelledByUserId ??= _userContext.Id;
+            await _command.UpdateAsync(doc, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.InventoryAdjustmentDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
+            }
+
+            return Result.Success();
+        }, ct);
+
+    private async Task<InventoryAdjustmentDto?> GetByIdInternalAsync(long id, CancellationToken ct)
+    {
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<InventoryAdjustmentDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .As<InventoryAdjustmentDto>()
+            .Build();
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<InventoryAdjustmentDoc?> GetForLifecycleAsync(long id, CancellationToken ct)
+    {
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<InventoryAdjustmentDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .Build();
+        query.AddIncludes(b => b.Include(x => x.Warehouse));
+        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.Product));
+        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable));
+        return await _query.GetAsync(query, ct);
+    }
+
+    private Result ValidateForConfirm(InventoryAdjustmentDoc doc)
+    {
+        if (doc.Warehouse.StateId != StateIdConst.ACTIVE)
+            return Result.Failure(InventoryAdjustmentErrors.WarehouseInactive(doc.WarehouseId, _userContext.LanguageId));
+
+        if (doc.InventoryAdjustmentLines.Count == 0)
+            return Result.Failure(InventoryAdjustmentErrors.LinesRequired(doc.Id, _userContext.LanguageId));
+
+        var seenProductTableIds = new HashSet<int>();
+
+        foreach (var line in doc.InventoryAdjustmentLines)
+        {
+            if (line.Quantity <= 0)
+                return Result.Failure(InventoryAdjustmentErrors.InvalidQuantity(line.ProductId, line.Quantity, _userContext.LanguageId));
+
+            if (line.Quantity != decimal.Truncate(line.Quantity) || line.InventoryAdjustmentDocTables.Count != (int)line.Quantity)
+                return Result.Failure(InventoryAdjustmentErrors.QuantityItemsMismatch(line.ProductId, line.Quantity, line.InventoryAdjustmentDocTables.Count, _userContext.LanguageId));
+
+            foreach (var item in line.InventoryAdjustmentDocTables)
+            {
+                if (!item.ProductTableId.HasValue)
+                {
+                    if (!IsPositiveFlow(doc.AdjustmentType))
+                        return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(0, _userContext.LanguageId));
+
+                    continue;
+                }
+
+                if (!seenProductTableIds.Add(item.ProductTableId.Value))
+                    return Result.Failure(InventoryAdjustmentErrors.DuplicateProductTable(item.ProductTableId.Value, _userContext.LanguageId));
+
+                if (item.ProductTable == null || item.ProductTable.OrganizationId != doc.OrganizationId)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(item.ProductTableId.Value, _userContext.LanguageId));
+
+                if (item.ProductTable.ProductId != line.ProductId)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableProductMismatch(item.ProductTableId.Value, line.ProductId, _userContext.LanguageId));
+
+                if (item.ProductTable.StateId != StateIdConst.ACTIVE)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableInactive(item.ProductTableId.Value, _userContext.LanguageId));
+
+                if (item.ProductTable.CurrentWarehouseId != doc.WarehouseId)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableWarehouseMismatch(item.ProductTableId.Value, doc.WarehouseId, _userContext.LanguageId));
+
+                if (!IsPositiveFlow(doc.AdjustmentType) && item.ProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableUnavailable(item.ProductTableId.Value, item.ProductTable.StatusId, _userContext.LanguageId));
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private Result ValidateForCancel(InventoryAdjustmentDoc doc)
+    {
+        var requiresExistingProductTable = !IsPositiveFlow(doc.AdjustmentType);
+
+        foreach (var item in doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables))
+        {
+            if (requiresExistingProductTable && item.ProductTable == null)
+                return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(item.ProductTableId ?? 0, _userContext.LanguageId));
+
+            if (item.WasCreated && item.ProductTable == null)
+                return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(item.ProductTableId ?? 0, _userContext.LanguageId));
+        }
+
+        return Result.Success();
+    }
+
+    private List<ProductTable> PrepareProductTablesForConfirm(InventoryAdjustmentDoc doc)
+    {
+        var touchedProductTables = new List<ProductTable>();
+
+        foreach (var line in doc.InventoryAdjustmentLines)
+        {
+            foreach (var item in line.InventoryAdjustmentDocTables)
+            {
+                if (!item.ProductTableId.HasValue)
+                {
+                    var createdProductTable = new ProductTable
+                    {
+                        ProductId = line.ProductId,
+                        OrganizationId = doc.OrganizationId,
+                        CurrentWarehouseId = doc.WarehouseId,
+                        StatusId = ProductTableStatusIdConst.IN_STOCK,
+                        StateId = StateIdConst.ACTIVE,
+                        CreatedDate = DateTime.Now
+                    };
+
+                    item.WasCreated = true;
+                    item.ProductTable = createdProductTable;
+                    touchedProductTables.Add(createdProductTable);
+                    continue;
+                }
+
+                var productTable = item.ProductTable!;
+                item.OriginalStatusId = productTable.StatusId;
+                item.OriginalStateId = productTable.StateId;
+                item.OriginalWarehouseId = productTable.CurrentWarehouseId;
+                item.WasCreated = false;
+
+                ApplyProductTableMutation(productTable, doc.AdjustmentType, doc.WarehouseId);
+                touchedProductTables.Add(productTable);
+            }
+        }
+
+        return touchedProductTables;
+    }
+
+    private List<ProductTable> RestoreProductTables(InventoryAdjustmentDoc doc)
+    {
+        var restoredProductTables = new List<ProductTable>();
+
+        foreach (var item in doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables))
+        {
+            if (item.ProductTable == null)
+                continue;
+
+            if (item.WasCreated)
+            {
+                item.ProductTable.CurrentWarehouseId = null;
+                item.ProductTable.StatusId = ProductTableStatusIdConst.BLOCKED;
+                item.ProductTable.StateId = StateIdConst.PASSIVE;
+                restoredProductTables.Add(item.ProductTable);
+                continue;
+            }
+
+            if (item.OriginalStatusId.HasValue)
+                item.ProductTable.StatusId = item.OriginalStatusId.Value;
+
+            if (item.OriginalStateId.HasValue)
+                item.ProductTable.StateId = item.OriginalStateId.Value;
+
+            item.ProductTable.CurrentWarehouseId = item.OriginalWarehouseId;
+            restoredProductTables.Add(item.ProductTable);
+        }
+
+        return restoredProductTables
+            .GroupBy(x => x.Id)
+            .Select(x => x.First())
+            .ToList();
+    }
+
+    private static void ApplyProductTableMutation(ProductTable productTable, string adjustmentType, int warehouseId)
+    {
+        productTable.CurrentWarehouseId = warehouseId;
+
+        switch (adjustmentType)
+        {
+            case "POSITIVE_ADJUSTMENT":
+            case "FOUND_STOCK":
+            case "CORRECTION":
+                productTable.StatusId = ProductTableStatusIdConst.IN_STOCK;
+                productTable.StateId = StateIdConst.ACTIVE;
+                break;
+            case "WRITE_OFF":
+                productTable.StatusId = ProductTableStatusIdConst.WRITTEN_OFF;
+                productTable.StateId = StateIdConst.PASSIVE;
+                break;
+            case "LOSS":
+                productTable.StatusId = ProductTableStatusIdConst.LOST;
+                productTable.StateId = StateIdConst.PASSIVE;
+                break;
+            case "DAMAGE":
+            case "NEGATIVE_ADJUSTMENT":
+                productTable.StatusId = ProductTableStatusIdConst.BLOCKED;
+                productTable.StateId = StateIdConst.ACTIVE;
+                break;
+        }
+    }
+
+    private async Task ReloadAdjustmentProductTablesAsync(InventoryAdjustmentDoc doc, CancellationToken ct)
+    {
+        foreach (var productTable in doc.InventoryAdjustmentLines
+                     .SelectMany(x => x.InventoryAdjustmentDocTables)
+                     .Where(x => x.ProductTable != null && x.ProductTableId.HasValue)
+                     .Select(x => x.ProductTable!)
+                     .GroupBy(x => x.Id)
+                     .Select(x => x.First()))
+        {
+            await _productTableCommand.ReloadAsync(productTable, ct);
+        }
+    }
+
+    private async Task<PostingBatch> CreatePostingBatchAsync(InventoryAdjustmentDoc doc, string status, string comment, CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        var batch = new PostingBatch
+        {
+            OrganizationId = doc.OrganizationId,
+            DocumentTypeId = DocumentTypeIdConst.INVENTORYADJUSTMENT,
+            DocumentId = doc.Id,
+            Status = status,
+            PostedByUserId = _userContext.Id,
+            PostedAt = now,
+            Comment = comment
+        };
+
+        await _postingBatchCommand.CreateAsync(batch, ct);
+        return batch;
+    }
+
+    private async Task<PostingBatch?> GetActivePostingBatchAsync(long docId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PostingBatch>()
+            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
+                        x.DocumentId == docId &&
+                        x.Status == PostingBatchStatusConst.POSTED)
+            .Build();
+
+        return await _postingBatchQuery.GetAsync(query, ct);
+    }
+
+    private async Task<bool> HasBusinessEffectsAsync(long docId, CancellationToken ct) =>
+        await _inventoryRegisterQuery.AnyAsync(x =>
+            x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
+            x.DocumentId == docId &&
+            x.ReversalEntryId == null, ct);
+
+    private async Task<Result> ReverseInventoryEntriesAsync(InventoryAdjustmentDoc doc, long reversalBatchId, CancellationToken ct)
+    {
+        var expectedRows = doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables).Count();
+
+        var query = _queryBuilder.For<RegisterBalance>()
+            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
+                        x.DocumentId == doc.Id &&
+                        x.ReversalEntryId == null)
+            .Build();
+
+        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
+        if (entries.Count != expectedRows)
+            return Result.Failure(InventoryAdjustmentErrors.MissingInventoryRegisterEntries(doc.Id, _userContext.LanguageId));
+
+        var now = DateTime.Now;
+        var reversals = entries.Select(entry => new RegisterBalance
+        {
+            OrganizationId = entry.OrganizationId,
+            DocumentTypeId = entry.DocumentTypeId,
+            DocumentId = entry.DocumentId,
+            WarehouseId = entry.WarehouseId,
+            ProductId = entry.ProductId,
+            ProductTableId = entry.ProductTableId,
+            OperationTypeId = entry.OperationTypeId == OperationTypeIdConst.OUT ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT,
+            Quantity = entry.Quantity,
+            Amount = entry.Amount,
+            DocDate = now,
+            CreatedDate = now,
+            PostingBatchId = reversalBatchId,
+            SourceLineId = entry.SourceLineId,
+            ReversalEntryId = entry.Id
+        }).ToList();
+
+        await _inventoryRegisterCommand.CreateAsync(reversals, ct);
+        return Result.Success();
+    }
+
+    private static bool IsPositiveFlow(string adjustmentType) =>
+        adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";
+}

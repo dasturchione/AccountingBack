@@ -7,13 +7,16 @@ using Infrastructure;
 using Infrastructure.Options;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Events;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using WebApi.Infrastructure;
 using WebApi.Middlewares;
 
@@ -24,6 +27,9 @@ namespace WebApi.Configuration
         private static WebApplicationBuilder AddDevTools(this WebApplicationBuilder builder)
         {
             builder.Services.AddEndpointsApiExplorer();
+
+            if (builder.Environment.IsDevelopment())
+                builder.Configuration.AddUserSecrets<Program>(optional: true);
 
             return builder;
         }
@@ -151,6 +157,7 @@ namespace WebApi.Configuration
         private static WebApplicationBuilder AddPersistence(this WebApplicationBuilder builder)
         {
             var connectionString = builder.Configuration.GetConnectionString("Default");
+            ValidateSecuritySettings(builder.Configuration, builder.Environment.EnvironmentName);
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -167,13 +174,62 @@ namespace WebApi.Configuration
                     npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                 });
 
-                // Helpful during development: show EF Core SQL and detailed errors.
-                options.EnableSensitiveDataLogging();
-                options.EnableDetailedErrors();
-                options.LogTo(System.Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Debug);
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.EnableSensitiveDataLogging();
+                    options.EnableDetailedErrors();
+                    options.LogTo(System.Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Debug);
+                }
             });
 
             return builder;
+        }
+
+        private static void ValidateSecuritySettings(ConfigurationManager configuration, string env)
+        {
+            var connectionString = configuration.GetConnectionString("Default") ?? string.Empty;
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(connectionString))
+            {
+                throw new InvalidOperationException("ConnectionStrings:Default is not configured with a real secret value.");
+            }
+
+            var jwtSection = configuration.GetSection("Jwt");
+            ValidateJwtOption(jwtSection, env);
+
+            var backupPassword = configuration["BackupJob:Database:Password"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(backupPassword))
+                throw new InvalidOperationException("BackupJob:Database:Password is not configured with a real secret value.");
+
+            var fakturaClientSecret = configuration["FakturaAuthSettings:ClientSecret"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaClientSecret))
+                throw new InvalidOperationException("FakturaAuthSettings:ClientSecret is not configured with a real secret value.");
+
+            var fakturaPassword = configuration["FakturaAuthSettings:Password"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaPassword))
+                throw new InvalidOperationException("FakturaAuthSettings:Password is not configured with a real secret value.");
+        }
+
+        private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
+        {
+            var key = jwtSection["Key"];
+            if (IsPlaceholderValue(key))
+                throw new InvalidOperationException("Jwt:Key is not configured with a real secret value.");
+
+            if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) < 32)
+                throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256 signing.");
+
+            var issuer = jwtSection["Issuer"];
+            var audience = jwtSection["Audience"];
+            if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+                throw new InvalidOperationException("Jwt issuer and audience must be configured.");
+        }
+
+        private static bool IsPlaceholderValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return true;
+
+            return value.Contains("SET_VIA_ENVIRONMENT", StringComparison.OrdinalIgnoreCase);
         }
 
         private static WebApplicationBuilder AddJwtToken(this WebApplicationBuilder builder)
@@ -209,6 +265,33 @@ namespace WebApi.Configuration
             return builder;
         }
 
+        private static WebApplicationBuilder AddRateLimiting(this WebApplicationBuilder builder)
+        {
+            var permitLimit = builder.Configuration.GetValue("RateLimit:PermitLimit", 1200);
+            var queueLimit = builder.Configuration.GetValue("RateLimit:QueueLimit", 0);
+            var windowSeconds = builder.Configuration.GetValue("RateLimit:WindowSeconds", 60);
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                    return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        QueueLimit = queueLimit,
+                        Window = TimeSpan.FromSeconds(windowSeconds),
+                        AutoReplenishment = true
+                    });
+                });
+
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            });
+
+            return builder;
+        }
+
         private static WebApplication UseExposers(this WebApplication app)
         {
             app.MapControllers();
@@ -233,6 +316,9 @@ namespace WebApi.Configuration
             app.UseExceptionHandler();
 
             app.UseHttpsRedirection();
+            app.UseHsts();
+
+            app.UseMiddleware<SecurityHeadersMiddleware>();
 
             app.UseMiddleware<CorrelationIdMiddleware>();
 
@@ -246,6 +332,7 @@ namespace WebApi.Configuration
             });
 
             app.UseAuthentication();
+            app.UseRateLimiter();
             app.UseMiddleware<OrganizationScopeMiddleware>();
             app.UseAuthorization();
 

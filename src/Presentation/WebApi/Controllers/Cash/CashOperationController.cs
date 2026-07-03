@@ -44,6 +44,22 @@ public class CashOperationController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPut("{id:long}/confirm")]
+    [ModuleAuthorize(PermissionCodeConst.ConfirmCashOperation)]
+    public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPut("{id:long}/cancel")]
+    [ModuleAuthorize(PermissionCodeConst.CancelCashOperation)]
+    public async Task<IResult> CancelAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.CancelAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPut("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.CashOperationUpdate)]
     public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] CashOperationUpdateDto dto, CancellationToken ct = default)

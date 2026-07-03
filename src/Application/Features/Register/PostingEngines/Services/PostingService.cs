@@ -43,7 +43,7 @@ namespace Application.Features.Register.PostingEngines
 
                 foreach (var line in postingRule.PostingRuleLines)
                 {
-                    if (!IsMatchingRequiredAliases(context, line))
+                    if (ShouldSkipOptionalLine(context, line))
                         continue;
 
                     if (string.IsNullOrWhiteSpace(line.AmountSource))
@@ -77,7 +77,7 @@ namespace Application.Features.Register.PostingEngines
                     var entry = new AccountingRegisterEntry
                     {
                         OrganizationId = context.OrganizationId,
-                        DocumentTypeId = GetDocumentTypeId(context.RuleId),
+                        DocumentTypeId = context.DocumentTypeId,
                         DocumentId = context.DocumentId,
                         DebitAccountId = debitAccountId,
                         CreditAccountId = creditAccountId,
@@ -183,10 +183,6 @@ namespace Application.Features.Register.PostingEngines
 
             switch (alias)
             {
-                case AliasConst.PaymentAccount:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BANK_ACCOUNT).ToList();
-                    break;
-
                 case AliasConst.VATIn:
                 case AliasConst.VATOut:
                     result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
@@ -211,20 +207,35 @@ namespace Application.Features.Register.PostingEngines
                                          x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
                              .ToList();
                     break;
+                case AliasConst.CashBoxSource:
+                case AliasConst.CashBoxDestination:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+                             .ToList();
+                    break;
+                case AliasConst.PaymentAccount:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BANK_ACCOUNT ||
+                                                  x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+                             .ToList();
+                    break;
             };
 
             return result;
         }
 
-        private static short GetDocumentTypeId(short ruleId) =>
-            ruleId switch
-            {
-                PostingRuleIdConst.PURCHASE_GOODS or PostingRuleIdConst.PURCHASE_SERVICE => DocumentTypeIdConst.PURCHASE,
-                PostingRuleIdConst.SALE_GOODS or PostingRuleIdConst.SALE_SERVICE => DocumentTypeIdConst.SALE,
-                PostingRuleIdConst.DEBIT_OPERATION or PostingRuleIdConst.CREDIT_OPERATION => DocumentTypeIdConst.BANKOPERATION,
-                
-                _ => ruleId
-            };
+        private static bool ShouldSkipOptionalLine(PostingContext context, PostingRuleLine line)
+        {
+            if (!line.IsOptional || context.AllowedAliases.Length == 0)
+                return false;
+
+            if (string.Equals(line.DebitAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
+                return !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
+
+            if (string.Equals(line.CreditAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
+                return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase);
+
+            return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase) &&
+                   !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
+        }
 
         private static bool IsSkippedAmountSource(PostingContext context, string amountSource)
         {

@@ -9,7 +9,6 @@
   <ItemGroup>
     <Compile Remove="Authorization\**" />
     <Compile Remove="Persistence\Migrations\**" />
-    <Compile Remove="Persistence\Generated\AppDbContext.cs" />
     <EmbeddedResource Remove="Authorization\**" />
     <EmbeddedResource Remove="Persistence\Migrations\**" />
     <None Remove="Authorization\**" />

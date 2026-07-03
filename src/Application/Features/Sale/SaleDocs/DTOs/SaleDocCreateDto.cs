@@ -2,6 +2,7 @@ namespace Application.Features.SaleDocs;
 
 public class SaleDocCreateDto
 {
+    public DateTime? DocDate { get; set; }
     public int CounterpartyId { get; set; }
     public int WarehouseId { get; set; }
     public short CurrencyId { get; set; }

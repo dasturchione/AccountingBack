@@ -36,7 +36,7 @@ public class AuditLogService : IAuditLogService
 
         var entity = new AuditLog
         {
-            OrganizationId = _userContext.OrganizationId,
+            OrganizationId = ResolveOrganizationId(),
             SchemaName = "public",
             TableName = tableName,
             RecordId = recordId,
@@ -71,9 +71,18 @@ public class AuditLogService : IAuditLogService
 
     public async Task<List<AuditLogDto>> GetByRecordAsync(AuditLogFilter filter)
     {
+        if (!_userContext.HasGlobalAccess && _userContext.AllowedOrganizationIds.Count == 0)
+            return [];
+
         var spec = new SharedKernel.Query.Specifications.QuerySpecification<AuditLog, AuditLogDto>
         {
-            Criteria = a => a.RecordId == filter.RecordId && a.TableName == filter.TableName,
+            Criteria = a => a.RecordId == filter.RecordId &&
+                            a.TableName == filter.TableName &&
+                            (_userContext.HasGlobalAccess ||
+                             (a.OrganizationId.HasValue &&
+                              (_userContext.OrganizationId.HasValue
+                                  ? a.OrganizationId.Value == _userContext.OrganizationId.Value
+                                  : _userContext.AllowedOrganizationIds.Contains(a.OrganizationId.Value)))),
             OrderBy = q => q.OrderByDescending(a => a.ChangedDate),
             Selector = a => new AuditLogDto
             {
@@ -101,6 +110,19 @@ public class AuditLogService : IAuditLogService
             s.ChangeResults = changes;
             return s;
         }).ToList();
+    }
+
+    private int? ResolveOrganizationId()
+    {
+        if (_userContext.OrganizationId.HasValue)
+            return _userContext.OrganizationId.Value;
+
+        if (_userContext.HasGlobalAccess)
+            return null;
+
+        return _userContext.AllowedOrganizationIds.Count == 1
+            ? _userContext.AllowedOrganizationIds[0]
+            : null;
     }
 
     public static List<ChangeResult> DeepCompareJson(string oldJson, string newJson)

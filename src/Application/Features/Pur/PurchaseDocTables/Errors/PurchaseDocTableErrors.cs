@@ -48,6 +48,13 @@ public static class PurchaseDocTableErrors
             _ => "Purchase item rows are created through purchase document product lines."
         });
 
+    public static Error DirectTableMutationUnsupported(short? languageId = null) =>
+        Error.Business("PurchaseDocTable.DirectTableMutationUnsupported", languageId switch
+        {
+            LanguageIdConst.UZ => "Xarid item qatorlari faqat xarid hujjati aggregate orqali o'zgartiriladi.",
+            _ => "Purchase item rows can only be changed through the purchase document aggregate."
+        });
+
     public static Error InvalidProductQuantity(int productId, decimal quantity, short? languageId = null) =>
         Error.Business("PurchaseDocTable.InvalidProductQuantity", languageId switch
         {

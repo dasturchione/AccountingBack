@@ -148,4 +148,94 @@ public static partial class SaleDocErrors
             LanguageIdConst.RU      => $"Документ продажи с id {id} нельзя изменить в текущем статусе.",
             _                       => $"Sale document with id {id} cannot be updated in current status."
         });
+    public static Error CannotConfirmInCurrentStatus(long id, short statusId, short? languageId = null) =>
+        Error.Business("SaleDoc.CannotConfirmInCurrentStatus", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjatini status {statusId} holatida tasdiqlab bo'lmaydi.",
+            _ => $"Sale document with id {id} cannot be confirmed in status {statusId}."
+        });
+
+    public static Error CannotCancelInCurrentStatus(long id, short statusId, short? languageId = null) =>
+        Error.Business("SaleDoc.CannotCancelInCurrentStatus", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjatini status {statusId} holatida bekor qilib bo'lmaydi.",
+            _ => $"Sale document with id {id} cannot be cancelled in status {statusId}."
+        });
+
+    public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.BusinessEffectsAlreadyExist", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjatida allaqachon biznes o'tkazmalar mavjud.",
+            _ => $"Sale document with id {id} already has business postings or register movements."
+        });
+
+    public static Error MissingPostingBatch(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.MissingPostingBatch", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjati uchun posting batch topilmadi.",
+            _ => $"Posting batch was not found for sale document with id {id}."
+        });
+
+    public static Error InvalidDraftInventoryState(long id, short? languageId = null) =>
+        Error.Business("SaleDoc.InvalidDraftInventoryState", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjatidagi tovarlar tasdiqlashga tayyor emas.",
+            _ => $"Inventory rows for sale document with id {id} are not ready for confirmation."
+        });
+
+    public static Error CannotCancelMovedInventory(long id, short? languageId = null) =>
+        Error.Business("SaleDoc.CannotCancelMovedInventory", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjatini bekor qilib bo'lmaydi: mahsulotlar qaytarish holatida emas.",
+            _ => $"Sale document with id {id} cannot be cancelled because one or more items are not in sold state."
+        });
+
+    public static Error ProductNotFound(int productId, short? languageId = null) =>
+        Error.NotFound("SaleDoc.ProductNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {productId} bo'lgan mahsulot topilmadi.",
+            _ => $"Product with id {productId} was not found."
+        });
+
+    public static Error ServiceItemsNotAllowed(int productId, short? languageId = null) =>
+        Error.Business("SaleDoc.ServiceItemsNotAllowed", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {productId} bo'lgan xizmat uchun ombor itemlari kiritilmasligi kerak.",
+            _ => $"Service product id {productId} must not contain inventory items."
+        });
+
+    public static Error InvalidProductUnitPrice(long lineId, decimal unitPrice, short? languageId = null) =>
+        Error.Business("SaleDoc.InvalidProductUnitPrice", languageId switch
+        {
+            LanguageIdConst.UZ => $"SaleDocProduct id-si {lineId}: narx manfiy bo'lishi mumkin emas. Joriy narx: {unitPrice}.",
+            _ => $"SaleDocProduct id {lineId}: unit price cannot be negative. Current price: {unitPrice}."
+        });
+
+    public static Error InvalidProductCostPrice(long lineId, decimal costPrice, short? languageId = null) =>
+        Error.Business("SaleDoc.InvalidProductCostPrice", languageId switch
+        {
+            LanguageIdConst.UZ => $"SaleDocProduct id-si {lineId}: tannarx manfiy bo'lishi mumkin emas. Joriy tannarx: {costPrice}.",
+            _ => $"SaleDocProduct id {lineId}: cost price cannot be negative. Current cost price: {costPrice}."
+        });
+
+    public static Error MissingAccountingRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.MissingAccountingRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjati uchun buxgalteriya registr yozuvlari topilmadi.",
+            _ => $"Accounting register entries were not found for sale document with id {id}."
+        });
+
+    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.MissingInventoryRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjati uchun ombor registr yozuvlari to'liq emas.",
+            _ => $"Inventory register entries are missing or incomplete for sale document with id {id}."
+        });
+
+    public static Error MissingCounterpartyRegisterEntries(long id, short? languageId = null) =>
+        Error.Conflict("SaleDoc.MissingCounterpartyRegisterEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjati uchun kontragent registr yozuvlari topilmadi.",
+            _ => $"Counterparty register entries were not found for sale document with id {id}."
+        });
 }

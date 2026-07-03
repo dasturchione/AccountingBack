@@ -38,25 +38,31 @@ public class MoneyRegisterBalanceController : ControllerBase
 
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.MoneyRegBalanceCreate)]
-    public async Task<IResult> CreateAsync([FromBody] MoneyRegisterBalanceCreateDto dto, CancellationToken ct = default)
+    public IResult CreateAsync([FromBody] MoneyRegisterBalanceCreateDto dto, CancellationToken ct = default)
     {
-        var result = await _service.CreateAsync(dto, ct);
-        return result.Match(Results.Ok, CustomResults.Problem);
+        return Results.Problem(
+            statusCode: StatusCodes.Status405MethodNotAllowed,
+            title: "Method Not Allowed",
+            detail: "Money register balances are read-only and can only be changed by document posting.");
     }
 
     [HttpPut("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.MoneyRegBalanceUpdate)]
-    public async Task<IResult> UpdateAsync([FromRoute] long id, [FromBody] MoneyRegisterBalanceUpdateDto dto, CancellationToken ct = default)
+    public IResult UpdateAsync([FromRoute] long id, [FromBody] MoneyRegisterBalanceUpdateDto dto, CancellationToken ct = default)
     {
-        var result = await _service.UpdateAsync(id, dto, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
+        return Results.Problem(
+            statusCode: StatusCodes.Status405MethodNotAllowed,
+            title: "Method Not Allowed",
+            detail: "Money register balances are read-only and can only be changed by document posting.");
     }
 
     [HttpDelete("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.MoneyRegBalanceDelete)]
-    public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
+    public IResult DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
-        var result = await _service.DeleteAsync(id, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
+        return Results.Problem(
+            statusCode: StatusCodes.Status405MethodNotAllowed,
+            title: "Method Not Allowed",
+            detail: "Money register balances are read-only and can only be changed by document posting.");
     }
 }

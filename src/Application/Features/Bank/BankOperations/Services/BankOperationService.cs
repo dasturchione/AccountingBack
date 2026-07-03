@@ -2,208 +2,262 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
-using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.BankOperations;
 
-public class BankOperationService : IBankOperationService
+public class BankOperationService : BaseService, IBankOperationService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IAccountingDispatcher _accountingDispatcher;
+    private readonly IBankLifecycleService _bankLifecycleService;
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
+    private readonly ICommandRepository<BankOperationLine> _lineCommand;
+    private readonly IDocNumberGenerator _docNumberGenerator;
 
-    public BankOperationService(IUserContext userContext,
-                                IQueryBuilder queryBuilder,
-                                IAuditLogService auditLogService,
-                                IAccountingDispatcher accountingDispatcher,
-                                IQueryRepository<BankOperation> query,
-                                ICommandRepository<BankOperation> command)
+    public BankOperationService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IAuditLogService auditLogService,
+        IBankLifecycleService bankLifecycleService,
+        IDocNumberGenerator docNumberGenerator,
+        IQueryRepository<BankOperation> query,
+        ICommandRepository<BankOperation> command,
+        ICommandRepository<BankOperationLine> lineCommand,
+        ILogger<BankOperationService> logger,
+        IUnitOfWork unitOfWork)
+        : base(logger, unitOfWork)
     {
-        _query = query;
-        _command = command;
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _accountingDispatcher = accountingDispatcher;
+        _bankLifecycleService = bankLifecycleService;
+        _docNumberGenerator = docNumberGenerator;
+        _query = query;
+        _command = command;
+        _lineCommand = lineCommand;
     }
 
-    public async Task<Result<long>> CreateAsync(BankOperationCreateDto dto, CancellationToken ct = default)
-    {
-        var orgId = _userContext.OrganizationId!.Value;
-
-        var entity = BuildCreateEntity(dto, orgId, _userContext.Id);
-
-        await _command.CreateAsync(entity, ct);
-
-        var postingResult = await _accountingDispatcher.ProcessAsync(new List<BankOperation> { entity }, ct);
-        if (!postingResult.IsSuccess)
+    public Task<Result<PagedResponse<BankOperationListDto>>> GetAllAsync(BankOperationListFilter filter, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetAllAsync), async () =>
         {
-            return Result.Failure<long>(postingResult.Error);
-        }
+            var query = _queryBuilder.BuildPaged<BankOperation, BankOperationListDto, BankOperationListFilter>(filter);
+            var pagedList = await _query.GetPagedAsync(query, ct);
+            return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
+        });
 
-        var docDto = await GetByIdInternalAsync(entity.Id, ct);
-        if (docDto != null)
+    public Task<Result<BankOperationDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            _auditLogService.SetNewValues(docDto);
-            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
-        }
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<BankOperationDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        return entity.Id;
-    }
+            var query = _queryBuilder.For<BankOperation>()
+                .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+                .As<BankOperationDto>()
+                .Build();
+            var entity = await _query.GetAsync(query, ct);
+            return entity == null
+                ? Result.Failure<BankOperationDto>(BankOperationErrors.NotFound(id, _userContext.LanguageId))
+                : Result.Success(entity);
+        });
 
-    public async Task<Result<List<long>>> CreateManyAsync(BankOperationsCreateDto dto, CancellationToken ct = default)
-    {
-        var orgId = _userContext.OrganizationId!.Value;
-        var entities = dto.Operations
-            .Select(operation => BuildCreateEntity(operation, orgId, _userContext.Id))
-            .ToList();
-
-        await _command.CreateAsync(entities, ct);
-
-        var postingResult = await _accountingDispatcher.ProcessAsync(entities, ct);
-        if (!postingResult.IsSuccess)
+    public Task<Result<long>> CreateAsync(BankOperationCreateDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
-            return Result.Failure<List<long>>(postingResult.Error);
-        }
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        return entities.Select(x => x.Id).ToList();
-    }
+            var entity = await BuildCreateEntityAsync(dto, _userContext.OrganizationId.Value, ct);
+            await _command.CreateAsync(entity, ct);
 
-    public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
+            var docDto = await GetByIdInternalAsync(entity.Id, ct);
+            if (docDto != null)
+            {
+                _auditLogService.SetNewValues(docDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
+            }
 
-        if (entity == null)
-            return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
+            return Result.Success(entity.Id);
+        }, ct);
 
-        var oldDocDto = await GetByIdInternalAsync(id, ct);
-        if (oldDocDto != null)
-            _auditLogService.SetOldValues(oldDocDto);
-
-        entity.StateId = StateIdConst.PASSIVE;
-
-        await _command.UpdateAsync(entity, ct);
-
-        var newDocDto = await GetByIdInternalAsync(id, ct);
-        if (newDocDto != null)
+    public Task<Result<List<long>>> CreateManyAsync(BankOperationsCreateDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(CreateManyAsync), async () =>
         {
-            _auditLogService.SetNewValues(newDocDto);
-            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Delete);
-        }
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<List<long>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        return Result.Success();
-    }
+            var entities = new List<BankOperation>(dto.Operations.Count);
+            foreach (var operation in dto.Operations)
+                entities.Add(await BuildCreateEntityAsync(operation, _userContext.OrganizationId.Value, ct));
 
-    public async Task<Result<PagedResponse<BankOperationListDto>>> GetAllAsync(BankOperationListFilter filter, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.BuildPaged<BankOperation, BankOperationListDto, BankOperationListFilter>(filter);
-        var pagedList = await _query.GetPagedAsync(query, ct);
-        return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
-    }
+            await _command.CreateAsync(entities, ct);
 
-    public async Task<Result<BankOperationDto>> GetByIdAsync(long id, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).As<BankOperationDto>().Build();
-        var entity = await _query.GetAsync(query, ct);
-        if (entity == null) 
-            return Result.Failure<BankOperationDto>(BankOperationErrors.NotFound(id, _userContext.LanguageId));
-        return entity;
-    }
+            foreach (var entity in entities)
+            {
+                var docDto = await GetByIdInternalAsync(entity.Id, ct);
+                if (docDto == null)
+                    continue;
 
-    public async Task<Result> UpdateAsync(long id, BankOperationUpdateDto dto, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
+                _auditLogService.SetNewValues(docDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
+            }
 
-        if (entity == null)
-            return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
+            return Result.Success(entities.Select(x => x.Id).ToList());
+        }, ct);
 
-        var oldDocDto = await GetByIdInternalAsync(id, ct);
-        if (oldDocDto != null)
-            _auditLogService.SetOldValues(oldDocDto);
-
-        entity.BankAccountId = dto.BankAccountId;
-        entity.OperationTypeId = dto.OperationTypeId;
-        entity.PaymentTypeId = 2;
-        entity.CounterpartyId = dto.CounterpartyId;
-        entity.DocDate = dto.DocDate;
-        entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
-        entity.CurrencyId = dto.CurrencyId;
-        entity.Amount = dto.Amount;
-        entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
-        entity.PostedAt ??= DateTime.Now;
-        entity.PostedByUserId ??= _userContext.Id;
-        entity.Comment = dto.Comment;
-        entity.ContractId = dto.ContractId;
-        entity.StatusId = DocumentStatusIdConst.POSTED;
-        entity.StateId = StateIdConst.ACTIVE;
-
-        entity.BankOperationLines.Add(new BankOperationLine
+    public Task<Result> UpdateAsync(long id, BankOperationUpdateDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
         {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
+            var entity = await _query.GetAsync(query, ct);
+            if (entity == null)
+                return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
+
+            if (entity.OrganizationId != _userContext.OrganizationId.Value)
+                return Result.Failure(BankOperationErrors.OrganizationMismatch(id, _userContext.LanguageId));
+
+            if (entity.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(BankOperationErrors.CannotUpdateInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            entity.BankAccountId = dto.BankAccountId;
+            entity.OperationTypeId = dto.OperationTypeId;
+            entity.PaymentTypeId = dto.PaymentTypeId;
+            entity.CounterpartyId = dto.CounterpartyId;
+            entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
+            entity.ContractId = dto.ContractId;
+            entity.DocDate = dto.DocDate;
+            entity.CurrencyId = dto.CurrencyId;
+            entity.Amount = dto.Amount;
+            entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
+            entity.Comment = dto.Comment;
+            entity.StateId = StateIdConst.ACTIVE;
+
+            await _command.UpdateAsync(entity, ct);
+            await ReplaceLinesAsync(id, dto, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Update, dto.Comment);
+            }
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
+        _bankLifecycleService.ConfirmAsync(id, ct);
+
+    public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
+        _bankLifecycleService.CancelAsync(id, ct);
+
+    public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).Build();
+            var entity = await _query.GetAsync(query, ct);
+            if (entity == null)
+                return Result.Failure(BankOperationErrors.NotFound(id, _userContext.LanguageId));
+
+            if (entity.OrganizationId != _userContext.OrganizationId.Value)
+                return Result.Failure(BankOperationErrors.OrganizationMismatch(id, _userContext.LanguageId));
+
+            if (entity.StatusId != DocumentStatusIdConst.DRAFT)
+                return Result.Failure(BankOperationErrors.CannotDeleteInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
+
+            var oldDocDto = await GetByIdInternalAsync(id, ct);
+            if (oldDocDto != null)
+                _auditLogService.SetOldValues(oldDocDto);
+
+            entity.StateId = StateIdConst.PASSIVE;
+            await _command.UpdateAsync(entity, ct);
+
+            var newDocDto = await GetByIdInternalAsync(id, ct);
+            if (newDocDto != null)
+            {
+                _auditLogService.SetNewValues(newDocDto);
+                await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Delete);
+            }
+
+            return Result.Success();
+        }, ct);
+
+    private async Task ReplaceLinesAsync(long bankOperationId, BankOperationBaseDto dto, CancellationToken ct)
+    {
+        await _lineCommand.DeleteAsync(x => x.BankOperationId == bankOperationId, ct);
+        await _lineCommand.CreateAsync(new BankOperationLine
+        {
+            BankOperationId = bankOperationId,
             Amount = dto.Amount,
             CounterpartyId = dto.CounterpartyId,
             PaymentPurposeId = dto.PaymentPurposeId,
-            OrderNumber = (short)(entity.BankOperationLines.Count() + 1),
-            Comment = dto.Comment,
-        });
-
-        await _command.UpdateAsync(entity, ct);
-
-        var newDocDto = await GetByIdInternalAsync(id, ct);
-        if (newDocDto != null)
-        {
-            _auditLogService.SetNewValues(newDocDto);
-            await _auditLogService.CreateAsync(AuditLogTableConst.BankOperation, id.ToString(), AuditLogOperationTypeConst.Update, dto.Comment);
-        }
-
-        return Result.Success();
+            OrderNumber = 1,
+            Comment = dto.Comment
+        }, ct);
     }
 
     private async Task<BankOperationDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<BankOperation>().Where(x => x.Id == id).As<BankOperationDto>().Build();
+        if (_userContext.OrganizationId is null)
+            return null;
+
+        var query = _queryBuilder.For<BankOperation>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
+            .As<BankOperationDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
-    private static BankOperation BuildCreateEntity(BankOperationCreateDto dto, int orgId, int? userId) =>
-        new()
+    private async Task<BankOperation> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
+    {
+        var docNumber = await _docNumberGenerator.GenerateAsync(organizationId, "BNK", dto.DocDate, ct);
+
+        return new BankOperation
         {
-            OrganizationId = orgId,
+            OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
-            PaymentTypeId = 2,
+            PaymentTypeId = dto.PaymentTypeId,
             CounterpartyId = dto.CounterpartyId,
-            DocNumber = string.Empty,
+            CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
+            ContractId = dto.ContractId,
+            DocNumber = docNumber,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
-            ContractId = dto.ContractId,
             ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
-            PostedAt = DateTime.Now,
-            PostedByUserId = userId,
             Comment = dto.Comment,
-            CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
-            StatusId = DocumentStatusIdConst.POSTED,
+            StatusId = DocumentStatusIdConst.DRAFT,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now,
-            BankOperationLines = new List<BankOperationLine>
-            {
+            BankOperationLines =
+            [
                 new BankOperationLine
                 {
                     Amount = dto.Amount,
                     CounterpartyId = dto.CounterpartyId,
                     PaymentPurposeId = dto.PaymentPurposeId,
                     OrderNumber = 1,
-                    Comment = dto.Comment,
+                    Comment = dto.Comment
                 }
-            }
+            ]
         };
+    }
 }

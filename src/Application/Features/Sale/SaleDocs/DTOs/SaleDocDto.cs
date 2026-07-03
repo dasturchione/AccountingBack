@@ -40,6 +40,7 @@ public class SaleDocProductDto
     public int ProductId { get; set; }
     public string ProductName { get; set; } = null!;
     public string? ProductMxik { get; set; }
+    public bool IsService { get; set; }
     public decimal Quantity { get; set; }
     public short UnitId { get; set; }
     public string UnitName { get; set; } = null!;

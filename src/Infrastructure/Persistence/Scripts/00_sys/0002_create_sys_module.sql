@@ -186,9 +186,30 @@ insert into public.sys_module (id, code, short_name, full_name, sub_group_id, st
     ('1034', 'SALE_CONDITION_UPDATE', 'Sotuv qoidasi tahrirlash', 'Tahrirlash', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1035', 'SALE_CONDITION_DELETE', 'Sotuv qoidasi o''chirish', 'O''chirish', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1036', 'POSTING_RULE_VIEW', 'Postings qoidasi', 'Ro''yxat', '14', '1', '2026-06-27 16:26:12.016132'),
-    ('1037', 'POSTING_RULE_VIEW_DETAIL', 'Postings qoidasi detail', 'Batafsil', '14', '1', '2026-06-27 16:26:12.016132');
+    ('1037', 'POSTING_RULE_VIEW_DETAIL', 'Postings qoidasi detail', 'Batafsil', '14', '1', '2026-06-27 16:26:12.016132'),
+    ('1102', 'WAREHOUSE_TRANSFER_VIEW', 'Ombor ko''chirishlar', 'Ro''yxat', '15', '1', '2026-07-03 00:00:00'),
+    ('1103', 'WAREHOUSE_TRANSFER_VIEW_DETAIL', 'Ombor ko''chirish detail', 'Batafsil', '15', '1', '2026-07-03 00:00:00'),
+    ('1104', 'WAREHOUSE_TRANSFER_CREATE', 'Ombor ko''chirish yaratish', 'Yangi', '15', '1', '2026-07-03 00:00:00'),
+    ('1105', 'WAREHOUSE_TRANSFER_UPDATE', 'Ombor ko''chirish tahrirlash', 'Tahrirlash', '15', '1', '2026-07-03 00:00:00'),
+    ('1106', 'WAREHOUSE_TRANSFER_DELETE', 'Ombor ko''chirish o''chirish', 'O''chirish', '15', '1', '2026-07-03 00:00:00'),
+    ('1107', 'CONFIRM_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni tasdiqlash', 'Tasdiqlash', '15', '1', '2026-07-03 00:00:00'),
+    ('1108', 'CANCEL_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni bekor qilish', 'Bekor qilish', '15', '1', '2026-07-03 00:00:00'),
+    ('1109', 'INVENTORY_ADJUSTMENT_VIEW', 'Inventar tuzatishlar', 'Ro''yxat', '16', '1', '2026-07-03 00:00:00'),
+    ('1110', 'INVENTORY_ADJUSTMENT_VIEW_DETAIL', 'Inventar tuzatish detail', 'Batafsil', '16', '1', '2026-07-03 00:00:00'),
+    ('1111', 'INVENTORY_ADJUSTMENT_CREATE', 'Inventar tuzatish yaratish', 'Yangi', '16', '1', '2026-07-03 00:00:00'),
+    ('1112', 'INVENTORY_ADJUSTMENT_UPDATE', 'Inventar tuzatish tahrirlash', 'Tahrirlash', '16', '1', '2026-07-03 00:00:00'),
+    ('1113', 'INVENTORY_ADJUSTMENT_DELETE', 'Inventar tuzatish o''chirish', 'O''chirish', '16', '1', '2026-07-03 00:00:00'),
+    ('1114', 'CONFIRM_INVENTORY_ADJUSTMENT', 'Inventar tuzatishni tasdiqlash', 'Tasdiqlash', '16', '1', '2026-07-03 00:00:00'),
+    ('1115', 'CANCEL_INVENTORY_ADJUSTMENT', 'Inventar tuzatishni bekor qilish', 'Bekor qilish', '16', '1', '2026-07-03 00:00:00'),
+    ('1116', 'INVENTORY_COUNT_VIEW', 'Inventar sanog''i', 'Ro''yxat', '17', '1', '2026-07-03 00:00:00'),
+    ('1117', 'INVENTORY_COUNT_VIEW_DETAIL', 'Inventar sanog''i detail', 'Batafsil', '17', '1', '2026-07-03 00:00:00'),
+    ('1118', 'INVENTORY_COUNT_CREATE', 'Inventar sanog''i yaratish', 'Yangi', '17', '1', '2026-07-03 00:00:00'),
+    ('1119', 'INVENTORY_COUNT_UPDATE', 'Inventar sanog''i tahrirlash', 'Tahrirlash', '17', '1', '2026-07-03 00:00:00'),
+    ('1120', 'INVENTORY_COUNT_DELETE', 'Inventar sanog''i o''chirish', 'O''chirish', '17', '1', '2026-07-03 00:00:00'),
+    ('1121', 'CONFIRM_INVENTORY_COUNT', 'Inventar sanog''ini tasdiqlash', 'Tasdiqlash', '17', '1', '2026-07-03 00:00:00'),
+    ('1122', 'CANCEL_INVENTORY_COUNT', 'Inventar sanog''ini bekor qilish', 'Bekor qilish', '17', '1', '2026-07-03 00:00:00');
 
-SELECT pg_catalog.setval('public.sys_module_id_seq', 1037, true);
+SELECT pg_catalog.setval('public.sys_module_id_seq', 1122, true);
 
 ALTER TABLE ONLY public.sys_module
     ADD CONSTRAINT sys_module_pkey PRIMARY KEY (id);

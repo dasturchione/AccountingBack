@@ -95,6 +95,8 @@ insert into public.sys_module (id, code, short_name, full_name, sub_group_id, st
     ('513', 'BANK_OPERATION_CREATE', 'Bank operatsiyasi yaratish', 'Yangi', '5', '1', '2026-06-08 11:46:35.397683'),
     ('514', 'BANK_OPERATION_UPDATE', 'Bank operatsiyasi tahrirlash', 'Tahrirlash', '5', '1', '2026-06-08 11:46:35.397683'),
     ('515', 'BANK_OPERATION_DELETE', 'Bank operatsiyasi o''chirish', 'O''chirish', '5', '1', '2026-06-08 11:46:35.397683'),
+    ('516', 'CONFIRM_BANK_OPERATION', 'Bank operatsiyasini tasdiqlash', 'Tasdiqlash', '5', '1', '2026-06-08 11:46:35.397683'),
+    ('517', 'CANCEL_BANK_OPERATION', 'Bank operatsiyasini bekor qilish', 'Bekor qilish', '5', '1', '2026-06-08 11:46:35.397683'),
     ('601', 'CASH_BOX_VIEW', 'Kassalar', 'Ro''yxat', '6', '1', '2026-06-08 11:46:35.397683'),
     ('602', 'CASH_BOX_VIEW_DETAIL', 'Kassa detail', 'Batafsil', '6', '1', '2026-06-08 11:46:35.397683'),
     ('603', 'CASH_BOX_CREATE', 'Kassa yaratish', 'Yangi', '6', '1', '2026-06-08 11:46:35.397683'),

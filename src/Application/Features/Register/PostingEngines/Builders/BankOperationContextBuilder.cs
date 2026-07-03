@@ -19,17 +19,17 @@ public class BankOperationContextBuilder :
 
     public BankOperationContextBuilder(
         IQueryBuilder queryBuilder,
-        IQueryRepository<BankAccount> bankAccountQuery,
-        IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<Contract> contractQuery,
+        IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<PaymentPurpose> paymentPurposeQuery)
     {
         _queryBuilder = queryBuilder;
-        _bankAccountQuery = bankAccountQuery;
-        _counterpartyQuery = counterpartyQuery;
         _contractQuery = contractQuery;
+        _bankAccountQuery = bankAccountQuery;
         _paymentTypeQuery = paymentTypeQuery;
+        _counterpartyQuery = counterpartyQuery;
         _paymentPurposeQuery = paymentPurposeQuery;
     }
 

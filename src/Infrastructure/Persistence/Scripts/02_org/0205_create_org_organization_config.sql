@@ -1,20 +1,20 @@
--- Table: public.org_organization_config
-
-CREATE TABLE public.org_organization_config (
-    organization_id integer NOT NULL,
-    inventory_valuation_method character varying(20) DEFAULT 'fifo'::character varying NOT NULL,
+﻿
+create table org_organization_config (
+    organization_id integer not null,
+    inventory_valuation_method character varying(20) default 'fifo'::character varying not null,
     accounting_policy_id smallint,
     base_currency_id smallint,
     accounting_start_date date,
-    fiscal_year_start_month smallint DEFAULT 1 NOT NULL,
-    CONSTRAINT org_organization_config_inventory_valuation_method_check CHECK (((inventory_valuation_method)::text = ANY ((ARRAY['fifo'::character varying, 'lifo'::character varying, 'average'::character varying])::text[]))),
-    CONSTRAINT org_organization_config_pkey PRIMARY KEY (organization_id),
-    CONSTRAINT org_organization_config_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.org_organization(id),
-    CONSTRAINT org_organization_config_accounting_policy_id_fkey FOREIGN KEY (accounting_policy_id) REFERENCES public.acc_accounting_policy(id),
-    CONSTRAINT org_organization_config_base_currency_id_fkey FOREIGN KEY (base_currency_id) REFERENCES public.cmn_currency(id),
-    CONSTRAINT org_organization_config_fiscal_year_start_month_check CHECK (((fiscal_year_start_month >= 1) AND (fiscal_year_start_month <= 12)))
+    fiscal_year_start_month smallint default 1 not null,
+    constraint org_organization_config_inventory_valuation_method_check CHECK (((inventory_valuation_method)::text = ANY ((ARRAY['fifo'::character varying, 'lifo'::character varying, 'average'::character varying])::text[]))),
+    constraint org_organization_config_pkey primary key (organization_id),
+    constraint org_organization_config_organization_id_fkey foreign key (organization_id) references org_organization(id),
+    constraint org_organization_config_accounting_policy_id_fkey foreign key (accounting_policy_id) references acc_accounting_policy(id),
+    constraint org_organization_config_base_currency_id_fkey foreign key (base_currency_id) references cmn_currency(id),
+    constraint org_organization_config_fiscal_year_start_month_check CHECK (((fiscal_year_start_month >= 1) AND (fiscal_year_start_month <= 12)))
 );
 
-CREATE INDEX idx_org_organization_config_accounting_policy_id ON public.org_organization_config USING btree (accounting_policy_id);
+create index idx_org_organization_config_accounting_policy_id on org_organization_config using btree (accounting_policy_id);
 
-CREATE INDEX idx_org_organization_config_base_currency_id ON public.org_organization_config USING btree (base_currency_id);
+create index idx_org_organization_config_base_currency_id on org_organization_config using btree (base_currency_id);
+

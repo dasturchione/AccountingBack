@@ -1,4 +1,4 @@
-create table inv_transfer_doc_table
+﻿create table inv_transfer_doc_table
 (
     id                    bigint primary key,
     owner_id              bigint not null references inv_transfer_line(id) on delete cascade,
@@ -12,3 +12,4 @@ create index idx_inv_transfer_doc_table_product_table_id on inv_transfer_doc_tab
 create index idx_inv_transfer_doc_table_source_warehouse_id on inv_transfer_doc_table (source_warehouse_id);
 create index idx_inv_transfer_doc_table_destination_warehouse_id on inv_transfer_doc_table (destination_warehouse_id);
 create unique index ux_inv_transfer_doc_table_owner_product_table on inv_transfer_doc_table (owner_id, product_table_id);
+

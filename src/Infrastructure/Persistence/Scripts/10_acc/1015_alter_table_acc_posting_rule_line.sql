@@ -1,4 +1,4 @@
-begin;
+﻿begin;
 
 alter table acc_posting_rule_line
     add column debit_alias_id smallint;
@@ -57,15 +57,15 @@ do $$
 begin
     if exists (
         select 1
-        from public.acc_posting_rule_line
+        from acc_posting_rule_line
         where debit_alias_id is null
            or credit_alias_id is null
     ) then
-        raise exception 'Cannot drop debit_alias/credit_alias: debit_alias_id or credit_alias_id contains NULL';
-    end if;
-end $$;
+        raise exception 'Cannot drop debit_alias/credit_alias: debit_alias_id or credit_alias_id contains null';
+    end; if;
+end; $$;
 
-alter table public.acc_posting_rule_line
+alter table acc_posting_rule_line
     drop column if exists debit_alias,
     drop column if exists credit_alias;
 
@@ -73,8 +73,9 @@ commit;
 
 begin;
 
-alter table public.acc_posting_rule_line
+alter table acc_posting_rule_line
     drop column if exists debit_alias,
     drop column if exists credit_alias;
 
 commit;
+

@@ -1,4 +1,4 @@
-create table inv_inventory_count_line
+﻿create table inv_inventory_count_line
 (
     id                  bigint primary key,
     owner_id            bigint not null references inv_inventory_count_doc(id) on delete cascade,
@@ -12,3 +12,4 @@ create index ix_inv_inventory_count_line_owner_id on inv_inventory_count_line (o
 create index idx_inv_inventory_count_line_product_id on inv_inventory_count_line (product_id);
 create index idx_inv_inventory_count_line_unit_id on inv_inventory_count_line (unit_id);
 create unique index ux_inv_inventory_count_line_owner_product_unit on inv_inventory_count_line (owner_id, product_id, unit_id);
+

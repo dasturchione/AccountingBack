@@ -37,6 +37,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PriceRoundingMethod> PriceRoundingMethods { get; set; }
     public virtual DbSet<PricingCondition> PricingConditions { get; set; }
     public virtual DbSet<PricingMethod> PricingMethods { get; set; }
+    public virtual DbSet<ProductType> ProductTypes { get; set; }
+    public virtual DbSet<ProductTypeTranslation> ProductTypeTranslations { get; set; }
     public virtual DbSet<Region> Regions { get; set; }
     public virtual DbSet<State> States { get; set; }
     public virtual DbSet<TaxType> TaxTypes { get; set; }

@@ -16,6 +16,9 @@ public class ProductByListFilterCriteriaBuilder : ICriteriaBuilder<Product, Prod
     public Expression<Func<Product, bool>> Build(ProductListFilter options) =>
         x => (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value) &&
              (!options.ProductGroupId.HasValue || x.ProductGroupId == options.ProductGroupId.Value) &&
-             (!options.IsPieceTracked.HasValue || x.IsService == options.IsPieceTracked.Value) && 
-             (!options.IsService.HasValue || x.IsService == options.IsService.Value);
+             (!options.ProductTypeId.HasValue || x.ProductTypeId == options.ProductTypeId.Value) &&
+             (!options.IsPieceTracked.HasValue || x.IsPieceTracked == options.IsPieceTracked.Value) &&
+             (!options.IsService.HasValue || x.IsService == options.IsService.Value) &&
+             (!options.IsSold.HasValue || x.IsSold == options.IsSold.Value) &&
+             (!options.IsPurchased.HasValue || x.IsPurchased == options.IsPurchased.Value);
 }

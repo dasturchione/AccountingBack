@@ -48,6 +48,17 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,
             ContractId = x.ContractId,
-            ContractNumber = x.Contract != null ? x.Contract.ContractNumber : null
+            ContractNumber = x.Contract != null ? x.Contract.ContractNumber : null,
+            Lines = x.BankOperationLines.Select(s => new BankOperationLineDto
+            {
+                Id = s.Id,
+                Amount = s.Amount,
+                Comment = s.Comment,
+                CounterpartyId = s.CounterpartyId,
+                OrderNumber = s.OrderNumber,
+                PaymentPurposeId = s.PaymentPurposeId,
+                PaymentPurposeName = s.PaymentPurpose.Name,
+                PaymentPurposeCode = s.PaymentPurpose.Code,
+            }).ToList()
         };
 }

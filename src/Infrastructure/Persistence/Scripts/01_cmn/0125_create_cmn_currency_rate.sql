@@ -1,0 +1,27 @@
+create table cmn_currency_rate (
+    id bigint not null,
+    base_currency_id smallint not null,
+    target_currency_id smallint not null,
+    effective_date timestamp without time zone default now() not null,
+    buy_rate numeric(18,6) not null,
+    sell_rate numeric(18,6) not null,
+    official_rate numeric(18,6) not null,
+    rate_source character varying(100),
+    is_active boolean default true not null,
+    state_id smallint not null,
+    created_date timestamp without time zone default now() not null,
+    constraint ck_cmn_currency_rate_base_target_diff check (base_currency_id <> target_currency_id),
+    constraint ck_cmn_currency_rate_rates_positive check (buy_rate > 0 and sell_rate > 0 and official_rate > 0),
+    constraint ck_cmn_currency_rate_effective_date check (effective_date is not null),
+    constraint cmn_currency_rate_pkey primary key (id),
+    constraint cmn_currency_rate_base_currency_id_fkey foreign key (base_currency_id) references cmn_currency(id),
+    constraint cmn_currency_rate_target_currency_id_fkey foreign key (target_currency_id) references cmn_currency(id),
+    constraint cmn_currency_rate_state_id_fkey foreign key (state_id) references cmn_state(id)
+);
+
+create index idx_cmn_currency_rate_pair_effective_date on cmn_currency_rate using btree (base_currency_id, target_currency_id, effective_date desc);
+create index idx_cmn_currency_rate_base_currency_id on cmn_currency_rate using btree (base_currency_id);
+create index idx_cmn_currency_rate_target_currency_id on cmn_currency_rate using btree (target_currency_id);
+create index idx_cmn_currency_rate_effective_date on cmn_currency_rate using btree (effective_date desc);
+create index idx_cmn_currency_rate_is_active on cmn_currency_rate using btree (is_active);
+create index idx_cmn_currency_rate_state_id on cmn_currency_rate using btree (state_id);

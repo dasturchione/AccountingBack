@@ -86,5 +86,20 @@
         /// Cash transfer destination cashbox.
         /// </summary>
         public const string CashBoxDestination = "CashBoxDestination";
+
+        /// <summary>
+        /// Currency revaluation gain account.
+        /// </summary>
+        public const string CurrencyRevaluationGain = "CurrencyRevaluationGain";
+
+        /// <summary>
+        /// Currency revaluation loss account.
+        /// </summary>
+        public const string CurrencyRevaluationLoss = "CurrencyRevaluationLoss";
+
+        /// <summary>
+        /// Currency monetary asset account.
+        /// </summary>
+        public const string CurrencyAsset = "CurrencyAsset";
     }
 }

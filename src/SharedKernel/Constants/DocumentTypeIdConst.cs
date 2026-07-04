@@ -50,5 +50,10 @@
         /// Inventory count document.
         /// </summary>
         public const short INVENTORYCOUNT = 9;
+
+        /// <summary>
+        /// Currency revaluation document.
+        /// </summary>
+        public const short CURRENCYREVALUATION = 10;
     }
 }

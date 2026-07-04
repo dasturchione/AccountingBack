@@ -185,5 +185,8 @@ public partial class Organization
     public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<CurrencyRevaluation> CurrencyRevaluations { get; set; } = new List<CurrencyRevaluation>();
+
+    [InverseProperty("Organization")]
     public virtual OrganizationConfig? OrganizationConfig { get; set; }
 }

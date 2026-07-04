@@ -158,6 +158,22 @@ insert into sys_module (id, code, short_name, full_name, sub_group_id, state_id,
     ('1024', 'MONEY_REG_BALANCE_UPDATE', 'Pul qoldig''i tahrirlash', 'Tahrirlash', '10', '1', '2026-06-08 11:46:35.397683'),
     ('1025', 'MONEY_REG_BALANCE_DELETE', 'Pul qoldig''i o''chirish', 'O''chirish', '10', '1', '2026-06-08 11:46:35.397683'),
     ('1101', 'MANUAL_VIEW', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlarini ko''rish', '11', '1', '2026-06-08 11:46:35.397683'),
+    ('1102', 'CURRENCY_VIEW', 'Valyutalar', 'Valyutalar ro''yxati', '11', '1', '2026-07-04 00:00:00'),
+    ('1103', 'CURRENCY_VIEW_DETAIL', 'Valyuta detail', 'Valyutani batafsil ko''rish', '11', '1', '2026-07-04 00:00:00'),
+    ('1104', 'CURRENCY_CREATE', 'Valyuta yaratish', 'Yangi valyuta qo''shish', '11', '1', '2026-07-04 00:00:00'),
+    ('1105', 'CURRENCY_UPDATE', 'Valyuta tahrirlash', 'Valyutani tahrirlash', '11', '1', '2026-07-04 00:00:00'),
+    ('1106', 'CURRENCY_DELETE', 'Valyuta o''chirish', 'Valyutani o''chirish', '11', '1', '2026-07-04 00:00:00'),
+    ('1134', 'TAX_VIEW', 'Soliqlar', 'Soliqlar ro''yxati', '11', '1', '2026-07-04 00:00:00'),
+    ('1135', 'TAX_VIEW_DETAIL', 'Soliq detail', 'Soliqni batafsil ko''rish', '11', '1', '2026-07-04 00:00:00'),
+    ('1136', 'TAX_CREATE', 'Soliq yaratish', 'Yangi soliq qo''shish', '11', '1', '2026-07-04 00:00:00'),
+    ('1137', 'TAX_UPDATE', 'Soliq tahrirlash', 'Soliqni tahrirlash', '11', '1', '2026-07-04 00:00:00'),
+    ('1138', 'TAX_DELETE', 'Soliq o''chirish', 'Soliqni o''chirish', '11', '1', '2026-07-04 00:00:00'),
+    ('1128', 'CURRENCY_RATE_IMPORT', 'Valyuta kursini import qilish', 'Markaziy bankdan valyuta kursini import qilish', '11', '1', '2026-07-04 00:00:00'),
+    ('1129', 'CURRENCY_RATE_SYNC', 'Valyuta kursini sinxronlash', 'Markaziy bankdan valyuta kursini sanaga ko''ra sinxronlash', '11', '1', '2026-07-04 00:00:00'),
+    ('1130', 'CURRENCY_REVALUATION_VIEW', 'Valyuta qayta baholash', 'Valyuta qayta baholash ro''yxati', '11', '1', '2026-07-04 00:00:00'),
+    ('1131', 'CURRENCY_REVALUATION_CREATE', 'Valyuta qayta baholash yaratish', 'Valyuta qayta baholash preview va yaratish', '11', '1', '2026-07-04 00:00:00'),
+    ('1132', 'CURRENCY_REVALUATION_CONFIRM', 'Valyuta qayta baholash tasdiqlash', 'Valyuta qayta baholashni tasdiqlash', '11', '1', '2026-07-04 00:00:00'),
+    ('1133', 'CURRENCY_REVALUATION_CANCEL', 'Valyuta qayta baholash bekor qilish', 'Valyuta qayta baholashni bekor qilish', '11', '1', '2026-07-04 00:00:00'),
     ('721', 'CONTRACT_VIEW', 'Shartnomalar', 'Shartnomalar ro''yxati', '7', '1', '2026-06-16 17:32:01.442269'),
     ('722', 'CONTRACT_VIEW_DETAIL', 'Shartnoma detail', 'Shartnomani batafsil ko''rish', '7', '1', '2026-06-16 17:32:01.442269'),
     ('723', 'CONTRACT_CREATE', 'Shartnoma yaratish', 'Yangi shartnoma qo''shish', '7', '1', '2026-06-16 17:32:01.442269'),
@@ -210,7 +226,7 @@ insert into sys_module (id, code, short_name, full_name, sub_group_id, state_id,
     ('1121', 'CONFIRM_INVENTORY_COUNT', 'Inventar sanog''ini tasdiqlash', 'Tasdiqlash', '17', '1', '2026-07-03 00:00:00'),
     ('1122', 'CANCEL_INVENTORY_COUNT', 'Inventar sanog''ini bekor qilish', 'Bekor qilish', '17', '1', '2026-07-03 00:00:00');
 
-select setval('sys_module_id_seq', 1037, true);
+select setval('sys_module_id_seq', 1106, true);
 
 alter table ONLY sys_module
     ADD constraint sys_module_pkey primary key (id);

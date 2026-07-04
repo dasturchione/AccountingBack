@@ -67,6 +67,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
             ApplyScopedFilter<RegisterBalance>(modelBuilder);
             ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
+            ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
             ApplyScopedFilter<CashOperation>(modelBuilder);
             ApplyScopedFilter<Position>(modelBuilder);
             ApplyScopedFilter<CashBox>(modelBuilder);

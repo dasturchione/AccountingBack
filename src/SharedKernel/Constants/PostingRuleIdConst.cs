@@ -15,5 +15,9 @@
 		public const short CREDIT_OPERATION = 6;
 
 		public const short CASH_TRANSFER = 7;
+
+		public const short CURRENCY_REVALUATION_GAIN = 8;
+
+		public const short CURRENCY_REVALUATION_LOSS = 9;
     }
 }

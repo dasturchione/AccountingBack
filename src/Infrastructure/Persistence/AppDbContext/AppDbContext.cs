@@ -27,6 +27,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }
+    public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
+    public virtual DbSet<CurrencyRevaluation> CurrencyRevaluations { get; set; }
+    public virtual DbSet<CurrencyRevaluationLine> CurrencyRevaluationLines { get; set; }
     public virtual DbSet<District> Districts { get; set; }
     public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }

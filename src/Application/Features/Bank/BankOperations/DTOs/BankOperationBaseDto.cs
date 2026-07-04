@@ -5,6 +5,7 @@ public class BankOperationBaseDto
     public int BankAccountId { get; set; }
     public short OperationTypeId { get; set; }
     public short? PaymentTypeId { get; set; }
+    public short PaymentPurposeId { get; set; }
     public int? CounterpartyId { get; set; }
     public int? CounterpartyBankAccountId { get; set; }
     public DateTime DocDate { get; set; }

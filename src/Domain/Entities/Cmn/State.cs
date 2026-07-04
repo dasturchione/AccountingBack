@@ -88,6 +88,15 @@ public partial class State
     public virtual ICollection<VatRate> VatRates { get; set; } = new List<VatRate>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CurrencyRevaluation> CurrencyRevaluations { get; set; } = new List<CurrencyRevaluation>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CurrencyRevaluationLine> CurrencyRevaluationLines { get; set; } = new List<CurrencyRevaluationLine>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
     [InverseProperty("State")]

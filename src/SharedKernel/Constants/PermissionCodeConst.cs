@@ -289,6 +289,39 @@ public static class PermissionCodeConst
     public const string ManualView = "MANUAL_VIEW";
     #endregion
 
+    #region Currency
+    public const string CurrencyView       = "CURRENCY_VIEW";
+    public const string CurrencyViewDetail = "CURRENCY_VIEW_DETAIL";
+    public const string CurrencyCreate     = "CURRENCY_CREATE";
+    public const string CurrencyUpdate     = "CURRENCY_UPDATE";
+    public const string CurrencyDelete     = "CURRENCY_DELETE";
+    #endregion
+
+    #region CurrencyRate
+    public const string CurrencyRateView       = "CURRENCY_RATE_VIEW";
+    public const string CurrencyRateViewDetail = "CURRENCY_RATE_VIEW_DETAIL";
+    public const string CurrencyRateCreate     = "CURRENCY_RATE_CREATE";
+    public const string CurrencyRateUpdate     = "CURRENCY_RATE_UPDATE";
+    public const string CurrencyRateDelete     = "CURRENCY_RATE_DELETE";
+    public const string CurrencyRateImport     = "CURRENCY_RATE_IMPORT";
+    public const string CurrencyRateSync       = "CURRENCY_RATE_SYNC";
+    #endregion
+
+    #region CurrencyRevaluation
+    public const string CurrencyRevaluationView = "CURRENCY_REVALUATION_VIEW";
+    public const string CurrencyRevaluationCreate = "CURRENCY_REVALUATION_CREATE";
+    public const string CurrencyRevaluationConfirm = "CURRENCY_REVALUATION_CONFIRM";
+    public const string CurrencyRevaluationCancel = "CURRENCY_REVALUATION_CANCEL";
+    #endregion
+
+    #region Tax
+    public const string TaxView = "TAX_VIEW";
+    public const string TaxViewDetail = "TAX_VIEW_DETAIL";
+    public const string TaxCreate = "TAX_CREATE";
+    public const string TaxUpdate = "TAX_UPDATE";
+    public const string TaxDelete = "TAX_DELETE";
+    #endregion
+
     #region AuditLog
     public const string AuditLogView = "AUDIT_LOG_VIEW";
     #endregion

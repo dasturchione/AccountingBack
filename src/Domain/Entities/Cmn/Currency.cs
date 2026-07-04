@@ -60,6 +60,18 @@ public partial class Currency
     [InverseProperty("Currency")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty(nameof(CurrencyRate.BaseCurrency))]
+    public virtual ICollection<CurrencyRate> BaseCurrencyRates { get; set; } = new List<CurrencyRate>();
+
+    [InverseProperty(nameof(CurrencyRate.TargetCurrency))]
+    public virtual ICollection<CurrencyRate> TargetCurrencyRates { get; set; } = new List<CurrencyRate>();
+
+    [InverseProperty(nameof(CurrencyRevaluationLine.BaseCurrency))]
+    public virtual ICollection<CurrencyRevaluationLine> CurrencyRevaluationBaseLines { get; set; } = new List<CurrencyRevaluationLine>();
+
+    [InverseProperty(nameof(CurrencyRevaluationLine.TargetCurrency))]
+    public virtual ICollection<CurrencyRevaluationLine> CurrencyRevaluationTargetLines { get; set; } = new List<CurrencyRevaluationLine>();
+
     [ForeignKey("StateId")]
     [InverseProperty("Currencies")]
     public virtual State State { get; set; } = null!;

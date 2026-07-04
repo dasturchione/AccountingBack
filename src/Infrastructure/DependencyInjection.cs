@@ -31,6 +31,11 @@ using Application.Features.CounterpartyBankAccounts;
 using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyContacts;
 using Application.Features.CounterpartyRegisterBalances;
+using Application.Features.Cmn.Currencies.Extensions;
+using Application.Features.Cmn.CurrencyRates.Extensions;
+using Application.Features.Cmn.CurrencyRevaluations.Extensions;
+using Application.Features.Cmn.Taxes.Extensions;
+using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Departments;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Inv;
@@ -72,6 +77,9 @@ using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Infrastructure.Security;
 using Integration.Faktura.Configs;
+using Integration.CentralBank.Configs;
+using Integration.CentralBank.Services;
+using Integration.Tax.Configs;
 using Integration.GoogleDrive.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -105,7 +113,10 @@ namespace Infrastructure
             services.AddMemoryCache();
 
             services.AddFaktura(config);
+            services.AddCentralBankIntegration(config);
+            services.AddTaxIntegration(config);
             services.AddGoogleDriveIntegration(config);
+            services.AddScoped<ICurrencyRateImportService, CurrencyRateImportService>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();
@@ -161,6 +172,10 @@ namespace Infrastructure
             services.AddScoped<IAccountingReportService, AccountingReportService>();
             services.AddScoped<IAccountingReportReadRepository, AccountingReportReadRepository>();
             services.AddReportsModule();
+            services.AddCurrencyModule();
+            services.AddCurrencyRateModule();
+            services.AddCurrencyRevaluationModule();
+            services.AddTaxModule();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();
             services.AddScoped<IFinancialReportService, FinancialReportService>();
             services.AddScoped<ISalesReportService, SalesReportService>();
@@ -197,6 +212,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<List<BankOperation>>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<CurrencyRevaluation>, CurrencyRevaluationContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

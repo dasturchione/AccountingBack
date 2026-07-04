@@ -231,10 +231,23 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("products")]
-    public async Task<IActionResult> GetProducts([FromQuery] int? productGroupId, [FromQuery] bool? isService, CancellationToken ct)
+    [HttpGet("product-types")]
+    public async Task<IActionResult> GetProductTypes([FromQuery] bool? isService, CancellationToken ct)
     {
-        var result = await _manualService.GetProductsAsync(productGroupId, isService, ct);
+        var result = await _manualService.GetProductTypesAsync(isService, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("products")]
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] int? productGroupId,
+        [FromQuery] bool? isService,
+        [FromQuery] short? productTypeId,
+        [FromQuery] bool? isSold,
+        [FromQuery] bool? isPurchased,
+        CancellationToken ct)
+    {
+        var result = await _manualService.GetProductsAsync(productGroupId, isService, productTypeId, isSold, isPurchased, ct);
         return Ok(result);
     }
 

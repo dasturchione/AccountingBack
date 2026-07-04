@@ -5,20 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("inv_product")]
-[Index("Barcode", Name = "idx_inv_product_barcode")]
-[Index("Name", Name = "idx_inv_product_name")]
-[Index("OrganizationId", Name = "idx_inv_product_organization_id")]
-[Index("ProductGroupId", Name = "idx_inv_product_product_group_id")]
-[Index("StateId", Name = "idx_inv_product_state_id")]
-[Index("UnitId", Name = "idx_inv_product_unit_id")]
-[Index("Article", Name = "idx_inv_product_article")]
-[Index("Code", Name = "idx_inv_product_code")]
-[Index("CogsAccountId", Name = "idx_inv_product_cogs_account_id")]
-[Index("DefaultVatRateId", Name = "idx_inv_product_default_vat_rate_id")]
-[Index("ExpenseAccountId", Name = "idx_inv_product_expense_account_id")]
-[Index("IncomeAccountId", Name = "idx_inv_product_income_account_id")]
-[Index("InventoryAccountId", Name = "idx_inv_product_inventory_account_id")]
-[Index("Sku", Name = "idx_inv_product_sku")]
 public partial class Product
 {
     [Key]
@@ -62,6 +48,21 @@ public partial class Product
     [StringLength(17)]
     public string? Mxik { get; set; }
 
+    [Column("product_type_id")]
+    public short ProductTypeId { get; set; }
+
+    [Column("is_sold")]
+    public bool IsSold { get; set; }
+
+    [Column("article")]
+    [StringLength(100)]
+    public string? Article { get; set; }
+
+    [Column("default_vat_rate_id")]
+    public short? DefaultVatRateId { get; set; }
+
+    [Column("is_purchased")]
+    public bool IsPurchased { get; set; }
 
     [Column("code")]
     [StringLength(100)]
@@ -71,28 +72,10 @@ public partial class Product
     [StringLength(100)]
     public string? Sku { get; set; }
 
-    [Column("article")]
-    [StringLength(100)]
-    public string? Article { get; set; }
-
-    [Column("default_vat_rate_id")]
-    public short? DefaultVatRateId { get; set; }
-
-    [Column("inventory_account_id")]
-    public int? InventoryAccountId { get; set; }
-
-    [Column("income_account_id")]
-    public int? IncomeAccountId { get; set; }
-
-    [Column("expense_account_id")]
-    public int? ExpenseAccountId { get; set; }
-
-    [Column("cogs_account_id")]
-    public int? CogsAccountId { get; set; }
-
     [Column("min_stock")]
     [Precision(18, 3)]
     public decimal? MinStock { get; set; }
+
     [InverseProperty("Product")]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
@@ -112,6 +95,10 @@ public partial class Product
     [ForeignKey("ProductGroupId")]
     [InverseProperty("Products")]
     public virtual ProductGroup? ProductGroup { get; set; }
+
+    [ForeignKey("ProductTypeId")]
+    [InverseProperty("Products")]
+    public virtual ProductType ProductType { get; set; } = null!;
 
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();

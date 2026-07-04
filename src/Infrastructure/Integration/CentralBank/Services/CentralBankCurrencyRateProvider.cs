@@ -2,7 +2,9 @@ using Application.Abstractions.Integration;
 using Integration.CentralBank.Configs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace Integration.CentralBank.Services;
 
@@ -27,31 +29,59 @@ public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
 
     public async Task<IReadOnlyCollection<CurrencyRateImportItemDto>> GetLatestAsync(CancellationToken ct = default)
     {
-        var date = DateTime.UtcNow.Date;
-        return await GetByDateAsync(date, ct);
+        _logger.LogInformation("Fetching latest currency rates from Central Bank");
+
+        var items = await SendWithRetryAsync(async token =>
+            await _httpClient.GetFromJsonAsync<List<CentralBankRateDto>>(string.Empty, token) ?? [], ct);
+        return Map(items, DateTime.UtcNow.Date);
     }
 
     public async Task<IReadOnlyCollection<CurrencyRateImportItemDto>> GetByDateAsync(DateTime date, CancellationToken ct = default)
     {
         var normalized = date.Date;
-        var uri = $"{_settings.RatesPath}?date={normalized:yyyy-MM-dd}";
+        var uri = $"all/{normalized:yyyy-MM-dd}/";
         _logger.LogInformation("Fetching currency rates from Central Bank for {Date}", normalized);
 
         var items = await SendWithRetryAsync(async token =>
             await _httpClient.GetFromJsonAsync<List<CentralBankRateDto>>(uri, token) ?? [], ct);
-        return items
-            .Where(x => !string.IsNullOrWhiteSpace(x.CurrencyCode) && x.Rate > 0)
-            .Select(x => new CurrencyRateImportItemDto
+        return Map(items, normalized);
+    }
+
+    private IReadOnlyCollection<CurrencyRateImportItemDto> Map(IEnumerable<CentralBankRateDto> items, DateTime fallbackDate)
+    {
+        var result = new List<CurrencyRateImportItemDto>();
+
+        foreach (var item in items)
+        {
+            if (string.IsNullOrWhiteSpace(item.Ccy)
+                || !decimal.TryParse(item.Rate, NumberStyles.Number, CultureInfo.InvariantCulture, out var rate)
+                || rate <= 0)
             {
-                BaseCurrencyCode = x.BaseCurrencyCode ?? "UZS",
-                TargetCurrencyCode = x.CurrencyCode.Trim().ToUpperInvariant(),
-                EffectiveDate = normalized,
-                BuyRate = x.BuyRate ?? x.Rate,
-                SellRate = x.SellRate ?? x.Rate,
-                OfficialRate = x.Rate,
+                continue;
+            }
+
+            var nominal = int.TryParse(item.Nominal, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedNominal) && parsedNominal > 0
+                ? parsedNominal
+                : 1;
+            var officialRate = rate / nominal;
+
+            var effectiveDate = DateTime.TryParseExact(item.Date, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate)
+                ? parsedDate.Date
+                : fallbackDate;
+
+            result.Add(new CurrencyRateImportItemDto
+            {
+                BaseCurrencyCode = "UZS",
+                TargetCurrencyCode = item.Ccy!.Trim().ToUpperInvariant(),
+                EffectiveDate = effectiveDate,
+                BuyRate = officialRate,
+                SellRate = officialRate,
+                OfficialRate = officialRate,
                 RateSource = Name
-            })
-            .ToList();
+            });
+        }
+
+        return result;
     }
 
     private async Task<T> SendWithRetryAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct)
@@ -84,10 +114,28 @@ public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
 
     private sealed class CentralBankRateDto
     {
-        public string? CurrencyCode { get; set; }
-        public string? BaseCurrencyCode { get; set; }
-        public decimal Rate { get; set; }
-        public decimal? BuyRate { get; set; }
-        public decimal? SellRate { get; set; }
+        [JsonPropertyName("Ccy")]
+        public string? Ccy { get; set; }
+
+        [JsonPropertyName("Code")]
+        public string? Code { get; set; }
+
+        [JsonPropertyName("CcyNm_UZ")]
+        public string? NameUz { get; set; }
+
+        [JsonPropertyName("CcyNm_EN")]
+        public string? NameEn { get; set; }
+
+        [JsonPropertyName("Nominal")]
+        public string? Nominal { get; set; }
+
+        [JsonPropertyName("Rate")]
+        public string? Rate { get; set; }
+
+        [JsonPropertyName("Diff")]
+        public string? Diff { get; set; }
+
+        [JsonPropertyName("Date")]
+        public string? Date { get; set; }
     }
 }

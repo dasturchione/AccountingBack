@@ -21,6 +21,8 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using WebApi.Infrastructure;
 using WebApi.Middlewares;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Constraints;
 
 namespace WebApi.Configuration
 {
@@ -86,6 +88,10 @@ namespace WebApi.Configuration
             builder.Services.AddProblemDetails();
 
             builder.Services.AddRouting(options => options.LowercaseUrls = true);
+            builder.Services.Configure<RouteOptions>(options =>
+            {
+                options.ConstraintMap["short"] = typeof(IntRouteConstraint);
+            });
 
             return builder;
         }
@@ -239,6 +245,10 @@ namespace WebApi.Configuration
             var fakturaPassword = configuration["FakturaAuthSettings:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaPassword))
                 throw new InvalidOperationException("FakturaAuthSettings:Password is not configured with a real secret value.");
+
+            var emailPassword = configuration["Email:Password"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))
+                throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
         }
 
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)

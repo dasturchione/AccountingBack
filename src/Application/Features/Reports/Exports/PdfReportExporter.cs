@@ -1,4 +1,6 @@
-using System.Text;
+using PdfSharp.Drawing;
+using PdfSharp.Fonts;
+using PdfSharp.Pdf;
 
 namespace Application.Features.Reports.Exports;
 
@@ -19,65 +21,172 @@ public sealed class PdfReportExporter : IPdfExporter
 }
 
 /// <summary>
-/// Default PDF report template with header, footer, table layout and pagination.
+/// PDFsharp (MIT) asosidagi PDF report shabloni. To'liq Unicode qo'llab-quvvatlaydi
+/// (Kirill: ў,ғ,қ,ҳ,ъ; Lotin diakritika) — embedded DejaVu Sans TTF shrifti bilan.
+/// Sarlavha, jadval, sahifalash saqlangan.
 /// </summary>
 public sealed class PdfReportTemplate : IPdfReportTemplate
 {
     private const string CompanyName = "Accounting ERP";
-    private const float PageWidth = 595f;
-    private const float PageHeight = 842f;
-    private const float MarginLeft = 36f;
-    private const float MarginRight = 36f;
-    private const float MarginTop = 48f;
-    private const float MarginBottom = 42f;
-    private const float HeaderHeight = 56f;
-    private const float FooterHeight = 28f;
-    private const float RowHeight = 18f;
-    private const float TableHeaderHeight = 20f;
+    private const string FontFamily = "DejaVuSans";
+
+    private const double PageWidth = 595.28;   // A4
+    private const double PageHeight = 841.89;
+    private const double MarginLeft = 36;
+    private const double MarginRight = 36;
+    private const double MarginTop = 40;
+    private const double MarginBottom = 40;
+    private const double HeaderBlockHeight = 58;
+    private const double TableHeaderHeight = 20;
+    private const double RowHeight = 18;
+    private const double FooterHeight = 24;
+
+    private static readonly XColor HeaderFill = XColor.FromArgb(242, 242, 242);
+    private static readonly XColor RowFill = XColor.FromArgb(250, 250, 250);
+    private static readonly XColor BorderColor = XColor.FromArgb(0, 0, 0);
 
     public byte[] Render<T>(string reportTitle, IReadOnlyCollection<ReportExportColumn> columns, IReadOnlyCollection<T> rows)
     {
+        UnicodeFontResolver.EnsureRegistered();
+
         var title = string.IsNullOrWhiteSpace(reportTitle) ? "Report" : reportTitle;
         var generatedAt = DateTime.UtcNow;
-        var pages = BuildPages(title, columns, rows, generatedAt);
-        return BuildPdfDocument(pages);
-    }
-
-    private static List<PdfPageModel> BuildPages<T>(string title, IReadOnlyCollection<ReportExportColumn> columns, IReadOnlyCollection<T> rows, DateTime generatedAt)
-    {
-        var pages = new List<PdfPageModel>();
+        var headers = columns.Select(c => c.Header).ToArray();
         var columnWidths = CalculateColumnWidths(columns);
-        var maxRowsPerPage = Math.Max(1, (int)Math.Floor((PageHeight - MarginTop - MarginBottom - HeaderHeight - FooterHeight - TableHeaderHeight) / RowHeight));
-        var totalPages = Math.Max(1, (int)Math.Ceiling(rows.Count / (double)maxRowsPerPage));
 
-        var currentRows = rows
-            .Select((row, index) => new PdfRowModel(index + 1, columns.Select(column => FormatValue(column.ValueFactory(row!))).ToArray()))
+        var dataRows = rows
+            .Select(row => columns.Select(column => FormatValue(column.ValueFactory(row!))).ToArray())
             .ToList();
+
+        var usableHeight = PageHeight - MarginTop - MarginBottom - HeaderBlockHeight - TableHeaderHeight - FooterHeight;
+        var rowsPerPage = Math.Max(1, (int)Math.Floor(usableHeight / RowHeight));
+        var totalPages = Math.Max(1, (int)Math.Ceiling(dataRows.Count / (double)rowsPerPage));
+
+        using var document = new PdfDocument();
+
+        var titleFont = new XFont(FontFamily, 13, XFontStyleEx.Bold);
+        var companyFont = new XFont(FontFamily, 10, XFontStyleEx.Regular);
+        var metaFont = new XFont(FontFamily, 8, XFontStyleEx.Regular);
+        var headerFont = new XFont(FontFamily, 8.5, XFontStyleEx.Bold);
+        var cellFont = new XFont(FontFamily, 8, XFontStyleEx.Regular);
+        var footerFont = new XFont(FontFamily, 7.5, XFontStyleEx.Regular);
 
         for (var pageIndex = 0; pageIndex < totalPages; pageIndex++)
         {
-            var pageRows = currentRows.Skip(pageIndex * maxRowsPerPage).Take(maxRowsPerPage).ToList();
-            pages.Add(new PdfPageModel(title, generatedAt, pageIndex + 1, totalPages, columns.Select(c => c.Header).ToArray(), columnWidths, pageRows));
+            var page = document.AddPage();
+            page.Width = XUnit.FromPoint(PageWidth);
+            page.Height = XUnit.FromPoint(PageHeight);
+
+            using var gfx = XGraphics.FromPdfPage(page);
+
+            DrawHeader(gfx, title, generatedAt, titleFont, companyFont, metaFont);
+
+            var pageRows = dataRows.Skip(pageIndex * rowsPerPage).Take(rowsPerPage).ToList();
+            DrawTable(gfx, headers, columnWidths, pageRows, headerFont, cellFont);
+
+            DrawFooter(gfx, pageIndex + 1, totalPages, footerFont);
         }
 
-        if (pages.Count == 0)
-            pages.Add(new PdfPageModel(title, generatedAt, 1, 1, columns.Select(c => c.Header).ToArray(), columnWidths, []));
-
-        return pages;
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        return stream.ToArray();
     }
 
-    private static float[] CalculateColumnWidths(IReadOnlyCollection<ReportExportColumn> columns)
+    private static void DrawHeader(XGraphics gfx, string title, DateTime generatedAt, XFont titleFont, XFont companyFont, XFont metaFont)
     {
-        if (columns.Count == 0)
-            return [1f];
+        var y = MarginTop;
+        gfx.DrawString(CompanyName, companyFont, XBrushes.Gray, new XRect(MarginLeft, y, PageWidth - MarginLeft - MarginRight, 14), XStringFormats.TopLeft);
+        y += 16;
+        gfx.DrawString(title, titleFont, XBrushes.Black, new XRect(MarginLeft, y, PageWidth - MarginLeft - MarginRight, 18), XStringFormats.TopLeft);
+        y += 20;
+        gfx.DrawString($"Generated: {generatedAt.ToLocalTime():yyyy-MM-dd HH:mm}", metaFont, XBrushes.Gray, new XRect(MarginLeft, y, PageWidth - MarginLeft - MarginRight, 12), XStringFormats.TopLeft);
+    }
 
-        var widths = columns.Select(column => Math.Max(48f, Math.Min(150f, column.Header.Length * 6f + 18f))).ToArray();
-        var total = widths.Sum();
+    private static void DrawTable(XGraphics gfx, string[] headers, double[] columnWidths, List<string[]> rows, XFont headerFont, XFont cellFont)
+    {
+        var tableWidth = PageWidth - MarginLeft - MarginRight;
+        var top = MarginTop + HeaderBlockHeight;
+
+        var xPositions = new double[headers.Length + 1];
+        xPositions[0] = MarginLeft;
+        for (var i = 0; i < columnWidths.Length; i++)
+            xPositions[i + 1] = xPositions[i] + columnWidths[i];
+
+        var borderPen = new XPen(BorderColor, 0.5);
+
+        // Header row
+        gfx.DrawRectangle(new XSolidBrush(HeaderFill), MarginLeft, top, tableWidth, TableHeaderHeight);
+        gfx.DrawRectangle(borderPen, MarginLeft, top, tableWidth, TableHeaderHeight);
+        for (var i = 0; i < headers.Length; i++)
+        {
+            var cellRect = new XRect(xPositions[i] + 3, top, columnWidths[i] - 6, TableHeaderHeight);
+            gfx.DrawString(Fit(gfx, headers[i], headerFont, columnWidths[i] - 6), headerFont, XBrushes.Black, cellRect, XStringFormats.CenterLeft);
+            if (i < headers.Length - 1)
+                gfx.DrawLine(borderPen, xPositions[i + 1], top, xPositions[i + 1], top + TableHeaderHeight);
+        }
+
+        // Data rows
+        var y = top + TableHeaderHeight;
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var row = rows[rowIndex];
+            if (rowIndex % 2 == 0)
+                gfx.DrawRectangle(new XSolidBrush(RowFill), MarginLeft, y, tableWidth, RowHeight);
+
+            gfx.DrawRectangle(borderPen, MarginLeft, y, tableWidth, RowHeight);
+
+            for (var i = 0; i < headers.Length; i++)
+            {
+                var alignRight = IsNumericLike(row[i]);
+                var cellRect = new XRect(xPositions[i] + 3, y, columnWidths[i] - 6, RowHeight);
+                var format = alignRight ? XStringFormats.CenterRight : XStringFormats.CenterLeft;
+                gfx.DrawString(Fit(gfx, row[i], cellFont, columnWidths[i] - 6), cellFont, XBrushes.Black, cellRect, format);
+
+                if (i < headers.Length - 1)
+                    gfx.DrawLine(borderPen, xPositions[i + 1], y, xPositions[i + 1], y + RowHeight);
+            }
+
+            y += RowHeight;
+        }
+    }
+
+    private static void DrawFooter(XGraphics gfx, int pageNumber, int totalPages, XFont footerFont)
+    {
+        var y = PageHeight - MarginBottom - FooterHeight + 8;
+        var lineY = y - 4;
+        gfx.DrawLine(new XPen(BorderColor, 0.5), MarginLeft, lineY, PageWidth - MarginRight, lineY);
+        gfx.DrawString("Generated by Accounting ERP", footerFont, XBrushes.Gray, new XRect(MarginLeft, y, 300, 12), XStringFormats.TopLeft);
+        gfx.DrawString($"Page {pageNumber} of {totalPages}", footerFont, XBrushes.Gray, new XRect(PageWidth - MarginRight - 120, y, 120, 12), XStringFormats.TopRight);
+    }
+
+    private static double[] CalculateColumnWidths(IReadOnlyCollection<ReportExportColumn> columns)
+    {
         var usable = PageWidth - MarginLeft - MarginRight;
+        if (columns.Count == 0)
+            return [usable];
+
+        var widths = columns.Select(column => Math.Max(48d, Math.Min(150d, column.Header.Length * 6d + 18d))).ToArray();
+        var total = widths.Sum();
         if (total <= 0)
             return Enumerable.Repeat(usable / columns.Count, columns.Count).ToArray();
 
         return widths.Select(width => width * usable / total).ToArray();
+    }
+
+    private static string Fit(XGraphics gfx, string text, XFont font, double maxWidth)
+    {
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            return text;
+
+        if (gfx.MeasureString(text, font).Width <= maxWidth)
+            return text;
+
+        const string ellipsis = "...";
+        var result = text;
+        while (result.Length > 1 && gfx.MeasureString(result + ellipsis, font).Width > maxWidth)
+            result = result[..^1];
+
+        return result + ellipsis;
     }
 
     private static string FormatValue(object? value)
@@ -94,196 +203,53 @@ public sealed class PdfReportTemplate : IPdfReportTemplate
         };
     }
 
-    private static byte[] BuildPdfDocument(IReadOnlyCollection<PdfPageModel> pages)
-    {
-        var objects = new List<string>();
-        objects.Add("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
-
-        var pageRefs = new List<int>();
-        var pageObjectIndex = 4;
-        var contentObjectIndex = 5;
-
-        objects.Add("2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n");
-        objects.Add("3 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n");
-
-        foreach (var page in pages)
-        {
-            var content = BuildContent(page);
-            var contentBytes = Encoding.ASCII.GetBytes(content);
-
-            objects.Add($"{pageObjectIndex} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth} {PageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents {contentObjectIndex} 0 R >> endobj\n");
-            objects.Add($"{contentObjectIndex} 0 obj << /Length {contentBytes.Length} >> stream\n{content}\nendstream endobj\n");
-            pageRefs.Add(pageObjectIndex);
-
-            pageObjectIndex += 2;
-            contentObjectIndex += 2;
-        }
-
-        var kids = string.Join(" ", pageRefs.Select(x => $"{x} 0 R"));
-        objects[1] = $"2 0 obj << /Type /Pages /Kids [{kids}] /Count {pages.Count} >> endobj\n";
-
-        return ComposePdf(objects);
-    }
-
-    private static string BuildContent(PdfPageModel page)
-    {
-        var content = new StringBuilder();
-        var startY = PageHeight - MarginTop;
-
-        content.Append("BT /F1 11 Tf ");
-        content.Append($"{MarginLeft} {startY} Td ");
-        content.Append($"({Escape(ToPdfSafeText(CompanyName, 48))}) Tj ");
-
-        content.Append($"0 -16 Td ");
-        content.Append($"({Escape(ToPdfSafeText(page.Title, 56))}) Tj ");
-
-        content.Append("0 -14 Td ");
-        content.Append($"(Generated: {Escape(ToPdfSafeText(page.GeneratedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"), 56))}) Tj ");
-
-        content.Append("ET\n");
-        content.Append(DrawTable(page));
-        return content.ToString();
-    }
-
-    private static string DrawTable(PdfPageModel page)
-    {
-        var content = new StringBuilder();
-        var top = PageHeight - MarginTop - HeaderHeight;
-        var tableWidth = PageWidth - MarginLeft - MarginRight;
-        var xPositions = new float[page.ColumnHeaders.Length + 1];
-        xPositions[0] = MarginLeft;
-        for (var i = 0; i < page.ColumnWidths.Length; i++)
-            xPositions[i + 1] = xPositions[i] + page.ColumnWidths[i];
-
-        content.AppendLine("q");
-        content.AppendLine("0.95 g");
-        content.AppendLine($"{MarginLeft} {top} {tableWidth} {TableHeaderHeight} re f");
-        content.AppendLine("0 G");
-        content.AppendLine($"{MarginLeft} {top} {tableWidth} {TableHeaderHeight} re S");
-
-        for (var i = 0; i < page.ColumnHeaders.Length; i++)
-        {
-            content.AppendLine(DrawText(page.ColumnHeaders[i], xPositions[i] + 4, top + 6, 8.5f, false, page.ColumnWidths[i]));
-            if (i < page.ColumnHeaders.Length - 1)
-                content.AppendLine($"{xPositions[i + 1]} {top} m {xPositions[i + 1]} {top + TableHeaderHeight} l S");
-        }
-
-        var y = top - RowHeight;
-        for (var rowIndex = 0; rowIndex < page.Rows.Count; rowIndex++)
-        {
-            if (rowIndex % 2 == 0)
-            {
-                content.AppendLine("0.98 g");
-                content.AppendLine($"{MarginLeft} {y} {tableWidth} {RowHeight} re f");
-                content.AppendLine("0 G");
-            }
-
-            content.AppendLine($"{MarginLeft} {y} {tableWidth} {RowHeight} re S");
-            for (var i = 0; i < page.ColumnHeaders.Length; i++)
-            {
-                var cell = page.Rows[rowIndex].Values[i];
-                var alignRight = IsNumericLike(cell);
-                var textX = alignRight ? xPositions[i + 1] - 4 : xPositions[i] + 4;
-                content.AppendLine(DrawText(cell, textX, y + 5, 8f, alignRight, page.ColumnWidths[i]));
-                if (i < page.ColumnHeaders.Length - 1)
-                    content.AppendLine($"{xPositions[i + 1]} {y} m {xPositions[i + 1]} {y + RowHeight} l S");
-            }
-
-            y -= RowHeight;
-        }
-
-        content.AppendLine("Q");
-        content.AppendLine(DrawFooter(page));
-        return content.ToString();
-    }
-
-    private static string DrawFooter(PdfPageModel page)
-    {
-        var footerY = MarginBottom - 4;
-        var lineY = MarginBottom + 6;
-        var content = new StringBuilder();
-        content.AppendLine($"36 {lineY} m {PageWidth - 36} {lineY} l S");
-        content.AppendLine(DrawText("Generated by Accounting ERP", MarginLeft, footerY, 7.5f));
-        content.AppendLine(DrawText($"Page {page.PageNumber} of {page.TotalPages}", PageWidth - MarginRight - 90, footerY, 7.5f));
-        return content.ToString();
-    }
-
-    private static string DrawText(string text, float x, float y, float fontSize, bool alignRight = false, float columnWidth = 0)
-    {
-        var safeText = columnWidth > 0 ? TruncateToWidth(text, columnWidth, fontSize) : text;
-        var escaped = Escape(ToPdfSafeText(safeText, 120));
-        var command = new StringBuilder("BT /F1 ");
-        command.Append(fontSize.ToString("0.##")).Append(" Tf ");
-        if (alignRight)
-            command.Append($"1 0 0 1 {x} {y} Tm ({escaped}) Tj ET");
-        else
-            command.Append($"{x} {y} Td ({escaped}) Tj ET");
-        return command.ToString();
-    }
-
     private static bool IsNumericLike(string value) =>
-        decimal.TryParse(value.Replace(",", string.Empty), out _);
+        !string.IsNullOrWhiteSpace(value) && decimal.TryParse(value.Replace(",", string.Empty).Replace(" ", string.Empty), out _);
+}
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+/// <summary>
+/// PDFsharp uchun embedded Unicode (DejaVu Sans) shrift resolveri.
+/// Barcha oila/uslub so'rovlariga bitta Unicode TTF qaytaradi — Kirill+Lotin qamrovi kafolatlanadi.
+/// </summary>
+internal sealed class UnicodeFontResolver : IFontResolver
+{
+    private const string FaceName = "DejaVuSans";
+    private static readonly object Gate = new();
+    private static bool _registered;
+    private static byte[]? _fontData;
 
-    private static string ToPdfSafeText(string value, int maxLength)
+    public static void EnsureRegistered()
     {
-        if (string.IsNullOrEmpty(value))
-            return string.Empty;
+        if (_registered)
+            return;
 
-        var normalized = value.Normalize(System.Text.NormalizationForm.FormD);
-        var builder = new StringBuilder(normalized.Length);
-        foreach (var ch in normalized)
+        lock (Gate)
         {
-            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) == System.Globalization.UnicodeCategory.NonSpacingMark)
-                continue;
+            if (_registered)
+                return;
 
-            builder.Append(ch <= 0x7F ? ch : '?');
+            _fontData = LoadFontData();
+            GlobalFontSettings.FontResolver = new UnicodeFontResolver();
+            _registered = true;
         }
-
-        var safe = builder.ToString().Normalize(System.Text.NormalizationForm.FormC);
-        return safe.Length <= maxLength ? safe : safe[..Math.Max(0, maxLength - 3)] + "...";
     }
 
-    private static string TruncateToWidth(string value, float columnWidth, float fontSize)
+    public byte[]? GetFont(string faceName) => _fontData;
+
+    public FontResolverInfo? ResolveTypeface(string familyName, bool isBold, bool isItalic)
+        => new FontResolverInfo(FaceName);
+
+    private static byte[] LoadFontData()
     {
-        if (string.IsNullOrEmpty(value))
-            return string.Empty;
+        var assembly = typeof(UnicodeFontResolver).Assembly;
+        var resourceName = Array.Find(
+            assembly.GetManifestResourceNames(),
+            n => n.EndsWith("DejaVuSans.ttf", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("DejaVuSans.ttf embedded resource topilmadi.");
 
-        var approxChars = Math.Max(6, (int)Math.Floor(columnWidth / (fontSize * 0.55f)));
-        return value.Length <= approxChars ? value : value[..Math.Max(0, approxChars - 3)] + "...";
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
     }
-
-    private static byte[] ComposePdf(IReadOnlyCollection<string> objects)
-    {
-        var bytes = new List<byte>();
-        bytes.AddRange(Encoding.ASCII.GetBytes("%PDF-1.4\n"));
-
-        var offsets = new List<int> { 0 };
-        foreach (var obj in objects)
-        {
-            offsets.Add(bytes.Count);
-            bytes.AddRange(Encoding.ASCII.GetBytes(obj));
-        }
-
-        var xrefStart = bytes.Count;
-        bytes.AddRange(Encoding.ASCII.GetBytes($"xref\n0 {objects.Count + 1}\n0000000000 65535 f \n"));
-        for (var i = 1; i < offsets.Count; i++)
-            bytes.AddRange(Encoding.ASCII.GetBytes($"{offsets[i]:0000000000} 00000 n \n"));
-
-        bytes.AddRange(Encoding.ASCII.GetBytes($"trailer << /Size {objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xrefStart}\n%%EOF"));
-        return bytes.ToArray();
-    }
-
-    private sealed record PdfPageModel(
-        string Title,
-        DateTime GeneratedAt,
-        int PageNumber,
-        int TotalPages,
-        string[] ColumnHeaders,
-        float[] ColumnWidths,
-        List<PdfRowModel> Rows);
-
-    private sealed record PdfRowModel(int Index, string[] Values);
 }

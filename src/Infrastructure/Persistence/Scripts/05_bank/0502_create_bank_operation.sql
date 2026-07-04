@@ -5,6 +5,9 @@ create table bank_operation (
     bank_account_id integer not null,
     operation_type_id smallint not null,
     payment_type_id smallint,
+    -- Header payment purpose (required by domain). FK + NOT NULL are applied in
+    -- 00_sys/0000.sql because acc_payment_purpose (10_acc) is created after this table.
+    payment_purpose_id smallint,
     counterparty_id integer,
     counterparty_bank_account_id integer,
     contract_id bigint,

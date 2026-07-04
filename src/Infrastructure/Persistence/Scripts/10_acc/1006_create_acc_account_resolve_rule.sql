@@ -69,22 +69,32 @@ select 1, 'PaymentAccount', 'paymentMethod', 'cash',     id, 10  from acc_chart_
 select 1, 'PaymentAccount', 'paymentMethod', '_default', id, 100 from acc_chart_account where code = '5110';
  
 -- ===================== VAT =====================
+-- Входной НДС (4410 — групповой счёт): постим на постящиеся субсчета.
+-- По МПЗ/товарам → 4410.3, по услугам → 4410.4, по умолчанию → 4410.3.
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
-select 1, 'VATIn',  '_none', '_default', id, 100 from acc_chart_account where code = '4410'
+select 1, 'VATIn', 'vatKind', 'goods',    id, 10  from acc_chart_account where code = '4410.3'
 	union all
-select 1, 'VATOut', '_none', '_default', id, 100 from acc_chart_account where code = '6410';
+select 1, 'VATIn', 'vatKind', 'services', id, 10  from acc_chart_account where code = '4410.4'
+	union all
+select 1, 'VATIn', 'vatKind', '_default', id, 100 from acc_chart_account where code = '4410.3';
+
+-- Начисленный НДС (6410 — групповой счёт): постим на субсчёт 6410.1 (НДС при реализации).
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'VATOut', '_none', '_default', id, 100 from acc_chart_account where code = '6410.1';
  
 -- ===================== Revenue =====================
+-- 9020 и 9030 — групповые счета: постим на субсчёт основной системы налогообложения (.1).
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
-select 1, 'SalesRevenue',   '_none', '_default', id, 100 from acc_chart_account where code = '9020'
+select 1, 'SalesRevenue',   '_none', '_default', id, 100 from acc_chart_account where code = '9020.1'
 	union all
-select 1, 'ServiceRevenue', '_none', '_default', id, 100 from acc_chart_account where code = '9030';
- 
+select 1, 'ServiceRevenue', '_none', '_default', id, 100 from acc_chart_account where code = '9030.1';
+
 -- ===================== Cost =====================
+-- 9120 и 9130 — групповые счета: постим на субсчёт основной системы налогообложения (.1).
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
-select 1, 'CostOfGoods',   '_none', '_default', id, 100 from acc_chart_account where code = '9120'
+select 1, 'CostOfGoods',   '_none', '_default', id, 100 from acc_chart_account where code = '9120.1'
 	union all
-select 1, 'CostOfService', '_none', '_default', id, 100 from acc_chart_account where code = '9130';
+select 1, 'CostOfService', '_none', '_default', id, 100 from acc_chart_account where code = '9130.1';
  
 -- ===================== AssetWriteOff: списание актива =====================
 -- счёт приходит явно из кода (2910 или 1010-1090), _default не нужен
@@ -108,10 +118,11 @@ select 1, 'LoanGiven',    '_none', '_default', id, 100 from acc_chart_account wh
 select 1, 'LoanReceived', '_none', '_default', id, 100 from acc_chart_account where code = '6810';
  
 -- ===================== Налоги =====================
+-- 6410/6420/6510/6530 — групповые счета: постим на постящиеся субсчета (.1).
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
-select 1, 'TaxVAT',          '_none', '_default', id, 100 from acc_chart_account where code = '6410'
+select 1, 'TaxVAT',          '_none', '_default', id, 100 from acc_chart_account where code = '6410.1'
 	union all
-select 1, 'TaxNDFL',         '_none', '_default', id, 100 from acc_chart_account where code = '6420'
+select 1, 'TaxNDFL',         '_none', '_default', id, 100 from acc_chart_account where code = '6420.1'
 	union all
 select 1, 'TaxProfit',       '_none', '_default', id, 100 from acc_chart_account where code = '6430'
 	union all
@@ -123,9 +134,9 @@ select 1, 'TaxLand',         '_none', '_default', id, 100 from acc_chart_account
 	union all
 select 1, 'TaxOther',        '_none', '_default', id, 100 from acc_chart_account where code = '6490'
 	union all
-select 1, 'SocialInsurance', '_none', '_default', id, 100 from acc_chart_account where code = '6510'
+select 1, 'SocialInsurance', '_none', '_default', id, 100 from acc_chart_account where code = '6510.1'
 	union all
-select 1, 'PensionFund',     '_none', '_default', id, 100 from acc_chart_account where code = '6530';
+select 1, 'PensionFund',     '_none', '_default', id, 100 from acc_chart_account where code = '6530.1';
  
 -- ===================== BankFee =====================
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)

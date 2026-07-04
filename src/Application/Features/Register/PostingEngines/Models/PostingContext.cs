@@ -26,6 +26,12 @@
         public string? ServiceType { get; set; }
         public string? PaymentMethod { get; set; }
         public string? AssetType { get; set; }
+
+        /// <summary>
+        /// Вид входного НДС (счёт 4410.x): "goods" — по МПЗ (4410.3), "services" — по услугам (4410.4).
+        /// Позволяет выбрать конкретный субсчёт входного НДС вместо группового счёта 4410.
+        /// </summary>
+        public string? VatKind { get; set; }
         public int? FixedAssetId { get; set; }
         public string? RequiredDebitAlias { get; set; }
         public string? RequiredCreditAlias { get; set; }

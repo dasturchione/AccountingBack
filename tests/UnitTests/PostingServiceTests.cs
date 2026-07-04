@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Features.Register;
 using Application.Features.Register.PostingEngines;
 using Domain.Entities;
 using SharedKernel.Query;
@@ -112,6 +113,56 @@ public class PostingServiceTests
         Assert.Equal(1073, entries[0].CreditAccountId);
     }
 
+    [Fact]
+    public async Task BuildEntriesAsync_ShouldResolveVatInByVatKind_ToPostableLeafAccount()
+    {
+        // VATIn on a group account (4410) must be resolved to the postable leaf
+        // subaccount for the purchase kind: goods → 4410.3, services → 4410.4.
+        var service = CreateService(
+            [
+                CreateRule(PostingRuleIdConst.PURCHASE_GOODS, ("VATIn", "Supplier"))
+            ],
+            [
+                ResolveDim("VATIn", 1020, RegisterDefaultsConst.VatKindGoods),
+                ResolveDim("VATIn", 1021, RegisterDefaultsConst.VatKindServices),
+                ResolveDim("VATIn", 1020, RegisterDefaultsConst.DefaultDimensionValue),
+                Resolve("Supplier", 1036)
+            ]);
+
+        var goodsEntries = await service.BuildEntriesAsync(
+        [
+            new PostingContext
+            {
+                OrganizationId = 1,
+                DocumentTypeId = DocumentTypeIdConst.PURCHASE,
+                RuleId = PostingRuleIdConst.PURCHASE_GOODS,
+                DocumentId = 20,
+                CurrencyId = 1,
+                DocDate = DateTime.Today,
+                VatKind = RegisterDefaultsConst.VatKindGoods,
+                Amounts = new Dictionary<string, decimal> { [AmountSourceConst.Total] = 120m }
+            }
+        ]);
+
+        var servicesEntries = await service.BuildEntriesAsync(
+        [
+            new PostingContext
+            {
+                OrganizationId = 1,
+                DocumentTypeId = DocumentTypeIdConst.PURCHASE,
+                RuleId = PostingRuleIdConst.PURCHASE_GOODS,
+                DocumentId = 21,
+                CurrencyId = 1,
+                DocDate = DateTime.Today,
+                VatKind = RegisterDefaultsConst.VatKindServices,
+                Amounts = new Dictionary<string, decimal> { [AmountSourceConst.Total] = 120m }
+            }
+        ]);
+
+        Assert.Equal(1020, goodsEntries.Single().DebitAccountId);
+        Assert.Equal(1021, servicesEntries.Single().DebitAccountId);
+    }
+
     private static PostingService CreateService(
         List<PostingRule> postingRules,
         List<AccountResolveRule> resolveRules)
@@ -142,11 +193,14 @@ public class PostingServiceTests
         };
 
     private static AccountResolveRule Resolve(string alias, int accountId) =>
+        ResolveDim(alias, accountId, "_default");
+
+    private static AccountResolveRule ResolveDim(string alias, int accountId, string dimensionValue) =>
         new()
         {
             Alias = alias,
             AccountId = accountId,
-            DimensionValue = "_default",
+            DimensionValue = dimensionValue,
             Priority = 1
         };
 

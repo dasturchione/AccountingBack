@@ -53,6 +53,7 @@ namespace Application.Features.Register.PostingEngines
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
                     ProductCategory = null,
+                    VatKind = RegisterDefaultsConst.VatKindGoods,
                     DebitQuantity = productData.Quantity,
                     CreditQuantity = productData.Quantity,
 
@@ -131,6 +132,7 @@ namespace Application.Features.Register.PostingEngines
                     JournalNumber = document.DocNumber,
 
                     ServiceType = RegisterDefaultsConst.DefaultDimensionValue,
+                    VatKind = RegisterDefaultsConst.VatKindServices,
 
                     Amounts = new Dictionary<string, decimal>
                     {

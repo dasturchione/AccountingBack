@@ -31,9 +31,34 @@ create index if not exists idx_acc_reg_entry_org_docdate_debit_account
 create index if not exists idx_acc_reg_entry_org_docdate_credit_account
     on acc_reg_entry using btree (organization_id, doc_date, credit_account_id);
 
+-- =====================================================================
+-- Bank & cash operations: required header payment_purpose_id.
+-- Rows created before the column existed (and any without derivable
+-- purpose) are backfilled with a neutral system purpose so the FK and
+-- NOT NULL can be enforced without aborting the migration or losing data.
+-- Reassign the correct purposes from the UI afterwards.
+-- =====================================================================
+
+-- Neutral system payment purposes. IN uses the Customer alias, OUT uses the
+-- Supplier alias — both are in the supported posting-alias set and need no
+-- counterparty, so a legacy draft can still be confirmed after reassignment.
+insert into acc_payment_purpose (code, alias_id, name, operation_type_id, requires_counterparty)
+select 'UNSPECIFIED_IN', a.id, 'Назначение не указано (приход)', 1, false
+from acc_posting_alias a
+where a.code = 'Customer'
+on conflict (code) do nothing;
+
+insert into acc_payment_purpose (code, alias_id, name, operation_type_id, requires_counterparty)
+select 'UNSPECIFIED_OUT', a.id, 'Назначение не указано (расход)', 2, false
+from acc_posting_alias a
+where a.code = 'Supplier'
+on conflict (code) do nothing;
+
+-- ---- bank_operation ----
 alter table bank_operation
     add column if not exists payment_purpose_id smallint;
 
+-- 1) derive the header purpose from operation lines where present
 update bank_operation bo
 set payment_purpose_id = source.payment_purpose_id
 from (
@@ -46,16 +71,15 @@ from (
 where bo.id = source.bank_operation_id
   and bo.payment_purpose_id is null;
 
+-- 2) neutral fallback for remaining legacy rows, by operation direction
+update bank_operation bo
+set payment_purpose_id = pp.id
+from acc_payment_purpose pp
+where bo.payment_purpose_id is null
+  and pp.code = case when bo.operation_type_id = 1 then 'UNSPECIFIED_IN' else 'UNSPECIFIED_OUT' end;
+
 do $$
 begin
-    if exists (
-        select 1
-        from bank_operation
-        where payment_purpose_id is null
-    ) then
-        raise exception 'Cannot enforce bank_operation.payment_purpose_id: legacy rows without payment purpose remain.';
-    end if;
-
     if not exists (
         select 1
         from pg_constraint
@@ -73,19 +97,19 @@ alter table bank_operation
 create index if not exists idx_bank_operation_payment_purpose_id
     on bank_operation using btree (payment_purpose_id);
 
+-- ---- cash_operation ----
 alter table cash_operation
     add column if not exists payment_purpose_id smallint;
 
+-- neutral fallback for legacy rows, by operation direction (IN → приход, else → расход)
+update cash_operation co
+set payment_purpose_id = pp.id
+from acc_payment_purpose pp
+where co.payment_purpose_id is null
+  and pp.code = case when co.operation_type_id = 1 then 'UNSPECIFIED_IN' else 'UNSPECIFIED_OUT' end;
+
 do $$
 begin
-    if exists (
-        select 1
-        from cash_operation
-        where payment_purpose_id is null
-    ) then
-        raise exception 'Cannot enforce cash_operation.payment_purpose_id: legacy rows without payment purpose require explicit backfill.';
-    end if;
-
     if not exists (
         select 1
         from pg_constraint
@@ -171,12 +195,12 @@ begin
           and rule.dimension_value = '_default'
     );
 
-    insert into acc_posting_rule_line (id, template_id, order_number, debit_alias, credit_alias, amount_source, is_optional)
+    insert into acc_posting_rule_line (id, template_id, order_number, debit_alias_id, credit_alias_id, amount_source, is_optional)
     select coalesce(max(line.id), 0) + 1,
            5,
            1,
-           'PaymentAccount',
-           'CashInTransit',
+           (select id from acc_posting_alias where code = 'PaymentAccount'),
+           v_alias_id,
            'Total',
            true
     from acc_posting_rule_line line
@@ -184,17 +208,17 @@ begin
         select 1
         from acc_posting_rule_line existing
         where existing.template_id = 5
-          and existing.debit_alias = 'PaymentAccount'
-          and existing.credit_alias = 'CashInTransit'
+          and existing.debit_alias_id = (select id from acc_posting_alias where code = 'PaymentAccount')
+          and existing.credit_alias_id = v_alias_id
           and existing.amount_source = 'Total'
     );
 
-    insert into acc_posting_rule_line (id, template_id, order_number, debit_alias, credit_alias, amount_source, is_optional)
+    insert into acc_posting_rule_line (id, template_id, order_number, debit_alias_id, credit_alias_id, amount_source, is_optional)
     select coalesce(max(line.id), 0) + 1,
            6,
            1,
-           'CashInTransit',
-           'PaymentAccount',
+           v_alias_id,
+           (select id from acc_posting_alias where code = 'PaymentAccount'),
            'Total',
            true
     from acc_posting_rule_line line
@@ -202,8 +226,8 @@ begin
         select 1
         from acc_posting_rule_line existing
         where existing.template_id = 6
-          and existing.debit_alias = 'CashInTransit'
-          and existing.credit_alias = 'PaymentAccount'
+          and existing.debit_alias_id = v_alias_id
+          and existing.credit_alias_id = (select id from acc_posting_alias where code = 'PaymentAccount')
           and existing.amount_source = 'Total'
     );
 
@@ -215,3 +239,48 @@ begin
     values ('CASH_COLLECTION_RECEIVED', v_alias_id, 'Cash collection from transit', 1, false)
     on conflict (code) do nothing;
 end $$;
+
+-- =====================================================================
+-- Posting account fix: resolve rules must select POSTABLE (leaf) accounts.
+-- Group (header) accounts aggregate their children and cannot receive a
+-- direct posting, which caused Purchase/Sale Confirm to fail with
+-- AccountingPosting.GroupAccountNotPostable (e.g. group account 4410).
+-- =====================================================================
+
+-- 1) Accounts flagged as groups but without any child accounts are in fact
+--    postable synthetic accounts — clear the erroneous group flag.
+update acc_chart_account
+set is_group = false
+where code in ('6710', '6810', '6970')
+  and is_group = true;
+
+-- 2) Repoint single-account aliases from group accounts to their postable
+--    leaf subaccount (main taxation system where several subaccounts exist).
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '6410.1' and r.alias = 'VATOut'          and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '9020.1' and r.alias = 'SalesRevenue'    and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '9030.1' and r.alias = 'ServiceRevenue'  and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '9120.1' and r.alias = 'CostOfGoods'     and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '9130.1' and r.alias = 'CostOfService'   and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '6410.1' and r.alias = 'TaxVAT'          and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '6420.1' and r.alias = 'TaxNDFL'         and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '6510.1' and r.alias = 'SocialInsurance' and r.account_id <> a.id;
+update acc_account_resolve_rule r set account_id = a.id
+from acc_chart_account a where a.code = '6530.1' and r.alias = 'PensionFund'     and r.account_id <> a.id;
+
+-- 3) Input VAT (4410 is a group): resolve per purchase kind onto postable
+--    subaccounts — goods/MPZ → 4410.3, services → 4410.4, default → 4410.3.
+delete from acc_account_resolve_rule where alias = 'VATIn';
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'VATIn', 'vatKind', 'goods',    id, 10  from acc_chart_account where code = '4410.3'
+    union all
+select 1, 'VATIn', 'vatKind', 'services', id, 10  from acc_chart_account where code = '4410.4'
+    union all
+select 1, 'VATIn', 'vatKind', '_default', id, 100 from acc_chart_account where code = '4410.3';

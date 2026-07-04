@@ -22,6 +22,7 @@ public class BankOperationContextBuilder :
         IQueryBuilder queryBuilder,
         IQueryRepository<Contract> contractQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
+        IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<PaymentPurpose> paymentPurposeQuery,
         IOrganizationAccountingPolicyResolver accountingPolicyResolver)

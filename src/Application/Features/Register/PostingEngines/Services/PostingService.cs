@@ -172,6 +172,7 @@ namespace Application.Features.Register.PostingEngines
                 AliasConst.Expense => context.ServiceType ?? RegisterDefaultsConst.DefaultDimensionValue,
                 AliasConst.AssetWriteOff => context.AssetType ?? RegisterDefaultsConst.DefaultDimensionValue,
                 AliasConst.PaymentAccount => context.PaymentMethod ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.VATIn => context.VatKind ?? RegisterDefaultsConst.DefaultDimensionValue,
                 _ => RegisterDefaultsConst.DefaultDimensionValue
             };
 

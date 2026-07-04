@@ -32,10 +32,7 @@ public class BankOperationModelTests
         Assert.True(result.IsSuccess);
         var created = fixture.Command.CreatedEntities.Single();
         Assert.Equal(5, created.PaymentPurposeId);
-        Assert.Single(created.BankOperationLines);
-        var line = created.BankOperationLines.Single();
-        Assert.Equal(5, line.PaymentPurposeId);
-        Assert.Equal(1250m, line.Amount);
+        Assert.Empty(created.BankOperationLines);
     }
 
     [Fact]
@@ -71,13 +68,13 @@ public class BankOperationModelTests
             [
                 new BankAccount { Id = 4, AccountNumber = "2020", Name = "Main", OrganizationId = 8, CurrencyId = 1, BankId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
             ]),
-            new BankOperationTestQueryRepository<PaymentType>(
-            [
-                new PaymentType { Id = 2, Code = "WIRE", Name = "Wire" }
-            ]),
             new BankOperationTestQueryRepository<CounterpartyCard>(
             [
                 new CounterpartyCard { Id = 18, ShortName = "Vendor", OrganizationId = 8, CounterpartyTypeId = 1, StateId = StateIdConst.ACTIVE, CreatedDate = DateTime.Today }
+            ]),
+            new BankOperationTestQueryRepository<PaymentType>(
+            [
+                new PaymentType { Id = 2, Code = "WIRE", Name = "Wire" }
             ]),
             new BankOperationTestQueryRepository<PaymentPurpose>(
             [

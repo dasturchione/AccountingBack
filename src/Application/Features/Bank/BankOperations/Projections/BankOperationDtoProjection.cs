@@ -24,6 +24,8 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             OperationTypeName = x.OperationType.Name,
             PaymentTypeId = x.PaymentTypeId,
             PaymentTypeName = x.PaymentType != null ? x.PaymentType.Name : null,
+            PaymentPurposeId = x.PaymentPurposeId,
+            PaymentPurposeName = x.PaymentPurpose.Name,
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty != null ? x.Counterparty.ShortName : null,
             CounterpartyInn = x.Counterparty != null ? x.Counterparty.Inn : null,

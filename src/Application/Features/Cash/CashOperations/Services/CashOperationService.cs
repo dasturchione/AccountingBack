@@ -53,6 +53,7 @@ public class CashOperationService : BaseService, ICashOperationService
                 OrganizationId = _userContext.OrganizationId.Value,
                 CashBoxId = dto.CashBoxId,
                 DestinationCashBoxId = dto.DestinationCashBoxId,
+                PaymentPurposeId = dto.PaymentPurposeId,
                 OperationTypeId = dto.OperationTypeId,
                 PaymentTypeId = dto.PaymentTypeId,
                 CounterpartyId = dto.CounterpartyId,
@@ -160,6 +161,7 @@ public class CashOperationService : BaseService, ICashOperationService
 
             entity.CashBoxId = dto.CashBoxId;
             entity.DestinationCashBoxId = dto.DestinationCashBoxId;
+            entity.PaymentPurposeId = dto.PaymentPurposeId;
             entity.OperationTypeId = dto.OperationTypeId;
             entity.PaymentTypeId = dto.PaymentTypeId;
             entity.CounterpartyId = dto.CounterpartyId;

@@ -35,7 +35,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly Dictionary<string, string?> _configuration;
 
     public TestWebApplicationFactory(
-        string environment = "Development",
+        string environment = "Testing",
         Dictionary<string, string?>? configuration = null,
         Action<IServiceCollection>? overrideServices = null)
     {

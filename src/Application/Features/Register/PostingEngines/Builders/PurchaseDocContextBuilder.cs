@@ -1,5 +1,4 @@
 ﻿using Application.Abstractions;
-using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -9,27 +8,25 @@ namespace Application.Features.Register.PostingEngines
 {
     public class PurchaseDocContextBuilder : IPostingContextBuilder<PurchaseDoc>
     {
-        private readonly IUserContext _userContext;
+        private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
         private readonly IQueryBuilder _queryBuilder;
         private readonly IQueryRepository<Product> _productQuery;
         private readonly IQueryRepository<Contract> _contractQuery;
         private readonly IQueryRepository<Warehouse> _warehouseQuery;
-        private readonly IQueryRepository<ProductTable> _productTableQuery;
         private readonly IQueryRepository<CounterpartyCard> _counterpartyCardQuery;
-        public PurchaseDocContextBuilder(IUserContext userContext, 
+        public PurchaseDocContextBuilder(
+                                         IOrganizationAccountingPolicyResolver accountingPolicyResolver,
                                          IQueryBuilder queryBuilder,
                                          IQueryRepository<Product> productQuery,
                                          IQueryRepository<Contract> contractQuery,
                                          IQueryRepository<Warehouse> warehouseQuery,
-                                         IQueryRepository<ProductTable> productTableQuery,
                                          IQueryRepository<CounterpartyCard> counterpartyCardQuery)
         {
-            _userContext = userContext;
+            _accountingPolicyResolver = accountingPolicyResolver;
             _queryBuilder = queryBuilder;
             _productQuery = productQuery;
             _contractQuery = contractQuery;
             _warehouseQuery = warehouseQuery;
-            _productTableQuery = productTableQuery;
             _counterpartyCardQuery = counterpartyCardQuery;
         }
 
@@ -41,6 +38,7 @@ namespace Application.Features.Register.PostingEngines
             var wareHouseName = await GetWarehouseNameAsync(document.WarehouseId);
             var counterpartyName = await GetCounterpartyNameAsync(document.CounterpartyId);
             var contractData = await GetContractDataAsync(document.ContractId);
+            var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
 
             foreach (var productData in productDatas.Where(x => !x.IsService))
             {
@@ -48,14 +46,16 @@ namespace Application.Features.Register.PostingEngines
                 {
                     OrganizationId = document.OrganizationId,
                     DocumentTypeId = DocumentTypeIdConst.PURCHASE,
-                    AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                    AccountingPolicyId = accountingPolicyId,
                     RuleId = PostingRuleIdConst.PURCHASE_GOODS,
                     DocumentId = document.Id,
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
                     ProductCategory = null,
+                    VatKind = RegisterDefaultsConst.VatKindGoods,
                     DebitQuantity = productData.Quantity,
+                    CreditQuantity = productData.Quantity,
 
                     Amounts = new Dictionary<string, decimal>
                     {
@@ -124,14 +124,15 @@ namespace Application.Features.Register.PostingEngines
                 {
                     OrganizationId = document.OrganizationId,
                     DocumentTypeId = DocumentTypeIdConst.PURCHASE,
-                    AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                    AccountingPolicyId = accountingPolicyId,
                     RuleId = PostingRuleIdConst.PURCHASE_SERVICE,
                     DocumentId = document.Id,
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
 
-                    ServiceType = "_default",
+                    ServiceType = RegisterDefaultsConst.DefaultDimensionValue,
+                    VatKind = RegisterDefaultsConst.VatKindServices,
 
                     Amounts = new Dictionary<string, decimal>
                     {

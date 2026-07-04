@@ -3,7 +3,9 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.Contracts;
+using Application.Features.CounterpartyCards;
 using Application.Features.PurchaseDocTables;
+using Application.Features.Warehouses;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -22,6 +24,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly ICommandRepository<PurchaseDoc> _command;
     private readonly IQueryRepository<Contract> _contractQuery;
+    private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
+    private readonly IQueryRepository<Warehouse> _warehouseQuery;
+    private readonly IQueryRepository<Currency> _currencyQuery;
+    private readonly IQueryRepository<Unit> _unitQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
@@ -37,6 +43,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               IQueryRepository<Contract> contractQuery,
+                              IQueryRepository<CounterpartyCard> counterpartyQuery,
+                              IQueryRepository<Warehouse> warehouseQuery,
+                              IQueryRepository<Currency> currencyQuery,
+                              IQueryRepository<Unit> unitQuery,
                               IQueryRepository<Product> productQuery,
                               ICommandRepository<ProductTable> productTableCommand,
                               IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
@@ -57,6 +67,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _auditLogService = auditLogService;
         _vatRateQuery = vatRateQuery;
         _contractQuery = contractQuery;
+        _counterpartyQuery = counterpartyQuery;
+        _warehouseQuery = warehouseQuery;
+        _currencyQuery = currencyQuery;
+        _unitQuery = unitQuery;
         _productQuery = productQuery;
         _productTableCommand = productTableCommand;
         _purchaseDocTableQuery = purchaseDocTableQuery;
@@ -95,12 +109,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            if (dto.ContractId.HasValue)
-            {
-                var contractExists = await _contractQuery.AnyAsync(x => x.Id == dto.ContractId.Value);
-                if (!contractExists)
-                    return Result.Failure<long>(ContractErrors.NotFound(dto.ContractId.Value, _userContext.LanguageId));
-            }
+            var headerValidation = await ValidateHeaderReferencesAsync(dto, ct);
+            if (!headerValidation.IsSuccess)
+                return Result.Failure<long>(headerValidation.Error);
 
             var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
 
@@ -163,15 +174,22 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
+            var headerValidation = await ValidateHeaderReferencesAsync(dto, ct);
+            if (!headerValidation.IsSuccess)
+                return Result.Failure(headerValidation.Error);
+
             var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure(allLinesResult.Error);
 
             var newLines = allLinesResult.Value;
-            var oldProductTableIds = await GetPurchaseProductTableIdsAsync(id, ct);
+            var existingTableLinks = await GetPurchaseTableLinksAsync(id, ct);
+            var oldPurchaseDocLineIds = existingTableLinks.Select(x => x.OwnerId).Distinct().ToList();
+            var oldProductTableIds = existingTableLinks.Select(x => x.ProductTableId).Distinct().ToList();
 
             // Eski qatorlarni o'chirib, yangilarini yozamiz
-            await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
+            if (oldPurchaseDocLineIds.Count > 0)
+                await _tableLineCommand.DeleteAsync(l => oldPurchaseDocLineIds.Contains(l.OwnerId), ct);
             await _productLineCommand.DeleteAsync(l => l.OwnerId == id, ct);
             if (oldProductTableIds.Count > 0)
                 await _productTableCommand.DeleteAsync(x => oldProductTableIds.Contains(x.Id), ct);
@@ -187,11 +205,12 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             doc.WarehouseId = dto.WarehouseId;
             doc.CurrencyId = dto.CurrencyId;
             doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
+            doc.ContractId = dto.ContractId;
             doc.TotalAmount = newLines.Sum(l => l.Amount);
             doc.VatAmount = newLines.Sum(l => l.VatAmount);
             doc.FinalAmount = newLines.Sum(l => l.TotalAmount);
             doc.Comment = dto.Comment;
-            doc.StateId = dto.StateId;
+            // State is lifecycle-managed; draft updates must not overwrite it from request payload.
 
             await _command.UpdateAsync(doc, ct);
 
@@ -232,7 +251,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
 
-            var productTableIds = await GetPurchaseProductTableIdsAsync(id, ct);
+            var productTableIds = (await GetPurchaseTableLinksAsync(id, ct))
+                .Select(x => x.ProductTableId)
+                .Distinct()
+                .ToList();
 
             // Avval barcha qatorlarni o'chiramiz, keyin hujjatni
             await _tableLineCommand.DeleteAsync(l => l.Owner.OwnerId == id, ct);
@@ -265,14 +287,38 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<List<int>> GetPurchaseProductTableIdsAsync(long purchaseDocId, CancellationToken ct)
+    private async Task<List<PurchaseTableLink>> GetPurchaseTableLinksAsync(long purchaseDocId, CancellationToken ct)
     {
         var query = _queryBuilder.For<PurchaseDocTable>()
             .Where(x => x.Owner.OwnerId == purchaseDocId)
-            .As(x => x.ProductTableId)
+            .As(x => new PurchaseTableLink(x.OwnerId, x.ProductTableId))
             .Build();
 
         return await _purchaseDocTableQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<Result> ValidateHeaderReferencesAsync(PurchaseDocBaseDto dto, CancellationToken ct)
+    {
+        var counterpartyExists = await _counterpartyQuery.AnyAsync(x => x.Id == dto.CounterpartyId, ct);
+        if (!counterpartyExists)
+            return Result.Failure(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
+
+        var warehouseExists = await _warehouseQuery.AnyAsync(x => x.Id == dto.WarehouseId, ct);
+        if (!warehouseExists)
+            return Result.Failure(WarehouseErrors.NotFound(dto.WarehouseId, _userContext.LanguageId));
+
+        var currencyExists = await _currencyQuery.AnyAsync(x => x.Id == dto.CurrencyId, ct);
+        if (!currencyExists)
+            return Result.Failure(PurchaseDocErrors.CurrencyNotFound(dto.CurrencyId, _userContext.LanguageId));
+
+        if (dto.ContractId.HasValue)
+        {
+            var contractExists = await _contractQuery.AnyAsync(x => x.Id == dto.ContractId.Value, ct);
+            if (!contractExists)
+                return Result.Failure(ContractErrors.NotFound(dto.ContractId.Value, _userContext.LanguageId));
+        }
+
+        return Result.Success();
     }
 
     private async Task<Result<List<PurchaseDocProduct>>> BuildAllLinesAsync(
@@ -300,6 +346,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         var lines = new List<PurchaseDocProduct>();
         var markingNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var productIds = lineDtos.Select(x => x.ProductId).Distinct().ToList();
+        var unitIds = lineDtos.Select(x => x.UnitId).Distinct().ToList();
         var vatRateIds = lineDtos.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
 
         var productsQuery = _queryBuilder.For<Product>()
@@ -307,6 +354,12 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             .Build();
         var products = await _productQuery.GetAllAsync(productsQuery, ct);
         var productById = products.ToDictionary(x => x.Id);
+
+        var unitsQuery = _queryBuilder.For<Unit>()
+            .Where(x => unitIds.Contains(x.Id))
+            .Build();
+        var units = await _unitQuery.GetAllAsync(unitsQuery, ct);
+        var unitIdsFound = units.Select(x => x.Id).ToHashSet();
 
         var vatRateById = new Dictionary<short, VatRate>();
         if (vatRateIds.Count > 0)
@@ -323,6 +376,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (!productById.TryGetValue(dto.ProductId, out var product))
                 return Result.Failure<List<PurchaseDocProduct>>(
                     PurchaseDocErrors.ProductNotFound(dto.ProductId, _userContext.LanguageId));
+
+            if (!unitIdsFound.Contains(dto.UnitId))
+                return Result.Failure<List<PurchaseDocProduct>>(
+                    PurchaseDocErrors.UnitNotFound(dto.UnitId, _userContext.LanguageId));
 
             if (dto.Quantity <= 0)
                 return Result.Failure<List<PurchaseDocProduct>>(
@@ -425,4 +482,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         result[^1] += amount - result.Sum();
         return result;
     }
+
+    private sealed record PurchaseTableLink(long OwnerId, int ProductTableId);
 }

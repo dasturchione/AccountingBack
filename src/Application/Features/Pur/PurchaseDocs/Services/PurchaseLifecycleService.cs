@@ -415,11 +415,16 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
 
     private async Task DeleteDraftProductTablesAsync(PurchaseDoc doc, CancellationToken ct)
     {
+        var purchaseDocLineIds = doc.PurchaseDocProducts
+            .Select(x => x.Id)
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
         var productTableIds = GetPurchaseProductTables(doc).Select(x => x.Id).ToList();
-        if (productTableIds.Count == 0)
+        if (purchaseDocLineIds.Count == 0 || productTableIds.Count == 0)
             return;
 
-        await _purchaseDocTableCommand.DeleteAsync(x => x.Owner.OwnerId == doc.Id, ct);
+        await _purchaseDocTableCommand.DeleteAsync(x => purchaseDocLineIds.Contains(x.OwnerId), ct);
         await _productTableCommand.DeleteAsync(x => productTableIds.Contains(x.Id), ct);
     }
 

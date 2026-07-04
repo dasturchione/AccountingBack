@@ -38,13 +38,14 @@ public class AccountingPostingValidator : IAccountingPostingValidator
                 return Result.Failure(Error.Business("AccountingPosting.InvalidQuantity", "Accounting entry quantity must be greater than zero when provided."));
         }
 
-        if (entries.Any(x => x.DebitQuantity.HasValue || x.CreditQuantity.HasValue))
+        foreach (var entry in entries)
         {
-            var debitTotal = entries.Sum(x => x.DebitQuantity ?? 0m);
-            var creditTotal = entries.Sum(x => x.CreditQuantity ?? 0m);
-
-            if (debitTotal != creditTotal)
+            if (entry.DebitQuantity.HasValue &&
+                entry.CreditQuantity.HasValue &&
+                entry.DebitQuantity.Value != entry.CreditQuantity.Value)
+            {
                 return Result.Failure(Error.Business("AccountingPosting.BalanceMismatch", "Accounting posting is not balanced: total debit does not match total credit."));
+            }
         }
 
         return Result.Success();

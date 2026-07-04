@@ -115,6 +115,23 @@ public partial class AppDbContext : DbContext
             .HasColumnName("xmin")
             .IsRowVersion();
 
+        // Optimistic concurrency for mutable Accounting Core entities via PostgreSQL's
+        // system "xmin" column (same pattern as ProductTable — no schema change required).
+        modelBuilder.Entity<ChartAccount>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
+
+        modelBuilder.Entity<AccountingPeriod>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
+
+        modelBuilder.Entity<PostingBatch>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
+
         modelBuilder.Entity<ProductTable>()
             .HasIndex(x => x.MarkingNumber)
             .HasDatabaseName("ux_inv_product_table_marking_number_active")

@@ -16,14 +16,16 @@ public class BankOperationContextBuilder :
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
     private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
+    private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
     public BankOperationContextBuilder(
         IQueryBuilder queryBuilder,
         IQueryRepository<Contract> contractQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
-        IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
-        IQueryRepository<PaymentPurpose> paymentPurposeQuery)
+        IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<PaymentPurpose> paymentPurposeQuery,
+        IOrganizationAccountingPolicyResolver accountingPolicyResolver)
     {
         _queryBuilder = queryBuilder;
         _contractQuery = contractQuery;
@@ -31,6 +33,7 @@ public class BankOperationContextBuilder :
         _paymentTypeQuery = paymentTypeQuery;
         _counterpartyQuery = counterpartyQuery;
         _paymentPurposeQuery = paymentPurposeQuery;
+        _accountingPolicyResolver = accountingPolicyResolver;
     }
 
     public Task<List<PostingContext>> BuildAsync(BankOperation document)
@@ -43,10 +46,6 @@ public class BankOperationContextBuilder :
         if (documents.Count == 0)
             return result;
 
-        var operationLines = documents
-            .SelectMany(document => document.BankOperationLines)
-            .ToList();
-
         var bankAccountIds = documents
             .Select(document => document.BankAccountId)
             .Distinct()
@@ -54,7 +53,6 @@ public class BankOperationContextBuilder :
 
         var counterpartyIds = documents
             .Select(document => document.CounterpartyId)
-            .Concat(operationLines.Select(line => line.CounterpartyId))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Distinct()
@@ -73,8 +71,9 @@ public class BankOperationContextBuilder :
             .Distinct()
             .ToList();
 
-        var paymentPurposeIds = operationLines
-            .Select(line => line.PaymentPurposeId)
+        var paymentPurposeIds = documents
+            .Select(operation => operation.PaymentPurposeId)
+            .Where(id => id > 0)
             .Distinct()
             .ToList();
 
@@ -83,49 +82,41 @@ public class BankOperationContextBuilder :
         var contractMap = await GetContractMapAsync(contractIds);
         var paymentTypeMap = await GetPaymentTypeMapAsync(paymentTypeIds);
         var paymentPurposeAliasMap = await GetPaymentPurposeAliasMapAsync(paymentPurposeIds);
+        var accountingPolicyMap = new Dictionary<int, short>();
+        foreach (var organizationId in documents.Select(operation => operation.OrganizationId).Distinct())
+            accountingPolicyMap[organizationId] = await _accountingPolicyResolver.ResolveAsync(organizationId);
 
         foreach (var operation in documents)
         {
-            var lines = operation.BankOperationLines.Count > 0
-                ? operation.BankOperationLines.OrderBy(line => line.OrderNumber).ToList()
-                : new List<BankOperationLine>
-                {
-                    new()
-                    {
-                        Amount = operation.Amount,
-                        CounterpartyId = operation.CounterpartyId
-                    }
-                };
+            if (operation.Amount == 0)
+                continue;
 
-            foreach (var line in lines.Where(line => line.Amount != 0))
+            var paymentPurposeAlias = paymentPurposeAliasMap.GetValueOrDefault(operation.PaymentPurposeId);
+            var counterpartyId = operation.CounterpartyId;
+
+            result.Add(new PostingContext
             {
-                var paymentPurposeAlias = paymentPurposeAliasMap.GetValueOrDefault(line.PaymentPurposeId);
-                var counterpartyId = line.CounterpartyId ?? operation.CounterpartyId;
-
-                result.Add(new PostingContext
+                OrganizationId = operation.OrganizationId,
+                DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
+                AccountingPolicyId = accountingPolicyMap[operation.OrganizationId],
+                RuleId = ResolveRuleId(operation.OperationTypeId),
+                DocumentId = operation.Id,
+                SourceLineId = null,
+                DocDate = operation.DocDate,
+                CurrencyId = operation.CurrencyId,
+                JournalNumber = operation.DocNumber,
+                PaymentMethod = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap),
+                RequiredDebitAlias = ResolveRequiredDebitAlias(operation.OperationTypeId, paymentPurposeAlias),
+                RequiredCreditAlias = ResolveRequiredCreditAlias(operation.OperationTypeId, paymentPurposeAlias),
+                AllowedAliases = string.IsNullOrWhiteSpace(paymentPurposeAlias)
+                    ? Array.Empty<string>()
+                    : new[] { paymentPurposeAlias },
+                Amounts = new Dictionary<string, decimal>
                 {
-                    OrganizationId = operation.OrganizationId,
-                    DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
-                    AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
-                    RuleId = ResolveRuleId(operation.OperationTypeId),
-                    DocumentId = operation.Id,
-                    SourceLineId = line.Id == 0 ? null : line.Id,
-                    DocDate = operation.DocDate,
-                    CurrencyId = operation.CurrencyId,
-                    JournalNumber = operation.DocNumber,
-                    PaymentMethod = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap),
-                    RequiredDebitAlias = ResolveRequiredDebitAlias(operation.OperationTypeId, paymentPurposeAlias),
-                    RequiredCreditAlias = ResolveRequiredCreditAlias(operation.OperationTypeId, paymentPurposeAlias),
-                    AllowedAliases = string.IsNullOrWhiteSpace(paymentPurposeAlias)
-                        ? Array.Empty<string>()
-                        : new[] { paymentPurposeAlias },
-                    Amounts = new Dictionary<string, decimal>
-                    {
-                        [AmountSourceConst.Total] = line.Amount
-                    },
-                    Subkontos = BuildSubkontos(operation, counterpartyId, bankAccountMap, counterpartyMap, contractMap)
-                });
-            }
+                    [AmountSourceConst.Total] = operation.Amount
+                },
+                Subkontos = BuildSubkontos(operation, counterpartyId, bankAccountMap, counterpartyMap, contractMap)
+            });
         }
 
         return result;

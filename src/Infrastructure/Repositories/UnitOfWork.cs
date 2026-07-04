@@ -8,6 +8,7 @@ namespace Infrastructure.Repositories
     {
         private readonly AppDbContext _context;
         private IDbContextTransaction? _transaction;
+        private int _depth;
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
@@ -18,18 +19,33 @@ namespace Infrastructure.Repositories
             if (_transaction == null)
             {
                 _transaction = await _context.Database.BeginTransactionAsync(ct);
+                _depth = 1;
+                return;
             }
+
+            _depth++;
         }
 
         public async Task CommitAsync(CancellationToken ct = default)
         {
+            var shouldDispose = false;
+
             try
             {
-                if (_transaction != null)
+                if (_transaction == null)
+                    return;
+
+                if (_depth > 1)
                 {
-                    await _context.SaveChangesAsync(ct);
-                    await _transaction.CommitAsync(ct);
+                    _depth--;
+                    return;
                 }
+
+                if (_context.ChangeTracker.HasChanges())
+                    await _context.SaveChangesAsync(ct);
+
+                await _transaction.CommitAsync(ct);
+                shouldDispose = true;
             }
             catch
             {
@@ -38,7 +54,8 @@ namespace Infrastructure.Repositories
             }
             finally
             {
-                Dispose();
+                if (shouldDispose)
+                    await DisposeAsync();
             }
         }
 
@@ -49,13 +66,18 @@ namespace Infrastructure.Repositories
                 await _transaction.RollbackAsync(ct);
                 await _transaction.DisposeAsync();
                 _transaction = null;
+                _depth = 0;
             }
         }
 
-        private void Dispose()
+        private async Task DisposeAsync()
         {
-            _transaction?.Dispose();
+            if (_transaction is null)
+                return;
+
+            await _transaction.DisposeAsync();
             _transaction = null;
+            _depth = 0;
         }
     }
 }

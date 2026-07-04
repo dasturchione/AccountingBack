@@ -10,13 +10,16 @@ namespace Application.Features.Register.PostingEngines
         private readonly IQueryBuilder _queryBuilder;
         private readonly IQueryRepository<PostingRule> _ruleQuery;
         private readonly IQueryRepository<AccountResolveRule> _accountResolveRuleQuery;
+        private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
         public PostingService(IQueryBuilder queryBuilder,
                               IQueryRepository<PostingRule> ruleQuery,
-                              IQueryRepository<AccountResolveRule> accountResolveRuleQuery)
+                              IQueryRepository<AccountResolveRule> accountResolveRuleQuery,
+                              IQueryRepository<ChartAccount> chartAccountQuery)
         {
             _ruleQuery = ruleQuery;
             _queryBuilder = queryBuilder;
             _accountResolveRuleQuery = accountResolveRuleQuery;
+            _chartAccountQuery = chartAccountQuery;
         }
 
         public async Task<List<AccountingRegisterEntry>> BuildEntriesAsync(List<PostingContext> contexts)
@@ -30,6 +33,7 @@ namespace Application.Features.Register.PostingEngines
             var postingRules = await _ruleQuery.GetAllAsync(postingRuleQuery);
 
             var resolveRules = await GetResolveRulesAsync(postingRules);
+            var quantityAccountIds = await GetQuantityAccountIdsAsync(resolveRules);
 
             var result = new List<AccountingRegisterEntry>();
 
@@ -84,9 +88,9 @@ namespace Application.Features.Register.PostingEngines
                         CurrencyId = context.CurrencyId,
                         Amount = amount,
                         DocDate = context.DocDate,
-                        CreatedDate = DateTime.UtcNow,
-                        DebitQuantity = context.DebitQuantity,
-                        CreditQuantity = context.CreditQuantity,
+                        CreatedDate = DateTime.Now,
+                        DebitQuantity = quantityAccountIds.Contains(debitAccountId) ? context.DebitQuantity : null,
+                        CreditQuantity = quantityAccountIds.Contains(creditAccountId) ? context.CreditQuantity : null,
                         Content = postingRule.Name,
                         JournalNumber = context.JournalNumber,
                         SourceLineId = context.SourceLineId,
@@ -121,6 +125,25 @@ namespace Application.Features.Register.PostingEngines
             return result;
         }
 
+        private async Task<HashSet<int>> GetQuantityAccountIdsAsync(List<AccountResolveRule> resolveRules)
+        {
+            var accountIds = resolveRules
+                .Select(x => x.AccountId)
+                .Distinct()
+                .ToList();
+
+            if (accountIds.Count == 0)
+                return [];
+
+            var query = _queryBuilder.For<ChartAccount>()
+                .Where(x => accountIds.Contains(x.Id) && x.IsQuantity)
+                .As(x => x.Id)
+                .Build();
+
+            var ids = await _chartAccountQuery.GetAllAsync(query);
+            return ids.ToHashSet();
+        }
+
         private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingRule> postingRules)
         {
             var aliases = postingRules
@@ -145,19 +168,31 @@ namespace Application.Features.Register.PostingEngines
         {
             var dimensionValue = alias switch
             {
-                AliasConst.Inventory => context.ProductCategory ?? "_default",
-                AliasConst.Expense => context.ServiceType ?? "_default",
-                AliasConst.AssetWriteOff => context.AssetType ?? "_default",
-                AliasConst.PaymentAccount => context.PaymentMethod ?? "_default",
-                _ => "_default"
+                AliasConst.Inventory => context.ProductCategory ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.Expense => context.ServiceType ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.AssetWriteOff => context.AssetType ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.PaymentAccount => context.PaymentMethod ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.VATIn => context.VatKind ?? RegisterDefaultsConst.DefaultDimensionValue,
+                _ => RegisterDefaultsConst.DefaultDimensionValue
             };
 
-            var datas = rules.Where(x => x.Alias == alias);
+            var aliasRules = rules.Where(x => x.Alias == alias).ToList();
+
+            // Policy-aware resolution: prefer rules configured for the document's accounting
+            // policy; if none exist for that policy, fall back to any rule for the alias
+            // (backward compatible with data that predates policy-scoped resolve rules).
+            var policyRules = aliasRules.Where(x => x.PolicyId == context.AccountingPolicyId).ToList();
+            var datas = policyRules.Count > 0 ? policyRules : aliasRules;
+
+            if (datas.Count == 0)
+                throw new ArgumentException(
+                    $"Для alias '{alias}' не найдено правило разрешения счёта (acc_account_resolve_rule).");
 
             if (datas.Any(a => a.DimensionValue == dimensionValue))
                 return datas.First(f => f.DimensionValue == dimensionValue);
 
-            return datas.FirstOrDefault(f => f.DimensionValue == "_default") ?? datas.OrderBy(o => o.Priority).First();
+            return datas.FirstOrDefault(f => f.DimensionValue == RegisterDefaultsConst.DefaultDimensionValue)
+                ?? datas.OrderBy(o => o.Priority).First();
         }
 
         private List<RegisterEntrySubkonto> GetSubkontos(string alias, string side, List<SubkontoValue> subkontos)
@@ -241,19 +276,6 @@ namespace Application.Features.Register.PostingEngines
         {
             return context.SkippedAmountSources is { Length: > 0 } &&
                    context.SkippedAmountSources.Any(source => string.Equals(source, amountSource, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static bool IsMatchingRequiredAliases(PostingContext context, PostingRuleLine line)
-        {
-            if (!string.IsNullOrWhiteSpace(context.RequiredDebitAlias) &&
-                !string.Equals(line.DebitAlias.Code, context.RequiredDebitAlias, StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            if (!string.IsNullOrWhiteSpace(context.RequiredCreditAlias) &&
-                !string.Equals(line.CreditAlias.Code, context.RequiredCreditAlias, StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            return true;
         }
 
         private static bool HasRequiredAliases(PostingContext context) =>

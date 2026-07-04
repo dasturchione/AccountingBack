@@ -300,6 +300,7 @@ file sealed class FakeLifecycleAuditLogService : IAuditLogService
 file sealed class FakeLifecycleDocumentPostingLock : IDocumentPostingLock
 {
     public Task AcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<bool> TryAcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default) => Task.FromResult(true);
 }
 
 file sealed class FakeLifecycleActiveInventoryCountGuardService : IActiveInventoryCountGuardService

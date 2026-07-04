@@ -13,18 +13,21 @@ namespace Application.Features.Register.PostingEngines
         private readonly IQueryRepository<Product> _productQuery;
         private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
         private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+        private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
         public SaleDocContextBuilder(IQueryBuilder queryBuilder,
                                      IQueryRepository<ProductTable> productTableQuery,
                                      IQueryRepository<Product> productQuery,
                                      IQueryRepository<CounterpartyCard> counterpartyQuery,
-                                     IQueryRepository<PurchaseDocTable> purchaseDocTableQuery)
+                                     IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                                     IOrganizationAccountingPolicyResolver accountingPolicyResolver)
         {
             _queryBuilder = queryBuilder;
             _productTableQuery = productTableQuery;
             _productQuery = productQuery;
             _counterpartyQuery = counterpartyQuery;
             _purchaseDocTableQuery = purchaseDocTableQuery;
+            _accountingPolicyResolver = accountingPolicyResolver;
         }
 
         public async Task<List<PostingContext>> BuildAsync(SaleDoc document)
@@ -44,10 +47,11 @@ namespace Application.Features.Register.PostingEngines
             var productTableIds = saleTables.Select(x => x.ProductTableId).Distinct().ToList();
             var productTableMap = await GetProductTableMapAsync(productTableIds);
             var lastPurchases = await GetLastPurchasesAsync(document, productTableIds);
+            var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
 
-            result.AddRange(BuildCostContexts(document, saleTables, productTableMap, lastPurchases));
-            result.AddRange(BuildSaleContexts(document, saleTables, counterpartyName));
-            result.AddRange(BuildServiceContexts(document, serviceLines, counterpartyName));
+            result.AddRange(BuildCostContexts(document, saleTables, productTableMap, lastPurchases, accountingPolicyId));
+            result.AddRange(BuildSaleContexts(document, saleTables, counterpartyName, accountingPolicyId));
+            result.AddRange(BuildServiceContexts(document, serviceLines, counterpartyName, accountingPolicyId));
 
             return result;
         }
@@ -56,7 +60,8 @@ namespace Application.Features.Register.PostingEngines
             SaleDoc document,
             List<SaleDocTable> saleTables,
             Dictionary<int, ProductTableTempDto> productTableMap,
-            Dictionary<int, PurchaseBatchDto> lastPurchases)
+            Dictionary<int, PurchaseBatchDto> lastPurchases,
+            short accountingPolicyId)
         {
             var salePurchaseSources = saleTables
                 .Select(table =>
@@ -86,11 +91,15 @@ namespace Application.Features.Register.PostingEngines
 
             return salePurchaseSources
                 .GroupBy(x => new { x.ProductId, x.PurchaseId })
-                .Select(group => BuildCostContext(document, group.ToList()))
+                .Select(group => BuildCostContext(document, group.ToList(), accountingPolicyId))
                 .ToList();
         }
 
-        private List<PostingContext> BuildServiceContexts(SaleDoc document, List<SaleDocProduct> serviceLines, string counterpartyName)
+        private List<PostingContext> BuildServiceContexts(
+            SaleDoc document,
+            List<SaleDocProduct> serviceLines,
+            string counterpartyName,
+            short accountingPolicyId)
         {
             return serviceLines
                 .GroupBy(x => x.VatRateId)
@@ -112,13 +121,13 @@ namespace Application.Features.Register.PostingEngines
                     {
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.SALE,
-                        AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                        AccountingPolicyId = accountingPolicyId,
                         RuleId = PostingRuleIdConst.SALE_SERVICE,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
-                        ServiceType = "_default",
+                        ServiceType = RegisterDefaultsConst.DefaultDimensionValue,
                         Amounts = amounts,
                         Subkontos = new List<SubkontoValue>
                         {
@@ -147,7 +156,7 @@ namespace Application.Features.Register.PostingEngines
                 .ToList();
         }
 
-        private PostingContext BuildCostContext(SaleDoc document, List<SalePurchaseSourceDto> group)
+        private PostingContext BuildCostContext(SaleDoc document, List<SalePurchaseSourceDto> group, short accountingPolicyId)
         {
             var first = group.First();
             var costAmount = group.Sum(x => x.CostPrice);
@@ -156,7 +165,7 @@ namespace Application.Features.Register.PostingEngines
             {
                 OrganizationId = document.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.SALE,
-                AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                AccountingPolicyId = accountingPolicyId,
                 RuleId = PostingRuleIdConst.SALE_GOODS,
                 DocumentId = document.Id,
                 DocDate = document.DocDate,
@@ -210,7 +219,11 @@ namespace Application.Features.Register.PostingEngines
             };
         }
 
-        private List<PostingContext> BuildSaleContexts(SaleDoc document, List<SaleDocTable> saleTables, string counterpartyName)
+        private List<PostingContext> BuildSaleContexts(
+            SaleDoc document,
+            List<SaleDocTable> saleTables,
+            string counterpartyName,
+            short accountingPolicyId)
         {
             return saleTables
                 .GroupBy(x => x.VatRateId)
@@ -223,7 +236,7 @@ namespace Application.Features.Register.PostingEngines
                     {
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.SALE,
-                        AccountingPolicyId = AccountingPolicyIdConst.STANDARD_UZ,
+                        AccountingPolicyId = accountingPolicyId,
                         RuleId = PostingRuleIdConst.SALE_GOODS,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,

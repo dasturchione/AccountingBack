@@ -82,17 +82,25 @@ public class AccountingPostingValidatorTests
     public void Validate_ShouldRejectImbalancedQuantities()
     {
         var first = ValidEntry();
-        var second = ValidEntry();
         first.DebitQuantity = 10m;
-        first.CreditQuantity = null;
-        second.DocumentId = 11;
-        second.CreditQuantity = 5m;
-        second.DebitQuantity = null;
+        first.CreditQuantity = 5m;
 
-        var result = _validator.Validate(new[] { first, second });
+        var result = _validator.Validate(new[] { first });
 
         Assert.False(result.IsSuccess);
         Assert.Equal("AccountingPosting.BalanceMismatch", result.Error.Code);
+    }
+
+    [Fact]
+    public void Validate_ShouldAllowSingleSidedQuantity()
+    {
+        var entry = ValidEntry();
+        entry.DebitQuantity = 10m;
+        entry.CreditQuantity = null;
+
+        var result = _validator.Validate(new[] { entry });
+
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]

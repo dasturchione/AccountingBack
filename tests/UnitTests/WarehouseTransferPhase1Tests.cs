@@ -536,6 +536,9 @@ file sealed class FakePostingLock : IDocumentPostingLock
         AcquireCount++;
         return Task.CompletedTask;
     }
+
+    public Task<bool> TryAcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default) =>
+        Task.FromResult(true);
 }
 
 file sealed class FakeActiveInventoryCountGuardService : IActiveInventoryCountGuardService

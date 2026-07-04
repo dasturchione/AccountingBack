@@ -15,6 +15,8 @@ public class BankOperationListDto
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
+    public short PaymentPurposeId { get; set; }
+    public string PaymentPurposeName { get; set; } = null!;
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
     public string? CounterpartyInn { get; set; }

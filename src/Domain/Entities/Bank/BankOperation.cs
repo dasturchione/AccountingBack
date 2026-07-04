@@ -32,6 +32,9 @@ public partial class BankOperation
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
 
+    [Column("payment_purpose_id")]
+    public short PaymentPurposeId { get; set; }
+
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
 
@@ -114,6 +117,10 @@ public partial class BankOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual PaymentType? PaymentType { get; set; }
+
+    [ForeignKey("PaymentPurposeId")]
+    [InverseProperty("BankOperations")]
+    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("BankOperations")]

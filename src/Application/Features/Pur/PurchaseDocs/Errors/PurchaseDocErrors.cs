@@ -109,6 +109,20 @@ public static class PurchaseDocErrors
             _ => $"Product with id {productId} was not found."
         });
 
+    public static Error CurrencyNotFound(short currencyId, short? languageId = null) =>
+        Error.NotFound("PurchaseDoc.CurrencyNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {currencyId} bo'lgan valyuta topilmadi.",
+            _ => $"Currency with id {currencyId} was not found."
+        });
+
+    public static Error UnitNotFound(short unitId, short? languageId = null) =>
+        Error.NotFound("PurchaseDoc.UnitNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {unitId} bo'lgan o'lchov birligi topilmadi.",
+            _ => $"Unit with id {unitId} was not found."
+        });
+
     public static Error ServiceItemsNotAllowed(int productId, short? languageId = null) =>
         Error.Business("PurchaseDoc.ServiceItemsNotAllowed", languageId switch
         {

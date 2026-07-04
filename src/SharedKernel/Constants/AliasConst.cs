@@ -33,6 +33,11 @@
         public const string PaymentAccount = "PaymentAccount";
 
         /// <summary>
+        /// Cash collected and still in transit to bank.
+        /// </summary>
+        public const string CashInTransit = "CashInTransit";
+
+        /// <summary>
         /// Input VAT account.
         /// </summary>
         public const string VATIn = "VATIn";

@@ -1,6 +1,6 @@
 namespace Application.Features.AuditLogs;
 
-public class AuditLogDto
+public class AuditLogCoreDto
 {
     public long Id { get; set; }
     public int? OrganizationId { get; set; }
@@ -13,6 +13,10 @@ public class AuditLogDto
     public int? ChangedUserId { get; set; }
     public string? ChangedUserName { get; set; }
     public DateTime ChangedDate { get; set; }
+}
+
+public class AuditLogDto : AuditLogCoreDto
+{
     public string? Comment { get; set; }
     public List<ChangeResult> ChangeResults { get; set; } = [];
 }

@@ -3,6 +3,10 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features;
+using Application.Features.AuditLogs;
+using Application.Features.Organizations;
+using Application.Features.OrganizationSetup;
+using Application.Features.Users.Services;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -31,16 +35,16 @@ public sealed class PlatformService : BaseService, IPlatformService
     private readonly ICommandRepository<User> _userCommand;
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
     private readonly ICommandRepository<UserOrganization> _userOrganizationCommand;
+    private readonly IUserManagementCore _userManagementCore;
+    private readonly IOrganizationManagementCore _organizationManagementCore;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
     private readonly IQueryRepository<OrganizationSetupState> _setupStateQuery;
-    private readonly IQueryRepository<AuditLog> _auditLogQuery;
-    private readonly ICommandRepository<OrganizationSetupState> _setupStateCommand;
-    private readonly ICommandRepository<OrganizationTaxSetting> _taxSettingCommand;
-    private readonly ICommandRepository<OrganizationConfig> _configCommand;
-    private readonly ICommandRepository<OrganizationDefault> _defaultCommand;
+    private readonly IAuditLogQueryCore _auditLogQueryCore;
+    private readonly IOrganizationSetupCore _organizationSetupCore;
+    private readonly IDashboardService _dashboardService;
 
     public PlatformService(
         IUserContext userContext,
@@ -53,16 +57,16 @@ public sealed class PlatformService : BaseService, IPlatformService
         ICommandRepository<User> userCommand,
         IQueryRepository<UserOrganization> userOrganizationQuery,
         ICommandRepository<UserOrganization> userOrganizationCommand,
+        IUserManagementCore userManagementCore,
+        IOrganizationManagementCore organizationManagementCore,
         IQueryRepository<Role> roleQuery,
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<AccountingPolicy> accountingPolicyQuery,
         IQueryRepository<Currency> currencyQuery,
         IQueryRepository<OrganizationSetupState> setupStateQuery,
-        IQueryRepository<AuditLog> auditLogQuery,
-        ICommandRepository<OrganizationSetupState> setupStateCommand,
-        ICommandRepository<OrganizationTaxSetting> taxSettingCommand,
-        ICommandRepository<OrganizationConfig> configCommand,
-        ICommandRepository<OrganizationDefault> defaultCommand,
+        IAuditLogQueryCore auditLogQueryCore,
+        IOrganizationSetupCore organizationSetupCore,
+        IDashboardService dashboardService,
         ILogger<PlatformService> logger,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
@@ -76,40 +80,42 @@ public sealed class PlatformService : BaseService, IPlatformService
         _userCommand = userCommand;
         _userOrganizationQuery = userOrganizationQuery;
         _userOrganizationCommand = userOrganizationCommand;
+        _userManagementCore = userManagementCore;
+        _organizationManagementCore = organizationManagementCore;
         _roleQuery = roleQuery;
         _taxTypeQuery = taxTypeQuery;
         _accountingPolicyQuery = accountingPolicyQuery;
         _currencyQuery = currencyQuery;
         _setupStateQuery = setupStateQuery;
-        _auditLogQuery = auditLogQuery;
-        _setupStateCommand = setupStateCommand;
-        _taxSettingCommand = taxSettingCommand;
-        _configCommand = configCommand;
-        _defaultCommand = defaultCommand;
+        _auditLogQueryCore = auditLogQueryCore;
+        _organizationSetupCore = organizationSetupCore;
+        _dashboardService = dashboardService;
     }
 
     public Task<Result<PlatformDashboardDto>> GetDashboardAsync(CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetDashboardAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure<PlatformDashboardDto>(PlatformErrors.GlobalAccessRequired());
-
-            var tenantsCount = await CountTenantsAsync(_ => true, ct);
-            var activeTenantsCount = await CountTenantsAsync(x => x.StateId == StateIdConst.ACTIVE, ct);
-            var organizationsCount = await CountOrganizationsAsync(_ => true, ct);
-            var activeOrganizationsCount = await CountOrganizationsAsync(x => x.StateId == StateIdConst.ACTIVE, ct);
-            var usersCount = await CountUsersAsync(_ => true, ct);
-            var activeUsersCount = await CountUsersAsync(x => x.StateId == StateIdConst.ACTIVE, ct);
+            var statsResult = await _dashboardService.GetStatsAsync(ct);
+            if (!statsResult.IsSuccess)
+                return Result.Failure<PlatformDashboardDto>(statsResult.Error);
 
             return new PlatformDashboardDto
             {
-                TenantsCount = tenantsCount,
-                ActiveTenantsCount = activeTenantsCount,
-                InactiveTenantsCount = tenantsCount - activeTenantsCount,
-                OrganizationsCount = organizationsCount,
-                ActiveOrganizationsCount = activeOrganizationsCount,
-                UsersCount = usersCount,
-                ActiveUsersCount = activeUsersCount
+                TenantsCount = statsResult.Value.TenantsCount,
+                ActiveTenantsCount = statsResult.Value.ActiveTenantsCount,
+                InactiveTenantsCount = statsResult.Value.InactiveTenantsCount,
+                OrganizationsCount = statsResult.Value.OrganizationsCount,
+                ActiveOrganizationsCount = statsResult.Value.ActiveOrganizationsCount,
+                InactiveOrganizationsCount = statsResult.Value.InactiveOrganizationsCount,
+                UsersCount = statsResult.Value.UsersCount,
+                ActiveUsersCount = statsResult.Value.ActiveUsersCount,
+                BlockedUsersCount = statsResult.Value.BlockedUsersCount,
+                TenantStats = statsResult.Value.TenantStats,
+                UserStats = statsResult.Value.UserStats,
+                OrganizationStats = statsResult.Value.OrganizationStats,
+                ActivityStats = statsResult.Value.ActivityStats,
+                NotificationStats = statsResult.Value.NotificationStats,
+                SystemStats = statsResult.Value.SystemStats
             };
         });
 
@@ -253,27 +259,7 @@ public sealed class PlatformService : BaseService, IPlatformService
                 OrderBy = query => query.OrderBy(user => user.Id),
                 Skip = (page - 1) * pageSize,
                 Take = pageSize,
-                Selector = user => new PlatformUserDto
-                {
-                    Id = user.Id,
-                    UserName = user.UserName,
-                    PhoneNumber = user.PhoneNumber,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    RoleId = user.RoleId,
-                    RoleName = user.Role.FullName,
-                    HasGlobalAccess = user.Role.HasGlobalAccess,
-                    EmailVerified = user.EmailVerified,
-                    EmailVerifiedAt = user.EmailVerifiedAt,
-                    IsPlatformAdmin = user.IsPlatformAdmin,
-                    Timezone = user.Timezone,
-                    LastAccessTime = user.LastAccessTime,
-                    StateId = user.StateId,
-                    StateName = user.State.FullName,
-                    CreatedDate = user.CreatedDate,
-                    OrganizationsCount = user.UserOrganizations.Count(uo => uo.StateId == StateIdConst.ACTIVE)
-                }
+                Selector = PlatformUserDtoProjection.Summary
             };
 
             var paged = await _userQuery.GetPagedAsync(spec, ct);
@@ -286,142 +272,37 @@ public sealed class PlatformService : BaseService, IPlatformService
             if (!_userContext.HasGlobalAccess)
                 return Result.Failure<PlatformUserDetailDto>(PlatformErrors.GlobalAccessRequired());
 
-            var user = await _userQuery.GetAsync(new QuerySpecification<User, PlatformUserDetailDto>
+            var user = await _userQuery.GetAsync(new QuerySpecification<User, PlatformUserDto>
             {
                 Criteria = x => x.Id == id,
-                Selector = x => new PlatformUserDetailDto
-                {
-                    Id = x.Id,
-                    UserName = x.UserName,
-                    PhoneNumber = x.PhoneNumber,
-                    Email = x.Email,
-                    FirstName = x.FirstName,
-                    LastName = x.LastName,
-                    RoleId = x.RoleId,
-                    RoleName = x.Role.FullName,
-                    HasGlobalAccess = x.Role.HasGlobalAccess,
-                    EmailVerified = x.EmailVerified,
-                    EmailVerifiedAt = x.EmailVerifiedAt,
-                    IsPlatformAdmin = x.IsPlatformAdmin,
-                    Timezone = x.Timezone,
-                    LastAccessTime = x.LastAccessTime,
-                    StateId = x.StateId,
-                    StateName = x.State.FullName,
-                    CreatedDate = x.CreatedDate,
-                    OrganizationsCount = x.UserOrganizations.Count(uo => uo.StateId == StateIdConst.ACTIVE)
-                }
+                Selector = PlatformUserDtoProjection.Summary
             }, ct);
 
             if (user is null)
                 return Result.Failure<PlatformUserDetailDto>(PlatformErrors.UserNotFound(id));
 
-            user.Organizations = await GetUserMembershipDtosAsync(id, ct);
-            return user;
+            return CreatePlatformUserDetailDto(user, await GetUserMembershipDtosAsync(id, ct));
         });
 
     public Task<Result<int>> CreateUserAsync(PlatformUserCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateUserAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
+            var coreResult = await _userManagementCore.CreateUserAsync(
+                MapUserCreateRequest(dto),
+                UserManagementOptions.ForGlobal(),
+                ct);
 
-            var userName = dto.UserName.Trim();
-            var exists = await _userQuery.AnyAsync(x => x.UserName == userName, ct);
-            if (exists)
-                return Result.Failure<int>(PlatformErrors.UserNameConflict(userName));
-
-            var roleValidation = await ValidateRoleAsync(dto.RoleId, ct);
-            if (roleValidation is not null)
-                return Result.Failure<int>(roleValidation);
-
-            var memberships = NormalizeMemberships(dto.Organizations);
-            var membershipValidation = await ValidateMembershipsAsync(memberships, ct);
-            if (membershipValidation is not null)
-                return Result.Failure<int>(membershipValidation);
-
-            var now = DateTime.Now;
-            var salt = _passwordHasher.GenerateSalt();
-            var user = new User
-            {
-                UserName = userName,
-                PhoneNumber = dto.PhoneNumber.Trim(),
-                Email = dto.Email,
-                FirstName = dto.FirstName.Trim(),
-                LastName = dto.LastName.Trim(),
-                RoleId = dto.RoleId,
-                LanguageId = dto.LanguageId,
-                OrganizationId = GetDefaultOrganizationId(memberships),
-                EmailVerified = dto.EmailVerified,
-                EmailVerifiedAt = dto.EmailVerified ? now : null,
-                IsPlatformAdmin = dto.IsPlatformAdmin,
-                Timezone = dto.Timezone,
-                PasswordSalt = salt,
-                PasswordHash = _passwordHasher.Hash(dto.Password, salt),
-                StateId = StateIdConst.ACTIVE,
-                CreatedDate = now
-            };
-
-            await _userCommand.CreateAsync(user, ct);
-            await SyncUserMembershipsAsync(user.Id, memberships, replaceExisting: false, ct);
-
-            return user.Id;
+            return coreResult.IsSuccess
+                ? coreResult.Value.UserId
+                : Result.Failure<int>(coreResult.Error);
         }, ct);
 
     public Task<Result> UpdateUserAsync(int id, PlatformUserUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteInTransactionAsync(nameof(UpdateUserAsync), async () =>
-        {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
-
-            var user = await _userQuery.GetAsync(new QuerySpecification<User> { Criteria = x => x.Id == id }, ct);
-            if (user is null)
-                return Result.Failure(PlatformErrors.UserNotFound(id));
-
-            var userName = dto.UserName.Trim();
-            if (!string.Equals(user.UserName, userName, StringComparison.OrdinalIgnoreCase))
-            {
-                var exists = await _userQuery.AnyAsync(x => x.Id != id && x.UserName == userName, ct);
-                if (exists)
-                    return Result.Failure(PlatformErrors.UserNameConflict(userName));
-            }
-
-            var roleValidation = await ValidateRoleAsync(dto.RoleId, ct);
-            if (roleValidation is not null)
-                return Result.Failure(roleValidation);
-
-            List<PlatformUserOrganizationCreateDto>? memberships = null;
-            if (dto.Organizations is not null)
-            {
-                memberships = NormalizeMemberships(dto.Organizations);
-                var membershipValidation = await ValidateMembershipsAsync(memberships, ct);
-                if (membershipValidation is not null)
-                    return Result.Failure(membershipValidation);
-            }
-
-            var now = DateTime.Now;
-            user.UserName = userName;
-            user.PhoneNumber = dto.PhoneNumber.Trim();
-            user.Email = dto.Email;
-            user.FirstName = dto.FirstName.Trim();
-            user.LastName = dto.LastName.Trim();
-            user.RoleId = dto.RoleId;
-            user.LanguageId = dto.LanguageId;
-            user.EmailVerified = dto.EmailVerified;
-            user.EmailVerifiedAt = dto.EmailVerified ? user.EmailVerifiedAt ?? now : null;
-            user.IsPlatformAdmin = dto.IsPlatformAdmin;
-            user.Timezone = dto.Timezone;
-            user.StateId = dto.StateId;
-
-            if (memberships is not null)
-                user.OrganizationId = GetDefaultOrganizationId(memberships);
-
-            await _userCommand.UpdateAsync(user, ct);
-
-            if (memberships is not null)
-                await SyncUserMembershipsAsync(user.Id, memberships, replaceExisting: true, ct);
-
-            return Result.Success();
-        }, ct);
+        ExecuteInTransactionAsync(nameof(UpdateUserAsync), () =>
+            _userManagementCore.UpdateUserAsync(
+                MapUserUpdateRequest(id, dto),
+                UserManagementOptions.ForGlobal(),
+                ct), ct);
 
     public Task<Result> BlockUserAsync(int id, CancellationToken ct = default) =>
         ChangeUserStateAsync(id, StateIdConst.PASSIVE, nameof(BlockUserAsync), ct);
@@ -475,97 +356,31 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PlatformOrganizationDetailDto>> GetOrganizationByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetOrganizationByIdAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.GlobalAccessRequired());
+            var organizationResult = await _organizationManagementCore.GetOrganizationAsync(
+                id,
+                OrganizationManagementOptions.ForGlobal(includeDetails: true),
+                ct);
+            if (!organizationResult.IsSuccess)
+                return Result.Failure<PlatformOrganizationDetailDto>(organizationResult.Error);
 
-            var organization = await GetOrganizationEntityAsync(id, ct);
-            if (organization is null)
-                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.OrganizationNotFound(id));
-
-            var baseDto = await MapOrganizationAsync(organization, ct);
+            var baseDto = await MapOrganizationAsync(organizationResult.Value, ct);
             var setup = await _setupStateQuery.GetAsync(new QuerySpecification<OrganizationSetupState>
             {
                 Criteria = x => x.OrganizationId == id
             }, ct);
 
-            return new PlatformOrganizationDetailDto
-            {
-                Id = baseDto.Id,
-                ShortName = baseDto.ShortName,
-                FullName = baseDto.FullName,
-                Inn = baseDto.Inn,
-                PhoneNumber = baseDto.PhoneNumber,
-                RegionId = baseDto.RegionId,
-                RegionName = baseDto.RegionName,
-                DistrictId = baseDto.DistrictId,
-                DistrictName = baseDto.DistrictName,
-                Address = baseDto.Address,
-                Director = baseDto.Director,
-                IsParent = baseDto.IsParent,
-                StateId = baseDto.StateId,
-                StateName = baseDto.StateName,
-                DefaultLanguageId = baseDto.DefaultLanguageId,
-                DefaultLanguageName = baseDto.DefaultLanguageName,
-                TenantId = baseDto.TenantId,
-                TenantName = baseDto.TenantName,
-                SetupStatus = baseDto.SetupStatus,
-                SetupCompletedAt = baseDto.SetupCompletedAt,
-                Email = baseDto.Email,
-                Website = baseDto.Website,
-                Oked = baseDto.Oked,
-                CreatedDate = baseDto.CreatedDate,
-                UsersCount = baseDto.UsersCount,
-                Users = await GetOrganizationMembershipDtosAsync(id, ct),
-                Setup = setup is null ? null : MapSetup(setup)
-            };
+            return CreatePlatformOrganizationDetailDto(
+                baseDto,
+                await GetOrganizationMembershipDtosAsync(id, ct),
+                setup is null ? null : MapSetup(setup));
         });
 
     public Task<Result> UpdateOrganizationAsync(int id, PlatformOrganizationUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(UpdateOrganizationAsync), async () =>
-        {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
-
-            var organization = await GetOrganizationEntityAsync(id, ct);
-            if (organization is null)
-                return Result.Failure(PlatformErrors.OrganizationNotFound(id));
-
-            var inn = dto.Inn.Trim();
-            if (!string.Equals(organization.Inn, inn, StringComparison.OrdinalIgnoreCase))
-            {
-                var exists = await _organizationQuery.AnyAsync(x => x.Id != id && x.Inn == inn, ct);
-                if (exists)
-                    return Result.Failure(PlatformErrors.OrganizationInnConflict(inn));
-            }
-
-            if (dto.TenantId.HasValue)
-            {
-                var tenantExists = await _tenantQuery.AnyAsync(x => x.Id == dto.TenantId.Value, ct);
-                if (!tenantExists)
-                    return Result.Failure(PlatformErrors.TenantNotFound(dto.TenantId.Value));
-            }
-
-            organization.ShortName = dto.ShortName.Trim();
-            organization.FullName = dto.FullName.Trim();
-            organization.Inn = inn;
-            organization.PhoneNumber = dto.PhoneNumber;
-            organization.RegionId = dto.RegionId;
-            organization.DistrictId = dto.DistrictId;
-            organization.Address = dto.Address;
-            organization.Director = dto.Director;
-            organization.IsParent = dto.IsParent;
-            organization.DefaultLanguageId = dto.DefaultLanguageId;
-            organization.TenantId = dto.TenantId;
-            organization.SetupStatus = string.IsNullOrWhiteSpace(dto.SetupStatus) ? organization.SetupStatus : dto.SetupStatus.Trim();
-            organization.SetupCompletedAt = dto.SetupCompletedAt;
-            organization.Email = dto.Email;
-            organization.Website = dto.Website;
-            organization.Oked = dto.Oked;
-            organization.StateId = dto.StateId;
-
-            await _organizationCommand.UpdateAsync(organization, ct);
-            return Result.Success();
-        });
+        ExecuteAsync(nameof(UpdateOrganizationAsync), () =>
+            _organizationManagementCore.UpdateOrganizationAsync(
+                MapOrganizationUpdateRequest(id, dto),
+                OrganizationManagementOptions.ForGlobal(),
+                ct));
 
     public Task<Result> ActivateOrganizationAsync(int id, CancellationToken ct = default) =>
         ChangeOrganizationStateAsync(id, StateIdConst.ACTIVE, setupStatus: null, nameof(ActivateOrganizationAsync), ct);
@@ -587,17 +402,9 @@ public sealed class PlatformService : BaseService, IPlatformService
             if (slugExists)
                 return Result.Failure<AccountantWorkspaceDto>(PlatformErrors.TenantSlugConflict(slug));
 
-            var userNameExists = await _userQuery.AnyAsync(x => x.UserName == dto.UserName, ct);
-            if (userNameExists)
-                return Result.Failure<AccountantWorkspaceDto>(PlatformErrors.UserNameConflict(dto.UserName));
-
             var innExists = await _organizationQuery.AnyAsync(x => x.Inn == dto.Inn, ct);
             if (innExists)
                 return Result.Failure<AccountantWorkspaceDto>(PlatformErrors.OrganizationInnConflict(dto.Inn));
-
-            var roleExists = await _roleQuery.AnyAsync(x => x.Id == dto.RoleId && x.StateId == StateIdConst.ACTIVE, ct);
-            if (!roleExists)
-                return Result.Failure<AccountantWorkspaceDto>(PlatformErrors.RoleNotFound(dto.RoleId));
 
             var accountingValidation = await ValidateAccountingReferencesAsync(dto.AccountingPolicyId, dto.BaseCurrencyId, ct);
             if (accountingValidation is not null)
@@ -633,31 +440,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             };
             await _tenantCommand.CreateAsync(tenant, ct);
 
-            var salt = _passwordHasher.GenerateSalt();
-            var user = new User
-            {
-                UserName = dto.UserName.Trim(),
-                PhoneNumber = dto.PhoneNumber.Trim(),
-                Email = dto.Email,
-                FirstName = dto.FirstName.Trim(),
-                LastName = dto.LastName.Trim(),
-                RoleId = dto.RoleId,
-                LanguageId = dto.LanguageId,
-                EmailVerified = !string.IsNullOrWhiteSpace(dto.Email),
-                EmailVerifiedAt = !string.IsNullOrWhiteSpace(dto.Email) ? now : null,
-                IsPlatformAdmin = false,
-                Timezone = dto.Timezone,
-                PasswordSalt = salt,
-                PasswordHash = _passwordHasher.Hash(dto.Password, salt),
-                StateId = StateIdConst.ACTIVE,
-                CreatedDate = now
-            };
-            await _userCommand.CreateAsync(user, ct);
-
-            tenant.OwnerUserId = user.Id;
-            tenant.UpdatedDate = now;
-            await _tenantCommand.UpdateAsync(tenant, ct);
-
             var isCompleted = dto.CompleteSetup;
             var organization = new Organization
             {
@@ -682,71 +464,76 @@ public sealed class PlatformService : BaseService, IPlatformService
             };
             await _organizationCommand.CreateAsync(organization, ct);
 
-            user.OrganizationId = organization.Id;
-            await _userCommand.UpdateAsync(user, ct);
+            var userResult = await _userManagementCore.CreateUserAsync(
+                MapWorkspaceOwnerCreateRequest(dto, organization.Id),
+                UserManagementOptions.ForGlobal(),
+                ct);
+            if (!userResult.IsSuccess)
+                return Result.Failure<AccountantWorkspaceDto>(userResult.Error);
 
-            var membership = new UserOrganization
-            {
-                UserId = user.Id,
-                OrganizationId = organization.Id,
-                RoleId = dto.RoleId,
-                IsDefault = true,
-                IsOwner = true,
-                StateId = StateIdConst.ACTIVE,
-                CreatedDate = now,
-                JoinedAt = now
-            };
-            await _userOrganizationCommand.CreateAsync(membership, ct);
-
-            if (hasTax && dto.TaxTypeId.HasValue)
-            {
-                await _taxSettingCommand.CreateAsync(new OrganizationTaxSetting
-                {
-                    OrganizationId = organization.Id,
-                    TaxTypeId = dto.TaxTypeId.Value,
-                    IsVatPayer = dto.IsVatPayer,
-                    VatRegistrationNumber = dto.VatRegistrationNumber,
-                    EffectiveFrom = dto.TaxEffectiveFrom ?? DateOnly.FromDateTime(now),
-                    EffectiveTo = dto.TaxEffectiveTo,
-                    StateId = StateIdConst.ACTIVE,
-                    CreatedDate = now
-                }, ct);
-            }
+            tenant.OwnerUserId = userResult.Value.UserId;
+            tenant.UpdatedDate = now;
+            await _tenantCommand.UpdateAsync(tenant, ct);
 
             if (hasAccounting)
             {
                 var method = NormalizeInventoryValuationMethod(dto.InventoryValuationMethod ?? "fifo");
                 if (!InventoryValuationMethods.Contains(method))
                     return Result.Failure<AccountantWorkspaceDto>(PlatformErrors.InvalidInventoryValuationMethod(method));
-
-                await _configCommand.CreateAsync(new OrganizationConfig
-                {
-                    OrganizationId = organization.Id,
-                    InventoryValuationMethod = method,
-                    AccountingPolicyId = dto.AccountingPolicyId,
-                    BaseCurrencyId = dto.BaseCurrencyId,
-                    AccountingStartDate = dto.AccountingStartDate,
-                    FiscalYearStartMonth = dto.FiscalYearStartMonth <= 0 ? (short)1 : dto.FiscalYearStartMonth
-                }, ct);
             }
 
-            if (hasDefaults && dto.Defaults is not null)
-                await _defaultCommand.CreateAsync(CreateDefaultsEntity(organization.Id, dto.Defaults, now), ct);
-
-            await _setupStateCommand.CreateAsync(new OrganizationSetupState
-            {
-                OrganizationId = organization.Id,
-                CurrentStep = ResolveCurrentStep(true, hasTax, hasAccounting, hasDefaults, true, isCompleted),
-                OrganizationCompleted = true,
-                TaxCompleted = hasTax,
-                AccountingCompleted = hasAccounting,
-                DefaultsCompleted = hasDefaults,
-                UsersCompleted = true,
-                IsCompleted = isCompleted,
-                CompletedAt = isCompleted ? now : null,
-                CreatedDate = now,
-                UpdatedDate = now
-            }, ct);
+            await _organizationSetupCore.SeedWorkspaceSetupAsync(
+                new WorkspaceSetupInitializationRequest
+                {
+                    OrganizationId = organization.Id,
+                    HasTax = hasTax,
+                    TaxSettings = hasTax && dto.TaxTypeId.HasValue
+                        ? new OrganizationSetupTaxSettingsWriteModel
+                        {
+                            TaxTypeId = dto.TaxTypeId.Value,
+                            IsVatPayer = dto.IsVatPayer,
+                            VatRegistrationNumber = dto.VatRegistrationNumber,
+                            EffectiveFrom = dto.TaxEffectiveFrom ?? DateOnly.FromDateTime(now),
+                            EffectiveTo = dto.TaxEffectiveTo,
+                            StateId = StateIdConst.ACTIVE,
+                            CreatedDate = now
+                        }
+                        : null,
+                    HasAccounting = hasAccounting,
+                    AccountingPolicy = hasAccounting
+                        ? new OrganizationSetupAccountingPolicyWriteModel
+                        {
+                            InventoryValuationMethod = NormalizeInventoryValuationMethod(dto.InventoryValuationMethod ?? "fifo"),
+                            AccountingPolicyId = dto.AccountingPolicyId,
+                            BaseCurrencyId = dto.BaseCurrencyId,
+                            AccountingStartDate = dto.AccountingStartDate,
+                            FiscalYearStartMonth = dto.FiscalYearStartMonth
+                        }
+                        : null,
+                    HasDefaults = hasDefaults,
+                    Defaults = hasDefaults && dto.Defaults is not null
+                        ? new OrganizationSetupDefaultsWriteModel
+                        {
+                            BranchId = dto.Defaults.BranchId,
+                            WarehouseId = dto.Defaults.WarehouseId,
+                            CashBoxId = dto.Defaults.CashBoxId,
+                            BankAccountId = dto.Defaults.BankAccountId,
+                            ReceivableAccountId = dto.Defaults.ReceivableAccountId,
+                            PayableAccountId = dto.Defaults.PayableAccountId,
+                            InventoryAccountId = dto.Defaults.InventoryAccountId,
+                            CashAccountId = dto.Defaults.CashAccountId,
+                            BankAccountingAccountId = dto.Defaults.BankAccountingAccountId,
+                            RevenueAccountId = dto.Defaults.RevenueAccountId,
+                            ExpenseAccountId = dto.Defaults.ExpenseAccountId,
+                            CogsAccountId = dto.Defaults.CogsAccountId,
+                            CreatedDate = now
+                        }
+                        : null,
+                    UsersCompleted = true,
+                    IsCompleted = isCompleted,
+                    Timestamp = now
+                },
+                ct);
 
             var workspace = await BuildWorkspaceDtoAsync(organization.Id, ct);
             return workspace!;
@@ -882,30 +669,137 @@ public sealed class PlatformService : BaseService, IPlatformService
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
-            var tableName = filter.TableName?.Trim().ToLowerInvariant();
-            var recordId = filter.RecordId?.Trim().ToLowerInvariant();
-            var action = filter.Action?.Trim().ToLowerInvariant();
+            var result = await _auditLogQueryCore.QueryPagedAsync(
+                new AuditLogQueryFilter
+                {
+                    OrganizationId = filter.OrganizationId,
+                    UserId = filter.UserId,
+                    ChangedUserId = filter.ChangedUserId,
+                    EntityType = filter.EntityType,
+                    TableName = filter.TableName,
+                    EntityId = filter.EntityId,
+                    RecordId = filter.RecordId,
+                    Action = filter.Action,
+                    SearchText = filter.SearchText,
+                    FromDate = filter.FromDate,
+                    ToDate = filter.ToDate
+                },
+                AuditLogQueryOptions.ForGlobal(),
+                new AuditLogQueryPagination
+                {
+                    Page = page,
+                    PageSize = pageSize
+                },
+                ct);
 
-            var spec = new PagedQuerySpecification<AuditLog>
-            {
-                Criteria = log =>
-                    (!filter.OrganizationId.HasValue || log.OrganizationId == filter.OrganizationId.Value)
-                    && (!filter.ChangedUserId.HasValue || log.ChangedUserId == filter.ChangedUserId.Value)
-                    && (string.IsNullOrWhiteSpace(tableName) || log.TableName.ToLower().Contains(tableName))
-                    && (string.IsNullOrWhiteSpace(recordId) || (log.RecordId != null && log.RecordId.ToLower().Contains(recordId)))
-                    && (string.IsNullOrWhiteSpace(action) || log.Action.ToLower() == action)
-                    && (!filter.FromDate.HasValue || log.ChangedDate >= filter.FromDate.Value)
-                    && (!filter.ToDate.HasValue || log.ChangedDate <= filter.ToDate.Value),
-                OrderBy = query => query.OrderByDescending(log => log.ChangedDate),
-                Skip = (page - 1) * pageSize,
-                Take = pageSize
-            };
+            if (!result.IsSuccess)
+                return Result.Failure<PagedResponse<PlatformAuditLogDto>>(result.Error);
 
-            var paged = await _auditLogQuery.GetPagedAsync(spec, ct);
-            var items = await MapAuditLogsAsync(paged.Items, ct);
-
-            return PagedResponseFactory.Create(new PagedList<PlatformAuditLogDto>(items, paged.TotalCount), page, pageSize);
+            var items = result.Value.Items.Select(CreatePlatformAuditLogDto).ToList();
+            return PagedResponseFactory.Create(new PagedList<PlatformAuditLogDto>(items, result.Value.TotalCount), page, pageSize);
         });
+
+    private static UserManagementCreateRequest MapUserCreateRequest(PlatformUserCreateDto dto) =>
+        new()
+        {
+            UserName = dto.UserName,
+            Password = dto.Password,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            LanguageId = dto.LanguageId,
+            EmailVerified = dto.EmailVerified,
+            IsPlatformAdmin = dto.IsPlatformAdmin,
+            Timezone = dto.Timezone,
+            Organizations = dto.Organizations
+                .Select(item => new UserManagementMembershipRequest
+                {
+                    OrganizationId = item.OrganizationId,
+                    RoleId = item.RoleId,
+                    IsDefault = item.IsDefault,
+                    IsOwner = item.IsOwner,
+                    InvitedByUserId = item.InvitedByUserId
+                })
+                .ToList()
+        };
+
+    private static UserManagementUpdateRequest MapUserUpdateRequest(int id, PlatformUserUpdateDto dto) =>
+        new()
+        {
+            UserId = id,
+            UserName = dto.UserName,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            LanguageId = dto.LanguageId,
+            EmailVerified = dto.EmailVerified,
+            IsPlatformAdmin = dto.IsPlatformAdmin,
+            Timezone = dto.Timezone,
+            StateId = dto.StateId,
+            Organizations = dto.Organizations?
+                .Select(item => new UserManagementMembershipRequest
+                {
+                    OrganizationId = item.OrganizationId,
+                    RoleId = item.RoleId,
+                    IsDefault = item.IsDefault,
+                    IsOwner = item.IsOwner,
+                    InvitedByUserId = item.InvitedByUserId
+                })
+                .ToList()
+        };
+
+    private static UserManagementCreateRequest MapWorkspaceOwnerCreateRequest(AccountantWorkspaceCreateDto dto, int organizationId) =>
+        new()
+        {
+            UserName = dto.UserName,
+            Password = dto.Password,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            LanguageId = dto.LanguageId,
+            EmailVerified = !string.IsNullOrWhiteSpace(dto.Email),
+            IsPlatformAdmin = false,
+            Timezone = dto.Timezone,
+            Organizations =
+            [
+                new UserManagementMembershipRequest
+                {
+                    OrganizationId = organizationId,
+                    RoleId = dto.RoleId,
+                    IsDefault = true,
+                    IsOwner = true
+                }
+            ]
+        };
+
+    private static OrganizationManagementUpdateRequest MapOrganizationUpdateRequest(int id, PlatformOrganizationUpdateDto dto) =>
+        new()
+        {
+            OrganizationId = id,
+            ShortName = dto.ShortName,
+            FullName = dto.FullName,
+            Inn = dto.Inn,
+            PhoneNumber = dto.PhoneNumber,
+            RegionId = dto.RegionId,
+            DistrictId = dto.DistrictId,
+            Address = dto.Address,
+            Director = dto.Director,
+            IsParent = dto.IsParent,
+            DefaultLanguageId = dto.DefaultLanguageId,
+            TenantId = dto.TenantId,
+            SetupStatus = dto.SetupStatus,
+            SetupCompletedAt = dto.SetupCompletedAt,
+            Email = dto.Email,
+            Website = dto.Website,
+            Oked = dto.Oked,
+            StateId = dto.StateId
+        };
 
     private Task<Result> ChangeUserStateAsync(int id, short stateId, string operationName, CancellationToken ct) =>
         ExecuteAsync(operationName, async () =>
@@ -925,12 +819,14 @@ public sealed class PlatformService : BaseService, IPlatformService
     private Task<Result> ChangeOrganizationStateAsync(int id, short stateId, string? setupStatus, string operationName, CancellationToken ct) =>
         ExecuteAsync(operationName, async () =>
         {
-            if (!_userContext.HasGlobalAccess)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+            var organizationResult = await _organizationManagementCore.GetOrganizationAsync(
+                id,
+                OrganizationManagementOptions.ForGlobal(),
+                ct);
+            if (!organizationResult.IsSuccess)
+                return Result.Failure(organizationResult.Error);
 
-            var organization = await GetOrganizationEntityAsync(id, ct);
-            if (organization is null)
-                return Result.Failure(PlatformErrors.OrganizationNotFound(id));
+            var organization = organizationResult.Value;
 
             organization.StateId = stateId;
             if (!string.IsNullOrWhiteSpace(setupStatus))
@@ -968,20 +864,6 @@ public sealed class PlatformService : BaseService, IPlatformService
 
     private async Task<PlatformTenant?> GetTenantEntityAsync(int id, CancellationToken ct) =>
         await _tenantQuery.GetAsync(new QuerySpecification<PlatformTenant> { Criteria = x => x.Id == id }, ct);
-
-    private async Task<Organization?> GetOrganizationEntityAsync(int id, CancellationToken ct)
-    {
-        var spec = new QuerySpecification<Organization> { Criteria = x => x.Id == id };
-        spec.AddIncludes(b =>
-        {
-            b.Include(x => x.Region);
-            b.Include(x => x.District);
-            b.Include(x => x.State);
-            b.Include(x => x.DefaultLanguage);
-        });
-
-        return await _organizationQuery.GetAsync(spec, ct);
-    }
 
     private async Task<PlatformTenantDto> MapTenantAsync(PlatformTenant tenant, CancellationToken ct)
     {
@@ -1074,14 +956,14 @@ public sealed class PlatformService : BaseService, IPlatformService
             Inn = organization.Inn,
             PhoneNumber = organization.PhoneNumber,
             RegionId = organization.RegionId,
-            RegionName = organization.Region?.FullName,
+            RegionName = organization.Region?.FullName ?? string.Empty,
             DistrictId = organization.DistrictId,
             DistrictName = organization.District?.FullName,
             Address = organization.Address,
             Director = organization.Director,
             IsParent = organization.IsParent,
             StateId = organization.StateId,
-            StateName = organization.State?.FullName,
+            StateName = organization.State?.FullName ?? string.Empty,
             DefaultLanguageId = organization.DefaultLanguageId,
             DefaultLanguageName = organization.DefaultLanguage?.Name,
             TenantId = organization.TenantId,
@@ -1144,18 +1026,7 @@ public sealed class PlatformService : BaseService, IPlatformService
                 StateId = organization.StateId,
                 CreatedDate = organization.CreatedDate
             },
-            User = new PlatformUserDto
-            {
-                Id = user.Id,
-                UserName = user.UserName,
-                PhoneNumber = user.PhoneNumber,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                RoleId = user.RoleId,
-                RoleName = null,
-                StateId = user.StateId
-            },
+            User = CreateWorkspaceUserDto(user),
             Membership = MapMembership(membership),
             Setup = setup is null
                 ? new PlatformWorkspaceSetupDto { CurrentStep = "organization" }
@@ -1191,38 +1062,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             var roleExists = await _roleQuery.AnyAsync(x => x.Id == roleId.Value && x.StateId == StateIdConst.ACTIVE, ct);
             if (!roleExists)
                 return PlatformErrors.RoleNotFound(roleId.Value);
-        }
-
-        return null;
-    }
-
-    private async Task<Error?> ValidateRoleAsync(int roleId, CancellationToken ct)
-    {
-        var roleExists = await _roleQuery.AnyAsync(x => x.Id == roleId && x.StateId == StateIdConst.ACTIVE, ct);
-        return roleExists ? null : PlatformErrors.RoleNotFound(roleId);
-    }
-
-    private async Task<Error?> ValidateMembershipsAsync(List<PlatformUserOrganizationCreateDto> memberships, CancellationToken ct)
-    {
-        foreach (var membership in memberships)
-        {
-            var organizationExists = await _organizationQuery.AnyAsync(x => x.Id == membership.OrganizationId, ct);
-            if (!organizationExists)
-                return PlatformErrors.OrganizationNotFound(membership.OrganizationId);
-
-            if (membership.RoleId.HasValue)
-            {
-                var roleValidation = await ValidateRoleAsync(membership.RoleId.Value, ct);
-                if (roleValidation is not null)
-                    return roleValidation;
-            }
-
-            if (membership.InvitedByUserId.HasValue)
-            {
-                var userExists = await _userQuery.AnyAsync(x => x.Id == membership.InvitedByUserId.Value, ct);
-                if (!userExists)
-                    return PlatformErrors.UserNotFound(membership.InvitedByUserId.Value);
-            }
         }
 
         return null;
@@ -1299,58 +1138,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             }
         }, ct);
 
-    private async Task SyncUserMembershipsAsync(int userId, List<PlatformUserOrganizationCreateDto> memberships, bool replaceExisting, CancellationToken ct)
-    {
-        var now = DateTime.Now;
-        var existing = await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization>
-        {
-            Criteria = x => x.UserId == userId
-        }, ct);
-
-        var requestedOrgIds = memberships.Select(x => x.OrganizationId).ToHashSet();
-        var toUpdate = new List<UserOrganization>();
-        var toCreate = new List<UserOrganization>();
-
-        if (replaceExisting)
-        {
-            foreach (var item in existing.Where(x => !requestedOrgIds.Contains(x.OrganizationId)))
-            {
-                item.IsDefault = false;
-                item.StateId = StateIdConst.PASSIVE;
-                item.BlockedAt ??= now;
-                toUpdate.Add(item);
-            }
-        }
-
-        foreach (var dto in memberships)
-        {
-            var item = existing.FirstOrDefault(x => x.OrganizationId == dto.OrganizationId);
-            if (item is null)
-            {
-                item = new UserOrganization
-                {
-                    UserId = userId,
-                    OrganizationId = dto.OrganizationId,
-                    CreatedDate = now,
-                    JoinedAt = now
-                };
-                ApplyMembershipCreateDto(item, dto, now);
-                toCreate.Add(item);
-            }
-            else
-            {
-                ApplyMembershipCreateDto(item, dto, now);
-                toUpdate.Add(item);
-            }
-        }
-
-        if (toCreate.Count > 0)
-            await _userOrganizationCommand.CreateAsync(toCreate, ct);
-
-        if (toUpdate.Count > 0)
-            await _userOrganizationCommand.UpdateAsync(toUpdate, ct);
-    }
-
     private async Task ClearUserDefaultOrganizationsAsync(int userId, CancellationToken ct)
     {
         var defaults = await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization>
@@ -1377,47 +1164,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             membership.JoinedAt = now;
     }
 
-    private static List<PlatformUserOrganizationCreateDto> NormalizeMemberships(IEnumerable<PlatformUserOrganizationCreateDto> memberships)
-    {
-        var normalized = memberships
-            .Where(x => x.OrganizationId > 0)
-            .GroupBy(x => x.OrganizationId)
-            .Select(x => x.First())
-            .Select(x => new PlatformUserOrganizationCreateDto
-            {
-                OrganizationId = x.OrganizationId,
-                RoleId = x.RoleId,
-                IsDefault = x.IsDefault,
-                IsOwner = x.IsOwner,
-                InvitedByUserId = x.InvitedByUserId
-            })
-            .ToList();
-
-        if (normalized.Count == 0)
-            return normalized;
-
-        var defaultAssigned = false;
-        foreach (var item in normalized)
-        {
-            if (!defaultAssigned && item.IsDefault)
-            {
-                defaultAssigned = true;
-                continue;
-            }
-
-            item.IsDefault = false;
-        }
-
-        if (!defaultAssigned)
-            normalized[0].IsDefault = true;
-
-        return normalized;
-    }
-
-    private static int? GetDefaultOrganizationId(List<PlatformUserOrganizationCreateDto> memberships) =>
-        memberships.FirstOrDefault(x => x.IsDefault)?.OrganizationId
-        ?? memberships.FirstOrDefault()?.OrganizationId;
-
     private static PlatformUserOrganizationDto MapMembership(UserOrganization membership) =>
         new()
         {
@@ -1433,44 +1179,88 @@ public sealed class PlatformService : BaseService, IPlatformService
             BlockedAt = membership.BlockedAt
         };
 
-    private async Task<List<PlatformAuditLogDto>> MapAuditLogsAsync(List<AuditLog> logs, CancellationToken ct)
-    {
-        var userIds = logs
-            .Where(x => x.ChangedUserId.HasValue)
-            .Select(x => x.ChangedUserId!.Value)
-            .Distinct()
-            .ToList();
+    private static PlatformUserDetailDto CreatePlatformUserDetailDto(
+        PlatformUserDto dto,
+        List<PlatformUserOrganizationDto> organizations) =>
+        new()
+        {
+            Id = dto.Id,
+            UserName = dto.UserName,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            EmailVerified = dto.EmailVerified,
+            EmailVerifiedAt = dto.EmailVerifiedAt,
+            LastLoginIp = dto.LastLoginIp,
+            IsPlatformAdmin = dto.IsPlatformAdmin,
+            Timezone = dto.Timezone,
+            LastAccessTime = dto.LastAccessTime,
+            StateId = dto.StateId,
+            CreatedDate = dto.CreatedDate,
+            RoleName = dto.RoleName,
+            HasGlobalAccess = dto.HasGlobalAccess,
+            StateName = dto.StateName,
+            OrganizationsCount = dto.OrganizationsCount,
+            Organizations = organizations
+        };
 
-        var organizationIds = logs
-            .Where(x => x.OrganizationId.HasValue)
-            .Select(x => x.OrganizationId!.Value)
-            .Distinct()
-            .ToList();
+    private static PlatformOrganizationDetailDto CreatePlatformOrganizationDetailDto(
+        PlatformOrganizationDto dto,
+        List<PlatformUserOrganizationDto> users,
+        PlatformWorkspaceSetupDto? setup) =>
+        new()
+        {
+            Id = dto.Id,
+            ShortName = dto.ShortName,
+            FullName = dto.FullName,
+            Inn = dto.Inn,
+            PhoneNumber = dto.PhoneNumber,
+            RegionId = dto.RegionId,
+            RegionName = dto.RegionName,
+            DistrictId = dto.DistrictId,
+            DistrictName = dto.DistrictName,
+            Address = dto.Address,
+            Director = dto.Director,
+            IsParent = dto.IsParent,
+            StateId = dto.StateId,
+            StateName = dto.StateName,
+            DefaultLanguageId = dto.DefaultLanguageId,
+            DefaultLanguageName = dto.DefaultLanguageName,
+            TenantId = dto.TenantId,
+            SetupStatus = dto.SetupStatus,
+            SetupCompletedAt = dto.SetupCompletedAt,
+            Email = dto.Email,
+            Website = dto.Website,
+            Oked = dto.Oked,
+            CreatedDate = dto.CreatedDate,
+            TenantName = dto.TenantName,
+            UsersCount = dto.UsersCount,
+            Users = users,
+            Setup = setup
+        };
 
-        var users = userIds.Count == 0
-            ? new List<User>()
-            : await _userQuery.GetAllAsync(new QuerySpecification<User>
-            {
-                Criteria = x => userIds.Contains(x.Id)
-            }, ct);
+    private static PlatformUserDto CreateWorkspaceUserDto(User user) =>
+        new()
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            PhoneNumber = user.PhoneNumber,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            RoleId = user.RoleId,
+            StateId = user.StateId
+        };
 
-        var organizations = organizationIds.Count == 0
-            ? new List<Organization>()
-            : await _organizationQuery.GetAllAsync(new QuerySpecification<Organization>
-            {
-                Criteria = x => organizationIds.Contains(x.Id)
-            }, ct);
-
-        var userNames = users.ToDictionary(x => x.Id, x => x.UserName);
-        var organizationNames = organizations.ToDictionary(x => x.Id, x => x.ShortName);
-
-        return logs.Select(log => new PlatformAuditLogDto
+    private static PlatformAuditLogDto CreatePlatformAuditLogDto(
+        AuditLogQueryItem log) =>
+        new()
         {
             Id = log.Id,
             OrganizationId = log.OrganizationId,
-            OrganizationName = log.OrganizationId.HasValue && organizationNames.TryGetValue(log.OrganizationId.Value, out var organizationName)
-                ? organizationName
-                : null,
+            OrganizationName = log.OrganizationName,
             SchemaName = log.SchemaName,
             TableName = log.TableName,
             RecordId = log.RecordId,
@@ -1478,33 +1268,11 @@ public sealed class PlatformService : BaseService, IPlatformService
             OldData = log.OldData,
             NewData = log.NewData,
             ChangedUserId = log.ChangedUserId,
-            ChangedUserName = log.ChangedUserId.HasValue && userNames.TryGetValue(log.ChangedUserId.Value, out var userName)
-                ? userName
-                : null,
+            ChangedUserName = log.ChangedUserName,
             RequestId = log.RequestId,
-            ClientAddr = log.ClientAddr?.ToString(),
+            ClientAddr = log.ClientAddr,
             ApplicationName = log.ApplicationName,
             ChangedDate = log.ChangedDate
-        }).ToList();
-    }
-
-    private static OrganizationDefault CreateDefaultsEntity(int organizationId, Application.Features.OrganizationSetup.OrganizationSetupDefaultsDto dto, DateTime now) =>
-        new()
-        {
-            OrganizationId = organizationId,
-            BranchId = dto.BranchId,
-            WarehouseId = dto.WarehouseId,
-            CashBoxId = dto.CashBoxId,
-            BankAccountId = dto.BankAccountId,
-            ReceivableAccountId = dto.ReceivableAccountId,
-            PayableAccountId = dto.PayableAccountId,
-            InventoryAccountId = dto.InventoryAccountId,
-            CashAccountId = dto.CashAccountId,
-            BankAccountingAccountId = dto.BankAccountingAccountId,
-            RevenueAccountId = dto.RevenueAccountId,
-            ExpenseAccountId = dto.ExpenseAccountId,
-            CogsAccountId = dto.CogsAccountId,
-            CreatedDate = now
         };
 
     private static bool HasAccountingSettings(AccountantWorkspaceCreateDto dto) =>
@@ -1527,29 +1295,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             || dto.RevenueAccountId.HasValue
             || dto.ExpenseAccountId.HasValue
             || dto.CogsAccountId.HasValue);
-
-    private static string ResolveCurrentStep(
-        bool organizationCompleted,
-        bool taxCompleted,
-        bool accountingCompleted,
-        bool defaultsCompleted,
-        bool usersCompleted,
-        bool isCompleted)
-    {
-        if (isCompleted)
-            return "complete";
-        if (!organizationCompleted)
-            return "company-profile";
-        if (!taxCompleted)
-            return "tax-settings";
-        if (!accountingCompleted)
-            return "accounting-policy";
-        if (!defaultsCompleted)
-            return "defaults";
-        if (!usersCompleted)
-            return "users";
-        return "complete";
-    }
 
     private static string NormalizeSlug(string value)
     {

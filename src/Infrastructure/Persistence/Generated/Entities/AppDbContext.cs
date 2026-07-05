@@ -188,6 +188,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SysEmailVerificationToken> SysEmailVerificationTokens { get; set; }
 
+    public virtual DbSet<SysSetting> SysSettings { get; set; }
+
     public virtual DbSet<SysModule> SysModules { get; set; }
 
     public virtual DbSet<SysModuleSubGroup> SysModuleSubGroups { get; set; }
@@ -1792,6 +1794,32 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.SysEmailVerificationTokens)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sys_email_verification_token_user_id_fkey");
+        });
+
+        modelBuilder.Entity<SysSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sys_setting_pkey");
+
+            entity.HasIndex(e => e.Code, "ux_sys_setting_global_code")
+                .IsUnique()
+                .HasFilter("(organization_id IS NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "ux_sys_setting_org_code")
+                .IsUnique()
+                .HasFilter("(organization_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.IsEditable).HasDefaultValue(true);
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne<OrgOrganization>().WithMany()
+                .HasForeignKey(d => d.OrganizationId)
+                .HasConstraintName("sys_setting_organization_id_fkey");
+
+            entity.HasOne<CmnState>().WithMany()
+                .HasForeignKey(d => d.StateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_setting_state_id_fkey");
         });
 
         modelBuilder.Entity<SysModule>(entity =>

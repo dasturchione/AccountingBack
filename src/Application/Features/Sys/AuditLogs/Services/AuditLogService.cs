@@ -12,15 +12,15 @@ public class AuditLogService : IAuditLogService
     private string? _newValues;
     private readonly IUserContext _userContext;
     private readonly ICommandRepository<AuditLog> _command;
-    private readonly IQueryRepository<AuditLog> _query;
+    private readonly IAuditLogQueryCore _auditLogQueryCore;
 
     public AuditLogService(IUserContext userContext,
                            ICommandRepository<AuditLog> command,
-                           IQueryRepository<AuditLog> query)
+                           IAuditLogQueryCore auditLogQueryCore)
     {
         _userContext = userContext;
         _command = command;
-        _query = query;
+        _auditLogQueryCore = auditLogQueryCore;
     }
 
     public async Task CreateAsync(string tableName, string recordId, string operationType, string? comment = null)
@@ -71,44 +71,40 @@ public class AuditLogService : IAuditLogService
 
     public async Task<List<AuditLogDto>> GetByRecordAsync(AuditLogFilter filter)
     {
-        if (!_userContext.HasGlobalAccess && _userContext.AllowedOrganizationIds.Count == 0)
+        var result = await _auditLogQueryCore.QueryAsync(
+            new AuditLogQueryFilter
+            {
+                TableName = filter.TableName,
+                RecordId = filter.RecordId
+            },
+            AuditLogQueryOptions.ForRecord());
+
+        if (!result.IsSuccess)
             return [];
 
-        var spec = new SharedKernel.Query.Specifications.QuerySpecification<AuditLog, AuditLogDto>
+        return result.Value.Select(s =>
         {
-            Criteria = a => a.RecordId == filter.RecordId &&
-                            a.TableName == filter.TableName &&
-                            (_userContext.HasGlobalAccess ||
-                             (a.OrganizationId.HasValue &&
-                              (_userContext.OrganizationId.HasValue
-                                  ? a.OrganizationId.Value == _userContext.OrganizationId.Value
-                                  : _userContext.AllowedOrganizationIds.Contains(a.OrganizationId.Value)))),
-            OrderBy = q => q.OrderByDescending(a => a.ChangedDate),
-            Selector = a => new AuditLogDto
+            var dto = new AuditLogDto
             {
-                Id = a.Id,
-                OrganizationId = a.OrganizationId,
-                SchemaName = a.SchemaName,
-                TableName = a.TableName,
-                RecordId = a.RecordId,
-                Action = a.Action,
-                OldData = a.OldData,
-                NewData = a.NewData,
-                ChangedUserId = a.ChangedUserId,
-                ChangedDate = a.ChangedDate
-            }
-        };
+                Id = s.Id,
+                OrganizationId = s.OrganizationId,
+                SchemaName = s.SchemaName,
+                TableName = s.TableName,
+                RecordId = s.RecordId,
+                Action = s.Action,
+                OldData = s.OldData,
+                NewData = s.NewData,
+                ChangedUserId = s.ChangedUserId,
+                ChangedUserName = s.ChangedUserName,
+                ChangedDate = s.ChangedDate
+            };
 
-        var logs = await _query.GetAllAsync(spec);
-
-        return logs.Select(s =>
-        {
             var changes = new List<ChangeResult>();
             if (s.OldData is not null && s.NewData is not null)
                 changes = DeepCompareJson(s.OldData, s.NewData);
 
-            s.ChangeResults = changes;
-            return s;
+            dto.ChangeResults = changes;
+            return dto;
         }).ToList();
     }
 

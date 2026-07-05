@@ -1,4 +1,7 @@
+using Application.Features.AuditLogs;
+using Application.Features.Organizations;
 using Application.Features.OrganizationSetup;
+using Application.Features.Users;
 using SharedKernel.Filters;
 
 namespace Application.Features.Platform;
@@ -11,15 +14,8 @@ public sealed class PlatformTenantListFilter : IPaginationFilter
     public short? StateId { get; set; }
 }
 
-public sealed class PlatformDashboardDto
+public sealed class PlatformDashboardDto : DashboardStatsDto
 {
-    public int TenantsCount { get; set; }
-    public int ActiveTenantsCount { get; set; }
-    public int InactiveTenantsCount { get; set; }
-    public int OrganizationsCount { get; set; }
-    public int ActiveOrganizationsCount { get; set; }
-    public int UsersCount { get; set; }
-    public int ActiveUsersCount { get; set; }
 }
 
 public class PlatformTenantBaseDto
@@ -83,10 +79,14 @@ public sealed class PlatformAuditLogListFilter : IPaginationFilter
     public int Page { get; set; } = 1;
     public int? PageSize { get; set; } = 50;
     public int? OrganizationId { get; set; }
+    public int? UserId { get; set; }
     public int? ChangedUserId { get; set; }
+    public string? EntityType { get; set; }
     public string? TableName { get; set; }
+    public string? EntityId { get; set; }
     public string? RecordId { get; set; }
     public string? Action { get; set; }
+    public string? SearchText { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
@@ -102,32 +102,9 @@ public sealed class PlatformOrganizationItemDto
     public DateTime CreatedDate { get; set; }
 }
 
-public class PlatformOrganizationDto
+public class PlatformOrganizationDto : OrganizationDto
 {
-    public int Id { get; set; }
-    public string ShortName { get; set; } = null!;
-    public string FullName { get; set; } = null!;
-    public string Inn { get; set; } = null!;
-    public string? PhoneNumber { get; set; }
-    public int RegionId { get; set; }
-    public string? RegionName { get; set; }
-    public int? DistrictId { get; set; }
-    public string? DistrictName { get; set; }
-    public string? Address { get; set; }
-    public string? Director { get; set; }
-    public bool IsParent { get; set; }
-    public short StateId { get; set; }
-    public string? StateName { get; set; }
-    public short? DefaultLanguageId { get; set; }
-    public string? DefaultLanguageName { get; set; }
-    public int? TenantId { get; set; }
     public string? TenantName { get; set; }
-    public string SetupStatus { get; set; } = null!;
-    public DateTime? SetupCompletedAt { get; set; }
-    public string? Email { get; set; }
-    public string? Website { get; set; }
-    public string? Oked { get; set; }
-    public DateTime CreatedDate { get; set; }
     public int UsersCount { get; set; }
 }
 
@@ -211,25 +188,8 @@ public sealed class AccountantWorkspaceDto
     public PlatformWorkspaceSetupDto Setup { get; set; } = null!;
 }
 
-public class PlatformUserDto
+public class PlatformUserDto : UserListDto
 {
-    public int Id { get; set; }
-    public string UserName { get; set; } = null!;
-    public string PhoneNumber { get; set; } = null!;
-    public string? Email { get; set; }
-    public string FirstName { get; set; } = null!;
-    public string LastName { get; set; } = null!;
-    public int RoleId { get; set; }
-    public string? RoleName { get; set; }
-    public bool HasGlobalAccess { get; set; }
-    public bool EmailVerified { get; set; }
-    public DateTime? EmailVerifiedAt { get; set; }
-    public bool IsPlatformAdmin { get; set; }
-    public string? Timezone { get; set; }
-    public DateTime? LastAccessTime { get; set; }
-    public short StateId { get; set; }
-    public string? StateName { get; set; }
-    public DateTime CreatedDate { get; set; }
     public int OrganizationsCount { get; set; }
 }
 
@@ -305,23 +265,12 @@ public sealed class PlatformUserOrganizationDto
     public DateTime? BlockedAt { get; set; }
 }
 
-public sealed class PlatformAuditLogDto
+public sealed class PlatformAuditLogDto : AuditLogCoreDto
 {
-    public long Id { get; set; }
-    public int? OrganizationId { get; set; }
     public string? OrganizationName { get; set; }
-    public string SchemaName { get; set; } = null!;
-    public string TableName { get; set; } = null!;
-    public string? RecordId { get; set; }
-    public string Action { get; set; } = null!;
-    public string? OldData { get; set; }
-    public string? NewData { get; set; }
-    public int? ChangedUserId { get; set; }
-    public string? ChangedUserName { get; set; }
     public string? RequestId { get; set; }
     public string? ClientAddr { get; set; }
     public string? ApplicationName { get; set; }
-    public DateTime ChangedDate { get; set; }
 }
 
 public sealed class PlatformSetPasswordDto

@@ -182,6 +182,15 @@ namespace WebApi.Configuration
                     .ForJob(adjustJobKey)
                     .WithIdentity("AdjustBalanceJobTrigger")
                     .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 30)));
+
+                var notificationEmailJobKey = new JobKey("NotificationEmailDispatchJob");
+                q.AddJob<NotificationEmailDispatchJob>(opts => opts.WithIdentity(notificationEmailJobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(notificationEmailJobKey)
+                    .WithIdentity("NotificationEmailDispatchJobTrigger")
+                    .WithSimpleSchedule(schedule => schedule
+                        .WithInterval(TimeSpan.FromMinutes(15))
+                        .RepeatForever()));
             });
 
             builder.Services.Configure<BackupJobSettings>(
@@ -245,6 +254,10 @@ namespace WebApi.Configuration
             var fakturaPassword = configuration["FakturaAuthSettings:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaPassword))
                 throw new InvalidOperationException("FakturaAuthSettings:Password is not configured with a real secret value.");
+
+            var eImzoCertificatePassword = configuration["EImzo:CertificatePassword"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(eImzoCertificatePassword))
+                throw new InvalidOperationException("EImzo:CertificatePassword is not configured with a real secret value.");
 
             var emailPassword = configuration["Email:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))

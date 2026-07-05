@@ -28,13 +28,17 @@ public sealed class SoliqApiTaxProvider : TaxProviderBase, ITaxLookupProvider
 
         return (response ?? [])
             .Where(x => !string.IsNullOrWhiteSpace(x.Code))
-            .Select(x => new TaxProviderLookupItemDto
+            .Select(x =>
             {
-                Code = x.Code.Trim(),
-                Name = string.IsNullOrWhiteSpace(x.Name) ? x.Code.Trim() : x.Name.Trim(),
-                Description = x.Description,
-                IsActive = x.IsActive,
-                Metadata = x.Metadata ?? new Dictionary<string, string?>()
+                var code = x.Code!.Trim();
+                return new TaxProviderLookupItemDto
+                {
+                    Code = code,
+                    Name = string.IsNullOrWhiteSpace(x.Name) ? code : x.Name.Trim(),
+                    Description = x.Description,
+                    IsActive = x.IsActive,
+                    Metadata = x.Metadata ?? new Dictionary<string, string?>()
+                };
             })
             .ToList();
     }

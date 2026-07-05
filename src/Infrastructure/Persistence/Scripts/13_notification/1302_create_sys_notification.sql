@@ -1,0 +1,25 @@
+
+create table sys_notification (
+    id bigint   not null,
+    organization_id integer,
+    user_id integer,
+    type_id smallint not null,
+    title character varying(300) not null,
+    body text not null,
+    link character varying(500),
+    entity_type character varying(100),
+    entity_id bigint,
+    state_id smallint default 1 not null,
+    created_date timestamp without time zone default now() not null,
+    constraint sys_notification_pkey primary key (id),
+    constraint sys_notification_type_id_fkey foreign key (type_id) references cmn_notification_type(id),
+    constraint sys_notification_user_id_fkey foreign key (user_id) references sys_user(id),
+    constraint sys_notification_organization_id_fkey foreign key (organization_id) references org_organization(id),
+    constraint sys_notification_state_id_fkey foreign key (state_id) references cmn_state(id)
+);
+
+create index idx_sys_notification_organization_id on sys_notification using btree (organization_id);
+
+create index idx_sys_notification_user_created_date on sys_notification using btree (user_id, created_date desc);
+
+create index idx_sys_notification_type_id on sys_notification using btree (type_id);

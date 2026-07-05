@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Remove="Authorization\**" />
     <Compile Remove="Persistence\Migrations\**" />
+    <Compile Remove="Persistence\Generated\**" />
     <EmbeddedResource Remove="Authorization\**" />
     <EmbeddedResource Remove="Persistence\Migrations\**" />
     <None Remove="Authorization\**" />
@@ -16,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.70.0.3834" />
     <PackageReference Include="MailKit" Version="4.17.0" />

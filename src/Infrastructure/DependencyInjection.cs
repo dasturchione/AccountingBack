@@ -36,6 +36,7 @@ using Application.Features.Cmn.CurrencyRates.Extensions;
 using Application.Features.Cmn.CurrencyRevaluations.Extensions;
 using Application.Features.Cmn.Taxes.Extensions;
 using Application.Features.Cmn.CurrencyRates;
+using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Imports;
@@ -46,6 +47,8 @@ using Application.Features.Inv.ProductPrices;
 using Application.Features.WarehouseTransfers;
 using Application.Features.Manual;
 using Application.Features.MoneyRegisterBalances;
+using Application.Features.Notifications.Extensions;
+using Application.Features.Notifications;
 using Application.Features.Organizations;
 using Application.Features.OrganizationSetup;
 using Application.Features.OrgBankAccounts;
@@ -78,6 +81,7 @@ using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Infrastructure.Services.Barcode;
 using Infrastructure.Security;
+using Integration.EImzo.Configs;
 using Integration.Faktura.Configs;
 using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
@@ -104,6 +108,7 @@ namespace Infrastructure
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IInventoryReadDbContext, InventoryReadDbContext>();
+            services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
             services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();
 
@@ -115,6 +120,7 @@ namespace Infrastructure
 
             services.AddMemoryCache();
 
+            services.AddEImzoIntegration(config);
             services.AddFaktura(config);
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
@@ -123,6 +129,11 @@ namespace Infrastructure
             services.AddBarcodeGenerator();
             services.AddScoped<ICurrencyRateImportService, CurrencyRateImportService>();
 
+            services.AddScoped<IUserManagementCore, UserManagementCore>();
+            services.AddScoped<IOrganizationManagementCore, OrganizationManagementCore>();
+            services.AddScoped<IOrganizationSetupCore, OrganizationSetupCore>();
+            services.AddScoped<IAuditLogQueryCore, AuditLogQueryCore>();
+            services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>();
@@ -182,6 +193,8 @@ namespace Infrastructure
             services.AddCurrencyRateModule();
             services.AddCurrencyRevaluationModule();
             services.AddTaxModule();
+            services.AddSettingsModule();
+            services.AddNotificationsModule();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();
             services.AddScoped<IFinancialReportService, FinancialReportService>();
             services.AddScoped<ISalesReportService, SalesReportService>();

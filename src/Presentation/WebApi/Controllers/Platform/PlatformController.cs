@@ -1,6 +1,7 @@
 using Application.Features.Platform;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
 using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
@@ -21,6 +22,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("dashboard")]
+    [ModuleAuthorize(PermissionCodeConst.DashboardView)]
     public async Task<IResult> GetDashboardAsync(CancellationToken ct = default)
     {
         var response = await _platformService.GetDashboardAsync(ct);
@@ -206,6 +208,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("audit-logs")]
+    [ModuleAuthorize(PermissionCodeConst.AuditLogView)]
     public async Task<IResult> GetAuditLogsAsync([FromQuery] PlatformAuditLogListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetAuditLogsAsync(filter, ct);

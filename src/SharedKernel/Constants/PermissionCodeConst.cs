@@ -325,4 +325,12 @@ public static class PermissionCodeConst
     #region AuditLog
     public const string AuditLogView = "AUDIT_LOG_VIEW";
     #endregion
+
+    #region Settings
+    public const string SettingsManage = "SETTINGS_MANAGE";
+    #endregion
+
+    #region Dashboard
+    public const string DashboardView = "DASHBOARD_VIEW";
+    #endregion
 }

@@ -1,13 +1,12 @@
-using Domain.Entities;
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Abstractions.Integration;
 using Application.Common.Pagination;
+using Domain.Entities;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
-using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Users.Services;
 
@@ -15,134 +14,53 @@ public class UserService : BaseService, IUserService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
-    private readonly IPasswordHasher _passwordHasher;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
     private readonly IQueryRepository<UserOrganization> _userOrgQuery;
-    private readonly ICommandRepository<UserOrganization> _userOrgCommand;
-    private readonly IEmailSender _emailSender;
-    private readonly ILogger<UserService> _logger;
-    public UserService(IUserContext userContext,
-                       IQueryBuilder queryBuilder,
-                       IPasswordHasher passwordHasher,
-                       IQueryRepository<User> userQuery,
-                       ICommandRepository<User> userCommand,
-                       IQueryRepository<UserOrganization> userOrgQuery,
-                       ICommandRepository<UserOrganization> userOrgCommand,
-                       IEmailSender emailSender,
-                       ILogger<UserService> logger,
-                       IUnitOfWork unitOfWork)
-            : base(logger, unitOfWork)
+    private readonly IUserManagementCore _userManagementCore;
+
+    public UserService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IQueryRepository<User> userQuery,
+        ICommandRepository<User> userCommand,
+        IQueryRepository<UserOrganization> userOrgQuery,
+        IUserManagementCore userManagementCore,
+        ILogger<UserService> logger,
+        IUnitOfWork unitOfWork)
+        : base(logger, unitOfWork)
     {
-        _userQuery = userQuery;
-        _userCommand = userCommand;
         _userContext = userContext;
         _queryBuilder = queryBuilder;
-        _passwordHasher = passwordHasher;
+        _userQuery = userQuery;
+        _userCommand = userCommand;
         _userOrgQuery = userOrgQuery;
-        _userOrgCommand = userOrgCommand;
-        _emailSender = emailSender;
-        _logger = logger;
+        _userManagementCore = userManagementCore;
     }
 
     public async Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default)
     {
+        UserWelcomeEmailMessage? welcomeEmail = null;
+
         var result = await ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
-            var exists = await _userQuery.AnyAsync(x => x.UserName == dto.UserName, ct);
-            if (exists)
-                return Result.Failure<int>(UserErrors.Conflict(dto.UserName, _userContext.LanguageId));
+            var coreResult = await _userManagementCore.CreateUserAsync(
+                MapCreateRequest(dto),
+                UserManagementOptions.ForOrganization(sendWelcomeEmail: true),
+                ct);
 
-            var salt = _passwordHasher.GenerateSalt();
-            var hash = _passwordHasher.Hash(dto.Password, salt);
+            if (!coreResult.IsSuccess)
+                return Result.Failure<int>(coreResult.Error);
 
-            var user = new User
-            {
-                UserName = dto.UserName,
-                PhoneNumber = dto.PhoneNumber,
-                Email = dto.Email,
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                RoleId = dto.RoleId,
-                EmailVerified = dto.EmailVerified,
-                IsPlatformAdmin = dto.IsPlatformAdmin,
-                Timezone = dto.Timezone,
-                PasswordSalt = salt,
-                PasswordHash = hash,
-                StateId = StateIdConst.ACTIVE,
-                CreatedDate = DateTime.Now
-            };
-
-            await _userCommand.CreateAsync(user, ct);
-
-            if (dto.Organizations.Count > 0)
-            {
-                var userOrgs = dto.Organizations
-                    .Distinct()
-                    .Select((orgId, index) => new UserOrganization
-                    {
-                        UserId = user.Id,
-                        OrganizationId = orgId,
-                        IsDefault = index == 0,
-                        JoinedAt = DateTime.Now,
-                        StateId = StateIdConst.ACTIVE,
-                        CreatedDate = DateTime.Now
-                    });
-
-                await _userOrgCommand.CreateAsync(userOrgs, ct);
-            }
-
-            return user.Id;
+            welcomeEmail = coreResult.Value.WelcomeEmail;
+            return coreResult.Value.UserId;
         }, ct);
 
-        // Transaction commit bo'lgandan KEYIN welcome email (xato bo'lsa ham user saqlanadi).
-        if (result.IsSuccess && !string.IsNullOrWhiteSpace(dto.Email))
-            await SendWelcomeEmailSafeAsync(dto, ct);
+        if (result.IsSuccess && welcomeEmail is not null)
+            await _userManagementCore.SendWelcomeEmailSafeAsync(welcomeEmail, ct);
 
         return result;
     }
-
-    /// <summary>
-    /// Welcome emailni yuboradi. Xato bo'lsa faqat log qiladi — asosiy oqimni (user yaratish) buzmaydi.
-    /// </summary>
-    private async Task SendWelcomeEmailSafeAsync(UserCreateDto dto, CancellationToken ct)
-    {
-        try
-        {
-            var fullName = $"{dto.FirstName} {dto.LastName}".Trim();
-            var greeting = string.IsNullOrWhiteSpace(fullName) ? dto.UserName : fullName;
-
-            var message = new EmailMessage
-            {
-                To = [dto.Email!],
-                Subject = "Accounting ERP — akkountingiz yaratildi",
-                HtmlBody = BuildWelcomeHtml(greeting, dto.UserName)
-            };
-
-            var emailResult = await _emailSender.SendAsync(message, ct);
-            if (!emailResult.IsSuccess)
-                _logger.LogWarning("Welcome email yuborilmadi ({Email}): {Error}", dto.Email, emailResult.Error.Description);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Welcome email yuborishda kutilmagan xato ({Email})", dto.Email);
-        }
-    }
-
-    private static string BuildWelcomeHtml(string greeting, string userName) =>
-        $"""
-        <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#222">
-          <h2 style="color:#1a73e8;margin-bottom:4px">Accounting ERP</h2>
-          <p>Assalomu alaykum, <b>{greeting}</b>!</p>
-          <p>Sizning hisobingiz muvaffaqiyatli yaratildi.</p>
-          <p style="background:#f5f5f5;padding:10px 14px;border-radius:6px">
-            Login (foydalanuvchi nomi): <b>{userName}</b>
-          </p>
-          <p>Parolni administratoringizdan oling va tizimga kiring.</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:18px 0"/>
-          <p style="font-size:12px;color:#888">Bu avtomatik xabar — javob yozmang.</p>
-        </div>
-        """;
 
     public Task<Result> DeleteAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(DeleteAsync), async () =>
@@ -197,52 +115,52 @@ public class UserService : BaseService, IUserService
         });
 
     public Task<Result> UpdateAsync(int id, UserUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
+        ExecuteInTransactionAsync(nameof(UpdateAsync), () =>
+            _userManagementCore.UpdateUserAsync(
+                MapUpdateRequest(id, dto),
+                UserManagementOptions.ForOrganization(sendWelcomeEmail: false),
+                ct), ct);
+
+    private static UserManagementCreateRequest MapCreateRequest(UserCreateDto dto) =>
+        new()
         {
-            var query = _queryBuilder.For<User>().Where(x => id == x.Id).Build();
-            var user = await _userQuery.GetAsync(query, ct);
+            UserName = dto.UserName,
+            Password = dto.Password,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            EmailVerified = dto.EmailVerified,
+            IsPlatformAdmin = dto.IsPlatformAdmin,
+            Timezone = dto.Timezone,
+            Organizations = dto.Organizations
+                .Select(orgId => new UserManagementMembershipRequest
+                {
+                    OrganizationId = orgId
+                })
+                .ToList()
+        };
 
-            if (user is null)
-                return Result.Failure(UserErrors.NotFound(id, _userContext.LanguageId));
-
-            if (user.UserName != dto.UserName)
-            {
-                var exists = await _userQuery.AnyAsync(u => u.UserName == dto.UserName, ct);
-                if (exists)
-                    return Result.Failure(UserErrors.Conflict(dto.UserName, _userContext.LanguageId));
-            }
-
-            user.UserName = dto.UserName;
-            user.PhoneNumber = dto.PhoneNumber;
-            user.Email = dto.Email;
-            user.FirstName = dto.FirstName;
-            user.LastName = dto.LastName;
-            user.RoleId = dto.RoleId;
-            user.EmailVerified = dto.EmailVerified;
-            user.IsPlatformAdmin = dto.IsPlatformAdmin;
-            user.Timezone = dto.Timezone;
-            user.StateId = dto.StateId;
-
-            await _userCommand.UpdateAsync(user, ct);
-
-            await _userOrgCommand.DeleteAsync(uo => uo.UserId == id, ct);
-
-            if (dto.Organizations.Count > 0)
-            {
-                var userOrgs = dto.Organizations
-                    .Distinct()
-                    .Select((orgId, index) => new UserOrganization
-                    {
-                        UserId = id,
-                        OrganizationId = orgId,
-                        IsDefault = index == 0,
-                        StateId = StateIdConst.ACTIVE,
-                        CreatedDate = DateTime.Now
-                    });
-
-                await _userOrgCommand.CreateAsync(userOrgs, ct);
-            }
-
-            return Result.Success();
-        }, ct);
+    private static UserManagementUpdateRequest MapUpdateRequest(int id, UserUpdateDto dto) =>
+        new()
+        {
+            UserId = id,
+            UserName = dto.UserName,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            RoleId = dto.RoleId,
+            EmailVerified = dto.EmailVerified,
+            IsPlatformAdmin = dto.IsPlatformAdmin,
+            Timezone = dto.Timezone,
+            StateId = dto.StateId,
+            Organizations = dto.Organizations
+                .Select(orgId => new UserManagementMembershipRequest
+                {
+                    OrganizationId = orgId
+                })
+                .ToList()
+        };
 }

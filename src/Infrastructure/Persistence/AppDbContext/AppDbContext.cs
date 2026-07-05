@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Constants;
 
 namespace Infrastructure.Persistence;
 
@@ -94,12 +95,17 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+    public virtual DbSet<SystemSetting> SystemSettings { get; set; }
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserOrganization> UserOrganizations { get; set; }
     public virtual DbSet<Contract> Contracts { get; set; }
     public virtual DbSet<ContractType> ContractTypes { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<OrganizationConfig> OrganizationConfigs { get; set; }
+    public virtual DbSet<NotificationType> NotificationTypes { get; set; }
+    public virtual DbSet<Notification> Notifications { get; set; }
+    public virtual DbSet<NotificationRead> NotificationReads { get; set; }
+    public virtual DbSet<NotificationDelivery> NotificationDeliveries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -239,6 +245,40 @@ public partial class AppDbContext : DbContext
             .HasOne(x => x.Organization)
             .WithOne(x => x.OrganizationConfig)
             .HasForeignKey<OrganizationConfig>(x => x.OrganizationId);
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasIndex(x => x.Code)
+                .HasDatabaseName("ux_sys_setting_global_code")
+                .IsUnique()
+                .HasFilter("organization_id IS NULL");
+
+            entity.HasIndex(x => new { x.OrganizationId, x.Code })
+                .HasDatabaseName("ux_sys_setting_org_code")
+                .IsUnique()
+                .HasFilter("organization_id IS NOT NULL");
+
+            entity.HasIndex(x => x.Category)
+                .HasDatabaseName("idx_sys_setting_category");
+
+            entity.HasIndex(x => x.OrganizationId)
+                .HasDatabaseName("idx_sys_setting_organization_id");
+
+            entity.Property(x => x.IsEditable).HasDefaultValue(true);
+            entity.Property(x => x.StateId).HasDefaultValue(StateIdConst.ACTIVE);
+            entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne<State>()
+                .WithMany()
+                .HasForeignKey(x => x.StateId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_setting_state_id_fkey");
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .HasConstraintName("sys_setting_organization_id_fkey");
+        });
 
         modelBuilder.Entity<PricingCondition>(entity =>
         {

@@ -13,26 +13,29 @@ namespace Application.Features.Organizations;
 
 public class OrganizationService : BaseService, IOrganizationService
 {
-    private readonly IUserContext                     _userContext;
-    private readonly IQueryBuilder                    _queryBuilder;
-    private readonly IQueryRepository<Organization>   _orgQuery;
+    private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
+    private readonly IQueryRepository<Organization> _orgQuery;
     private readonly ICommandRepository<Organization> _orgCommand;
-    private readonly IFakturaService                  _fakturaService;
+    private readonly IFakturaService _fakturaService;
+    private readonly IOrganizationManagementCore _organizationManagementCore;
 
-    public OrganizationService(IUserContext                    userContext,
-                               IQueryBuilder                   queryBuilder,
-                               IQueryRepository<Organization>  orgQuery,
+    public OrganizationService(IUserContext userContext,
+                               IQueryBuilder queryBuilder,
+                               IQueryRepository<Organization> orgQuery,
                                ICommandRepository<Organization> orgCommand,
-                               IFakturaService                 fakturaService,
-                               ILogger<OrganizationService>    logger, 
-                               IUnitOfWork unitOfWork) 
+                               IFakturaService fakturaService,
+                               IOrganizationManagementCore organizationManagementCore,
+                               ILogger<OrganizationService> logger,
+                               IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
     {
-        _orgQuery       = orgQuery;
-        _orgCommand     = orgCommand;
-        _userContext    = userContext;
-        _queryBuilder   = queryBuilder;
+        _orgQuery = orgQuery;
+        _orgCommand = orgCommand;
+        _userContext = userContext;
+        _queryBuilder = queryBuilder;
         _fakturaService = fakturaService;
+        _organizationManagementCore = organizationManagementCore;
     }
 
     public Task<Result<CompanyBasicDetailsDto>> GetByInnAsync(string companyInn, CancellationToken ct = default) =>
@@ -107,47 +110,71 @@ public class OrganizationService : BaseService, IOrganizationService
     public Task<Result<OrganizationDto>> GetByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query  = _queryBuilder.For<Organization>().Where(o => o.Id == id).As<OrganizationDto>().Build();
-            var entity = await _orgQuery.GetAsync(query, ct);
-            if (entity == null)
-                return Result.Failure<OrganizationDto>(OrganizationErrors.NotFound(id, _userContext.LanguageId));
-            return entity;
+            var result = await _organizationManagementCore.GetOrganizationAsync(
+                id,
+                OrganizationManagementOptions.ForOrganization(includeDetails: true),
+                ct);
+
+            return result.IsSuccess
+                ? MapOrganizationDto(result.Value)
+                : Result.Failure<OrganizationDto>(result.Error);
         });
 
     public Task<Result> UpdateAsync(int id, OrganizationUpdateDto dto, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(UpdateAsync), async () =>
+        ExecuteAsync(nameof(UpdateAsync), () =>
+            _organizationManagementCore.UpdateOrganizationAsync(
+                MapUpdateRequest(id, dto),
+                OrganizationManagementOptions.ForOrganization(),
+                ct));
+
+    private static OrganizationDto MapOrganizationDto(Organization entity) =>
+        new()
         {
-            var query = _queryBuilder.For<Organization>().Where(o => o.Id == id).Build();
-            var org   = await _orgQuery.GetAsync(query, ct);
-            if (org == null)
-                return Result.Failure(OrganizationErrors.NotFound(id, _userContext.LanguageId));
+            Id = entity.Id,
+            ShortName = entity.ShortName,
+            FullName = entity.FullName,
+            Inn = entity.Inn,
+            PhoneNumber = entity.PhoneNumber,
+            RegionId = entity.RegionId,
+            RegionName = entity.Region.FullName,
+            DistrictId = entity.DistrictId,
+            DistrictName = entity.District?.FullName,
+            Address = entity.Address,
+            Director = entity.Director,
+            IsParent = entity.IsParent,
+            StateId = entity.StateId,
+            StateName = entity.State.FullName,
+            DefaultLanguageId = entity.DefaultLanguageId,
+            DefaultLanguageName = entity.DefaultLanguage?.Name,
+            TenantId = entity.TenantId,
+            SetupStatus = entity.SetupStatus,
+            SetupCompletedAt = entity.SetupCompletedAt,
+            Email = entity.Email,
+            Website = entity.Website,
+            Oked = entity.Oked,
+            CreatedDate = entity.CreatedDate
+        };
 
-            if (org.Inn != dto.Inn)
-            {
-                var exists = await _orgQuery.AnyAsync(o => o.Inn == dto.Inn, ct);
-                if (exists)
-                    return Result.Failure(OrganizationErrors.InnConflict(dto.Inn, _userContext.LanguageId));
-            }
-
-            org.ShortName         = dto.ShortName;
-            org.FullName          = dto.FullName;
-            org.Inn               = dto.Inn;
-            org.PhoneNumber       = dto.PhoneNumber;
-            org.RegionId          = dto.RegionId;
-            org.DistrictId        = dto.DistrictId;
-            org.Address           = dto.Address;
-            org.Director          = dto.Director;
-            org.IsParent          = dto.IsParent;
-            org.DefaultLanguageId = dto.DefaultLanguageId;
-            org.TenantId          = dto.TenantId;
-            org.SetupStatus       = string.IsNullOrWhiteSpace(dto.SetupStatus) ? org.SetupStatus : dto.SetupStatus;
-            org.SetupCompletedAt  = dto.SetupCompletedAt;
-            org.Email             = dto.Email;
-            org.Website           = dto.Website;
-            org.Oked              = dto.Oked;
-            org.StateId           = dto.StateId;
-
-            await _orgCommand.UpdateAsync(org, ct);
-            return Result.Success();
-        });
+    private static OrganizationManagementUpdateRequest MapUpdateRequest(int id, OrganizationUpdateDto dto) =>
+        new()
+        {
+            OrganizationId = id,
+            ShortName = dto.ShortName,
+            FullName = dto.FullName,
+            Inn = dto.Inn,
+            PhoneNumber = dto.PhoneNumber,
+            RegionId = dto.RegionId,
+            DistrictId = dto.DistrictId,
+            Address = dto.Address,
+            Director = dto.Director,
+            IsParent = dto.IsParent,
+            DefaultLanguageId = dto.DefaultLanguageId,
+            TenantId = dto.TenantId,
+            SetupStatus = dto.SetupStatus,
+            SetupCompletedAt = dto.SetupCompletedAt,
+            Email = dto.Email,
+            Website = dto.Website,
+            Oked = dto.Oked,
+            StateId = dto.StateId
+        };
 }

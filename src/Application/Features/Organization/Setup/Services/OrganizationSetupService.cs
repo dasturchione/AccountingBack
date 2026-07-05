@@ -22,13 +22,9 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly ICommandRepository<Organization> _organizationCommand;
     private readonly IQueryRepository<OrganizationSetupState> _setupStateQuery;
-    private readonly ICommandRepository<OrganizationSetupState> _setupStateCommand;
     private readonly IQueryRepository<OrganizationTaxSetting> _taxSettingQuery;
-    private readonly ICommandRepository<OrganizationTaxSetting> _taxSettingCommand;
     private readonly IQueryRepository<OrganizationConfig> _configQuery;
-    private readonly ICommandRepository<OrganizationConfig> _configCommand;
     private readonly IQueryRepository<OrganizationDefault> _defaultQuery;
-    private readonly ICommandRepository<OrganizationDefault> _defaultCommand;
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
     private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
@@ -38,19 +34,16 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
+    private readonly IOrganizationSetupCore _organizationSetupCore;
 
     public OrganizationSetupService(
         IUserContext userContext,
         IQueryRepository<Organization> organizationQuery,
         ICommandRepository<Organization> organizationCommand,
         IQueryRepository<OrganizationSetupState> setupStateQuery,
-        ICommandRepository<OrganizationSetupState> setupStateCommand,
         IQueryRepository<OrganizationTaxSetting> taxSettingQuery,
-        ICommandRepository<OrganizationTaxSetting> taxSettingCommand,
         IQueryRepository<OrganizationConfig> configQuery,
-        ICommandRepository<OrganizationConfig> configCommand,
         IQueryRepository<OrganizationDefault> defaultQuery,
-        ICommandRepository<OrganizationDefault> defaultCommand,
         IQueryRepository<UserOrganization> userOrganizationQuery,
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<AccountingPolicy> accountingPolicyQuery,
@@ -60,6 +53,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
+        IOrganizationSetupCore organizationSetupCore,
         ILogger<OrganizationSetupService> logger,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
@@ -67,13 +61,9 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         _organizationQuery = organizationQuery;
         _organizationCommand = organizationCommand;
         _setupStateQuery = setupStateQuery;
-        _setupStateCommand = setupStateCommand;
         _taxSettingQuery = taxSettingQuery;
-        _taxSettingCommand = taxSettingCommand;
         _configQuery = configQuery;
-        _configCommand = configCommand;
         _defaultQuery = defaultQuery;
-        _defaultCommand = defaultCommand;
         _userOrganizationQuery = userOrganizationQuery;
         _taxTypeQuery = taxTypeQuery;
         _accountingPolicyQuery = accountingPolicyQuery;
@@ -83,6 +73,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         _cashBoxQuery = cashBoxQuery;
         _bankAccountQuery = bankAccountQuery;
         _chartAccountQuery = chartAccountQuery;
+        _organizationSetupCore = organizationSetupCore;
     }
 
     public Task<Result<OrganizationSetupDto>> GetAsync(CancellationToken ct = default) =>
@@ -155,7 +146,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             organization.SetupStatus = organization.SetupStatus == "completed" ? organization.SetupStatus : "pending";
 
             await _organizationCommand.UpdateAsync(organization, ct);
-            await UpdateSetupStateAsync(organization.Id, setup => setup.OrganizationCompleted = true, ct);
+            await _organizationSetupCore.UpdateSetupStateAsync(organization.Id, setup => setup.OrganizationCompleted = true, ct);
             return Result.Success();
         }, ct);
 
@@ -171,24 +162,24 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 return Result.Failure(OrganizationSetupErrors.TaxTypeNotFound(dto.TaxTypeId));
 
             var now = DateTime.Now;
-            var tax = await GetCurrentTaxSettingAsync(orgIdResult.Value, ct);
-            if (tax is null)
-            {
-                tax = new OrganizationTaxSetting
+            await _organizationSetupCore.UpsertTaxSettingsAsync(
+                orgIdResult.Value,
+                new OrganizationSetupTaxSettingsWriteModel
                 {
-                    OrganizationId = orgIdResult.Value,
+                    TaxTypeId = dto.TaxTypeId,
+                    IsVatPayer = dto.IsVatPayer,
+                    VatRegistrationNumber = dto.VatRegistrationNumber,
+                    EffectiveFrom = dto.EffectiveFrom,
+                    EffectiveTo = dto.EffectiveTo,
+                    StateId = dto.StateId,
                     CreatedDate = now
-                };
-                ApplyTaxSettings(tax, dto);
-                await _taxSettingCommand.CreateAsync(tax, ct);
-            }
-            else
-            {
-                ApplyTaxSettings(tax, dto);
-                await _taxSettingCommand.UpdateAsync(tax, ct);
-            }
+                },
+                ct);
 
-            await UpdateSetupStateAsync(orgIdResult.Value, setup => setup.TaxCompleted = dto.StateId == StateIdConst.ACTIVE, ct);
+            await _organizationSetupCore.UpdateSetupStateAsync(
+                orgIdResult.Value,
+                setup => setup.TaxCompleted = dto.StateId == StateIdConst.ACTIVE,
+                ct);
             return Result.Success();
         }, ct);
 
@@ -207,20 +198,22 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             if (referenceError is not null)
                 return Result.Failure(referenceError);
 
-            var config = await GetConfigAsync(orgIdResult.Value, ct);
-            if (config is null)
-            {
-                config = new OrganizationConfig { OrganizationId = orgIdResult.Value };
-                ApplyAccountingPolicy(config, dto, method);
-                await _configCommand.CreateAsync(config, ct);
-            }
-            else
-            {
-                ApplyAccountingPolicy(config, dto, method);
-                await _configCommand.UpdateAsync(config, ct);
-            }
+            await _organizationSetupCore.UpsertAccountingPolicyAsync(
+                orgIdResult.Value,
+                new OrganizationSetupAccountingPolicyWriteModel
+                {
+                    InventoryValuationMethod = method,
+                    AccountingPolicyId = dto.AccountingPolicyId,
+                    BaseCurrencyId = dto.BaseCurrencyId,
+                    AccountingStartDate = dto.AccountingStartDate,
+                    FiscalYearStartMonth = dto.FiscalYearStartMonth
+                },
+                ct);
 
-            await UpdateSetupStateAsync(orgIdResult.Value, setup => setup.AccountingCompleted = true, ct);
+            await _organizationSetupCore.UpdateSetupStateAsync(
+                orgIdResult.Value,
+                setup => setup.AccountingCompleted = true,
+                ct);
             return Result.Success();
         }, ct);
 
@@ -235,24 +228,30 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             if (validationError is not null)
                 return Result.Failure(validationError);
 
-            var defaults = await GetDefaultsAsync(orgIdResult.Value, ct);
-            if (defaults is null)
-            {
-                defaults = new OrganizationDefault
+            await _organizationSetupCore.UpsertDefaultsAsync(
+                orgIdResult.Value,
+                new OrganizationSetupDefaultsWriteModel
                 {
-                    OrganizationId = orgIdResult.Value,
+                    BranchId = dto.BranchId,
+                    WarehouseId = dto.WarehouseId,
+                    CashBoxId = dto.CashBoxId,
+                    BankAccountId = dto.BankAccountId,
+                    ReceivableAccountId = dto.ReceivableAccountId,
+                    PayableAccountId = dto.PayableAccountId,
+                    InventoryAccountId = dto.InventoryAccountId,
+                    CashAccountId = dto.CashAccountId,
+                    BankAccountingAccountId = dto.BankAccountingAccountId,
+                    RevenueAccountId = dto.RevenueAccountId,
+                    ExpenseAccountId = dto.ExpenseAccountId,
+                    CogsAccountId = dto.CogsAccountId,
                     CreatedDate = DateTime.Now
-                };
-                ApplyDefaults(defaults, dto);
-                await _defaultCommand.CreateAsync(defaults, ct);
-            }
-            else
-            {
-                ApplyDefaults(defaults, dto);
-                await _defaultCommand.UpdateAsync(defaults, ct);
-            }
+                },
+                ct);
 
-            await UpdateSetupStateAsync(orgIdResult.Value, setup => setup.DefaultsCompleted = true, ct);
+            await _organizationSetupCore.UpdateSetupStateAsync(
+                orgIdResult.Value,
+                setup => setup.DefaultsCompleted = true,
+                ct);
             return Result.Success();
         }, ct);
 
@@ -269,7 +268,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             if (dto.UsersCompleted && !hasActiveUser)
                 return Result.Failure(OrganizationSetupErrors.SetupNotReady("users"));
 
-            await UpdateSetupStateAsync(orgIdResult.Value, setup => setup.UsersCompleted = dto.UsersCompleted, ct);
+            await _organizationSetupCore.UpdateSetupStateAsync(
+                orgIdResult.Value,
+                setup => setup.UsersCompleted = dto.UsersCompleted,
+                ct);
             return Result.Success();
         }, ct);
 
@@ -284,22 +286,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             if (organization is null)
                 return Result.Failure(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value));
 
-            var setup = await GetOrCreateSetupStateAsync(organization.Id, ct);
-            var missingStep = GetMissingStep(setup);
-            if (missingStep is not null)
-                return Result.Failure(OrganizationSetupErrors.SetupNotReady(missingStep));
-
-            var now = DateTime.Now;
-            setup.IsCompleted = true;
-            setup.CurrentStep = "complete";
-            setup.CompletedAt = now;
-            setup.UpdatedDate = now;
-            organization.SetupStatus = "completed";
-            organization.SetupCompletedAt = now;
-
-            await _setupStateCommand.UpdateAsync(setup, ct);
-            await _organizationCommand.UpdateAsync(organization, ct);
-            return Result.Success();
+            return await _organizationSetupCore.CompleteSetupAsync(organization, ct);
         }, ct);
 
     private async Task<Result<int>> ResolveOrganizationIdAsync(CancellationToken ct)
@@ -333,45 +320,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
     private async Task<OrganizationSetupState?> GetSetupStateAsync(int organizationId, CancellationToken ct) =>
         await _setupStateQuery.GetAsync(new QuerySpecification<OrganizationSetupState> { Criteria = x => x.OrganizationId == organizationId }, ct);
-
-    private async Task<OrganizationSetupState> GetOrCreateSetupStateAsync(int organizationId, CancellationToken ct)
-    {
-        var setup = await GetSetupStateAsync(organizationId, ct);
-        if (setup is not null)
-            return setup;
-
-        var now = DateTime.Now;
-        setup = new OrganizationSetupState
-        {
-            OrganizationId = organizationId,
-            CurrentStep = "company-profile",
-            CreatedDate = now,
-            UpdatedDate = now
-        };
-        await _setupStateCommand.CreateAsync(setup, ct);
-        return setup;
-    }
-
-    private async Task UpdateSetupStateAsync(int organizationId, Action<OrganizationSetupState> update, CancellationToken ct)
-    {
-        var setup = await GetOrCreateSetupStateAsync(organizationId, ct);
-        update(setup);
-        setup.IsCompleted = setup.OrganizationCompleted
-            && setup.TaxCompleted
-            && setup.AccountingCompleted
-            && setup.DefaultsCompleted
-            && setup.UsersCompleted
-            && setup.IsCompleted;
-
-        if (!setup.IsCompleted)
-        {
-            setup.CompletedAt = null;
-            setup.CurrentStep = ResolveCurrentStep(setup);
-        }
-
-        setup.UpdatedDate = DateTime.Now;
-        await _setupStateCommand.UpdateAsync(setup, ct);
-    }
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
@@ -518,68 +466,4 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             CogsAccountId = defaults.CogsAccountId
         };
 
-    private static void ApplyTaxSettings(OrganizationTaxSetting tax, OrganizationSetupTaxSettingsDto dto)
-    {
-        tax.TaxTypeId = dto.TaxTypeId;
-        tax.IsVatPayer = dto.IsVatPayer;
-        tax.VatRegistrationNumber = dto.VatRegistrationNumber;
-        tax.EffectiveFrom = dto.EffectiveFrom;
-        tax.EffectiveTo = dto.EffectiveTo;
-        tax.StateId = dto.StateId;
-    }
-
-    private static void ApplyAccountingPolicy(OrganizationConfig config, OrganizationSetupAccountingPolicyDto dto, string method)
-    {
-        config.InventoryValuationMethod = method;
-        config.AccountingPolicyId = dto.AccountingPolicyId;
-        config.BaseCurrencyId = dto.BaseCurrencyId;
-        config.AccountingStartDate = dto.AccountingStartDate;
-        config.FiscalYearStartMonth = dto.FiscalYearStartMonth <= 0 ? (short)1 : dto.FiscalYearStartMonth;
-    }
-
-    private static void ApplyDefaults(OrganizationDefault defaults, OrganizationSetupDefaultsDto dto)
-    {
-        defaults.BranchId = dto.BranchId;
-        defaults.WarehouseId = dto.WarehouseId;
-        defaults.CashBoxId = dto.CashBoxId;
-        defaults.BankAccountId = dto.BankAccountId;
-        defaults.ReceivableAccountId = dto.ReceivableAccountId;
-        defaults.PayableAccountId = dto.PayableAccountId;
-        defaults.InventoryAccountId = dto.InventoryAccountId;
-        defaults.CashAccountId = dto.CashAccountId;
-        defaults.BankAccountingAccountId = dto.BankAccountingAccountId;
-        defaults.RevenueAccountId = dto.RevenueAccountId;
-        defaults.ExpenseAccountId = dto.ExpenseAccountId;
-        defaults.CogsAccountId = dto.CogsAccountId;
-    }
-
-    private static string ResolveCurrentStep(OrganizationSetupState setup)
-    {
-        if (!setup.OrganizationCompleted)
-            return "company-profile";
-        if (!setup.TaxCompleted)
-            return "tax-settings";
-        if (!setup.AccountingCompleted)
-            return "accounting-policy";
-        if (!setup.DefaultsCompleted)
-            return "defaults";
-        if (!setup.UsersCompleted)
-            return "users";
-        return "complete";
-    }
-
-    private static string? GetMissingStep(OrganizationSetupState setup)
-    {
-        if (!setup.OrganizationCompleted)
-            return "company-profile";
-        if (!setup.TaxCompleted)
-            return "tax-settings";
-        if (!setup.AccountingCompleted)
-            return "accounting-policy";
-        if (!setup.DefaultsCompleted)
-            return "defaults";
-        if (!setup.UsersCompleted)
-            return "users";
-        return null;
-    }
 }

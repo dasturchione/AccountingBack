@@ -1,5 +1,5 @@
-﻿
-create table cmn_region (
+﻿create table cmn_region 
+(
     id integer   not null,
     short_name character varying(250) not null,
     full_name character varying(250) not null,

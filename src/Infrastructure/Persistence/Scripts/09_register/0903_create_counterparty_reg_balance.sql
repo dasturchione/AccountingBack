@@ -1,5 +1,5 @@
-﻿
-create table counterparty_reg_balance (
+﻿create table counterparty_reg_balance 
+(
     id bigint   not null,
     organization_id integer not null,
     document_type_id smallint not null,
@@ -23,16 +23,9 @@ create table counterparty_reg_balance (
 );
 
 create index idx_counterparty_reg_balance_counterparty_id on counterparty_reg_balance using btree (counterparty_id);
-
 create index idx_counterparty_reg_balance_currency_id on counterparty_reg_balance using btree (currency_id);
-
 create index idx_counterparty_reg_balance_doc_date on counterparty_reg_balance using btree (doc_date);
-
 create index idx_counterparty_reg_balance_document on counterparty_reg_balance using btree (document_type_id, document_id);
-
-create index idx_counterparty_reg_balance_organization_id on counterparty_reg_balance using btree (organization_id);
-
+create index idx_counterparty_reg_balance_organization_id on counterparty_reg_balance using btree (organization_id)
 create index idx_counterparty_reg_balance_posting_batch_id on counterparty_reg_balance using btree (posting_batch_id);
-
 create index idx_counterparty_reg_balance_reversal_entry_id on counterparty_reg_balance using btree (reversal_entry_id);
-

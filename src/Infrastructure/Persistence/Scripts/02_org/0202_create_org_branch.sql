@@ -1,5 +1,5 @@
-﻿
-create table org_branch (
+﻿create table org_branch 
+(
     id integer   not null,
     organization_id integer not null,
     code character varying(50) not null,
@@ -17,16 +17,8 @@ create table org_branch (
     constraint org_branch_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
-insert into org_branch (id, organization_id, code, name, region_id, district_id, address, phone_number, state_id, created_date) values
-    ('6', '8', 'Malibu9876', 'Atalik', '3', '58', null, '+998 99 890-08-58', '1', '2026-06-20 15:38:25.066056');
-
 create index idx_org_branch_district_id on org_branch using btree (district_id);
-
 create unique index idx_org_branch_org_code on org_branch using btree (organization_id, code);
-
 create index idx_org_branch_organization_id on org_branch using btree (organization_id);
-
 create index idx_org_branch_region_id on org_branch using btree (region_id);
-
 create index idx_org_branch_state_id on org_branch using btree (state_id);
-

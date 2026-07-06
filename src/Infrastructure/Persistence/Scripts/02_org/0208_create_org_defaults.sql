@@ -1,5 +1,6 @@
 ﻿
-create table org_defaults (
+create table org_defaults 
+(
     id integer   not null,
     organization_id integer not null,
     branch_id integer,
@@ -33,10 +34,6 @@ create table org_defaults (
 );
 
 create index idx_org_defaults_bank_account_id on org_defaults using btree (bank_account_id);
-
 create index idx_org_defaults_branch_id on org_defaults using btree (branch_id);
-
 create index idx_org_defaults_cash_box_id on org_defaults using btree (cash_box_id);
-
 create index idx_org_defaults_warehouse_id on org_defaults using btree (warehouse_id);
-

@@ -1,5 +1,5 @@
-﻿
-create table pur_doc (
+﻿create table pur_doc 
+(
     id bigint   not null,
     organization_id integer not null,
     doc_number character varying(100) not null,
@@ -32,6 +32,16 @@ create table pur_doc (
     constraint pur_doc_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
 );
 
+create index idx_pur_doc_contract_id on pur_doc using btree (contract_id);
+create index idx_pur_doc_counterparty_id on pur_doc using btree (counterparty_id);
+create index idx_pur_doc_doc_date on pur_doc using btree (doc_date);
+create index idx_pur_doc_organization_id on pur_doc using btree (organization_id);
+create index idx_pur_doc_state_id on pur_doc using btree (state_id);
+create index idx_pur_doc_status_id on pur_doc using btree (status_id);
+create index idx_pur_doc_warehouse_id on pur_doc using btree (warehouse_id);
+create index idx_pur_doc_posted_by_user_id on pur_doc using btree (posted_by_user_id);
+create index idx_pur_doc_cancelled_by_user_id on pur_doc using btree (cancelled_by_user_id);
+
 create function set_pur_doc_number() returns trigger
     language plpgsql
     as $$
@@ -49,22 +59,3 @@ insert into pur_doc (id, organization_id, doc_number, doc_date, counterparty_id,
     ('95', '8', '100000077', '2026-06-15 14:58:00', '18', '7', '1', '33000.00000000', '3960.00000000', '36960.00000000', '1', null, '1', '2026-06-29 14:59:14.796206', '9'),
     ('96', '8', '100000078', '2026-06-29 14:59:15', '18', '7', '1', '30000.00000000', '4500.00000000', '34500.00000000', '1', null, '1', '2026-06-29 15:01:54.008454', '10'),
     ('97', '8', '100000079', '2026-06-29 17:55:00', '18', '7', '1', '20000.00000000', '2400.00000000', '22400.00000000', '1', null, '1', '2026-06-29 17:57:51.597146', '9');
-
-create index idx_pur_doc_contract_id on pur_doc using btree (contract_id);
-
-create index idx_pur_doc_counterparty_id on pur_doc using btree (counterparty_id);
-
-create index idx_pur_doc_doc_date on pur_doc using btree (doc_date);
-
-create index idx_pur_doc_organization_id on pur_doc using btree (organization_id);
-
-create index idx_pur_doc_state_id on pur_doc using btree (state_id);
-
-create index idx_pur_doc_status_id on pur_doc using btree (status_id);
-
-create index idx_pur_doc_warehouse_id on pur_doc using btree (warehouse_id);
-
-create index idx_pur_doc_posted_by_user_id on pur_doc using btree (posted_by_user_id);
-
-create index idx_pur_doc_cancelled_by_user_id on pur_doc using btree (cancelled_by_user_id);
-

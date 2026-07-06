@@ -1,5 +1,5 @@
-﻿
-create table cmn_product_price_type (
+﻿create table cmn_product_price_type 
+(
     id smallint   not null,
     code character varying(50) not null,
     name character varying(150) not null,
@@ -10,4 +10,3 @@ create table cmn_product_price_type (
 insert into cmn_product_price_type (id, code, name) values
     ('1', 'AVERAGE_COST_PRICE', 'Hisoblangan o''rtacha tannarx'),
     ('2', 'FIXED_SALE_PRICE', 'Belgilangan sotuv narxi');
-

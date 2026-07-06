@@ -1,4 +1,5 @@
-create table cmn_currency_rate (
+create table cmn_currency_rate 
+(
     id bigint not null,
     base_currency_id smallint not null,
     target_currency_id smallint not null,

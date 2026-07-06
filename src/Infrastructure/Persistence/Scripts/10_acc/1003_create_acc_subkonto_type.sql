@@ -1,5 +1,5 @@
-﻿
-create table acc_subkonto_type (
+﻿create table acc_subkonto_type 
+(
     id smallint   not null,
     code character varying(50) not null,
     name character varying(150) not null,
@@ -9,6 +9,9 @@ create table acc_subkonto_type (
     constraint acc_subkonto_type_pkey primary key (id),
     constraint acc_subkonto_type_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
+
+create unique index idx_acc_subkonto_type_code on acc_subkonto_type using btree (code);
+create index idx_acc_subkonto_type_state_id on acc_subkonto_type using btree (state_id);
 
 insert into acc_subkonto_type (id, code, name, source_table, state_id, created_date) values
     ('1', 'product', 'Tovar / xizmat', 'inv_product', '1', '2026-06-25 10:43:24.6827'),
@@ -22,8 +25,3 @@ insert into acc_subkonto_type (id, code, name, source_table, state_id, created_d
     ('9', 'contract', 'Shartnoma', 'cmn_contract', '1', '2026-06-25 10:43:24.6827'),
     ('10', 'puchase', 'Xarid', 'pur_doc', '1', '2026-06-25 10:43:24.6827'),
     ('11', 'sale', 'Sotuv', 'sale_doc', '1', '2026-06-25 10:43:24.6827');
-
-create unique index idx_acc_subkonto_type_code on acc_subkonto_type using btree (code);
-
-create index idx_acc_subkonto_type_state_id on acc_subkonto_type using btree (state_id);
-

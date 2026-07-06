@@ -1,5 +1,5 @@
-﻿
-create table cmn_document_sequence (
+﻿create table cmn_document_sequence 
+(
     id integer   not null,
     organization_id integer not null,
     document_type_id smallint not null,
@@ -19,8 +19,5 @@ create table cmn_document_sequence (
 );
 
 create index idx_cmn_document_sequence_document_type_id on cmn_document_sequence using btree (document_type_id);
-
 create index idx_cmn_document_sequence_state_id on cmn_document_sequence using btree (state_id);
-
 create unique index uidx_cmn_document_sequence_scope on cmn_document_sequence using btree (organization_id, document_type_id, COALESCE((year)::integer, 0), COALESCE((month)::integer, 0));
-

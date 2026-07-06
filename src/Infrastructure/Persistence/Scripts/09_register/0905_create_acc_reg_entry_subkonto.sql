@@ -1,5 +1,5 @@
-﻿
-create table acc_reg_entry_subkonto (
+﻿create table acc_reg_entry_subkonto 
+(
     id bigint   not null,
     entry_id bigint not null,
     side character varying(2) not null,
@@ -12,6 +12,11 @@ create table acc_reg_entry_subkonto (
     constraint acc_reg_entry_subkonto_entry_id_fkey foreign key (entry_id) references acc_reg_entry(id) on DELETE CASCADE,
     constraint acc_reg_entry_subkonto_subkonto_type_id_fkey foreign key (subkonto_type_id) references acc_subkonto_type(id)
 );
+
+create index idx_acc_reg_entry_subkonto_entity on acc_reg_entry_subkonto using btree (subkonto_type_id, entity_id);
+create index idx_acc_reg_entry_subkonto_entry_id on acc_reg_entry_subkonto using btree (entry_id);
+create index idx_acc_reg_entry_subkonto_side on acc_reg_entry_subkonto using btree (side);
+create index idx_acc_reg_entry_subkonto_type_id on acc_reg_entry_subkonto using btree (subkonto_type_id);
 
 insert into acc_reg_entry_subkonto (id, entry_id, side, subkonto_type_id, sort_order, entity_id, display_value, created_date) values
     ('763', '234', 'CR', '3', '4', '18', 'Artel', '2026-06-27 18:07:18.419193'),
@@ -59,12 +64,3 @@ insert into acc_reg_entry_subkonto (id, entry_id, side, subkonto_type_id, sort_o
     ('805', '245', 'CR', '9', '3', '9', '{"number":"100000009","date":"2026-05-20T12:58:18.282"}', '2026-06-29 17:57:52.698543'),
     ('806', '245', 'DR', '10', '1', '97', '{"number":"PUR-2026-000001","date":"2026-06-29T17:55:00"}', '2026-06-29 17:57:52.698858'),
     ('807', '245', 'DR', '3', '2', '18', 'Artel', '2026-06-29 17:57:52.698862');
-
-create index idx_acc_reg_entry_subkonto_entity on acc_reg_entry_subkonto using btree (subkonto_type_id, entity_id);
-
-create index idx_acc_reg_entry_subkonto_entry_id on acc_reg_entry_subkonto using btree (entry_id);
-
-create index idx_acc_reg_entry_subkonto_side on acc_reg_entry_subkonto using btree (side);
-
-create index idx_acc_reg_entry_subkonto_type_id on acc_reg_entry_subkonto using btree (subkonto_type_id);
-

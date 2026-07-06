@@ -1,5 +1,5 @@
-﻿
-create table acc_posting_alias_translation (
+﻿create table acc_posting_alias_translation 
+(
     posting_alias_id smallint not null,
     language_id smallint not null,
     name character varying(250) not null,
@@ -95,4 +95,12 @@ insert into acc_posting_alias_translation (posting_alias_id, language_id, name) 
 insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (27, 3, 'Social insurance tax');
 insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (28, 3, 'Pension fund');
 insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (29, 3, 'Bank fee');
-
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (32, 1, 'Valyutali pul aktivlari');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (33, 1, 'Valyuta qayta baholash foydasi');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (34, 1, 'Valyuta qayta baholash zarari');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (32, 2, 'Валютный денежный актив');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (33, 2, 'Доход от переоценки валюты');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (34, 2, 'Расход от переоценки валюты');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (32, 3, 'Foreign currency monetary asset');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (33, 3, 'Currency revaluation gain');
+insert into acc_posting_alias_translation (posting_alias_id, language_id, name) values (34, 3, 'Currency revaluation loss');

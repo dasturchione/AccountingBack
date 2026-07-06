@@ -1,5 +1,5 @@
-﻿
-create table money_reg_balance (
+﻿create table money_reg_balance 
+(
     id bigint   not null,
     organization_id integer not null,
     document_type_id smallint not null,
@@ -22,20 +22,10 @@ create table money_reg_balance (
     constraint money_reg_balance_posting_batch_id_fkey foreign key (posting_batch_id) references acc_posting_batch(id)
 );
 
-insert into money_reg_balance (id, organization_id, document_type_id, document_id, source_type, source_id, operation_type_id, currency_id, amount, doc_date, created_date) values
-    ('1', '2', '1', '1', 'KassaUzb', '1', '1', '1', '800000.00', '2026-06-08 05:56:31.616', '2026-06-08 10:59:21.788241');
-
 create index idx_money_reg_balance_currency_id on money_reg_balance using btree (currency_id);
-
 create index idx_money_reg_balance_doc_date on money_reg_balance using btree (doc_date);
-
 create index idx_money_reg_balance_document on money_reg_balance using btree (document_type_id, document_id);
-
 create index idx_money_reg_balance_organization_id on money_reg_balance using btree (organization_id);
-
 create index idx_money_reg_balance_source on money_reg_balance using btree (source_type, source_id);
-
 create index idx_money_reg_balance_posting_batch_id on money_reg_balance using btree (posting_batch_id);
-
 create index idx_money_reg_balance_reversal_entry_id on money_reg_balance using btree (reversal_entry_id);
-

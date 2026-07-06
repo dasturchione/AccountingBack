@@ -1,5 +1,5 @@
-
-create table sys_notification (
+create table sys_notification
+(
     id bigint   not null,
     organization_id integer,
     user_id integer,
@@ -19,7 +19,5 @@ create table sys_notification (
 );
 
 create index idx_sys_notification_organization_id on sys_notification using btree (organization_id);
-
 create index idx_sys_notification_user_created_date on sys_notification using btree (user_id, created_date desc);
-
 create index idx_sys_notification_type_id on sys_notification using btree (type_id);

@@ -1,5 +1,5 @@
-﻿
-create table sys_password_reset_token (
+﻿create table sys_password_reset_token 
+(
     id bigint   not null,
     user_id integer not null,
     token_hash character varying(512) not null,

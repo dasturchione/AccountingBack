@@ -1,5 +1,5 @@
-﻿
-create table cmn_pricing_method (
+﻿create table cmn_pricing_method 
+(
     id smallint not null,
     code character varying(20) not null,
     name character varying(200) not null,
@@ -11,4 +11,3 @@ insert into cmn_pricing_method (id, code, name) values
     ('1', 'COST_PLUS_PERCENT', 'Tannarx + foizli marja'),
     ('2', 'COST_PLUS_AMOUNT', 'Tannarx + belgilangan summa'),
     ('3', 'FIXED_PRICE', 'Belgilangan narx');
-

@@ -17,10 +17,6 @@ public class InventoryRegisterBalanceBaseDto
     public long? ReversalEntryId { get; set; }
 }
 
-public class InventoryRegisterBalanceCreateDto : InventoryRegisterBalanceBaseDto { }
-
-public class InventoryRegisterBalanceUpdateDto : InventoryRegisterBalanceBaseDto { }
-
 public class InventoryRegisterBalanceDto : InventoryRegisterBalanceBaseDto
 {
     public long Id { get; set; }

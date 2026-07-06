@@ -65,6 +65,7 @@ artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
+src/Infrastructure/Persistence/Generated/Scaffold/Scaffold.txt
 
 # StyleCop
 StyleCopReport.xml

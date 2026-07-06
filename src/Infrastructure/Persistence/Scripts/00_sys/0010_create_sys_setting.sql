@@ -1,4 +1,3 @@
-
 create table sys_setting (
     id bigint not null,
     code character varying(100) not null,
@@ -16,31 +15,12 @@ create table sys_setting (
     constraint sys_setting_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
-create unique index ux_sys_setting_global_code
-    on sys_setting using btree (code)
-    where organization_id is null;
-
-create unique index ux_sys_setting_org_code
-    on sys_setting using btree (organization_id, code)
-    where organization_id is not null;
-
+create unique index ux_sys_setting_global_code on sys_setting using btree (code) where organization_id is null;
+create unique index ux_sys_setting_org_code on sys_setting using btree (organization_id, code) where organization_id is not null;
 create index idx_sys_setting_category on sys_setting using btree (category);
-
 create index idx_sys_setting_organization_id on sys_setting using btree (organization_id);
 
-insert into sys_setting (
-    id,
-    code,
-    value,
-    value_type,
-    category,
-    description,
-    is_editable,
-    organization_id,
-    state_id,
-    created_date
-)
-values
+insert into sys_setting ( id, code, value, value_type, category, description, is_editable, organization_id, state_id, created_date ) values
     (1, 'SYSTEM_NAME', 'Accounting Back', 0, 'general', 'Displayed system name.', true, null, 1, '2026-07-05 00:00:00'),
     (2, 'DEFAULT_CURRENCY', 'UZS', 0, 'general', 'Default currency code.', true, null, 1, '2026-07-05 00:00:00'),
     (3, 'DEFAULT_LANGUAGE', 'uz', 0, 'localization', 'Default interface language code.', true, null, 1, '2026-07-05 00:00:00'),

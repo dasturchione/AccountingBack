@@ -1,5 +1,6 @@
 ﻿
-create table org_claim_request (
+create table org_claim_request 
+(
     id bigint   not null,
     organization_id integer,
     requested_by_user_id integer not null,
@@ -17,10 +18,6 @@ create table org_claim_request (
 );
 
 create index idx_org_claim_request_inn on org_claim_request using btree (inn);
-
 create index idx_org_claim_request_organization_id on org_claim_request using btree (organization_id);
-
 create index idx_org_claim_request_requested_by_user_id on org_claim_request using btree (requested_by_user_id);
-
 create index idx_org_claim_request_status on org_claim_request using btree (status);
-

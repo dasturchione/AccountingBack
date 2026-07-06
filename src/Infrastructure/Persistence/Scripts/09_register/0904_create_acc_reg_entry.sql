@@ -1,6 +1,6 @@
-﻿
-create table acc_reg_entry (
-    id bigint   not null,
+﻿create table acc_reg_entry 
+(
+    id bigint not null,
     organization_id integer not null,
     document_type_id smallint not null,
     document_id bigint not null,
@@ -29,6 +29,17 @@ create table acc_reg_entry (
     constraint acc_reg_entry_reversal_entry_id_fkey foreign key (reversal_entry_id) references acc_reg_entry(id)
 );
 
+create index idx_acc_reg_entry_credit_account_id on acc_reg_entry using btree (credit_account_id);
+create index idx_acc_reg_entry_currency_id on acc_reg_entry using btree (currency_id);
+create index idx_acc_reg_entry_debit_account_id on acc_reg_entry using btree (debit_account_id);
+create index idx_acc_reg_entry_doc_date on acc_reg_entry using btree (doc_date);
+create index idx_acc_reg_entry_document on acc_reg_entry using btree (document_type_id, document_id);
+create index idx_acc_reg_entry_journal_number on acc_reg_entry using btree (journal_number);
+create index idx_acc_reg_entry_operation_type_id on acc_reg_entry using btree (operation_type_id);
+create index idx_acc_reg_entry_organization_id on acc_reg_entry using btree (organization_id);
+create index idx_acc_reg_entry_posting_batch_id on acc_reg_entry using btree (posting_batch_id);
+create index idx_acc_reg_entry_reversal_entry_id on acc_reg_entry using btree (reversal_entry_id);
+
 insert into acc_reg_entry (id, organization_id, document_type_id, document_id, debit_account_id, credit_account_id, currency_id, amount, doc_date, created_date, operation_type_id, debit_quantity, credit_quantity, content, journal_number) values
     ('234', '8', '1', '92', '1014', '1036', '1', '40000.00', '2026-06-27 18:05:43', '2026-06-27 13:07:18.414255', null, '4.000', null, 'Поступление товара', 'PUR-2026-000001'),
     ('235', '8', '1', '92', '1017', '1036', '1', '4800.00', '2026-06-27 18:05:43', '2026-06-27 13:07:18.419823', null, '4.000', null, 'Поступление товара', 'PUR-2026-000001'),
@@ -42,24 +53,3 @@ insert into acc_reg_entry (id, organization_id, document_type_id, document_id, d
     ('243', '8', '1', '96', '1017', '1036', '1', '4500.00', '2026-06-29 14:59:15', '2026-06-29 10:01:54.065385', null, '2.000', null, 'Поступление товара', 'PUR-2026-000001'),
     ('244', '8', '1', '97', '1035', '1036', '1', '20000.00', '2026-06-29 17:55:00', '2026-06-29 12:57:52.692291', null, null, null, 'Получение услуги', 'PUR-2026-000001'),
     ('245', '8', '1', '97', '1017', '1036', '1', '2400.00', '2026-06-29 17:55:00', '2026-06-29 12:57:52.698531', null, null, null, 'Получение услуги', 'PUR-2026-000001');
-
-create index idx_acc_reg_entry_credit_account_id on acc_reg_entry using btree (credit_account_id);
-
-create index idx_acc_reg_entry_currency_id on acc_reg_entry using btree (currency_id);
-
-create index idx_acc_reg_entry_debit_account_id on acc_reg_entry using btree (debit_account_id);
-
-create index idx_acc_reg_entry_doc_date on acc_reg_entry using btree (doc_date);
-
-create index idx_acc_reg_entry_document on acc_reg_entry using btree (document_type_id, document_id);
-
-create index idx_acc_reg_entry_journal_number on acc_reg_entry using btree (journal_number);
-
-create index idx_acc_reg_entry_operation_type_id on acc_reg_entry using btree (operation_type_id);
-
-create index idx_acc_reg_entry_organization_id on acc_reg_entry using btree (organization_id);
-
-create index idx_acc_reg_entry_posting_batch_id on acc_reg_entry using btree (posting_batch_id);
-
-create index idx_acc_reg_entry_reversal_entry_id on acc_reg_entry using btree (reversal_entry_id);
-

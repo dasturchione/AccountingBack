@@ -1,13 +1,10 @@
-﻿
-create table cash_operation (
+﻿create table cash_operation (
     id bigint   not null,
     organization_id integer not null,
     cash_box_id integer not null,
     destination_cash_box_id integer,
     operation_type_id smallint not null,
     payment_type_id smallint,
-    -- Header payment purpose (required by domain). FK + NOT NULL are applied in
-    -- 00_sys/0000.sql because acc_payment_purpose (10_acc) is created after this table.
     payment_purpose_id smallint,
     counterparty_id integer,
     doc_number character varying(100) not null,
@@ -37,6 +34,17 @@ create table cash_operation (
     constraint cash_operation_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
 );
 
+create index idx_cash_operation_cash_box_id on cash_operation using btree (cash_box_id);
+create index idx_cash_operation_destination_cash_box_id on cash_operation using btree (destination_cash_box_id);
+create index idx_cash_operation_counterparty_id on cash_operation using btree (counterparty_id);
+create index idx_cash_operation_doc_date on cash_operation using btree (doc_date);
+create index idx_cash_operation_operation_type_id on cash_operation using btree (operation_type_id);
+create index idx_cash_operation_organization_id on cash_operation using btree (organization_id);
+create index idx_cash_operation_state_id on cash_operation using btree (state_id);
+create index idx_cash_operation_status_id on cash_operation using btree (status_id);
+create index idx_cash_operation_posted_by_user_id on cash_operation using btree (posted_by_user_id);
+create index idx_cash_operation_cancelled_by_user_id on cash_operation using btree (cancelled_by_user_id);
+
 create function set_cash_operation_doc_number() returns trigger
     language plpgsql
     as $$
@@ -46,23 +54,3 @@ begin
     return new;
 end;
 $$;
-
-create index idx_cash_operation_cash_box_id on cash_operation using btree (cash_box_id);
-create index idx_cash_operation_destination_cash_box_id on cash_operation using btree (destination_cash_box_id);
-
-create index idx_cash_operation_counterparty_id on cash_operation using btree (counterparty_id);
-
-create index idx_cash_operation_doc_date on cash_operation using btree (doc_date);
-
-create index idx_cash_operation_operation_type_id on cash_operation using btree (operation_type_id);
-
-create index idx_cash_operation_organization_id on cash_operation using btree (organization_id);
-
-create index idx_cash_operation_state_id on cash_operation using btree (state_id);
-
-create index idx_cash_operation_status_id on cash_operation using btree (status_id);
-
-create index idx_cash_operation_posted_by_user_id on cash_operation using btree (posted_by_user_id);
-
-create index idx_cash_operation_cancelled_by_user_id on cash_operation using btree (cancelled_by_user_id);
-

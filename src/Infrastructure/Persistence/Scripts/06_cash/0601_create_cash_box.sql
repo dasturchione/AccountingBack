@@ -1,5 +1,4 @@
-﻿
-create table cash_box (
+﻿create table cash_box (
     id integer   not null,
     organization_id integer not null,
     branch_id integer,
@@ -21,16 +20,9 @@ create table cash_box (
 );
 
 create index idx_cash_box_branch_id on cash_box using btree (branch_id);
-
 create index idx_cash_box_currency_id on cash_box using btree (currency_id);
-
 create unique index idx_cash_box_org_code on cash_box using btree (organization_id, code);
-
 create index idx_cash_box_organization_id on cash_box using btree (organization_id);
-
 create index idx_cash_box_state_id on cash_box using btree (state_id);
-
 create index idx_cash_box_is_main on cash_box using btree (is_main);
-
 create index idx_cash_box_responsible_user_id on cash_box using btree (responsible_user_id);
-

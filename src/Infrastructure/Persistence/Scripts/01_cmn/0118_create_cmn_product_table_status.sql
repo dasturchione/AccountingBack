@@ -1,5 +1,5 @@
-﻿
-create table cmn_product_table_status (
+﻿create table cmn_product_table_status 
+(
     id smallint   not null,
     code character varying(50) not null,
     name character varying(100) not null,
@@ -18,4 +18,3 @@ insert into cmn_product_table_status (id, code, name, state_id) values
     ('6', 'WRITTEN_OFF', 'Списан', '1'),
     ('7', 'LOST', 'Утерян', '1'),
     ('8', 'BLOCKED', 'Заблокирован', '1');
-

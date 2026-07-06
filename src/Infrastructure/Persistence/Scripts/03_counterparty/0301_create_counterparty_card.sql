@@ -1,5 +1,6 @@
 ﻿
-create table counterparty_card (
+create table counterparty_card 
+(
     id integer   not null,
     organization_id integer not null,
     counterparty_type_id smallint not null,
@@ -27,6 +28,18 @@ create table counterparty_card (
     constraint counterparty_card_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
+create index idx_counterparty_card_district_id on counterparty_card using btree (district_id);
+create index idx_counterparty_card_inn on counterparty_card using btree (inn);
+create index idx_counterparty_card_organization_id on counterparty_card using btree (organization_id);
+create index idx_counterparty_card_region_id on counterparty_card using btree (region_id);
+create index idx_counterparty_card_short_name on counterparty_card using btree (short_name);
+create index idx_counterparty_card_state_id on counterparty_card using btree (state_id);
+create index idx_counterparty_card_type_id on counterparty_card using btree (counterparty_type_id);
+create index idx_counterparty_card_code on counterparty_card using btree (code);
+create index idx_counterparty_card_external_id on counterparty_card using btree (external_id);
+create unique index uidx_counterparty_card_org_code on counterparty_card using btree (organization_id, code) WHERE (code IS not null);
+
+
 insert into counterparty_card (id, organization_id, counterparty_type_id, short_name, full_name, inn, phone_number, email, region_id, district_id, address, state_id, created_date) values
     ('16', '8', '1', 'as', 'Asta', '12132145631', '+998 99 890-08-58', null, '4', '77', 'Navoiy, Uzbekistan', '1', '2026-06-20 15:37:24.758641'),
     ('17', '8', '2', 'aaaa', 'Shaxriddinbek', '12132145631', '+998 99 890-08-58', null, '3', '58', 'Navoiy, Uzbekistan', '1', '2026-06-20 16:03:26.590196'),
@@ -34,24 +47,3 @@ insert into counterparty_card (id, organization_id, counterparty_type_id, short_
     ('19', '8', '1', 'Farrux Tech', 'Farrux Tech', '999888777', '+998 00 111-44-11', null, '8', '129', '', '1', '2026-06-20 18:20:49.024257'),
     ('20', '8', '3', 'Ava', 'Avalon', '22618000562088110001', '+998 99 556-56-88', null, '4', '78', 'Navoiy, Uzbekistan', '1', '2026-06-24 18:15:21.1843'),
     ('21', '8', '1', 'Aval', 'Avaloncha', '20208000005157348001', '+998 99 890-08-58', null, '3', '59', 'Navoiy, Uzbekistan', '1', '2026-06-25 11:14:04.759077');
-
-create index idx_counterparty_card_district_id on counterparty_card using btree (district_id);
-
-create index idx_counterparty_card_inn on counterparty_card using btree (inn);
-
-create index idx_counterparty_card_organization_id on counterparty_card using btree (organization_id);
-
-create index idx_counterparty_card_region_id on counterparty_card using btree (region_id);
-
-create index idx_counterparty_card_short_name on counterparty_card using btree (short_name);
-
-create index idx_counterparty_card_state_id on counterparty_card using btree (state_id);
-
-create index idx_counterparty_card_type_id on counterparty_card using btree (counterparty_type_id);
-
-create index idx_counterparty_card_code on counterparty_card using btree (code);
-
-create index idx_counterparty_card_external_id on counterparty_card using btree (external_id);
-
-create unique index uidx_counterparty_card_org_code on counterparty_card using btree (organization_id, code) WHERE (code IS not null);
-

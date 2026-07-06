@@ -1,5 +1,6 @@
 ﻿
-create table org_organization_config (
+create table org_organization_config 
+(
     organization_id integer not null,
     inventory_valuation_method character varying(20) default 'fifo'::character varying not null,
     accounting_policy_id smallint,
@@ -15,6 +16,4 @@ create table org_organization_config (
 );
 
 create index idx_org_organization_config_accounting_policy_id on org_organization_config using btree (accounting_policy_id);
-
 create index idx_org_organization_config_base_currency_id on org_organization_config using btree (base_currency_id);
-

@@ -1,7 +1,5 @@
-
--- channel: 1=InApp, 2=Email, 3=Push, 4=Sms
--- status:  0=Pending, 1=Sent, 2=Failed
-create table sys_notification_delivery (
+create table sys_notification_delivery 
+(
     id bigint   not null,
     notification_id bigint not null,
     channel smallint not null,
@@ -10,10 +8,8 @@ create table sys_notification_delivery (
     sent_at timestamp without time zone,
     created_date timestamp without time zone default now() not null,
     constraint sys_notification_delivery_pkey primary key (id),
-    -- delivery row has no meaning without its parent notification
     constraint sys_notification_delivery_notification_id_fkey foreign key (notification_id) references sys_notification(id) on delete cascade
 );
 
 create index idx_sys_notification_delivery_notification_id on sys_notification_delivery using btree (notification_id);
-
 create index idx_sys_notification_delivery_status on sys_notification_delivery using btree (status);

@@ -1,5 +1,5 @@
-﻿
-create table counterparty_bank_account (
+﻿create table counterparty_bank_account 
+(
     id integer   not null,
     organization_id integer not null,
     counterparty_id integer not null,
@@ -18,12 +18,7 @@ create table counterparty_bank_account (
 );
 
 create index idx_counterparty_bank_account_bank_id on counterparty_bank_account using btree (bank_id);
-
 create index idx_counterparty_bank_account_counterparty_id on counterparty_bank_account using btree (counterparty_id);
-
 create index idx_counterparty_bank_account_currency_id on counterparty_bank_account using btree (currency_id);
-
 create index idx_counterparty_bank_account_organization_id on counterparty_bank_account using btree (organization_id);
-
 create index idx_counterparty_bank_account_state_id on counterparty_bank_account using btree (state_id);
-

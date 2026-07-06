@@ -1,5 +1,5 @@
-﻿
-create table sys_module_sub_group (
+﻿create table sys_module_sub_group 
+(
     id integer   not null,
     code character varying(100) not null,
     short_name character varying(250) not null,
@@ -7,6 +7,7 @@ create table sys_module_sub_group (
     created_date timestamp without time zone default now() not null,
     constraint sys_module_sub_group_pkey primary key (id)
 );
+create unique index sys_module_sub_group_unique_index_code on sys_module_sub_group using btree (code);
 
 insert into sys_module_sub_group (id, code, short_name, full_name, created_date) values
     ('1', 'SYS', 'Tizim', 'Tizim sozlamalari', '2026-06-08 11:44:36.687616'),
@@ -29,8 +30,4 @@ insert into sys_module_sub_group (id, code, short_name, full_name, created_date)
 
 select setval('sys_module_sub_group_id_seq', 15, true);
 
-alter table ONLY sys_module_sub_group
-    ADD constraint sys_module_sub_group_pkey primary key (id);
-
-create unique index sys_module_sub_group_unique_index_code on sys_module_sub_group using btree (code);
 

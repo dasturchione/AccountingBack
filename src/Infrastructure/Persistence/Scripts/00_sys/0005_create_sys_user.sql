@@ -1,5 +1,5 @@
-﻿
-create table sys_user (
+﻿create table sys_user 
+(
     id integer   not null,
     user_name character varying(250) not null,
     password_hash character varying(250) not null,

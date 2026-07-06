@@ -1,5 +1,5 @@
-﻿
-create table sys_refresh_token (
+﻿create table sys_refresh_token 
+(
     id bigint   not null,
     user_id integer not null,
     token_hash character varying(512) not null,

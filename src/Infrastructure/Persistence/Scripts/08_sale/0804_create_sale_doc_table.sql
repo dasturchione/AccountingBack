@@ -1,5 +1,5 @@
-﻿
-create table sale_doc_table (
+﻿create table sale_doc_table 
+(
     id bigint   not null,
     product_table_id integer not null,
     amount numeric(24,8) not null,
@@ -14,13 +14,10 @@ create table sale_doc_table (
     constraint sale_doc_table_vat_rate_id_fkey foreign key (vat_rate_id) references cmn_vat_rate(id)
 );
 
-insert into sale_doc_table (id, product_table_id, amount, vat_rate_id, vat_amount, total_amount, cost_price, owner_id) values
-    ('98', '462', '18975.00000000', '2', '2277.00000000', '21252.00000000', '17250.00000000', '26');
-
 create index idx_sale_doc_table_product_id on sale_doc_table using btree (product_table_id);
-
 create index idx_sale_doc_table_vat_rate_id on sale_doc_table using btree (vat_rate_id);
-
 create index ix_sale_doc_table_owner_id on sale_doc_table using btree (owner_id);
 create unique index ux_sale_doc_table_owner_product_table on sale_doc_table using btree (owner_id, product_table_id);
 
+insert into sale_doc_table (id, product_table_id, amount, vat_rate_id, vat_amount, total_amount, cost_price, owner_id) values
+    ('98', '462', '18975.00000000', '2', '2277.00000000', '21252.00000000', '17250.00000000', '26');

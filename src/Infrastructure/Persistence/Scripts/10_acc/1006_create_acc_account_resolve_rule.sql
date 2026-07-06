@@ -1,6 +1,6 @@
 ﻿
 create table acc_account_resolve_rule (
-    id integer   not null,
+    id serial not null,
     policy_id smallint not null,
     alias character varying(250) not null,
     dimension_key character varying(250) not null,
@@ -11,27 +11,6 @@ create table acc_account_resolve_rule (
     constraint acc_account_resolve_rule_account_id_fkey foreign key (account_id) references acc_chart_account(id),
     constraint acc_account_resolve_rule_policy_id_fkey foreign key (policy_id) references acc_accounting_policy(id)
 );
-
-create sequence acc_account_resolve_rule_id_seq
-    as integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER SEQUENCE acc_account_resolve_rule_id_seq OWNED BY acc_account_resolve_rule.id;
-
-alter table ONLY acc_account_resolve_rule ALTER COLUMN id set default nextval('acc_account_resolve_rule_id_seq'::regclass);
-
-alter table ONLY acc_account_resolve_rule
-    ADD constraint acc_account_resolve_rule_pkey primary key (id);
-
-alter table ONLY acc_account_resolve_rule
-    ADD constraint acc_account_resolve_rule_account_id_fkey foreign key (account_id) references acc_chart_account(id);
-
-alter table ONLY acc_account_resolve_rule
-    ADD constraint acc_account_resolve_rule_policy_id_fkey foreign key (policy_id) references acc_accounting_policy(id);
 
 -- ===================== Inventory: Товар на складе =====================
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
@@ -141,4 +120,13 @@ select 1, 'PensionFund',     '_none', '_default', id, 100 from acc_chart_account
 -- ===================== BankFee =====================
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
 select 1, 'BankFee', '_none', '_default', id, 100 from acc_chart_account where code = '9430';
+
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'CurrencyAsset', '_none', '_default', id, 100 from acc_chart_account where code = '5020';
+
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'CurrencyRevaluationGain', '_none', '_default', id, 100 from acc_chart_account where code = '9030.1';
+
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'CurrencyRevaluationLoss', '_none', '_default', id, 100 from acc_chart_account where code = '9430';
 

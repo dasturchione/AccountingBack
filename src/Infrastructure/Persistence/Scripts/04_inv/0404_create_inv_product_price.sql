@@ -1,5 +1,5 @@
-﻿
-create table inv_product_price (
+﻿create table inv_product_price 
+(
     id bigint   not null,
     organization_id integer not null,
     product_id integer not null,
@@ -22,21 +22,14 @@ create table inv_product_price (
     constraint inv_product_price_unit_id_fkey foreign key (unit_id) references cmn_unit(id)
 );
 
+create index idx_inv_product_price_currency_id on inv_product_price using btree (currency_id);
+create index idx_inv_product_price_dates on inv_product_price using btree (start_date, end_date);
+create index idx_inv_product_price_organization_id on inv_product_price using btree (organization_id);
+create index idx_inv_product_price_price_type_id on inv_product_price using btree (price_type_id);
+create index idx_inv_product_price_product_id on inv_product_price using btree (product_id);
+create index idx_inv_product_price_product_type_dates on inv_product_price using btree (organization_id, product_id, price_type_id, state_id, start_date, end_date);
+create index idx_inv_product_price_state_id on inv_product_price using btree (state_id);
+
 insert into inv_product_price (id, organization_id, product_id, currency_id, price_type_id, unit_id, price, start_date, end_date, state_id, created_date) values
     ('1', '8', '23', '1', '1', '1', '11680.00000000', '2026-06-01 00:00:00', null, '1', '2026-06-29 14:56:50.128533'),
     ('2', '8', '24', '1', '1', '1', '17250.00000000', '2026-06-29 15:01:54.112203', null, '1', '2026-06-29 15:01:54.112203');
-
-create index idx_inv_product_price_currency_id on inv_product_price using btree (currency_id);
-
-create index idx_inv_product_price_dates on inv_product_price using btree (start_date, end_date);
-
-create index idx_inv_product_price_organization_id on inv_product_price using btree (organization_id);
-
-create index idx_inv_product_price_price_type_id on inv_product_price using btree (price_type_id);
-
-create index idx_inv_product_price_product_id on inv_product_price using btree (product_id);
-
-create index idx_inv_product_price_product_type_dates on inv_product_price using btree (organization_id, product_id, price_type_id, state_id, start_date, end_date);
-
-create index idx_inv_product_price_state_id on inv_product_price using btree (state_id);
-

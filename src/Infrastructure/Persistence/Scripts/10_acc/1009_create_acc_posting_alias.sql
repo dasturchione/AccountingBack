@@ -1,6 +1,6 @@
-﻿
-create table acc_posting_alias (
-    id smallint   not null,
+﻿create table acc_posting_alias 
+(
+    id smallint not null,
     code character varying(50) not null,
     name character varying(250) not null,
     constraint acc_posting_alias_code_key UNIQUE (code),
@@ -38,4 +38,6 @@ insert into acc_posting_alias (id, code, name) values (28, 'PensionFund', 'INPS'
 insert into acc_posting_alias (id, code, name) values (29, 'BankFee', 'Bank komissiyasi');
 insert into acc_posting_alias (id, code, name) values (30, 'CashBoxSource', 'Naqd pulni hisobvaraqlari (keluvchi)');
 insert into acc_posting_alias (id, code, name) values (31, 'CashBoxDestination', 'Naqd pulni hisobvaraqlari (chiquvchi)');
-
+insert into acc_posting_alias (id, code, name) values (32, 'CurrencyAsset', 'Currency monetary asset');
+insert into acc_posting_alias (id, code, name) values (33, 'CurrencyRevaluationGain', 'Currency revaluation gain');
+insert into acc_posting_alias (id, code, name) values (34, 'CurrencyRevaluationLoss', 'Currency revaluation loss');

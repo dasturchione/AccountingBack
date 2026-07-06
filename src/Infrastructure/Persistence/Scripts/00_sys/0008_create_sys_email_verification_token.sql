@@ -1,5 +1,5 @@
-﻿
-create table sys_email_verification_token (
+﻿create table sys_email_verification_token 
+(
     id bigint   not null,
     user_id integer not null,
     token_hash character varying(512) not null,

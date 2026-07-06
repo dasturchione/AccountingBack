@@ -1,5 +1,5 @@
-﻿
-create table org_department (
+﻿create table org_department 
+(
     id integer   not null,
     organization_id integer not null,
     branch_id integer,
@@ -14,10 +14,6 @@ create table org_department (
 );
 
 create index idx_org_department_branch_id on org_department using btree (branch_id);
-
 create unique index idx_org_department_org_code on org_department using btree (organization_id, code);
-
 create index idx_org_department_organization_id on org_department using btree (organization_id);
-
 create index idx_org_department_state_id on org_department using btree (state_id);
-

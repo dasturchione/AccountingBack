@@ -1,5 +1,5 @@
-﻿
-create table inv_product (
+﻿create table inv_product 
+(
     id integer   not null,
     organization_id integer not null,
     product_group_id integer,
@@ -12,63 +12,42 @@ create table inv_product (
     created_date timestamp without time zone default now() not null,
     mxik character varying(17),
     is_piece_tracked boolean default false not null,
+    product_type_id smallint not null default 1,
+    is_sold boolean not null default true,
+    is_purchased boolean not null default true,
     code character varying(100),
     sku character varying(100),
     article character varying(100),
     default_vat_rate_id smallint,
-    inventory_account_id integer,
-    income_account_id integer,
-    expense_account_id integer,
-    cogs_account_id integer,
     min_stock numeric(18,3),
     constraint ck_inv_product_mxik CHECK (((mxik IS null) OR ((mxik)::text ~ '^[A-Za-z0-9]{17}$'::text))),
+    constraint chk_inv_product_sale_purchase_flags CHECK ((is_sold OR is_purchased)),
     constraint inv_product_pkey primary key (id),
     constraint inv_product_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint inv_product_product_group_id_fkey foreign key (product_group_id) references inv_product_group(id),
+    constraint inv_product_product_type_id_fkey foreign key (product_type_id) references cmn_product_type(id),
     constraint inv_product_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint inv_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id),
-    constraint inv_product_default_vat_rate_id_fkey foreign key (default_vat_rate_id) references cmn_vat_rate(id),
-    constraint inv_product_inventory_account_id_fkey foreign key (inventory_account_id) references acc_chart_account(id),
-    constraint inv_product_income_account_id_fkey foreign key (income_account_id) references acc_chart_account(id),
-    constraint inv_product_expense_account_id_fkey foreign key (expense_account_id) references acc_chart_account(id),
-    constraint inv_product_cogs_account_id_fkey foreign key (cogs_account_id) references acc_chart_account(id)
+    constraint inv_product_default_vat_rate_id_fkey foreign key (default_vat_rate_id) references cmn_vat_rate(id)
 );
+
+create index idx_inv_product_barcode on inv_product using btree (barcode);
+create index idx_inv_product_name on inv_product using btree (name);
+create index idx_inv_product_organization_id on inv_product using btree (organization_id);
+create index idx_inv_product_product_group_id on inv_product using btree (product_group_id);
+create index idx_inv_product_state_id on inv_product using btree (state_id);
+create index idx_inv_product_unit_id on inv_product using btree (unit_id);
+create index idx_inv_product_product_type_id on inv_product using btree (product_type_id);
+create index ix_inv_product_mxik on inv_product using btree (mxik) WHERE (mxik IS not null);
+create index idx_inv_product_code on inv_product using btree (code);
+create index idx_inv_product_sku on inv_product using btree (sku);
+create index idx_inv_product_article on inv_product using btree (article);
+create index idx_inv_product_default_vat_rate_id on inv_product using btree (default_vat_rate_id);
+create unique index uidx_inv_product_org_code on inv_product using btree (organization_id, code) WHERE (code IS not null);
+
 
 insert into inv_product (id, organization_id, product_group_id, unit_id, barcode, name, description, is_service, state_id, created_date, mxik, is_piece_tracked) values
     ('23', '8', '13', '1', '08418001001005219', 'ARTEL, икки камерали HD 316 FND ECO FROST қора-жилосиз ранг', '', 'f', '1', '2026-06-27 15:18:21.488187', '08418001001005219', 't'),
     ('24', '8', '13', '1', '08418001001005223', 'ARTEL, икки камерали HD 341 FND ECO FROST ёмғирли-асфалт ранг', '', 'f', '1', '2026-06-27 15:18:21.488261', '08418001001005223', 't'),
     ('25', '8', '14', '5', '09903001001000000', 'Газ таъминоти хизматлари', '', 't', '1', '2026-06-27 15:21:30.132046', '09903001001000000', 'f'),
     ('26', '8', '14', '5', '09905001001000000', 'Электр энергия хизматлари', '', 't', '1', '2026-06-27 15:21:30.132198', '09905001001000000', 'f');
-
-create index idx_inv_product_barcode on inv_product using btree (barcode);
-
-create index idx_inv_product_name on inv_product using btree (name);
-
-create index idx_inv_product_organization_id on inv_product using btree (organization_id);
-
-create index idx_inv_product_product_group_id on inv_product using btree (product_group_id);
-
-create index idx_inv_product_state_id on inv_product using btree (state_id);
-
-create index idx_inv_product_unit_id on inv_product using btree (unit_id);
-
-create index ix_inv_product_mxik on inv_product using btree (mxik) WHERE (mxik IS not null);
-
-create index idx_inv_product_code on inv_product using btree (code);
-
-create index idx_inv_product_sku on inv_product using btree (sku);
-
-create index idx_inv_product_article on inv_product using btree (article);
-
-create index idx_inv_product_default_vat_rate_id on inv_product using btree (default_vat_rate_id);
-
-create index idx_inv_product_inventory_account_id on inv_product using btree (inventory_account_id);
-
-create index idx_inv_product_income_account_id on inv_product using btree (income_account_id);
-
-create index idx_inv_product_expense_account_id on inv_product using btree (expense_account_id);
-
-create index idx_inv_product_cogs_account_id on inv_product using btree (cogs_account_id);
-
-create unique index uidx_inv_product_org_code on inv_product using btree (organization_id, code) WHERE (code IS not null);
-

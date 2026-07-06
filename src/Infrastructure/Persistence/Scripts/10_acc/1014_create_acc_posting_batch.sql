@@ -1,5 +1,5 @@
-﻿
-create table acc_posting_batch (
+﻿create table acc_posting_batch 
+(
     id bigint   not null,
     organization_id integer not null,
     document_type_id smallint not null,
@@ -18,12 +18,7 @@ create table acc_posting_batch (
 );
 
 create index idx_acc_posting_batch_document on acc_posting_batch using btree (document_type_id, document_id);
-
 create unique index ux_acc_posting_batch_document_posted on acc_posting_batch using btree (document_type_id, document_id) WHERE (status = 'POSTED');
-
 create unique index ux_acc_posting_batch_document_reversal on acc_posting_batch using btree (document_type_id, document_id) WHERE (status = 'REVERSAL');
-
 create index idx_acc_posting_batch_organization_id on acc_posting_batch using btree (organization_id);
-
 create index idx_acc_posting_batch_status on acc_posting_batch using btree (status);
-

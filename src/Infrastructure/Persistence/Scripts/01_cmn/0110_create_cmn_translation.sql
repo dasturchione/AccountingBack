@@ -1,5 +1,5 @@
-﻿
-create table cmn_translation (
+﻿create table cmn_translation 
+(
     id bigint   not null,
     language_id smallint not null,
     table_name character varying(100) not null,
@@ -10,6 +10,10 @@ create table cmn_translation (
     constraint cmn_translation_pkey primary key (id),
     constraint cmn_translation_language_id_fkey foreign key (language_id) references cmn_language(id)
 );
+
+create index idx_cmn_translation_language_id on cmn_translation using btree (language_id);
+create index idx_cmn_translation_lookup on cmn_translation using btree (table_name, record_id, column_name);
+create unique index idx_cmn_translation_unique on cmn_translation using btree (language_id, table_name, record_id, column_name);
 
 insert into cmn_translation (id, language_id, table_name, record_id, column_name, value, created_date) values
     ('1', '3', 'cmn_currency', '1', 'name', 'Uzbek sum', '2026-06-06 10:44:54.451195'),
@@ -69,8 +73,3 @@ insert into cmn_translation (id, language_id, table_name, record_id, column_name
     ('55', '3', 'cmn_payment_type', '4', 'name', 'Transfer', '2026-06-06 10:44:54.451195'),
     ('56', '2', 'cmn_payment_type', '4', 'name', 'Перевод', '2026-06-06 10:44:54.451195'),
     ('57', '1', 'cmn_payment_type', '4', 'name', 'O''tkazma', '2026-06-06 10:44:54.451195');
-
-create index idx_cmn_translation_language_id on cmn_translation using btree (language_id);
-create index idx_cmn_translation_lookup on cmn_translation using btree (table_name, record_id, column_name);
-create unique index idx_cmn_translation_unique on cmn_translation using btree (language_id, table_name, record_id, column_name);
-

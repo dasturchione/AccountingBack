@@ -1,5 +1,5 @@
-﻿
-create table acc_chart_account_subkonto (
+﻿create table acc_chart_account_subkonto 
+(
     id integer   not null,
     organization_id integer not null,
     account_id integer not null,
@@ -16,10 +16,6 @@ create table acc_chart_account_subkonto (
 );
 
 create index idx_acc_chart_account_subkonto_account_id on acc_chart_account_subkonto using btree (account_id);
-
 create index idx_acc_chart_account_subkonto_organization_id on acc_chart_account_subkonto using btree (organization_id);
-
 create index idx_acc_chart_account_subkonto_type_id on acc_chart_account_subkonto using btree (subkonto_type_id);
-
 create unique index idx_acc_chart_account_subkonto_unique on acc_chart_account_subkonto using btree (organization_id, account_id, subkonto_type_id);
-

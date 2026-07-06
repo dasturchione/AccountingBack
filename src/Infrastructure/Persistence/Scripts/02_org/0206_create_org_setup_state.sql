@@ -1,5 +1,5 @@
-﻿
-create table org_setup_state (
+﻿create table org_setup_state 
+(
     id integer   not null,
     organization_id integer not null,
     current_step character varying(100) default 'organization'::character varying not null,
@@ -18,4 +18,3 @@ create table org_setup_state (
 );
 
 create index idx_org_setup_state_is_completed on org_setup_state using btree (is_completed);
-

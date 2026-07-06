@@ -1,5 +1,6 @@
 ﻿
-create table org_tax_settings (
+create table org_tax_settings 
+(
     id integer   not null,
     organization_id integer not null,
     tax_type_id smallint not null,
@@ -17,8 +18,5 @@ create table org_tax_settings (
 );
 
 create index idx_org_tax_settings_effective_dates on org_tax_settings using btree (effective_from, effective_to);
-
 create index idx_org_tax_settings_organization_id on org_tax_settings using btree (organization_id);
-
 create index idx_org_tax_settings_tax_type_id on org_tax_settings using btree (tax_type_id);
-

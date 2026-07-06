@@ -1,6 +1,6 @@
-﻿
-create table cmn_pricing_condition (
-    id bigint   not null,
+﻿create table cmn_pricing_condition 
+(
+    id bigint not null,
     organization_id integer not null,
     pricing_method_id smallint not null,
     pricing_value numeric(18,2) not null,
@@ -20,15 +20,11 @@ create table cmn_pricing_condition (
     constraint cmn_pricing_condition_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
+create index idx_cmn_pricing_condition_dates on cmn_pricing_condition using btree (start_date, end_date);
+create index idx_cmn_pricing_condition_organization_id on cmn_pricing_condition using btree (organization_id);
+create index idx_cmn_pricing_condition_pricing_method_id on cmn_pricing_condition using btree (pricing_method_id);
+create index idx_cmn_pricing_condition_rounding_method_id on cmn_pricing_condition using btree (rounding_method_id);
+
 insert into cmn_pricing_condition (id, organization_id, pricing_method_id, pricing_value, rounding_method_id, rounding_precision, start_date, end_date, state_id, created_date) values
     ('1', '8', '1', '10.00', '4', '100000.00', '2026-06-27 16:26:44', null, '2', '2026-06-27 16:29:09.970103'),
     ('8', '8', '1', '10.00', '4', '1.00', '2026-06-01 00:00:00', null, '1', '2026-06-29 15:47:45.47747');
-
-create index idx_cmn_pricing_condition_dates on cmn_pricing_condition using btree (start_date, end_date);
-
-create index idx_cmn_pricing_condition_organization_id on cmn_pricing_condition using btree (organization_id);
-
-create index idx_cmn_pricing_condition_pricing_method_id on cmn_pricing_condition using btree (pricing_method_id);
-
-create index idx_cmn_pricing_condition_rounding_method_id on cmn_pricing_condition using btree (rounding_method_id);
-

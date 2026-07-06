@@ -1,5 +1,5 @@
-﻿
-create table acc_accounting_period (
+﻿create table acc_accounting_period 
+(
     id integer   not null,
     organization_id integer not null,
     year smallint not null,
@@ -19,6 +19,4 @@ create table acc_accounting_period (
 );
 
 create index idx_acc_accounting_period_is_closed on acc_accounting_period using btree (is_closed);
-
 create index idx_acc_accounting_period_organization_id on acc_accounting_period using btree (organization_id);
-

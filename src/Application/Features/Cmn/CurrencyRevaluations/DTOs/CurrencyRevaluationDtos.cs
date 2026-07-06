@@ -9,9 +9,7 @@ public class CurrencyRevaluationBaseDto
 }
 
 public sealed class CurrencyRevaluationCreateDto : CurrencyRevaluationBaseDto;
-public sealed class CurrencyRevaluationConfirmDto { }
 public sealed class CurrencyRevaluationPreviewDto : CurrencyRevaluationBaseDto;
-public sealed class CurrencyRevaluationCancelDto { }
 
 public class CurrencyRevaluationLineDto
 {

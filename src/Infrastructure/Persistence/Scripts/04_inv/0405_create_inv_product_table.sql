@@ -1,5 +1,5 @@
-﻿
-create table inv_product_table (
+﻿create table inv_product_table 
+(
     id integer   not null,
     product_id integer not null,
     organization_id integer not null,
@@ -17,6 +17,13 @@ create table inv_product_table (
     constraint inv_product_table_status_id_fkey foreign key (status_id) references cmn_product_table_status(id)
 );
 
+create index ix_inv_product_table_status_id on inv_product_table using btree (status_id);
+create index idx_inv_product_table_current_warehouse_id on inv_product_table using btree (current_warehouse_id);
+create index idx_inv_product_table_org_warehouse_status on inv_product_table using btree (organization_id, current_warehouse_id, status_id);
+create index idx_inv_product_table_org_warehouse_status_product on inv_product_table using btree (organization_id, current_warehouse_id, status_id, product_id);
+create unique index ux_inv_product_table_org_marking on inv_product_table using btree (organization_id, marking_number) WHERE (marking_number IS not null);
+create unique index ux_inv_product_table_org_serial on inv_product_table using btree (organization_id, serial_number) WHERE (serial_number IS not null);
+
 insert into inv_product_table (id, product_id, organization_id, state_id, created_date, serial_number, marking_number, status_id) values
     ('455', '23', '8', '1', '2026-06-27 18:07:17.497344', null, '0104780074206893217UkCJ6Gu*gG_j.wf6WnX91XUWh92JkB/xWNpbjVhcmtkWVdsT3lhVTVhYjdUQm8yQgOW3lE=', '1'),
     ('456', '23', '8', '1', '2026-06-27 18:07:17.497737', null, '010478007420371721NZVF0x+-fnd<lcpI11Wc91UZF092SDB2UZccAGRfCmSPNYJYumzGxmcnTaumTSS1HOIBuOE=', '1'),
@@ -27,16 +34,3 @@ insert into inv_product_table (id, product_id, organization_id, state_id, create
     ('461', '23', '8', '1', '2026-06-29 14:59:14.793497', null, 'qdqdqdqdqdq98d4q8d789qwd7q', '1'),
     ('463', '24', '8', '1', '2026-06-29 15:01:54.008417', null, 'aohjfoiwhio', '1'),
     ('462', '24', '8', '1', '2026-06-29 15:01:54.008414', null, 'fwliejfoiwjfopwjp''ef856', '2');
-
-create index ix_inv_product_table_status_id on inv_product_table using btree (status_id);
-
-create index idx_inv_product_table_current_warehouse_id on inv_product_table using btree (current_warehouse_id);
-
-create index idx_inv_product_table_org_warehouse_status on inv_product_table using btree (organization_id, current_warehouse_id, status_id);
-
-create index idx_inv_product_table_org_warehouse_status_product on inv_product_table using btree (organization_id, current_warehouse_id, status_id, product_id);
-
-create unique index ux_inv_product_table_org_marking on inv_product_table using btree (organization_id, marking_number) WHERE (marking_number IS not null);
-
-create unique index ux_inv_product_table_org_serial on inv_product_table using btree (organization_id, serial_number) WHERE (serial_number IS not null);
-

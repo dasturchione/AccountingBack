@@ -1,5 +1,6 @@
 ﻿
-create table org_user_invitation (
+create table org_user_invitation 
+(
     id bigint   not null,
     organization_id integer not null,
     email character varying(200) not null,
@@ -21,8 +22,5 @@ create table org_user_invitation (
 );
 
 create index idx_org_user_invitation_email on org_user_invitation using btree (email);
-
 create index idx_org_user_invitation_organization_id on org_user_invitation using btree (organization_id);
-
 create index idx_org_user_invitation_role_id on org_user_invitation using btree (role_id);
-

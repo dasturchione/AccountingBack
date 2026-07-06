@@ -1,5 +1,5 @@
-﻿
-create table sale_doc (
+﻿create table sale_doc 
+(
     id bigint   not null,
     organization_id integer not null,
     doc_number character varying(100) not null,
@@ -32,6 +32,16 @@ create table sale_doc (
     constraint sale_doc_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
 );
 
+create index idx_sale_doc_contract_id on sale_doc using btree (contract_id) WHERE (contract_id IS not null);
+create index idx_sale_doc_counterparty_id on sale_doc using btree (counterparty_id);
+create index idx_sale_doc_doc_date on sale_doc using btree (doc_date);
+create index idx_sale_doc_organization_id on sale_doc using btree (organization_id);
+create index idx_sale_doc_state_id on sale_doc using btree (state_id);
+create index idx_sale_doc_status_id on sale_doc using btree (status_id);
+create index idx_sale_doc_warehouse_id on sale_doc using btree (warehouse_id);
+create index idx_sale_doc_posted_by_user_id on sale_doc using btree (posted_by_user_id);
+create index idx_sale_doc_cancelled_by_user_id on sale_doc using btree (cancelled_by_user_id);
+
 create function set_sale_doc_number() returns trigger
     language plpgsql
     as $$
@@ -49,22 +59,3 @@ insert into sale_doc (id, organization_id, doc_number, doc_date, counterparty_id
     ('78', '8', '100000076', '2026-06-29 16:42:30.843443', '18', '7', '1', '18975.00000000', '2277.00000000', '21252.00000000', '4', null, '1', '2026-06-29 16:42:30.843443', '9'),
     ('79', '8', '100000077', '2026-06-29 17:21:54.01643', '18', '7', '1', '65296.00000000', '7835.52000000', '73131.52000000', '1', 'FIFO bo''yicha sotilyapti', '2', '2026-06-29 17:21:54.01643', '9'),
     ('80', '8', '100000078', '2026-06-29 17:36:29.055026', '18', '7', '1', '65296.00000000', '7835.52000000', '73131.52000000', '1', null, '1', '2026-06-29 17:36:29.055026', '10');
-
-create index idx_sale_doc_contract_id on sale_doc using btree (contract_id) WHERE (contract_id IS not null);
-
-create index idx_sale_doc_counterparty_id on sale_doc using btree (counterparty_id);
-
-create index idx_sale_doc_doc_date on sale_doc using btree (doc_date);
-
-create index idx_sale_doc_organization_id on sale_doc using btree (organization_id);
-
-create index idx_sale_doc_state_id on sale_doc using btree (state_id);
-
-create index idx_sale_doc_status_id on sale_doc using btree (status_id);
-
-create index idx_sale_doc_warehouse_id on sale_doc using btree (warehouse_id);
-
-create index idx_sale_doc_posted_by_user_id on sale_doc using btree (posted_by_user_id);
-
-create index idx_sale_doc_cancelled_by_user_id on sale_doc using btree (cancelled_by_user_id);
-

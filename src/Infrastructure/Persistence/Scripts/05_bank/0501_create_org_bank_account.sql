@@ -1,6 +1,6 @@
-﻿
-create table org_bank_account (
-    id integer   not null,
+﻿create table org_bank_account 
+(
+    id integer not null,
     organization_id integer not null,
     bank_id integer not null,
     account_number character varying(50) not null,
@@ -19,6 +19,14 @@ create table org_bank_account (
     constraint org_bank_account_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
+create index idx_org_bank_account_bank_id on org_bank_account using btree (bank_id);
+create index idx_org_bank_account_currency_id on org_bank_account using btree (currency_id);
+create index idx_org_bank_account_organization_id on org_bank_account using btree (organization_id);
+create index idx_org_bank_account_state_id on org_bank_account using btree (state_id);
+create index idx_org_bank_account_code on org_bank_account using btree (code);
+create index idx_org_bank_account_name on org_bank_account using btree (name);
+create unique index uidx_org_bank_account_org_code on org_bank_account using btree (organization_id, code) WHERE (code IS not null);
+
 insert into org_bank_account (id, organization_id, bank_id, account_number, currency_id, is_main, state_id, created_date) values
     ('1', '2', '1', '064232', '4', 't', '1', '2026-06-08 10:34:07.891936'),
     ('8', '8', '4', '0099855144112', '3', 't', '1', '2026-06-24 11:59:17.881525'),
@@ -26,18 +34,3 @@ insert into org_bank_account (id, organization_id, bank_id, account_number, curr
     ('10', '8', '3', '064232347878', '3', 't', '1', '2026-06-24 15:34:56.767807'),
     ('11', '8', '3', '23106000105157348001', '1', 't', '1', '2026-06-24 17:01:04.482009'),
     ('12', '8', '2', '20208000005157348001', '1', 't', '1', '2026-06-24 17:57:51.101968');
-
-create index idx_org_bank_account_bank_id on org_bank_account using btree (bank_id);
-
-create index idx_org_bank_account_currency_id on org_bank_account using btree (currency_id);
-
-create index idx_org_bank_account_organization_id on org_bank_account using btree (organization_id);
-
-create index idx_org_bank_account_state_id on org_bank_account using btree (state_id);
-
-create index idx_org_bank_account_code on org_bank_account using btree (code);
-
-create index idx_org_bank_account_name on org_bank_account using btree (name);
-
-create unique index uidx_org_bank_account_org_code on org_bank_account using btree (organization_id, code) WHERE (code IS not null);
-

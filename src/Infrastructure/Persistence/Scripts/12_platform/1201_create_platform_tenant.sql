@@ -1,5 +1,5 @@
-﻿
-create table platform_tenant (
+﻿create table platform_tenant 
+(
     id integer   not null,
     name character varying(250) not null,
     slug character varying(150) not null,
@@ -14,6 +14,4 @@ create table platform_tenant (
 );
 
 create index idx_platform_tenant_owner_user_id on platform_tenant using btree (owner_user_id);
-
 create index idx_platform_tenant_state_id on platform_tenant using btree (state_id);
-

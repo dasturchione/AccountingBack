@@ -1,5 +1,5 @@
-﻿
-create table acc_chart_account (
+﻿create table acc_chart_account 
+(
     id integer   not null,
     parent_id integer,
     code character varying(50) not null,
@@ -15,6 +15,10 @@ create table acc_chart_account (
     constraint acc_chart_account_parent_id_fkey foreign key (parent_id) references acc_chart_account(id),
     constraint acc_chart_account_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
+
+create index idx_acc_chart_account_account_type_id on acc_chart_account using btree (account_type_id);
+create index idx_acc_chart_account_parent_id on acc_chart_account using btree (parent_id);
+create index idx_acc_chart_account_state_id on acc_chart_account using btree (state_id);
 
 insert into acc_chart_account (id, parent_id, code, name, is_group, state_id, created_date, account_type_id, is_quantity, is_currency) values
     ('1047', null, '4720', 'Расчеты по предоставленным займам', 'f', '1', '2026-06-25 16:48:03.401278', '1', 'f', 'f'),
@@ -86,10 +90,3 @@ insert into acc_chart_account (id, parent_id, code, name, is_group, state_id, cr
     ('1046', '1044', '9030.2', 'Доходы от выполнения работ, оказания услуг по деятельности с особой системой налогообложения', 'f', '1', '2026-06-25 10:24:59.251712', '3', 'f', 'f'),
     ('1032', '1031', '9130.1', 'Себестоимость выполненных работ, оказанных услуг по деятельности с основной системой налогообложения', 'f', '1', '2026-06-25 10:24:59.251712', '1', 'f', 'f'),
     ('1033', '1031', '9130.2', 'Себестоимость выполненных работ, оказанных услуг по деятельности с особой системой налогообложения', 'f', '1', '2026-06-25 10:24:59.251712', '1', 'f', 'f');
-
-create index idx_acc_chart_account_account_type_id on acc_chart_account using btree (account_type_id);
-
-create index idx_acc_chart_account_parent_id on acc_chart_account using btree (parent_id);
-
-create index idx_acc_chart_account_state_id on acc_chart_account using btree (state_id);
-

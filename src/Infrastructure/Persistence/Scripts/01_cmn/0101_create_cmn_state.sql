@@ -1,5 +1,5 @@
-﻿
-create table cmn_state (
+﻿create table cmn_state 
+(
     id smallint not null,
     short_name character varying(250) not null,
     full_name character varying(250) not null,

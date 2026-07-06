@@ -1,5 +1,5 @@
-﻿
-create table org_position (
+﻿create table org_position 
+(
     id integer   not null,
     organization_id integer not null,
     code character varying(50) not null,
@@ -12,8 +12,5 @@ create table org_position (
 );
 
 create unique index idx_org_position_org_code on org_position using btree (organization_id, code);
-
 create index idx_org_position_organization_id on org_position using btree (organization_id);
-
 create index idx_org_position_state_id on org_position using btree (state_id);
-

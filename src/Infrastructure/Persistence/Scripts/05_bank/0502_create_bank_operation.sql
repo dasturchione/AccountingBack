@@ -1,12 +1,10 @@
-﻿
-create table bank_operation (
+﻿create table bank_operation 
+(
     id bigint   not null,
     organization_id integer not null,
     bank_account_id integer not null,
     operation_type_id smallint not null,
     payment_type_id smallint,
-    -- Header payment purpose (required by domain). FK + NOT NULL are applied in
-    -- 00_sys/0000.sql because acc_payment_purpose (10_acc) is created after this table.
     payment_purpose_id smallint,
     counterparty_id integer,
     counterparty_bank_account_id integer,
@@ -38,6 +36,16 @@ create table bank_operation (
     constraint bank_operation_posted_by_user_id_fkey foreign key (posted_by_user_id) references sys_user(id),
     constraint bank_operation_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
 );
+
+create index idx_bank_operation_bank_account_id on bank_operation using btree (bank_account_id);
+create index idx_bank_operation_counterparty_id on bank_operation using btree (counterparty_id);
+create index idx_bank_operation_doc_date on bank_operation using btree (doc_date);
+create index idx_bank_operation_operation_type_id on bank_operation using btree (operation_type_id);
+create index idx_bank_operation_organization_id on bank_operation using btree (organization_id);
+create index idx_bank_operation_state_id on bank_operation using btree (state_id);
+create index idx_bank_operation_status_id on bank_operation using btree (status_id);
+create index idx_bank_operation_posted_by_user_id on bank_operation using btree (posted_by_user_id);
+create index idx_bank_operation_cancelled_by_user_id on bank_operation using btree (cancelled_by_user_id);
 
 create function set_bank_operation_doc_number() returns trigger
     language plpgsql
@@ -84,22 +92,3 @@ insert into bank_operation (id, organization_id, bank_account_id, operation_type
     ('33', '8', '12', '1', '2', '18', '100000032', '2026-05-21 09:42:11', '1', '4400000.00', '00634 2026 йил май ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328928'),
     ('34', '8', '12', '1', '2', '18', '100000033', '2026-06-04 12:24:52', '1', '5016000.00', '00634 00634 2026 йил май ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.32893'),
     ('35', '8', '12', '1', '2', '18', '100000034', '2026-06-04 12:25:21', '1', '1408000.00', '00634 2026 йил май ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328932');
-
-create index idx_bank_operation_bank_account_id on bank_operation using btree (bank_account_id);
-
-create index idx_bank_operation_counterparty_id on bank_operation using btree (counterparty_id);
-
-create index idx_bank_operation_doc_date on bank_operation using btree (doc_date);
-
-create index idx_bank_operation_operation_type_id on bank_operation using btree (operation_type_id);
-
-create index idx_bank_operation_organization_id on bank_operation using btree (organization_id);
-
-create index idx_bank_operation_state_id on bank_operation using btree (state_id);
-
-create index idx_bank_operation_status_id on bank_operation using btree (status_id);
-
-create index idx_bank_operation_posted_by_user_id on bank_operation using btree (posted_by_user_id);
-
-create index idx_bank_operation_cancelled_by_user_id on bank_operation using btree (cancelled_by_user_id);
-

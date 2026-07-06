@@ -1,4 +1,5 @@
-create table sys_notification_read (
+create table sys_notification_read 
+(
     id bigint   not null,
     notification_id bigint not null,
     user_id integer not null,

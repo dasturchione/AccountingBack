@@ -22,6 +22,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
+    public virtual DbSet<BankOperationLine> BankOperationLines { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
     public virtual DbSet<CashOperation> CashOperations { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
@@ -55,7 +56,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Product> Products { get; set; }
     public virtual DbSet<ProductGroup> ProductGroups { get; set; }
     public virtual DbSet<ProductPrice> ProductPrices { get; set; }
+    public virtual DbSet<ProductPriceType> ProductPriceTypes { get; set; }
     public virtual DbSet<ProductTable> ProductTables { get; set; }
+    public virtual DbSet<ProductTableStatus> ProductTableStatuses { get; set; }
     public virtual DbSet<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; }
     public virtual DbSet<InventoryAdjustmentLine> InventoryAdjustmentLines { get; set; }
     public virtual DbSet<InventoryAdjustmentDocTable> InventoryAdjustmentDocTables { get; set; }

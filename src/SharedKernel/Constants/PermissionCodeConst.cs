@@ -139,7 +139,6 @@ public static class PermissionCodeConst
     public const string CancelInventoryCount     = "CANCEL_INVENTORY_COUNT";
     #endregion
 
-
     #region OrgBankAccount
     public const string OrgBankAccountView       = "ORG_BANK_ACCOUNT_VIEW";
     public const string OrgBankAccountViewDetail = "ORG_BANK_ACCOUNT_VIEW_DETAIL";

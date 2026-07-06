@@ -23,7 +23,9 @@ insert into cmn_product_type_translation (product_type_id, language_id, name, de
     (13, 1, 'Tolling xizmati',                'Mijoz xomashyosini qayta ishlash xizmati'),
     (14, 1, 'Yordamchi xizmat',               'Yordamchi ishlab chiqarish xizmati'),
     (15, 1, 'Xizmat ko''rsatuvchi xo''jalik', 'Xizmat ko''rsatuvchi bo''linmalar xizmatlari (oshxona, ijtimoiy ob''ektlar va h.k.)'),
-    (16, 1, 'Ijaraga berish xizmati',         'Buyumlarni ijaraga berish');
+    (16, 1, 'Ijaraga berish xizmati',         'Buyumlarni ijaraga berish'),
+    (17, 1, 'Administrativ xarajatlar',         'Tashkilotning administrativ xarajatlari'),
+    (18, 1, 'Boshqa operatsion xarajatlar',     'Boshqa operatsion xarajatlar');
 
 insert into cmn_product_type_translation (product_type_id, language_id, name, description) values
     (1,  2, 'Товар',                                    'Товар, приобретённый для перепродажи'),
@@ -41,7 +43,9 @@ insert into cmn_product_type_translation (product_type_id, language_id, name, de
     (13, 2, 'Переработка давальческого сырья',           'Услуга по переработке сырья, принадлежащего заказчику'),
     (14, 2, 'Вспомогательная услуга',                    'Услуга вспомогательного производства'),
     (15, 2, 'Обслуживающее производство/хозяйство',      'Услуги обслуживающих подразделений (столовая, соцобъекты и т.п.)'),
-    (16, 2, 'Услуга проката',                            'Сдача предметов в прокат');
+    (16, 2, 'Услуга проката',                            'Сдача предметов в прокат'),
+    (17, 2, 'Административные расходы',                  'Административные расходы организации'),
+    (18, 2, 'Прочие операционные расходы',               'Прочие операционные расходы');
 
 insert into cmn_product_type_translation (product_type_id, language_id, name, description) values
     (1,  3, 'Good',                              'Item purchased for resale'),
@@ -59,4 +63,6 @@ insert into cmn_product_type_translation (product_type_id, language_id, name, de
     (13, 3, 'Toll processing service',           'Service of processing customer-supplied raw materials'),
     (14, 3, 'Auxiliary service',                 'Service of an auxiliary production unit'),
     (15, 3, 'Servicing facility',                'Services of servicing units (canteen, social facilities, etc.)'),
-    (16, 3, 'Rental service',                    'Renting out items');
+    (16, 3, 'Rental service',                    'Renting out items'),
+    (17, 3, 'Administrative expenses',          'Administrative expenses of the organization'),
+    (18, 3, 'Other operating expenses',          'Other operating expenses');

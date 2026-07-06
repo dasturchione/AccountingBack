@@ -168,8 +168,10 @@ namespace Application.Features.Register.PostingEngines
         {
             var dimensionValue = alias switch
             {
-                AliasConst.Inventory => context.ProductCategory ?? RegisterDefaultsConst.DefaultDimensionValue,
-                AliasConst.Expense => context.ServiceType ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.Inventory or AliasConst.CostOfGoods or AliasConst.SalesRevenue =>
+                    context.ProductCategory ?? RegisterDefaultsConst.DefaultDimensionValue,
+                AliasConst.Expense or AliasConst.CostOfService or AliasConst.ServiceRevenue =>
+                    context.ServiceType ?? RegisterDefaultsConst.DefaultDimensionValue,
                 AliasConst.AssetWriteOff => context.AssetType ?? RegisterDefaultsConst.DefaultDimensionValue,
                 AliasConst.PaymentAccount => context.PaymentMethod ?? RegisterDefaultsConst.DefaultDimensionValue,
                 AliasConst.VATIn => context.VatKind ?? RegisterDefaultsConst.DefaultDimensionValue,

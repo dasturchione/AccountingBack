@@ -17,13 +17,22 @@ insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension
 select 1, 'Inventory', '_none', '_default', id, 100 from acc_chart_account where code = '2910';
  
 -- ===================== Expense: Расход (услуга) =====================
--- производство → 2010, продажи → 9410, администрирование → 9420, прочее → 9430
+-- услуги → 2010, администрирование → 9420, прочее → 9430.
+-- Старые значения production/admin оставлены для совместимости; новые значения соответствуют ProductTypeIdConst/cmn_product_type.
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
-select 1, 'Expense', 'serviceType', 'production', id, 10  from acc_chart_account where code = '2010'
+select 1, 'Expense', 'serviceType', 'service_main', id, 10  from acc_chart_account where code = '2010'
 	union all
-select 1, 'Expense', 'serviceType', 'sales',       id, 10  from acc_chart_account where code = '9410'
+select 1, 'Expense', 'serviceType', 'service_toll', id, 10  from acc_chart_account where code = '2010'
 	union all
-select 1, 'Expense', 'serviceType', 'admin',       id, 10  from acc_chart_account where code = '9420'
+select 1, 'Expense', 'serviceType', 'service_auxiliary', id, 10  from acc_chart_account where code = '2010'
+	union all
+select 1, 'Expense', 'serviceType', 'service_maintenance', id, 10  from acc_chart_account where code = '2010'
+	union all
+select 1, 'Expense', 'serviceType', 'service_rental', id, 10  from acc_chart_account where code = '2010'
+	union all
+select 1, 'Expense', 'serviceType', 'expense_administrative', id, 10 from acc_chart_account where code = '9420'
+	union all
+select 1, 'Expense', 'serviceType', 'expense_operating', id, 10 from acc_chart_account where code = '9430'
 	union all
 select 1, 'Expense', 'serviceType', '_default',    id, 100 from acc_chart_account where code = '9430';
  

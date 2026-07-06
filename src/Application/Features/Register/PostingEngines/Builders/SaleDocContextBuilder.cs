@@ -34,7 +34,8 @@ namespace Application.Features.Register.PostingEngines
         {
             var result = new List<PostingContext>();
             var productLines = document.SaleDocProducts?.ToList() ?? new List<SaleDocProduct>();
-            var serviceProductIds = await GetServiceProductIdsAsync(productLines.Select(x => x.ProductId).Distinct().ToList());
+            var serviceProductMap = await GetServiceProductMapAsync(productLines.Select(x => x.ProductId).Distinct().ToList());
+            var serviceProductIds = serviceProductMap.Keys.ToHashSet();
             var saleTables = productLines
                 .Where(x => !serviceProductIds.Contains(x.ProductId))
                 .SelectMany(x => x.SaleDocTables)
@@ -51,7 +52,7 @@ namespace Application.Features.Register.PostingEngines
 
             result.AddRange(BuildCostContexts(document, saleTables, productTableMap, lastPurchases, accountingPolicyId));
             result.AddRange(BuildSaleContexts(document, saleTables, counterpartyName, accountingPolicyId));
-            result.AddRange(BuildServiceContexts(document, serviceLines, counterpartyName, accountingPolicyId));
+            result.AddRange(BuildServiceContexts(document, serviceLines, serviceProductMap, counterpartyName, accountingPolicyId));
 
             return result;
         }
@@ -77,6 +78,7 @@ namespace Application.Features.Register.PostingEngines
                         ProductTableId = table.ProductTableId,
                         ProductId = productTable.ProductId,
                         ProductName = productTable.ProductName,
+                        ProductCategory = ProductTypeDimensionValueResolver.Resolve(productTable.ProductTypeId),
                         PurchaseId = lastPurchase.PurchaseId,
                         PurchaseDocNumber = lastPurchase.DocNumber,
                         PurchaseDate = lastPurchase.Date,
@@ -98,11 +100,18 @@ namespace Application.Features.Register.PostingEngines
         private List<PostingContext> BuildServiceContexts(
             SaleDoc document,
             List<SaleDocProduct> serviceLines,
+            Dictionary<int, ServiceProductTempDto> serviceProductMap,
             string counterpartyName,
             short accountingPolicyId)
         {
             return serviceLines
-                .GroupBy(x => x.VatRateId)
+                .GroupBy(x => new
+                {
+                    x.VatRateId,
+                    ServiceType = serviceProductMap.TryGetValue(x.ProductId, out var product)
+                        ? ProductTypeDimensionValueResolver.Resolve(product.ProductTypeId)
+                        : RegisterDefaultsConst.DefaultDimensionValue
+                })
                 .Select(group =>
                 {
                     var baseAmount = group.Sum(x => x.Amount);
@@ -127,7 +136,7 @@ namespace Application.Features.Register.PostingEngines
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
-                        ServiceType = RegisterDefaultsConst.DefaultDimensionValue,
+                        ServiceType = group.Key.ServiceType,
                         Amounts = amounts,
                         Subkontos = new List<SubkontoValue>
                         {
@@ -145,7 +154,7 @@ namespace Application.Features.Register.PostingEngines
                                 {
                                     number = document.DocNumber,
                                     date = document.DocDate,
-                                    vatRateId = group.Key
+                                    vatRateId = group.Key.VatRateId
                                 }),
                                 EntityId = document.Id,
                                 SortOrder = 2
@@ -171,6 +180,7 @@ namespace Application.Features.Register.PostingEngines
                 DocDate = document.DocDate,
                 CurrencyId = document.CurrencyId,
                 JournalNumber = document.DocNumber,
+                ProductCategory = first.ProductCategory,
                 CreditQuantity = group.Count,
                 Amounts = new Dictionary<string, decimal>
                 {
@@ -286,7 +296,8 @@ namespace Application.Features.Register.PostingEngines
                 {
                     TableId = x.Id,
                     ProductId = x.ProductId,
-                    ProductName = x.Product.Name
+                    ProductName = x.Product.Name,
+                    ProductTypeId = x.Product.ProductTypeId
                 })
                 .Build();
 
@@ -294,18 +305,22 @@ namespace Application.Features.Register.PostingEngines
             return productTables.ToDictionary(x => x.TableId, x => x);
         }
 
-        private async Task<HashSet<int>> GetServiceProductIdsAsync(List<int> productIds)
+        private async Task<Dictionary<int, ServiceProductTempDto>> GetServiceProductMapAsync(List<int> productIds)
         {
             if (productIds.Count == 0)
-                return new HashSet<int>();
+                return new Dictionary<int, ServiceProductTempDto>();
 
             var query = _queryBuilder.For<Product>()
                 .Where(x => productIds.Contains(x.Id) && x.IsService)
-                .As(x => x.Id)
+                .As(x => new ServiceProductTempDto
+                {
+                    ProductId = x.Id,
+                    ProductTypeId = x.ProductTypeId
+                })
                 .Build();
 
-            var serviceProductIds = await _productQuery.GetAllAsync(query);
-            return serviceProductIds.ToHashSet();
+            var serviceProducts = await _productQuery.GetAllAsync(query);
+            return serviceProducts.ToDictionary(x => x.ProductId);
         }
 
         private async Task<string> GetCounterpartyNameAsync(int counterpartyId)
@@ -357,6 +372,13 @@ namespace Application.Features.Register.PostingEngines
             public int TableId { get; set; }
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
+            public short ProductTypeId { get; set; }
+        }
+
+        private sealed class ServiceProductTempDto
+        {
+            public int ProductId { get; set; }
+            public short ProductTypeId { get; set; }
         }
 
         private sealed class PurchaseBatchDto
@@ -375,6 +397,7 @@ namespace Application.Features.Register.PostingEngines
             public int ProductTableId { get; set; }
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
+            public string ProductCategory { get; set; } = RegisterDefaultsConst.DefaultDimensionValue;
             public long PurchaseId { get; set; }
             public string PurchaseDocNumber { get; set; } = null!;
             public DateTime PurchaseDate { get; set; }

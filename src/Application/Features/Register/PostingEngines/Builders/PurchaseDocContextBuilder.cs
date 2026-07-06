@@ -52,7 +52,7 @@ namespace Application.Features.Register.PostingEngines
                     DocDate = document.DocDate,
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
-                    ProductCategory = null,
+                    ProductCategory = ProductTypeDimensionValueResolver.Resolve(productData.ProductTypeId),
                     VatKind = RegisterDefaultsConst.VatKindGoods,
                     DebitQuantity = productData.Quantity,
                     CreditQuantity = productData.Quantity,
@@ -131,7 +131,7 @@ namespace Application.Features.Register.PostingEngines
                     CurrencyId = document.CurrencyId,
                     JournalNumber = document.DocNumber,
 
-                    ServiceType = RegisterDefaultsConst.DefaultDimensionValue,
+                    ServiceType = ProductTypeDimensionValueResolver.Resolve(service.ProductTypeId),
                     VatKind = RegisterDefaultsConst.VatKindServices,
 
                     Amounts = new Dictionary<string, decimal>
@@ -218,6 +218,7 @@ namespace Application.Features.Register.PostingEngines
                                          ProductId = s.Id,
                                          ProductName = s.Name,
                                          IsService = s.IsService,
+                                         ProductTypeId = s.ProductTypeId,
                                      }).Build();
 
             var items = await _productQuery.GetAllAsync(query);
@@ -236,6 +237,7 @@ namespace Application.Features.Register.PostingEngines
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
             public bool IsService { get; set; }
+            public short ProductTypeId { get; set; }
             public decimal Quantity { get; set; }
             public decimal Amount { get; set; }
             public decimal VatAmount { get; set; }

@@ -1,9 +1,0 @@
-MISSING_TABLES=8
-EXTRA_TABLES=0
-COLUMN_ALTERS=137
-CONSTRAINT_DROPS=71
-CONSTRAINT_ADDS=4
-INDEX_DROPS=13
-INDEX_ADDS=4
-MISSING_TABLE_LIST=cmn_currency_rate, cmn_currency_revaluation, cmn_currency_revaluation_line, cmn_notification_type, sys_notification, sys_notification_delivery, sys_notification_read, sys_setting
-INDEX_MANUAL_CORRECTION=counterparty_reg_balance syntax bug at 0903 line 28; kept idx_counterparty_reg_balance_organization_id and idx_counterparty_reg_balance_posting_batch_id.

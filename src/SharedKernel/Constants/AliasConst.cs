@@ -101,5 +101,30 @@
         /// Currency monetary asset account.
         /// </summary>
         public const string CurrencyAsset = "CurrencyAsset";
+
+        /// <summary>
+        /// Fixed asset account (0100) — commissioned fixed asset.
+        /// </summary>
+        public const string FixedAsset = "FixedAsset";
+
+        /// <summary>
+        /// Capital investments / fixed asset acquisition-in-progress account (0800).
+        /// </summary>
+        public const string FixedAssetInProgress = "FixedAssetInProgress";
+
+        /// <summary>
+        /// Fixed asset accumulated depreciation account (0200).
+        /// </summary>
+        public const string FixedAssetDepreciation = "FixedAssetDepreciation";
+
+        /// <summary>
+        /// Fixed asset related expense account.
+        /// </summary>
+        public const string FixedAssetExpense = "FixedAssetExpense";
+
+        /// <summary>
+        /// Loss on fixed asset disposal account.
+        /// </summary>
+        public const string FixedAssetDisposalLoss = "FixedAssetDisposalLoss";
     }
 }

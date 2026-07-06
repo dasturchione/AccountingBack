@@ -70,16 +70,9 @@ public partial class CashBox
     [InverseProperty("CashBoxes")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
-    [InverseProperty("CashBox")]
-    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("CashBoxes")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("ResponsibleUserId")]
-    [InverseProperty("CashBoxes")]
-    public virtual SysUser? ResponsibleUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("CashBoxes")]

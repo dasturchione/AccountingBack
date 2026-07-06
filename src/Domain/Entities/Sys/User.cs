@@ -82,6 +82,10 @@ public partial class User
     [Column("timezone")]
     [StringLength(100)]
     public string? Timezone { get; set; }
+
+    [InverseProperty("ResponsibleUser")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 

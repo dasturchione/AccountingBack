@@ -44,16 +44,9 @@ public partial class InvProductGroup
     [InverseProperty("ProductGroup")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
-    [InverseProperty("Parent")]
-    public virtual ICollection<InvProductGroup> InverseParent { get; set; } = new List<InvProductGroup>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProductGroups")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("ParentId")]
-    [InverseProperty("InverseParent")]
-    public virtual InvProductGroup? Parent { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("InvProductGroups")]

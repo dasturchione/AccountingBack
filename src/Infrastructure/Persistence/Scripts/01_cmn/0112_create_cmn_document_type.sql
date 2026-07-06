@@ -19,4 +19,5 @@ insert into cmn_document_type (id, code, name, state_id, created_date) values
     ('4', 'cash_operation', 'Kassa operatsiyasi', '1', '2026-06-06 16:40:07.223429'),
     ('5', 'salary', 'Ish haqi', '1', '2026-06-06 16:40:07.223429'),
     ('6', 'expense', 'Xarajat', '1', '2026-06-06 16:40:07.223429'),
-    ('10', 'currency_revaluation', 'Currency revaluation', '1', '2026-07-04 00:00:00');
+    ('10', 'currency_revaluation', 'Currency revaluation', '1', '2026-07-04 00:00:00'),
+    ('11', 'fa_receipt', 'Asosiy vosita qabuli', '1', '2026-07-06 00:00:00');

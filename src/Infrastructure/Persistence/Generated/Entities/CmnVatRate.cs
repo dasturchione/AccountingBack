@@ -40,8 +40,8 @@ public partial class CmnVatRate
     [Column("effective_to")]
     public DateOnly? EffectiveTo { get; set; }
 
-    [InverseProperty("DefaultVatRate")]
-    public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
+    [InverseProperty("VatRate")]
+    public virtual ICollection<FaReceiptDocLine> FaReceiptDocLines { get; set; } = new List<FaReceiptDocLine>();
 
     [InverseProperty("VatRate")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();

@@ -161,4 +161,19 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<ContractType> ContractTypes { get; set; } = new List<ContractType>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaDepreciationMethod> FaDepreciationMethods { get; set; } = new List<FaDepreciationMethod>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaGroup> FaGroups { get; set; } = new List<FaGroup>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaOkof> FaOkofs { get; set; } = new List<FaOkof>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaAssetStatus> FaAssetStatuses { get; set; } = new List<FaAssetStatus>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 }

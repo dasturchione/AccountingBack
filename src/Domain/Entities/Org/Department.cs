@@ -35,6 +35,9 @@ public partial class Department
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [InverseProperty("Department")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
     [ForeignKey("BranchId")]
     [InverseProperty("Departments")]
     public virtual Branch? Branch { get; set; }

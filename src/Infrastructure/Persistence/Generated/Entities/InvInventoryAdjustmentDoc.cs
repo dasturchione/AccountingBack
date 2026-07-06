@@ -64,10 +64,6 @@ public partial class InvInventoryAdjustmentDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("InvInventoryAdjustmentDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [InverseProperty("Owner")]
     public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();
 
@@ -80,10 +76,6 @@ public partial class InvInventoryAdjustmentDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvInventoryAdjustmentDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("InvInventoryAdjustmentDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("InvInventoryAdjustmentDocs")]

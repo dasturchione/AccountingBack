@@ -35,8 +35,4 @@ public partial class SysEmailVerificationToken
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("UserId")]
-    [InverseProperty("SysEmailVerificationTokens")]
-    public virtual SysUser User { get; set; } = null!;
 }

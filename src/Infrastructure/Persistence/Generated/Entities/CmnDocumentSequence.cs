@@ -50,16 +50,4 @@ public partial class CmnDocumentSequence
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("DocumentTypeId")]
-    [InverseProperty("CmnDocumentSequences")]
-    public virtual CmnDocumentType DocumentType { get; set; } = null!;
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("CmnDocumentSequences")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("StateId")]
-    [InverseProperty("CmnDocumentSequences")]
-    public virtual CmnState State { get; set; } = null!;
 }

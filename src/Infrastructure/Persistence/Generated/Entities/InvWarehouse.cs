@@ -54,6 +54,9 @@ public partial class InvWarehouse
     public virtual OrgBranch? Branch { get; set; }
 
     [InverseProperty("Warehouse")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty("Warehouse")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
 
     [InverseProperty("Warehouse")]
@@ -70,15 +73,6 @@ public partial class InvWarehouse
 
     [InverseProperty("SourceWarehouse")]
     public virtual ICollection<InvTransferDoc> InvTransferDocSourceWarehouses { get; set; } = new List<InvTransferDoc>();
-
-    [InverseProperty("DestinationWarehouse")]
-    public virtual ICollection<InvTransferDocTable> InvTransferDocTableDestinationWarehouses { get; set; } = new List<InvTransferDocTable>();
-
-    [InverseProperty("SourceWarehouse")]
-    public virtual ICollection<InvTransferDocTable> InvTransferDocTableSourceWarehouses { get; set; } = new List<InvTransferDocTable>();
-
-    [InverseProperty("Warehouse")]
-    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvWarehouses")]

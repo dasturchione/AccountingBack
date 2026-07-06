@@ -38,6 +38,8 @@ using Application.Features.Cmn.Taxes.Extensions;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
+using Application.Features.FaAssets;
+using Application.Features.FaReceipts;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Imports;
 using Application.Features.Inv;
@@ -144,6 +146,11 @@ namespace Infrastructure
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IPositionService, PositionService>();
             services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
+            services.AddScoped<IFaAssetService, FaAssetService>();
+            services.AddScoped<IFaReceiptCommandRepository, FaReceiptCommandRepository>();
+            services.AddScoped<IFaReceiptService, FaReceiptService>();
+            services.AddScoped<IFaReceiptLifecycleService, FaReceiptLifecycleService>();
             services.AddScoped<ICounterpartyCardService, CounterpartyCardService>();
             services.AddScoped<ICounterpartyBankAccountService, CounterpartyBankAccountService>();
             services.AddScoped<ICounterpartyContactService, CounterpartyContactService>();
@@ -232,6 +239,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CurrencyRevaluation>, CurrencyRevaluationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<FaReceiptDoc>, FaReceiptContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

@@ -40,16 +40,4 @@ public partial class OrgTaxSetting
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("OrgTaxSettings")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("StateId")]
-    [InverseProperty("OrgTaxSettings")]
-    public virtual CmnState State { get; set; } = null!;
-
-    [ForeignKey("TaxTypeId")]
-    [InverseProperty("OrgTaxSettings")]
-    public virtual CmnTaxType TaxType { get; set; } = null!;
 }

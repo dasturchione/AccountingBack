@@ -130,3 +130,20 @@ select 1, 'CurrencyRevaluationGain', '_none', '_default', id, 100 from acc_chart
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
 select 1, 'CurrencyRevaluationLoss', '_none', '_default', id, 100 from acc_chart_account where code = '9430';
 
+-- ===================== Fixed Assets (Основные средства) =====================
+-- Проводки идут на постящиеся субсчета-листья (0190/0290/0820), а не на групповые 0100/0200/0800.
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'FixedAsset',            '_none', '_default', id, 100 from acc_chart_account where code = '0190'
+	union all
+select 1, 'FixedAssetInProgress',  '_none', '_default', id, 100 from acc_chart_account where code = '0820'
+	union all
+select 1, 'FixedAssetDepreciation','_none', '_default', id, 100 from acc_chart_account where code = '0290'
+	union all
+select 1, 'FixedAssetExpense',     '_none', '_default', id, 100 from acc_chart_account where code = '9430'
+	union all
+select 1, 'FixedAssetDisposalLoss','_none', '_default', id, 100 from acc_chart_account where code = '9430';
+
+-- Входной НДС при приобретении ОС (счёт 4410.1). Измерение vatKind='fixedAsset'.
+insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)
+select 1, 'VATIn', 'vatKind', 'fixedAsset', id, 10 from acc_chart_account where code = '4410.1';
+

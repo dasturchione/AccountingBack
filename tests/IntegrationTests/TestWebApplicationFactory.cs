@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,16 +33,19 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private readonly string _databaseName = $"integration-{Guid.NewGuid():N}";
     private readonly string _environment;
     private readonly Action<IServiceCollection>? _overrideServices;
+    private readonly Action<AppDbContext>? _seedDatabase;
     private readonly Dictionary<string, string?> _configuration;
 
     public TestWebApplicationFactory(
         string environment = "Testing",
         Dictionary<string, string?>? configuration = null,
-        Action<IServiceCollection>? overrideServices = null)
+        Action<IServiceCollection>? overrideServices = null,
+        Action<AppDbContext>? seedDatabase = null)
     {
         _environment = environment;
         _configuration = configuration ?? CreateDefaultConfiguration();
         _overrideServices = overrideServices;
+        _seedDatabase = seedDatabase;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -60,7 +64,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll(typeof(IDbContextOptionsConfiguration<AppDbContext>));
             RemoveAssemblyServices(services, "Npgsql.EntityFrameworkCore.PostgreSQL");
 
-            services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_databaseName));
+            services.AddDbContext<AppDbContext>(options => options
+                .UseInMemoryDatabase(_databaseName)
+                .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
 
             services.AddAuthentication(options =>
             {
@@ -77,6 +83,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             db.Database.EnsureDeleted();
             db.Database.EnsureCreated();
             Seed(db);
+            _seedDatabase?.Invoke(db);
         });
     }
 

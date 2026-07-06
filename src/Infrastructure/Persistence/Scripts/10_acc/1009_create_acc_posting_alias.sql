@@ -41,3 +41,10 @@ insert into acc_posting_alias (id, code, name) values (31, 'CashBoxDestination',
 insert into acc_posting_alias (id, code, name) values (32, 'CurrencyAsset', 'Currency monetary asset');
 insert into acc_posting_alias (id, code, name) values (33, 'CurrencyRevaluationGain', 'Currency revaluation gain');
 insert into acc_posting_alias (id, code, name) values (34, 'CurrencyRevaluationLoss', 'Currency revaluation loss');
+
+-- FA-P4: Asosiy vositalar (OS) uchun aliaslar — buxgalteriya provodka poydevori.
+insert into acc_posting_alias (id, code, name) values (35, 'FixedAsset', 'Asosiy vosita (0100)');
+insert into acc_posting_alias (id, code, name) values (36, 'FixedAssetInProgress', 'OS ni sotib olish / kapital qo''yilma (0800)');
+insert into acc_posting_alias (id, code, name) values (37, 'FixedAssetDepreciation', 'OS amortizatsiyasi (0200)');
+insert into acc_posting_alias (id, code, name) values (38, 'FixedAssetExpense', 'OS bo''yicha xarajat');
+insert into acc_posting_alias (id, code, name) values (39, 'FixedAssetDisposalLoss', 'OS chiqib ketishidan zarar');

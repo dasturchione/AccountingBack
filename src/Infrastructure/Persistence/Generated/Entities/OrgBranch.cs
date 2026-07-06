@@ -60,9 +60,6 @@ public partial class OrgBranch
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
     [InverseProperty("Branch")]
-    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
-
-    [InverseProperty("Branch")]
     public virtual ICollection<OrgDepartment> OrgDepartments { get; set; } = new List<OrgDepartment>();
 
     [ForeignKey("OrganizationId")]

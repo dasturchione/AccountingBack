@@ -47,16 +47,4 @@ public partial class OrgClaimRequest
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("OrgClaimRequests")]
-    public virtual OrgOrganization? Organization { get; set; }
-
-    [ForeignKey("RequestedByUserId")]
-    [InverseProperty("OrgClaimRequestRequestedByUsers")]
-    public virtual SysUser RequestedByUser { get; set; } = null!;
-
-    [ForeignKey("ReviewedByUserId")]
-    [InverseProperty("OrgClaimRequestReviewedByUsers")]
-    public virtual SysUser? ReviewedByUser { get; set; }
 }

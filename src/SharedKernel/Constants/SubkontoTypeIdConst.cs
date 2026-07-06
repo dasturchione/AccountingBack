@@ -20,8 +20,10 @@
 
         public const short CONTRACT = 9;
 
-        public const short PURCHASE = 10; 
-        
+        public const short PURCHASE = 10;
+
         public const short SALE = 11;
+
+        public const short FIXED_ASSET = 12;
     }
 }

@@ -49,4 +49,8 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Persistence\Generated\Entities\" />
+  </ItemGroup>
+
 </Project>

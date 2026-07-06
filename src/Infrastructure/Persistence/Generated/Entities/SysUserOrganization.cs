@@ -50,10 +50,6 @@ public partial class SysUserOrganization
     [Column("blocked_at", TypeName = "timestamp without time zone")]
     public DateTime? BlockedAt { get; set; }
 
-    [ForeignKey("InvitedByUserId")]
-    [InverseProperty("SysUserOrganizationInvitedByUsers")]
-    public virtual SysUser? InvitedByUser { get; set; }
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("SysUserOrganizations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
@@ -67,6 +63,6 @@ public partial class SysUserOrganization
     public virtual CmnState State { get; set; } = null!;
 
     [ForeignKey("UserId")]
-    [InverseProperty("SysUserOrganizationUser")]
+    [InverseProperty("SysUserOrganization")]
     public virtual SysUser User { get; set; } = null!;
 }

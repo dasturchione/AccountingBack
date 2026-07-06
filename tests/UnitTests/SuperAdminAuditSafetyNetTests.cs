@@ -107,7 +107,7 @@ public sealed class SuperAdminAuditSafetyNetTests
     }
 
     [Fact]
-    public async Task AuditLogService_CreateAsync_ShouldUseNextAuditId()
+    public async Task AuditLogService_CreateAsync_ShouldPersistBypassAudit_WithoutAssigningIdManually()
     {
         var logs = new List<AuditLog>
         {
@@ -139,7 +139,9 @@ public sealed class SuperAdminAuditSafetyNetTests
             AuditLogOperationTypeConst.Update);
 
         var created = Assert.Single(logs, x => x.TableName == AuditLogTableConst.AuthorizationBypass);
-        Assert.Equal(501, created.Id);
+        // The service must NOT assign the Id manually — the database identity column generates it.
+        // With no manual assignment the entity keeps its default (0) here.
+        Assert.Equal(0, created.Id);
         Assert.Equal("101", created.RecordId);
         Assert.Equal(AuditLogOperationTypeConst.Update, created.Action);
         Assert.NotNull(created.NewData);
@@ -256,11 +258,9 @@ public sealed class SuperAdminAuditSafetyNetTests
         List<Organization> organizations)
     {
         var queryCore = CreateAuditLogQueryCore(userContext, logs, users, organizations);
-        var auditLogQuery = new InMemoryQueryRepository<AuditLog>(logs);
         return new AuditLogService(
             userContext,
             new InMemoryCommandRepository<AuditLog>(logs),
-            auditLogQuery,
             queryCore);
     }
 

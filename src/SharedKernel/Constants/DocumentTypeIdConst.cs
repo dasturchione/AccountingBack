@@ -55,5 +55,10 @@
         /// Currency revaluation document.
         /// </summary>
         public const short CURRENCYREVALUATION = 10;
+
+        /// <summary>
+        /// Fixed asset receipt document.
+        /// </summary>
+        public const short FARECEIPT = 11;
     }
 }

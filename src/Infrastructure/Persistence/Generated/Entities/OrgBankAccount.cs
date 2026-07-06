@@ -67,9 +67,6 @@ public partial class OrgBankAccount
     [InverseProperty("OrgBankAccounts")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
-    [InverseProperty("BankAccount")]
-    public virtual ICollection<OrgDefault> OrgDefaults { get; set; } = new List<OrgDefault>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("OrgBankAccounts")]
     public virtual OrgOrganization Organization { get; set; } = null!;

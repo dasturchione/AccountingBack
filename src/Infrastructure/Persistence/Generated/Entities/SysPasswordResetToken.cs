@@ -31,8 +31,4 @@ public partial class SysPasswordResetToken
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("UserId")]
-    [InverseProperty("SysPasswordResetTokens")]
-    public virtual SysUser User { get; set; } = null!;
 }

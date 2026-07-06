@@ -17,3 +17,7 @@ insert into acc_posting_rule (id, code, name) values
     (7, 'CASH_TRANSFER',             'Kassoviy perevod'),
     (8, 'CURRENCY_REVALUATION_GAIN', 'Currency revaluation gain'),
     (9, 'CURRENCY_REVALUATION_LOSS', 'Currency revaluation loss');
+
+-- FA-P4: Asosiy vosita keldi (qabul + ekspluatatsiyaga topshirish).
+insert into acc_posting_rule (id, code, name) values
+    (10, 'FA_RECEIPT', 'Asosiy vosita keldi (qabul + ekspluatatsiya)');

@@ -14,7 +14,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
-[Index("PaymentPurposeId", Name = "idx_cash_operation_payment_purpose_id")]
 [Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_cash_operation_state_id")]
 [Index("StatusId", Name = "idx_cash_operation_status_id")]
@@ -88,10 +87,6 @@ public partial class CashOperation
     [Column("payment_purpose_id")]
     public short PaymentPurposeId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("CashOperationCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperationCashBoxes")]
     public virtual CashBox CashBox { get; set; } = null!;
@@ -123,10 +118,6 @@ public partial class CashOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("CashOperationPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("CashOperations")]

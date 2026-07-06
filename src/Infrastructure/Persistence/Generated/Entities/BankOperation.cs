@@ -9,13 +9,10 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("bank_operation")]
 [Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
 [Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
-[Index("ContractId", Name = "idx_bank_operation_contract_id")]
-[Index("CounterpartyBankAccountId", Name = "idx_bank_operation_counterparty_bank_account_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
 [Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
-[Index("PaymentPurposeId", Name = "idx_bank_operation_payment_purpose_id")]
 [Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_bank_operation_state_id")]
 [Index("StatusId", Name = "idx_bank_operation_status_id")]
@@ -99,10 +96,6 @@ public partial class BankOperation
     [InverseProperty("BankOperation")]
     public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("BankOperationCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual CmnContract? Contract { get; set; }
@@ -134,10 +127,6 @@ public partial class BankOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("BankOperationPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("BankOperations")]

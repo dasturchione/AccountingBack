@@ -26,6 +26,11 @@ namespace Infrastructure.Repositories
             _depth++;
         }
 
+        public Task SaveChangesAsync(CancellationToken ct = default)
+        {
+            return _context.SaveChangesAsync(ct);
+        }
+
         public async Task CommitAsync(CancellationToken ct = default)
         {
             var shouldDispose = false;

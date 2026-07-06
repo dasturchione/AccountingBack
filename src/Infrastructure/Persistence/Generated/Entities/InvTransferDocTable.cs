@@ -34,10 +34,6 @@ public partial class InvTransferDocTable
     [Precision(24, 8)]
     public decimal CostPrice { get; set; }
 
-    [ForeignKey("DestinationWarehouseId")]
-    [InverseProperty("InvTransferDocTableDestinationWarehouses")]
-    public virtual InvWarehouse DestinationWarehouse { get; set; } = null!;
-
     [ForeignKey("OwnerId")]
     [InverseProperty("InvTransferDocTables")]
     public virtual InvTransferLine Owner { get; set; } = null!;
@@ -45,8 +41,4 @@ public partial class InvTransferDocTable
     [ForeignKey("ProductTableId")]
     [InverseProperty("InvTransferDocTables")]
     public virtual InvProductTable ProductTable { get; set; } = null!;
-
-    [ForeignKey("SourceWarehouseId")]
-    [InverseProperty("InvTransferDocTableSourceWarehouses")]
-    public virtual InvWarehouse SourceWarehouse { get; set; } = null!;
 }

@@ -41,6 +41,12 @@ public partial class OrgDepartment
     [InverseProperty("OrgDepartments")]
     public virtual OrgBranch? Branch { get; set; }
 
+    [InverseProperty("Department")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("Department")]
+    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("OrgDepartments")]
     public virtual OrgOrganization Organization { get; set; } = null!;

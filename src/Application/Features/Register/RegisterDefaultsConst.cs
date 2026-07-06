@@ -10,6 +10,9 @@ public static class RegisterDefaultsConst
     /// <summary>Измерение входного НДС по услугам — субсчёт 4410.4.</summary>
     public const string VatKindServices = "services";
 
+    /// <summary>Измерение входного НДС при приобретении ОС — субсчёт 4410.1.</summary>
+    public const string VatKindFixedAsset = "fixedAsset";
+
     public const string CashOperation = "CASH_OPERATION";
     public const string CashOperationIn = "CASH_OPERATION_IN";
     public const string CashOperationOut = "CASH_OPERATION_OUT";

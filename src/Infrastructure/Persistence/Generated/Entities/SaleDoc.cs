@@ -84,10 +84,6 @@ public partial class SaleDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("SaleDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("ContractId")]
     [InverseProperty("SaleDocs")]
     public virtual CmnContract? Contract { get; set; }
@@ -103,10 +99,6 @@ public partial class SaleDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("SaleDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("SaleDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();

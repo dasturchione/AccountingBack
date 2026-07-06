@@ -48,24 +48,4 @@ public partial class OrgUserInvitation
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("AcceptedByUserId")]
-    [InverseProperty("OrgUserInvitationAcceptedByUsers")]
-    public virtual SysUser? AcceptedByUser { get; set; }
-
-    [ForeignKey("InvitedByUserId")]
-    [InverseProperty("OrgUserInvitationInvitedByUsers")]
-    public virtual SysUser? InvitedByUser { get; set; }
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("OrgUserInvitations")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("RoleId")]
-    [InverseProperty("OrgUserInvitations")]
-    public virtual SysRole Role { get; set; } = null!;
-
-    [ForeignKey("StateId")]
-    [InverseProperty("OrgUserInvitations")]
-    public virtual CmnState State { get; set; } = null!;
 }

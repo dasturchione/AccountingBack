@@ -41,6 +41,9 @@ public partial class ProductTable
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [InverseProperty("SourceProductTable")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("ProductTables")]
     public virtual Organization Organization { get; set; } = null!;

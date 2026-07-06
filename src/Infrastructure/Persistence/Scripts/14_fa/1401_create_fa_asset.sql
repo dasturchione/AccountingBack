@@ -1,0 +1,49 @@
+create table fa_asset
+(
+    id bigint not null,
+    organization_id integer not null,
+    state_id smallint not null,
+    inventory_number character varying(100) not null,
+    name character varying(250) not null,
+    fa_group_id integer not null,
+    okof_id smallint,
+    depreciation_method_id smallint not null,
+    useful_life_months integer not null,
+    initial_cost numeric(18,2) not null,
+    salvage_value numeric(18,2) default 0 not null,
+    commissioning_date timestamp without time zone,
+    depr_start_date timestamp without time zone,
+    planned_units_total numeric(18,3),
+    source_product_table_id integer,
+    department_id integer,
+    responsible_user_id integer,
+    status_id smallint not null,
+    created_date timestamp without time zone default now() not null,
+    updated_date timestamp without time zone default now() not null,
+    constraint fa_asset_pkey primary key (id),
+    constraint fa_asset_organization_id_fkey foreign key (organization_id) references org_organization(id),
+    constraint fa_asset_state_id_fkey foreign key (state_id) references cmn_state(id),
+    constraint fa_asset_fa_group_id_fkey foreign key (fa_group_id) references cmn_fa_group(id),
+    constraint fa_asset_okof_id_fkey foreign key (okof_id) references cmn_fa_okof(id),
+    constraint fa_asset_depreciation_method_id_fkey foreign key (depreciation_method_id) references cmn_fa_depreciation_method(id),
+    constraint fa_asset_source_product_table_id_fkey foreign key (source_product_table_id) references inv_product_table(id),
+    constraint fa_asset_department_id_fkey foreign key (department_id) references org_department(id),
+    constraint fa_asset_responsible_user_id_fkey foreign key (responsible_user_id) references sys_user(id),
+    constraint fa_asset_status_id_fkey foreign key (status_id) references cmn_fa_asset_status(id),
+    constraint ck_fa_asset_useful_life_positive check (useful_life_months > 0),
+    constraint ck_fa_asset_initial_cost_nonnegative check (initial_cost >= 0),
+    constraint ck_fa_asset_salvage_value_nonnegative check (salvage_value >= 0),
+    constraint ck_fa_asset_salvage_value_not_gt_initial check (salvage_value <= initial_cost),
+    constraint ck_fa_asset_planned_units_positive check (planned_units_total is null or planned_units_total > 0)
+);
+
+create unique index uidx_fa_asset_org_inventory_number on fa_asset using btree (organization_id, inventory_number);
+create index idx_fa_asset_state_id on fa_asset using btree (state_id);
+create index idx_fa_asset_status_id on fa_asset using btree (status_id);
+create index idx_fa_asset_fa_group_id on fa_asset using btree (fa_group_id);
+create index idx_fa_asset_okof_id on fa_asset using btree (okof_id);
+create index idx_fa_asset_depreciation_method_id on fa_asset using btree (depreciation_method_id);
+create index idx_fa_asset_department_id on fa_asset using btree (department_id);
+create index idx_fa_asset_responsible_user_id on fa_asset using btree (responsible_user_id);
+create index idx_fa_asset_source_product_table_id on fa_asset using btree (source_product_table_id);
+create index idx_fa_asset_commissioning_date on fa_asset using btree (commissioning_date);

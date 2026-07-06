@@ -44,32 +44,4 @@ public partial class AccPostingBatch
     [Column("comment")]
     [StringLength(1000)]
     public string? Comment { get; set; }
-
-    [InverseProperty("PostingBatch")]
-    public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
-
-    [InverseProperty("PostingBatch")]
-    public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
-
-    [ForeignKey("DocumentTypeId")]
-    [InverseProperty("AccPostingBatches")]
-    public virtual CmnDocumentType DocumentType { get; set; } = null!;
-
-    [InverseProperty("PostingBatch")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("PostingBatch")]
-    public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("AccPostingBatches")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("AccPostingBatchPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
-
-    [ForeignKey("ReversedByUserId")]
-    [InverseProperty("AccPostingBatchReversedByUsers")]
-    public virtual SysUser? ReversedByUser { get; set; }
 }

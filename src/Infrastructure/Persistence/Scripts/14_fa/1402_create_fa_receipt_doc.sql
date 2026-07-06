@@ -1,0 +1,39 @@
+create table fa_receipt_doc
+(
+    id bigint generated always as identity
+        constraint fa_receipt_doc_pkey primary key,
+    organization_id integer not null
+        constraint fa_receipt_doc_organization_id_fkey references org_organization (id),
+    state_id smallint not null
+        constraint fa_receipt_doc_state_id_fkey references cmn_state (id),
+    doc_number character varying(100) not null,
+    doc_date timestamp without time zone not null,
+    counterparty_id integer
+        constraint fa_receipt_doc_counterparty_id_fkey references counterparty_card (id),
+    warehouse_id integer
+        constraint fa_receipt_doc_warehouse_id_fkey references inv_warehouse (id),
+    currency_id smallint not null
+        constraint fa_receipt_doc_currency_id_fkey references cmn_currency (id),
+    total_amount numeric(24, 8) default 0 not null,
+    vat_amount numeric(24, 8) default 0 not null,
+    final_amount numeric(24, 8) default 0 not null,
+    status_id smallint not null
+        constraint fa_receipt_doc_status_id_fkey references cmn_document_status (id),
+    receipt_type character varying(50) not null,
+    created_date timestamp without time zone default now() not null,
+    updated_date timestamp without time zone default now() not null,
+    posted_at timestamp without time zone,
+    posted_by_user_id integer,
+    cancelled_at timestamp without time zone,
+    cancelled_by_user_id integer,
+    constraint ck_fa_receipt_doc_receipt_type
+        check (receipt_type in ('PURCHASE', 'CONSTRUCTION', 'OTHER'))
+);
+
+create unique index ux_fa_receipt_doc_org_doc_number on fa_receipt_doc using btree (organization_id, doc_number);
+create index idx_fa_receipt_doc_counterparty_id on fa_receipt_doc using btree (counterparty_id);
+create index idx_fa_receipt_doc_warehouse_id on fa_receipt_doc using btree (warehouse_id);
+create index idx_fa_receipt_doc_currency_id on fa_receipt_doc using btree (currency_id);
+create index idx_fa_receipt_doc_status_id on fa_receipt_doc using btree (status_id);
+create index idx_fa_receipt_doc_state_id on fa_receipt_doc using btree (state_id);
+create index idx_fa_receipt_doc_doc_date on fa_receipt_doc using btree (doc_date);

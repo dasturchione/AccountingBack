@@ -41,11 +41,26 @@ public partial class CmnCurrency
     [InverseProperty("Currency")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("BaseCurrency")]
+    public virtual ICollection<CmnCurrencyRate> CmnCurrencyRateBaseCurrencies { get; set; } = new List<CmnCurrencyRate>();
+
+    [InverseProperty("TargetCurrency")]
+    public virtual ICollection<CmnCurrencyRate> CmnCurrencyRateTargetCurrencies { get; set; } = new List<CmnCurrencyRate>();
+
+    [InverseProperty("BaseCurrency")]
+    public virtual ICollection<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLineBaseCurrencies { get; set; } = new List<CmnCurrencyRevaluationLine>();
+
+    [InverseProperty("TargetCurrency")]
+    public virtual ICollection<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLineTargetCurrencies { get; set; } = new List<CmnCurrencyRevaluationLine>();
+
     [InverseProperty("Currency")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
     [InverseProperty("Currency")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
+
+    [InverseProperty("Currency")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 
     [InverseProperty("Currency")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
@@ -55,9 +70,6 @@ public partial class CmnCurrency
 
     [InverseProperty("Currency")]
     public virtual ICollection<OrgBankAccount> OrgBankAccounts { get; set; } = new List<OrgBankAccount>();
-
-    [InverseProperty("BaseCurrency")]
-    public virtual ICollection<OrgOrganizationConfig> OrgOrganizationConfigs { get; set; } = new List<OrgOrganizationConfig>();
 
     [InverseProperty("Currency")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();

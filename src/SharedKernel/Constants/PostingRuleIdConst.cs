@@ -19,5 +19,7 @@
 		public const short CURRENCY_REVALUATION_GAIN = 8;
 
 		public const short CURRENCY_REVALUATION_LOSS = 9;
+
+		public const short FA_RECEIPT = 10;
     }
 }

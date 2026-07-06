@@ -76,8 +76,4 @@ public partial class CounterpartyRegBalance
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyRegBalances")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostingBatchId")]
-    [InverseProperty("CounterpartyRegBalances")]
-    public virtual AccPostingBatch? PostingBatch { get; set; }
 }

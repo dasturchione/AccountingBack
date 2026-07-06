@@ -39,3 +39,12 @@ insert into acc_posting_rule_line (id, template_id, order_number, debit_alias_id
     (22, 7, 1, (select id from acc_posting_alias where code = 'CashBoxSource'), (select id from acc_posting_alias where code = 'CashBoxDestination'), 'Total', false),
     (23, 8, 1, (select id from acc_posting_alias where code = 'CurrencyAsset'), (select id from acc_posting_alias where code = 'CurrencyRevaluationGain'), 'Total', false),
     (24, 9, 1, (select id from acc_posting_alias where code = 'CurrencyRevaluationLoss'), (select id from acc_posting_alias where code = 'CurrencyAsset'), 'Total', false);
+
+-- FA-P4: FA_RECEIPT (template 10) — приход ОС по схеме 1С:
+--   1) Dr 0800 (кап. вложения)   → Cr 6010 (поставщик)   на сумму без НДС (Base)
+--   2) Dr 4410.1 (входной НДС ОС)→ Cr 6010 (поставщик)   на сумму НДС (VAT)
+--   3) Dr 0100 (основное средство)→ Cr 0800 (кап. вложения) ввод в эксплуатацию (Base)
+insert into acc_posting_rule_line (id, template_id, order_number, debit_alias_id, credit_alias_id, amount_source, is_optional) values
+    (25, 10, 1, (select id from acc_posting_alias where code = 'FixedAssetInProgress'), (select id from acc_posting_alias where code = 'Supplier'), 'Base', false),
+    (26, 10, 2, (select id from acc_posting_alias where code = 'VATIn'), (select id from acc_posting_alias where code = 'Supplier'), 'VAT', true),
+    (27, 10, 3, (select id from acc_posting_alias where code = 'FixedAsset'), (select id from acc_posting_alias where code = 'FixedAssetInProgress'), 'Base', false);

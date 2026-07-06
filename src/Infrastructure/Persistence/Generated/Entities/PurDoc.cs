@@ -85,10 +85,6 @@ public partial class PurDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("PurDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]
     public virtual CmnContract? Contract { get; set; }
@@ -104,10 +100,6 @@ public partial class PurDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("PurDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("PurDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [InverseProperty("Owner")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();

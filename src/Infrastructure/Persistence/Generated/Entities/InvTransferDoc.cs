@@ -63,10 +63,6 @@ public partial class InvTransferDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("InvTransferDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
     [ForeignKey("DestinationWarehouseId")]
     [InverseProperty("InvTransferDocDestinationWarehouses")]
     public virtual InvWarehouse DestinationWarehouse { get; set; } = null!;
@@ -77,10 +73,6 @@ public partial class InvTransferDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvTransferDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("InvTransferDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("SourceWarehouseId")]
     [InverseProperty("InvTransferDocSourceWarehouses")]

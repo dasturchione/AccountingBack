@@ -77,10 +77,6 @@ public partial class InvRegBalance
     [InverseProperty("InvRegBalances")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
-    [ForeignKey("PostingBatchId")]
-    [InverseProperty("InvRegBalances")]
-    public virtual AccPostingBatch? PostingBatch { get; set; }
-
     [ForeignKey("ProductId")]
     [InverseProperty("InvRegBalances")]
     public virtual InvProduct Product { get; set; } = null!;

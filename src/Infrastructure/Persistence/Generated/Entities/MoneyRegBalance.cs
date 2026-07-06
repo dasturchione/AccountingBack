@@ -76,8 +76,4 @@ public partial class MoneyRegBalance
     [ForeignKey("OrganizationId")]
     [InverseProperty("MoneyRegBalances")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PostingBatchId")]
-    [InverseProperty("MoneyRegBalances")]
-    public virtual AccPostingBatch? PostingBatch { get; set; }
 }

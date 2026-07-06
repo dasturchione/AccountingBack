@@ -87,13 +87,7 @@ public partial class OrgOrganization
     public string? Oked { get; set; }
 
     [InverseProperty("Organization")]
-    public virtual ICollection<AccAccountingPeriod> AccAccountingPeriods { get; set; } = new List<AccAccountingPeriod>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<AccPostingBatch> AccPostingBatches { get; set; } = new List<AccPostingBatch>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
@@ -111,7 +105,10 @@ public partial class OrgOrganization
     public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<CmnDocumentSequence> CmnDocumentSequences { get; set; } = new List<CmnDocumentSequence>();
+    public virtual ICollection<CmnCurrencyRevaluation> CmnCurrencyRevaluations { get; set; } = new List<CmnCurrencyRevaluation>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<CmnFaGroup> CmnFaGroups { get; set; } = new List<CmnFaGroup>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<CmnPricingCondition> CmnPricingConditions { get; set; } = new List<CmnPricingCondition>();
@@ -135,6 +132,12 @@ public partial class OrgOrganization
     [ForeignKey("DistrictId")]
     [InverseProperty("OrgOrganizations")]
     public virtual CmnDistrict? District { get; set; }
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
@@ -173,12 +176,6 @@ public partial class OrgOrganization
     public virtual ICollection<OrgBranch> OrgBranches { get; set; } = new List<OrgBranch>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<OrgClaimRequest> OrgClaimRequests { get; set; } = new List<OrgClaimRequest>();
-
-    [InverseProperty("Organization")]
-    public virtual OrgDefault? OrgDefault { get; set; }
-
-    [InverseProperty("Organization")]
     public virtual ICollection<OrgDepartment> OrgDepartments { get; set; } = new List<OrgDepartment>();
 
     [InverseProperty("Organization")]
@@ -186,15 +183,6 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
-
-    [InverseProperty("Organization")]
-    public virtual OrgSetupState? OrgSetupState { get; set; }
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<OrgTaxSetting> OrgTaxSettings { get; set; } = new List<OrgTaxSetting>();
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<OrgUserInvitation> OrgUserInvitations { get; set; } = new List<OrgUserInvitation>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
@@ -221,8 +209,4 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
-
-    [ForeignKey("TenantId")]
-    [InverseProperty("OrgOrganizations")]
-    public virtual PlatformTenant? Tenant { get; set; }
 }

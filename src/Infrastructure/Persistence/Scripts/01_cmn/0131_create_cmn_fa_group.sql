@@ -1,0 +1,19 @@
+create table cmn_fa_group
+(
+    id integer not null,
+    organization_id integer not null,
+    code character varying(50) not null,
+    name character varying(150) not null,
+    state_id smallint not null,
+    constraint cmn_fa_group_pkey primary key (id),
+    constraint cmn_fa_group_organization_id_fkey foreign key (organization_id) references org_organization(id),
+    constraint cmn_fa_group_state_id_fkey foreign key (state_id) references cmn_state(id)
+);
+
+create unique index uidx_cmn_fa_group_org_code on cmn_fa_group using btree (organization_id, code);
+create index idx_cmn_fa_group_organization_id on cmn_fa_group using btree (organization_id);
+create index idx_cmn_fa_group_state_id on cmn_fa_group using btree (state_id);
+
+insert into cmn_fa_group (id, organization_id, code, name, state_id) values
+    ('1', '8', 'BUILDINGS', 'Binolar', '1'),
+    ('2', '8', 'TRANSPORT', 'Transport', '1');

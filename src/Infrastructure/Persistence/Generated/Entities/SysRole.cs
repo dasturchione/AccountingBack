@@ -54,9 +54,6 @@ public partial class SysRole
     [Column("sort_order")]
     public int SortOrder { get; set; }
 
-    [InverseProperty("Role")]
-    public virtual ICollection<OrgUserInvitation> OrgUserInvitations { get; set; } = new List<OrgUserInvitation>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("SysRoles")]
     public virtual OrgOrganization? Organization { get; set; }

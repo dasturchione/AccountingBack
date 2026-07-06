@@ -42,12 +42,4 @@ public partial class AccAccountingPeriod
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("ClosedByUserId")]
-    [InverseProperty("AccAccountingPeriods")]
-    public virtual SysUser? ClosedByUser { get; set; }
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("AccAccountingPeriods")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
 }

@@ -42,6 +42,8 @@ public class DocNumberGenerator(AppDbContext db) : IDocNumberGenerator
                     SELECT doc_number FROM pur_doc WHERE organization_id = {organizationId}
                     UNION ALL
                     SELECT doc_number FROM sale_doc WHERE organization_id = {organizationId}
+                    UNION ALL
+                    SELECT doc_number FROM fa_receipt_doc WHERE organization_id = {organizationId}
                 ) docs
                 """)
             .FirstAsync(ct);

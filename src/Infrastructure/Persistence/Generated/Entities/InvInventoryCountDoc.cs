@@ -7,13 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_inventory_count_doc")]
-[Index("CancelledByUserId", Name = "idx_inv_inventory_count_doc_cancelled_by_user_id")]
-[Index("CountCompletedByUserId", Name = "idx_inv_inventory_count_doc_count_completed_by_user_id")]
 [Index("DocDate", Name = "idx_inv_inventory_count_doc_doc_date")]
-[Index("NegativeAdjustmentDocId", Name = "idx_inv_inventory_count_doc_negative_adjustment_doc_id")]
 [Index("OrganizationId", Name = "idx_inv_inventory_count_doc_organization_id")]
-[Index("PositiveAdjustmentDocId", Name = "idx_inv_inventory_count_doc_positive_adjustment_doc_id")]
-[Index("PostedByUserId", Name = "idx_inv_inventory_count_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_inv_inventory_count_doc_state_id")]
 [Index("StatusId", Name = "idx_inv_inventory_count_doc_status_id")]
 [Index("WarehouseId", Name = "idx_inv_inventory_count_doc_warehouse_id")]
@@ -74,14 +69,6 @@ public partial class InvInventoryCountDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
-    [ForeignKey("CancelledByUserId")]
-    [InverseProperty("InvInventoryCountDocCancelledByUsers")]
-    public virtual SysUser? CancelledByUser { get; set; }
-
-    [ForeignKey("CountCompletedByUserId")]
-    [InverseProperty("InvInventoryCountDocCountCompletedByUsers")]
-    public virtual SysUser? CountCompletedByUser { get; set; }
-
     [InverseProperty("Owner")]
     public virtual ICollection<InvInventoryCountLine> InvInventoryCountLines { get; set; } = new List<InvInventoryCountLine>();
 
@@ -96,10 +83,6 @@ public partial class InvInventoryCountDoc
     [ForeignKey("PositiveAdjustmentDocId")]
     [InverseProperty("InvInventoryCountDocPositiveAdjustmentDocs")]
     public virtual InvInventoryAdjustmentDoc? PositiveAdjustmentDoc { get; set; }
-
-    [ForeignKey("PostedByUserId")]
-    [InverseProperty("InvInventoryCountDocPostedByUsers")]
-    public virtual SysUser? PostedByUser { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("InvInventoryCountDocs")]

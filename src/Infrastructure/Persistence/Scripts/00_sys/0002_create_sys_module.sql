@@ -263,7 +263,20 @@ values
     ('1119', 'INVENTORY_COUNT_UPDATE', 'Inventar sanog''i tahrirlash', 'Tahrirlash', '17', '1', '2026-07-03 00:00:00'),
     ('1120', 'INVENTORY_COUNT_DELETE', 'Inventar sanog''i o''chirish', 'O''chirish', '17', '1', '2026-07-03 00:00:00'),
     ('1121', 'CONFIRM_INVENTORY_COUNT', 'Inventar sanog''ini tasdiqlash', 'Tasdiqlash', '17', '1', '2026-07-03 00:00:00'),
-    ('1122', 'CANCEL_INVENTORY_COUNT', 'Inventar sanog''ini bekor qilish', 'Bekor qilish', '17', '1', '2026-07-03 00:00:00');
+    ('1122', 'CANCEL_INVENTORY_COUNT', 'Inventar sanog''ini bekor qilish', 'Bekor qilish', '17', '1', '2026-07-03 00:00:00'),
+
+    ('1158', 'FA_ASSET_VIEW', 'Asosiy vositalar', 'Asosiy vositalar ro''yxatini ko''rish', '11', '1', '2026-07-06 00:00:00'),
+    ('1159', 'FA_ASSET_VIEW_DETAIL', 'Asosiy vosita detail', 'Asosiy vositani batafsil ko''rish', '11', '1', '2026-07-06 00:00:00'),
+    ('1160', 'FA_ASSET_CREATE', 'Asosiy vosita yaratish', 'Yangi asosiy vosita qo''shish', '11', '1', '2026-07-06 00:00:00'),
+    ('1161', 'FA_ASSET_UPDATE', 'Asosiy vosita tahrirlash', 'Asosiy vositani tahrirlash', '11', '1', '2026-07-06 00:00:00'),
+    ('1162', 'FA_ASSET_DELETE', 'Asosiy vosita o''chirish', 'Asosiy vositani o''chirish', '11', '1', '2026-07-06 00:00:00'),
+    ('1163', 'FA_RECEIPT_VIEW', 'OS qabuli', 'Asosiy vosita qabul hujjatlarini ko''rish', '11', '1', '2026-07-06 00:00:00'),
+    ('1164', 'FA_RECEIPT_VIEW_DETAIL', 'OS qabuli detail', 'Asosiy vosita qabul hujjatini batafsil ko''rish', '11', '1', '2026-07-06 00:00:00'),
+    ('1165', 'FA_RECEIPT_CREATE', 'OS qabuli yaratish', 'Yangi asosiy vosita qabul hujjati yaratish', '11', '1', '2026-07-06 00:00:00'),
+    ('1166', 'FA_RECEIPT_UPDATE', 'OS qabuli tahrirlash', 'Asosiy vosita qabul hujjatini tahrirlash', '11', '1', '2026-07-06 00:00:00'),
+    ('1167', 'FA_RECEIPT_DELETE', 'OS qabuli o''chirish', 'Asosiy vosita qabul hujjatini o''chirish', '11', '1', '2026-07-06 00:00:00'),
+    ('1168', 'FA_RECEIPT_CONFIRM', 'OS qabuli tasdiqlash', 'Asosiy vosita qabul hujjatini tasdiqlash', '11', '1', '2026-07-06 00:00:00'),
+    ('1169', 'FA_RECEIPT_CANCEL', 'OS qabuli bekor qilish', 'Asosiy vosita qabul hujjatini bekor qilish', '11', '1', '2026-07-06 00:00:00');
 
 
 insert into sys_module (id, code, short_name, full_name, sub_group_id, state_id, created_date, parent_id, route, icon, sort_order, is_visible)
@@ -280,4 +293,4 @@ values
 
     ('1141', 'DASHBOARD_VIEW', 'Dashboard', 'Super Admin dashboard statistikasi', '1', '1', '2026-07-05 00:00:00', null, '/dashboard', 'dashboard', '91', '1');
 
-select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1157), true);
+select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1169), true);

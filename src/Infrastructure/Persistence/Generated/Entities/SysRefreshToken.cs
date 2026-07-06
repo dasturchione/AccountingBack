@@ -52,8 +52,4 @@ public partial class SysRefreshToken
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("UserId")]
-    [InverseProperty("SysRefreshTokens")]
-    public virtual SysUser User { get; set; } = null!;
 }

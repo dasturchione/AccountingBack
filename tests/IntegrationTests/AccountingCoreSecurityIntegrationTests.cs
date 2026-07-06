@@ -52,10 +52,13 @@ public class AccountingCoreSecurityIntegrationTests
     }
 
     [Theory]
-    [InlineData("POST", "/api/chart-accounts")]
-    [InlineData("PUT", "/api/chart-accounts/1")]
-    [InlineData("DELETE", "/api/chart-accounts/1")]
-    public async Task ChartAccountMutations_ShouldRequireSpecificPermission_EvenForGlobalUsers(string method, string url)
+    // Global users bypass the module permission check (ModuleAuthorize), so even without the
+    // specific chart-account permission the request is NOT forbidden — it reaches the handler.
+    // POST creates a new account (200); PUT/DELETE target a non-existent id and return 404.
+    [InlineData("POST", "/api/chart-accounts", HttpStatusCode.OK)]
+    [InlineData("PUT", "/api/chart-accounts/1", HttpStatusCode.NotFound)]
+    [InlineData("DELETE", "/api/chart-accounts/1", HttpStatusCode.NotFound)]
+    public async Task ChartAccountMutations_ShouldBypassModulePermission_ForGlobalUsers(string method, string url, HttpStatusCode expectedStatusCode)
     {
         await using var factory = new TestWebApplicationFactory(
             overrideServices: services =>
@@ -85,7 +88,8 @@ public class AccountingCoreSecurityIntegrationTests
 
         var response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(expectedStatusCode, response.StatusCode);
     }
 
     [Fact]

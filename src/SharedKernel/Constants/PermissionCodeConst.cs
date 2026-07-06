@@ -356,4 +356,22 @@ public static class PermissionCodeConst
     #region OrganizationSetup
     public const string OrganizationSetupManage = "ORGANIZATION_SETUP_MANAGE";
     #endregion
+
+    #region FaAsset
+    public const string FaAssetView       = "FA_ASSET_VIEW";
+    public const string FaAssetViewDetail = "FA_ASSET_VIEW_DETAIL";
+    public const string FaAssetCreate     = "FA_ASSET_CREATE";
+    public const string FaAssetUpdate     = "FA_ASSET_UPDATE";
+    public const string FaAssetDelete     = "FA_ASSET_DELETE";
+    #endregion
+
+    #region FaReceipt
+    public const string FaReceiptView       = "FA_RECEIPT_VIEW";
+    public const string FaReceiptViewDetail = "FA_RECEIPT_VIEW_DETAIL";
+    public const string FaReceiptCreate     = "FA_RECEIPT_CREATE";
+    public const string FaReceiptUpdate     = "FA_RECEIPT_UPDATE";
+    public const string FaReceiptDelete     = "FA_RECEIPT_DELETE";
+    public const string ConfirmFaReceipt    = "FA_RECEIPT_CONFIRM";
+    public const string CancelFaReceipt     = "FA_RECEIPT_CANCEL";
+    #endregion
 }

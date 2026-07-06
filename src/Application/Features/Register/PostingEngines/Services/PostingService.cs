@@ -252,6 +252,13 @@ namespace Application.Features.Register.PostingEngines
                                                   x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
                              .ToList();
                     break;
+
+                case AliasConst.FixedAsset:
+                case AliasConst.FixedAssetInProgress:
+                case AliasConst.FixedAssetDepreciation:
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET)
+                             .ToList();
+                    break;
             };
 
             return result;

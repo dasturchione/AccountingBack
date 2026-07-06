@@ -64,13 +64,31 @@ public partial class CmnState
     public virtual ICollection<CmnCurrency> CmnCurrencies { get; set; } = new List<CmnCurrency>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnDocumentSequence> CmnDocumentSequences { get; set; } = new List<CmnDocumentSequence>();
+    public virtual ICollection<CmnCurrencyRate> CmnCurrencyRates { get; set; } = new List<CmnCurrencyRate>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLines { get; set; } = new List<CmnCurrencyRevaluationLine>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnCurrencyRevaluation> CmnCurrencyRevaluations { get; set; } = new List<CmnCurrencyRevaluation>();
 
     [InverseProperty("State")]
     public virtual ICollection<CmnDocumentStatus> CmnDocumentStatuses { get; set; } = new List<CmnDocumentStatus>();
 
     [InverseProperty("State")]
     public virtual ICollection<CmnDocumentType> CmnDocumentTypes { get; set; } = new List<CmnDocumentType>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnFaAssetStatus> CmnFaAssetStatuses { get; set; } = new List<CmnFaAssetStatus>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnFaDepreciationMethod> CmnFaDepreciationMethods { get; set; } = new List<CmnFaDepreciationMethod>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnFaGroup> CmnFaGroups { get; set; } = new List<CmnFaGroup>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnFaOkof> CmnFaOkofs { get; set; } = new List<CmnFaOkof>();
 
     [InverseProperty("State")]
     public virtual ICollection<CmnLanguage> CmnLanguages { get; set; } = new List<CmnLanguage>();
@@ -107,6 +125,12 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 
     [InverseProperty("State")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
@@ -146,15 +170,6 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<OrgTaxSetting> OrgTaxSettings { get; set; } = new List<OrgTaxSetting>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<OrgUserInvitation> OrgUserInvitations { get; set; } = new List<OrgUserInvitation>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<PlatformTenant> PlatformTenants { get; set; } = new List<PlatformTenant>();
 
     [InverseProperty("State")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();

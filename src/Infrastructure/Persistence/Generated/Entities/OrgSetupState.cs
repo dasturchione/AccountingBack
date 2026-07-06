@@ -48,8 +48,4 @@ public partial class OrgSetupState
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("OrgSetupState")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
 }

@@ -31,14 +31,6 @@ public partial class OrgOrganizationConfig
     [Column("fiscal_year_start_month")]
     public short FiscalYearStartMonth { get; set; }
 
-    [ForeignKey("AccountingPolicyId")]
-    [InverseProperty("OrgOrganizationConfigs")]
-    public virtual AccAccountingPolicy? AccountingPolicy { get; set; }
-
-    [ForeignKey("BaseCurrencyId")]
-    [InverseProperty("OrgOrganizationConfigs")]
-    public virtual CmnCurrency? BaseCurrency { get; set; }
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("OrgOrganizationConfig")]
     public virtual OrgOrganization Organization { get; set; } = null!;

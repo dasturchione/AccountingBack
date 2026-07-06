@@ -188,5 +188,11 @@ public partial class Organization
     public virtual ICollection<CurrencyRevaluation> CurrencyRevaluations { get; set; } = new List<CurrencyRevaluation>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<FaGroup> FaGroups { get; set; } = new List<FaGroup>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("Organization")]
     public virtual OrganizationConfig? OrganizationConfig { get; set; }
 }

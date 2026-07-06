@@ -49,6 +49,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<BankOperation>(modelBuilder);
             ApplyScopedFilter<ProductPrice>(modelBuilder);
             ApplyScopedFilter<ProductGroup>(modelBuilder);
+            ApplyScopedFilter<FaGroup>(modelBuilder);
             ApplyScopedFilter<PricingCondition>(modelBuilder);
             ApplyScopedFilter<SaleCondition>(modelBuilder);
             ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
@@ -73,6 +74,8 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<CashBox>(modelBuilder);
             ApplyScopedFilter<UserOrganization>(modelBuilder);
             ApplyScopedFilter<ProductTable>(modelBuilder);
+            ApplyScopedFilter<FaAsset>(modelBuilder);
+            ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(e => HasGlobalAccess
@@ -90,6 +93,20 @@ namespace Infrastructure.Persistence
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<PurchaseDocTable>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+            modelBuilder.Entity<FaReceiptDocLine>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<FaReceiptDocAsset>()
                 .HasQueryFilter(e => HasGlobalAccess
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0

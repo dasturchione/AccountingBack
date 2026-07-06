@@ -25,3 +25,7 @@ insert into acc_subkonto_type (id, code, name, source_table, state_id, created_d
     ('9', 'contract', 'Shartnoma', 'cmn_contract', '1', '2026-06-25 10:43:24.6827'),
     ('10', 'puchase', 'Xarid', 'pur_doc', '1', '2026-06-25 10:43:24.6827'),
     ('11', 'sale', 'Sotuv', 'sale_doc', '1', '2026-06-25 10:43:24.6827');
+
+-- FA-P4: OS subkontosi — provodkalarni aniq asosiy vosita bo'yicha ajratish uchun.
+insert into acc_subkonto_type (id, code, name, source_table, state_id, created_date) values
+    ('12', 'fixed_asset', 'Asosiy vosita', 'fa_asset', '1', '2026-07-06 00:00:00');

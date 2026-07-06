@@ -28,6 +28,6 @@ insert into sys_module_sub_group (id, code, short_name, full_name, created_date)
     ('16', 'INVENTORY_ADJUSTMENT', 'Inventar tuzatish', 'Inventar tuzatish hujjatlari', '2026-07-03 00:00:00'),
     ('17', 'INVENTORY_COUNT', 'Inventar sanog''i', 'Inventar sanog''i hujjatlari', '2026-07-03 00:00:00');
 
-select setval('sys_module_sub_group_id_seq', 15, true);
+select setval('sys_module_sub_group_id_seq', 17, true);
 
 

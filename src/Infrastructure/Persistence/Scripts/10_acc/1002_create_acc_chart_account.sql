@@ -12,7 +12,7 @@
     is_currency boolean default false not null,
     constraint acc_chart_account_pkey primary key (id),
     constraint acc_chart_account_account_type_id_fkey foreign key (account_type_id) references acc_account_type(id),
-    constraint acc_chart_account_parent_id_fkey foreign key (parent_id) references acc_chart_account(id),
+    constraint acc_chart_account_parent_id_fkey foreign key (parent_id) references acc_chart_account(id) DEFERRABLE INITIALLY DEFERRED,
     constraint acc_chart_account_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 

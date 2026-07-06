@@ -11,9 +11,9 @@
     state_id smallint not null references cmn_state(id),
     created_date timestamp without time zone not null default now(),
     posted_at timestamp without time zone,
-    posted_by_user_id integer references sys_user(id),
+    posted_by_user_id integer,
     cancelled_at timestamp without time zone,
-    cancelled_by_user_id integer references sys_user(id)
+    cancelled_by_user_id integer
 );
 
 create index idx_inv_transfer_doc_organization_id on inv_transfer_doc (organization_id);

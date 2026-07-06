@@ -15,8 +15,7 @@
     constraint cash_box_branch_id_fkey foreign key (branch_id) references org_branch(id),
     constraint cash_box_currency_id_fkey foreign key (currency_id) references cmn_currency(id),
     constraint cash_box_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint cash_box_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint cash_box_responsible_user_id_fkey foreign key (responsible_user_id) references sys_user(id)
+    constraint cash_box_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
 create index idx_cash_box_branch_id on cash_box using btree (branch_id);

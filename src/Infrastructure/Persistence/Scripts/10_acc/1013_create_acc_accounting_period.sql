@@ -13,9 +13,7 @@
     constraint ck_acc_accounting_period_dates CHECK ((end_date >= start_date)),
     constraint ck_acc_accounting_period_month CHECK (((month >= 1) AND (month <= 12))),
     constraint acc_accounting_period_pkey primary key (id),
-    constraint acc_accounting_period_unique_period UNIQUE (organization_id, year, month),
-    constraint acc_accounting_period_closed_by_user_id_fkey foreign key (closed_by_user_id) references sys_user(id),
-    constraint acc_accounting_period_organization_id_fkey foreign key (organization_id) references org_organization(id)
+    constraint acc_accounting_period_unique_period UNIQUE (organization_id, year, month)
 );
 
 create index idx_acc_accounting_period_is_closed on acc_accounting_period using btree (is_closed);

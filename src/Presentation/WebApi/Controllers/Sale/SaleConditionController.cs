@@ -11,7 +11,6 @@ namespace WebApi.Controllers;
 [Route("api/sale-conditions")]
 [ApiController]
 [Authorize]
-[ModuleAuthorize(PermissionCodeConst.ManualView)]
 public class SaleConditionController : ControllerBase
 {
     private readonly ISaleConditionService _service;
@@ -22,6 +21,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionView)]
     public async Task<IResult> GetAllAsync([FromQuery] SaleConditionListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -29,6 +29,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpGet("now")]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionView)]
     public async Task<IResult> GetNowAsync(CancellationToken ct = default)
     {
         var result = await _service.GetNowAsync(ct);
@@ -36,6 +37,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -43,6 +45,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionCreate)]
     public async Task<IResult> CreateAsync([FromBody] SaleConditionCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -50,6 +53,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

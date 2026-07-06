@@ -12,10 +12,7 @@ create table sys_notification
     state_id smallint default 1 not null,
     created_date timestamp without time zone default now() not null,
     constraint sys_notification_pkey primary key (id),
-    constraint sys_notification_type_id_fkey foreign key (type_id) references cmn_notification_type(id),
-    constraint sys_notification_user_id_fkey foreign key (user_id) references sys_user(id),
-    constraint sys_notification_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint sys_notification_state_id_fkey foreign key (state_id) references cmn_state(id)
+    constraint sys_notification_type_id_key check (type_id > 0)
 );
 
 create index idx_sys_notification_organization_id on sys_notification using btree (organization_id);

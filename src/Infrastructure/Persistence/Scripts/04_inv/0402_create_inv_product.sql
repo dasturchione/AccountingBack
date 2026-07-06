@@ -27,8 +27,7 @@
     constraint inv_product_product_group_id_fkey foreign key (product_group_id) references inv_product_group(id),
     constraint inv_product_product_type_id_fkey foreign key (product_type_id) references cmn_product_type(id),
     constraint inv_product_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint inv_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id),
-    constraint inv_product_default_vat_rate_id_fkey foreign key (default_vat_rate_id) references cmn_vat_rate(id)
+    constraint inv_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id)
 );
 
 create index idx_inv_product_barcode on inv_product using btree (barcode);

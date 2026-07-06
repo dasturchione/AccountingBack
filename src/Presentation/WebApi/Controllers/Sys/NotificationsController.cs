@@ -1,6 +1,8 @@
 using Application.Features.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -9,6 +11,7 @@ namespace WebApi.Controllers.Sys;
 [Route("api/notifications")]
 [ApiController]
 [Authorize]
+[ModuleAuthorize(PermissionCodeConst.NotificationManage)]
 public sealed class NotificationsController : ControllerBase
 {
     private readonly INotificationService _service;

@@ -21,8 +21,7 @@
     constraint inv_reg_balance_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint inv_reg_balance_product_id_fkey foreign key (product_id) references inv_product(id),
     constraint inv_reg_balance_product_table_id_fkey foreign key (product_table_id) references inv_product_table(id),
-    constraint inv_reg_balance_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id),
-    constraint inv_reg_balance_posting_batch_id_fkey foreign key (posting_batch_id) references acc_posting_batch(id)
+    constraint inv_reg_balance_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id)
 );
 
 create index idx_inv_reg_balance_doc_date on inv_reg_balance using btree (doc_date);

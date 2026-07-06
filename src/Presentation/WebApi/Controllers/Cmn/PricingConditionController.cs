@@ -11,7 +11,6 @@ namespace WebApi.Controllers;
 [Route("api/pricing-conditions")]
 [ApiController]
 [Authorize]
-[ModuleAuthorize(PermissionCodeConst.ManualView)]
 public class PricingConditionController : ControllerBase
 {
     private readonly IPricingConditionService _service;
@@ -22,6 +21,7 @@ public class PricingConditionController : ControllerBase
     }
 
     [HttpGet]
+    [ModuleAuthorize(PermissionCodeConst.PricingConditionView)]
     public async Task<IResult> GetAllAsync([FromQuery] PricingConditionListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -29,6 +29,7 @@ public class PricingConditionController : ControllerBase
     }
 
     [HttpGet("now")]
+    [ModuleAuthorize(PermissionCodeConst.PricingConditionView)]
     public async Task<IResult> GetNowAsync(CancellationToken ct = default)
     {
         var result = await _service.GetNowAsync(ct);
@@ -36,6 +37,7 @@ public class PricingConditionController : ControllerBase
     }
 
     [HttpGet("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.PricingConditionViewDetail)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetByIdAsync(id, ct);
@@ -43,6 +45,7 @@ public class PricingConditionController : ControllerBase
     }
 
     [HttpPost]
+    [ModuleAuthorize(PermissionCodeConst.PricingConditionCreate)]
     public async Task<IResult> CreateAsync([FromBody] PricingConditionCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -50,6 +53,7 @@ public class PricingConditionController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.PricingConditionDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

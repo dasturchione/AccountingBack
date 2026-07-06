@@ -10,11 +10,7 @@
     reversed_by_user_id integer,
     reversed_at timestamp without time zone,
     comment character varying(1000),
-    constraint acc_posting_batch_pkey primary key (id),
-    constraint acc_posting_batch_document_type_id_fkey foreign key (document_type_id) references cmn_document_type(id),
-    constraint acc_posting_batch_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint acc_posting_batch_posted_by_user_id_fkey foreign key (posted_by_user_id) references sys_user(id),
-    constraint acc_posting_batch_reversed_by_user_id_fkey foreign key (reversed_by_user_id) references sys_user(id)
+    constraint acc_posting_batch_pkey primary key (id)
 );
 
 create index idx_acc_posting_batch_document on acc_posting_batch using btree (document_type_id, document_id);

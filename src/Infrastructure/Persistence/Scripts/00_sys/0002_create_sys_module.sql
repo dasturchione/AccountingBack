@@ -15,7 +15,7 @@
     constraint sys_module_pkey primary key (id),
     constraint sys_module_state_id_fkey foreign key (state_id) references cmn_state (id),
     constraint sys_module_sub_group_id_fkey foreign key (sub_group_id) references sys_module_sub_group (id),
-    constraint sys_module_parent_id_fkey foreign key (parent_id) references sys_module (id)
+    constraint sys_module_parent_id_fkey foreign key (parent_id) references sys_module (id) DEFERRABLE INITIALLY DEFERRED
 );
 
 create unique index sys_module_unique_index_code on sys_module using btree (code);
@@ -37,12 +37,20 @@ values
     ('113', 'USER_CREATE', 'Foydalanuvchi yaratish', 'Yangi foydalanuvchi', '1', '1', '2026-06-08 11:46:35.397683'),
     ('114', 'USER_UPDATE', 'Foydalanuvchi tahrir', 'Foydalanuvchini tahrirlash', '1', '1', '2026-06-08 11:46:35.397683'),
     ('115', 'USER_DELETE', 'Foydalanuvchi o''chirish', 'Foydalanuvchini o''chirish', '1', '1', '2026-06-08 11:46:35.397683'),
+    ('1142', 'AUTH_CHECK_TOKEN', 'Token tekshirish', 'Foydalanuvchi tokenini tekshirish', '1', '1', '2026-07-06 00:00:00'),
+    ('1143', 'NOTIFICATION_MANAGE', 'Bildirishnomalar', 'Bildirishnomalarni boshqarish', '1', '1', '2026-07-06 00:00:00'),
+    ('1144', 'PLATFORM_TENANT_MANAGE', 'Tenantlar', 'Tenantlarni boshqarish', '1', '1', '2026-07-06 00:00:00'),
+    ('1145', 'PLATFORM_USER_MANAGE', 'Platform foydalanuvchilari', 'Platform foydalanuvchilarini boshqarish', '1', '1', '2026-07-06 00:00:00'),
+    ('1146', 'PLATFORM_ORGANIZATION_MANAGE', 'Platform tashkilotlari', 'Platform tashkilotlarini boshqarish', '1', '1', '2026-07-06 00:00:00'),
+    ('1147', 'PLATFORM_ACCOUNTANT_WORKSPACE_MANAGE', 'Buxgalter workspace', 'Buxgalter workspace larini boshqarish', '1', '1', '2026-07-06 00:00:00'),
+    ('1148', 'PLATFORM_USER_ORGANIZATION_MANAGE', 'User tashkilot bog''lash', 'Foydalanuvchi va tashkilot bog''lanishini boshqarish', '1', '1', '2026-07-06 00:00:00'),
 
     ('201', 'ORGANIZATION_VIEW', 'Tashkilotlar', 'Tashkilotlar ro''yxati', '2', '1', '2026-06-08 11:46:35.397683'),
     ('202', 'ORGANIZATION_VIEW_DETAIL', 'Tashkilot detail', 'Tashkilotni batafsil ko''rish', '2', '1', '2026-06-08 11:46:35.397683'),
     ('203', 'ORGANIZATION_CREATE', 'Tashkilot yaratish', 'Yangi tashkilot', '2', '1', '2026-06-08 11:46:35.397683'),
     ('204', 'ORGANIZATION_UPDATE', 'Tashkilot tahrirlash', 'Tashkilotni tahrirlash', '2', '1', '2026-06-08 11:46:35.397683'),
     ('205', 'ORGANIZATION_DELETE', 'Tashkilot o''chirish', 'Tashkilotni o''chirish', '2', '1', '2026-06-08 11:46:35.397683'),
+    ('1149', 'ORGANIZATION_SETUP_MANAGE', 'Tashkilot sozlamasi', 'Tashkilot boshlang''ich sozlamalarini boshqarish', '2', '1', '2026-07-06 00:00:00'),
 
     ('211', 'BRANCH_VIEW', 'Filiallar', 'Filiallar ro''yxati', '2', '1', '2026-06-08 11:46:35.397683'),
     ('212', 'BRANCH_VIEW_DETAIL', 'Filial detail', 'Filialni batafsil ko''rish', '2', '1', '2026-06-08 11:46:35.397683'),
@@ -105,7 +113,6 @@ values
     ('435', 'WAREHOUSE_DELETE', 'Ombor o''chirish', 'O''chirish', '4', '1', '2026-06-08 11:46:35.397683'),
 
     ('441', 'PRODUCT_TABLE_VIEW', 'Tovar kartochkalari', 'Tovar kartochkalarini ko''rish', '4', '1', '2026-06-20 10:15:52.743562'),
-    ('442', 'PRODUCT_TABLE_VIEW_DETAIL', 'Tovar kartochkasi detail', 'Tovar kartochkasini batafsil', '4', '1', '2026-06-20 10:15:52.743562'),
 
     ('501', 'ORG_BANK_ACCOUNT_VIEW', 'Tashkilot bank hisoblari', 'Ro''yxat', '5', '1', '2026-06-08 11:46:35.397683'),
     ('502', 'ORG_BANK_ACCOUNT_VIEW_DETAIL', 'Tashkilot bank hisobi detail', 'Batafsil', '5', '1', '2026-06-08 11:46:35.397683'),
@@ -163,12 +170,6 @@ values
     ('724', 'CONTRACT_UPDATE', 'Shartnoma tahrirlash', 'Shartnomani tahrirlash', '7', '1', '2026-06-16 17:32:01.442269'),
     ('725', 'CONTRACT_DELETE', 'Shartnoma o''chirish', 'Shartnomani o''chirish', '7', '1', '2026-06-16 17:32:01.442269'),
 
-    ('731', 'PURCHASE_SERVICE_VIEW', 'Xarid xizmatlari', 'Ro''yxat', '7', '1', '2026-06-24 11:25:25.034628'),
-    ('732', 'PURCHASE_SERVICE_VIEW_DETAIL', 'Xarid xizmati detail', 'Batafsil', '7', '1', '2026-06-24 11:25:25.034628'),
-    ('733', 'PURCHASE_SERVICE_CREATE', 'Xarid xizmati yaratish', 'Yangi', '7', '1', '2026-06-24 11:25:25.034628'),
-    ('734', 'PURCHASE_SERVICE_UPDATE', 'Xarid xizmati tahrirlash', 'Tahrirlash', '7', '1', '2026-06-24 11:25:25.034628'),
-    ('735', 'PURCHASE_SERVICE_DELETE', 'Xarid xizmati o''chirish', 'O''chirish', '7', '1', '2026-06-24 11:25:25.034628'),
-
     ('801', 'SALE_DOC_VIEW', 'Sotuv hujjatlari', 'Ro''yxat', '8', '1', '2026-06-08 11:46:35.397683'),
     ('802', 'SALE_DOC_VIEW_DETAIL', 'Sotuv hujjati detail', 'Batafsil', '8', '1', '2026-06-08 11:46:35.397683'),
     ('803', 'SALE_DOC_CREATE', 'Sotuv hujjati yaratish', 'Yangi', '8', '1', '2026-06-08 11:46:35.397683'),
@@ -190,10 +191,7 @@ values
     ('905', 'CHART_ACCOUNT_DELETE', 'Hisob o''chirish', 'O''chirish', '9', '1', '2026-06-08 11:46:35.397683'),
 
     ('911', 'ACC_REG_ENTRY_VIEW', 'Buxg. yozuvlar', 'Ro''yxat', '9', '1', '2026-06-08 11:46:35.397683'),
-    ('912', 'ACC_REG_ENTRY_VIEW_DETAIL', 'Buxg. yozuv detail', 'Batafsil', '9', '1', '2026-06-08 11:46:35.397683'),
-    ('913', 'ACC_REG_ENTRY_CREATE', 'Buxg. yozuv yaratish', 'Yangi', '9', '1', '2026-06-08 11:46:35.397683'),
     ('914', 'ACC_REG_ENTRY_UPDATE', 'Buxg. yozuv tahrirlash', 'Tahrirlash', '9', '1', '2026-06-08 11:46:35.397683'),
-    ('915', 'ACC_REG_ENTRY_DELETE', 'Buxg. yozuv o''chirish', 'O''chirish', '9', '1', '2026-06-08 11:46:35.397683'),
 
     ('1001', 'COUNTERPARTY_REG_BALANCE_VIEW', 'Kontragent qoldiqlari', 'Ro''yxat', '10', '1', '2026-06-08 11:46:35.397683'),
     ('1002', 'COUNTERPARTY_REG_BALANCE_VIEW_DETAIL', 'Kontragent qoldig''i detail', 'Batafsil', '10', '1', '2026-06-08 11:46:35.397683'),
@@ -203,9 +201,6 @@ values
 
     ('1011', 'INVENTORY_REG_BALANCE_VIEW', 'Inventar qoldiqlari', 'Ro''yxat', '10', '1', '2026-06-08 11:46:35.397683'),
     ('1012', 'INVENTORY_REG_BALANCE_VIEW_DETAIL', 'Inventar qoldig''i detail', 'Batafsil', '10', '1', '2026-06-08 11:46:35.397683'),
-    ('1013', 'INVENTORY_REG_BALANCE_CREATE', 'Inventar qoldig''i yaratish', 'Yangi', '10', '1', '2026-06-08 11:46:35.397683'),
-    ('1014', 'INVENTORY_REG_BALANCE_UPDATE', 'Inventar qoldig''i tahrirlash', 'Tahrirlash', '10', '1', '2026-06-08 11:46:35.397683'),
-    ('1015', 'INVENTORY_REG_BALANCE_DELETE', 'Inventar qoldig''i o''chirish', 'O''chirish', '10', '1', '2026-06-08 11:46:35.397683'),
 
     ('1021', 'MONEY_REG_BALANCE_VIEW', 'Pul qoldiqlari', 'Ro''yxat', '10', '1', '2026-06-08 11:46:35.397683'),
     ('1022', 'MONEY_REG_BALANCE_VIEW_DETAIL', 'Pul qoldig''i detail', 'Batafsil', '10', '1', '2026-06-08 11:46:35.397683'),
@@ -216,19 +211,18 @@ values
     ('1026', 'PRICING_CONDITION_VIEW', 'Narxlash qoidasi', 'Ro''yxat', '12', '1', '2026-06-27 16:26:12.016132'),
     ('1027', 'PRICING_CONDITION_VIEW_DETAIL', 'Narxlash qoidasi detail', 'Batafsil', '12', '1', '2026-06-27 16:26:12.016132'),
     ('1028', 'PRICING_CONDITION_CREATE', 'Narxlash qoidasi yaratish', 'Yangi', '12', '1', '2026-06-27 16:26:12.016132'),
-    ('1029', 'PRICING_CONDITION_UPDATE', 'Narxlash qoidasi tahrirlash', 'Tahrirlash', '12', '1', '2026-06-27 16:26:12.016132'),
     ('1030', 'PRICING_CONDITION_DELETE', 'Narxlash qoidasi o''chirish', 'O''chirish', '12', '1', '2026-06-27 16:26:12.016132'),
 
     ('1031', 'SALE_CONDITION_VIEW', 'Sotuv qoidasi', 'Ro''yxat', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1032', 'SALE_CONDITION_VIEW_DETAIL', 'Sotuv qoidasi detail', 'Batafsil', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1033', 'SALE_CONDITION_CREATE', 'Sotuv qoidasi yaratish', 'Yangi', '13', '1', '2026-06-27 16:26:12.016132'),
-    ('1034', 'SALE_CONDITION_UPDATE', 'Sotuv qoidasi tahrirlash', 'Tahrirlash', '13', '1', '2026-06-27 16:26:12.016132'),
     ('1035', 'SALE_CONDITION_DELETE', 'Sotuv qoidasi o''chirish', 'O''chirish', '13', '1', '2026-06-27 16:26:12.016132'),
 
     ('1036', 'POSTING_RULE_VIEW', 'Postings qoidasi', 'Ro''yxat', '14', '1', '2026-06-27 16:26:12.016132'),
     ('1037', 'POSTING_RULE_VIEW_DETAIL', 'Postings qoidasi detail', 'Batafsil', '14', '1', '2026-06-27 16:26:12.016132'),
 
     ('1101', 'MANUAL_VIEW', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlarini ko''rish', '11', '1', '2026-06-08 11:46:35.397683'),
+    ('1150', 'BARCODE_GENERATE', 'Barcode generatsiya', 'Barcode va QR kod generatsiya qilish', '11', '1', '2026-07-06 00:00:00'),
     ('1102', 'CURRENCY_VIEW', 'Valyutalar', 'Valyutalar ro''yxati', '11', '1', '2026-07-04 00:00:00'),
     ('1103', 'CURRENCY_VIEW_DETAIL', 'Valyuta detail', 'Valyutani batafsil ko''rish', '11', '1', '2026-07-04 00:00:00'),
     ('1104', 'CURRENCY_CREATE', 'Valyuta yaratish', 'Yangi valyuta qo''shish', '11', '1', '2026-07-04 00:00:00'),
@@ -248,13 +242,13 @@ values
     ('1132', 'CURRENCY_REVALUATION_CONFIRM', 'Valyuta qayta baholash tasdiqlash', 'Valyuta qayta baholashni tasdiqlash', '11', '1', '2026-07-04 00:00:00'),
     ('1133', 'CURRENCY_REVALUATION_CANCEL', 'Valyuta qayta baholash bekor qilish', 'Valyuta qayta baholashni bekor qilish', '11', '1', '2026-07-04 00:00:00'),
 
-    ('1102', 'WAREHOUSE_TRANSFER_VIEW', 'Ombor ko''chirishlar', 'Ro''yxat', '15', '1', '2026-07-03 00:00:00'),
-    ('1103', 'WAREHOUSE_TRANSFER_VIEW_DETAIL', 'Ombor ko''chirish detail', 'Batafsil', '15', '1', '2026-07-03 00:00:00'),
-    ('1104', 'WAREHOUSE_TRANSFER_CREATE', 'Ombor ko''chirish yaratish', 'Yangi', '15', '1', '2026-07-03 00:00:00'),
-    ('1105', 'WAREHOUSE_TRANSFER_UPDATE', 'Ombor ko''chirish tahrirlash', 'Tahrirlash', '15', '1', '2026-07-03 00:00:00'),
-    ('1106', 'WAREHOUSE_TRANSFER_DELETE', 'Ombor ko''chirish o''chirish', 'O''chirish', '15', '1', '2026-07-03 00:00:00'),
-    ('1107', 'CONFIRM_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni tasdiqlash', 'Tasdiqlash', '15', '1', '2026-07-03 00:00:00'),
-    ('1108', 'CANCEL_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni bekor qilish', 'Bekor qilish', '15', '1', '2026-07-03 00:00:00'),
+    ('1151', 'WAREHOUSE_TRANSFER_VIEW', 'Ombor ko''chirishlar', 'Ro''yxat', '15', '1', '2026-07-03 00:00:00'),
+    ('1152', 'WAREHOUSE_TRANSFER_VIEW_DETAIL', 'Ombor ko''chirish detail', 'Batafsil', '15', '1', '2026-07-03 00:00:00'),
+    ('1153', 'WAREHOUSE_TRANSFER_CREATE', 'Ombor ko''chirish yaratish', 'Yangi', '15', '1', '2026-07-03 00:00:00'),
+    ('1154', 'WAREHOUSE_TRANSFER_UPDATE', 'Ombor ko''chirish tahrirlash', 'Tahrirlash', '15', '1', '2026-07-03 00:00:00'),
+    ('1155', 'WAREHOUSE_TRANSFER_DELETE', 'Ombor ko''chirish o''chirish', 'O''chirish', '15', '1', '2026-07-03 00:00:00'),
+    ('1156', 'CONFIRM_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni tasdiqlash', 'Tasdiqlash', '15', '1', '2026-07-03 00:00:00'),
+    ('1157', 'CANCEL_WAREHOUSE_TRANSFER', 'Ombor ko''chirishni bekor qilish', 'Bekor qilish', '15', '1', '2026-07-03 00:00:00'),
 
     ('1109', 'INVENTORY_ADJUSTMENT_VIEW', 'Inventar tuzatishlar', 'Ro''yxat', '16', '1', '2026-07-03 00:00:00'),
     ('1110', 'INVENTORY_ADJUSTMENT_VIEW_DETAIL', 'Inventar tuzatish detail', 'Batafsil', '16', '1', '2026-07-03 00:00:00'),
@@ -287,7 +281,4 @@ values
 
     ('1141', 'DASHBOARD_VIEW', 'Dashboard', 'Super Admin dashboard statistikasi', '1', '1', '2026-07-05 00:00:00', null, '/dashboard', 'dashboard', '91', '1');
 
-select setval('sys_module_id_seq', 1106, true);
-select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1139), true);
-select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1140), true);
-select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1141), true);
+select setval('sys_module_id_seq', greatest((select coalesce(max(id), 0) from sys_module), 1157), true);

@@ -5,6 +5,10 @@ namespace SharedKernel.Constants;
 /// </summary>
 public static class PermissionCodeConst
 {
+    #region Auth
+    public const string AuthCheckToken = "AUTH_CHECK_TOKEN";
+    #endregion
+
     #region Role
     public const string RoleView         = "ROLE_VIEW";
     public const string RoleViewDetail   = "ROLE_VIEW_DETAIL";
@@ -206,14 +210,6 @@ public static class PermissionCodeConst
     public const string PurchaseDocTableDelete     = "PURCHASE_DOC_TABLE_DELETE";
     #endregion
 
-    #region PurchaseService
-    public const string PurchaseServiceView       = "PURCHASE_SERVICE_VIEW";
-    public const string PurchaseServiceViewDetail = "PURCHASE_SERVICE_VIEW_DETAIL";
-    public const string PurchaseServiceCreate     = "PURCHASE_SERVICE_CREATE";
-    public const string PurchaseServiceUpdate     = "PURCHASE_SERVICE_UPDATE";
-    public const string PurchaseServiceDelete     = "PURCHASE_SERVICE_DELETE";
-    #endregion
-
     #region SaleDoc
     public const string SaleDocView       = "SALE_DOC_VIEW";
     public const string SaleDocViewDetail = "SALE_DOC_VIEW_DETAIL";
@@ -241,11 +237,8 @@ public static class PermissionCodeConst
     #endregion
 
     #region AccountingRegisterEntry
-    public const string AccRegEntryView       = "ACC_REG_ENTRY_VIEW";
-    public const string AccRegEntryViewDetail = "ACC_REG_ENTRY_VIEW_DETAIL";
-    public const string AccRegEntryCreate     = "ACC_REG_ENTRY_CREATE";
-    public const string AccRegEntryUpdate     = "ACC_REG_ENTRY_UPDATE";
-    public const string AccRegEntryDelete     = "ACC_REG_ENTRY_DELETE";
+    public const string AccRegEntryView   = "ACC_REG_ENTRY_VIEW";
+    public const string AccRegEntryUpdate = "ACC_REG_ENTRY_UPDATE";
     #endregion
 
     #region CounterpartyRegisterBalance
@@ -259,9 +252,6 @@ public static class PermissionCodeConst
     #region InventoryRegisterBalance
     public const string InventoryRegBalanceView       = "INVENTORY_REG_BALANCE_VIEW";
     public const string InventoryRegBalanceViewDetail = "INVENTORY_REG_BALANCE_VIEW_DETAIL";
-    public const string InventoryRegBalanceCreate     = "INVENTORY_REG_BALANCE_CREATE";
-    public const string InventoryRegBalanceUpdate     = "INVENTORY_REG_BALANCE_UPDATE";
-    public const string InventoryRegBalanceDelete     = "INVENTORY_REG_BALANCE_DELETE";
     #endregion
 
     #region MoneyRegisterBalance
@@ -281,12 +271,34 @@ public static class PermissionCodeConst
     #endregion
 
     #region ProductTable
-    public const string ProductTableView       = "PRODUCT_TABLE_VIEW";
-    public const string ProductTableViewDetail = "PRODUCT_TABLE_VIEW_DETAIL";
+    public const string ProductTableView = "PRODUCT_TABLE_VIEW";
     #endregion
 
     #region Manual (ma'lumotnomalar)
     public const string ManualView = "MANUAL_VIEW";
+    #endregion
+
+    #region Barcode
+    public const string BarcodeGenerate = "BARCODE_GENERATE";
+    #endregion
+
+    #region PricingCondition
+    public const string PricingConditionView       = "PRICING_CONDITION_VIEW";
+    public const string PricingConditionViewDetail = "PRICING_CONDITION_VIEW_DETAIL";
+    public const string PricingConditionCreate     = "PRICING_CONDITION_CREATE";
+    public const string PricingConditionDelete     = "PRICING_CONDITION_DELETE";
+    #endregion
+
+    #region SaleCondition
+    public const string SaleConditionView       = "SALE_CONDITION_VIEW";
+    public const string SaleConditionViewDetail = "SALE_CONDITION_VIEW_DETAIL";
+    public const string SaleConditionCreate     = "SALE_CONDITION_CREATE";
+    public const string SaleConditionDelete     = "SALE_CONDITION_DELETE";
+    #endregion
+
+    #region PostingRule
+    public const string PostingRuleView       = "POSTING_RULE_VIEW";
+    public const string PostingRuleViewDetail = "POSTING_RULE_VIEW_DETAIL";
     #endregion
 
     #region Currency
@@ -322,6 +334,10 @@ public static class PermissionCodeConst
     public const string TaxDelete = "TAX_DELETE";
     #endregion
 
+    #region Notification
+    public const string NotificationManage = "NOTIFICATION_MANAGE";
+    #endregion
+
     #region AuditLog
     public const string AuditLogView = "AUDIT_LOG_VIEW";
     #endregion
@@ -332,5 +348,17 @@ public static class PermissionCodeConst
 
     #region Dashboard
     public const string DashboardView = "DASHBOARD_VIEW";
+    #endregion
+
+    #region Platform
+    public const string PlatformTenantManage              = "PLATFORM_TENANT_MANAGE";
+    public const string PlatformUserManage                = "PLATFORM_USER_MANAGE";
+    public const string PlatformOrganizationManage        = "PLATFORM_ORGANIZATION_MANAGE";
+    public const string PlatformAccountantWorkspaceManage = "PLATFORM_ACCOUNTANT_WORKSPACE_MANAGE";
+    public const string PlatformUserOrganizationManage    = "PLATFORM_USER_ORGANIZATION_MANAGE";
+    #endregion
+
+    #region OrganizationSetup
+    public const string OrganizationSetupManage = "ORGANIZATION_SETUP_MANAGE";
     #endregion
 }

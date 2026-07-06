@@ -13,8 +13,7 @@
     updated_date timestamp without time zone default now() not null,
     created_date timestamp without time zone default now() not null,
     constraint org_setup_state_organization_id_key UNIQUE (organization_id),
-    constraint org_setup_state_pkey primary key (id),
-    constraint org_setup_state_organization_id_fkey foreign key (organization_id) references org_organization(id)
+    constraint org_setup_state_pkey primary key (id)
 );
 
 create index idx_org_setup_state_is_completed on org_setup_state using btree (is_completed);

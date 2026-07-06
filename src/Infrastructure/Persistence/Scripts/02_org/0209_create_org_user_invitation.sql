@@ -13,12 +13,7 @@ create table org_user_invitation
     state_id smallint default 1 not null,
     created_date timestamp without time zone default now() not null,
     constraint org_user_invitation_pkey primary key (id),
-    constraint org_user_invitation_token_hash_key UNIQUE (token_hash),
-    constraint org_user_invitation_accepted_by_user_id_fkey foreign key (accepted_by_user_id) references sys_user(id),
-    constraint org_user_invitation_invited_by_user_id_fkey foreign key (invited_by_user_id) references sys_user(id),
-    constraint org_user_invitation_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint org_user_invitation_role_id_fkey foreign key (role_id) references sys_role(id),
-    constraint org_user_invitation_state_id_fkey foreign key (state_id) references cmn_state(id)
+    constraint org_user_invitation_token_hash_key UNIQUE (token_hash)
 );
 
 create index idx_org_user_invitation_email on org_user_invitation using btree (email);

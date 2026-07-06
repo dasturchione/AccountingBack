@@ -24,9 +24,7 @@
     constraint acc_reg_entry_debit_account_id_fkey foreign key (debit_account_id) references acc_chart_account(id),
     constraint acc_reg_entry_document_type_id_fkey foreign key (document_type_id) references cmn_document_type(id),
     constraint acc_reg_entry_operation_type_id_fkey foreign key (operation_type_id) references cmn_operation_type(id),
-    constraint acc_reg_entry_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint acc_reg_entry_posting_batch_id_fkey foreign key (posting_batch_id) references acc_posting_batch(id),
-    constraint acc_reg_entry_reversal_entry_id_fkey foreign key (reversal_entry_id) references acc_reg_entry(id)
+    constraint acc_reg_entry_organization_id_fkey foreign key (organization_id) references org_organization(id)
 );
 
 create index idx_acc_reg_entry_credit_account_id on acc_reg_entry using btree (credit_account_id);

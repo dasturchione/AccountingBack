@@ -23,8 +23,7 @@
     constraint org_organization_default_language_id_fkey foreign key (default_language_id) references cmn_language(id),
     constraint org_organization_district_id_fkey foreign key (district_id) references cmn_district(id),
     constraint org_organization_region_id_fkey foreign key (region_id) references cmn_region(id),
-    constraint org_organization_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint org_organization_tenant_id_fkey foreign key (tenant_id) references platform_tenant(id)
+    constraint org_organization_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
 create index idx_org_organization_default_language_id on org_organization using btree (default_language_id);

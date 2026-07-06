@@ -5,7 +5,7 @@
     destination_cash_box_id integer,
     operation_type_id smallint not null,
     payment_type_id smallint,
-    payment_purpose_id smallint,
+    payment_purpose_id smallint not null,
     counterparty_id integer,
     doc_number character varying(100) not null,
     doc_date timestamp without time zone not null,
@@ -28,10 +28,10 @@
     constraint cash_operation_operation_type_id_fkey foreign key (operation_type_id) references cmn_operation_type(id),
     constraint cash_operation_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint cash_operation_payment_type_id_fkey foreign key (payment_type_id) references cmn_payment_type(id),
+    constraint cash_operation_payment_purpose_id_fkey foreign key (payment_purpose_id) references acc_payment_purpose(id),
     constraint cash_operation_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint cash_operation_status_id_fkey foreign key (status_id) references cmn_document_status(id),
-    constraint cash_operation_posted_by_user_id_fkey foreign key (posted_by_user_id) references sys_user(id),
-    constraint cash_operation_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
+    constraint cash_operation_cancelled_at_check check (cancelled_by_user_id is null or cancelled_at is not null)
 );
 
 create index idx_cash_operation_cash_box_id on cash_operation using btree (cash_box_id);

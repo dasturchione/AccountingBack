@@ -35,7 +35,6 @@ insert into acc_posting_rule_line (id, template_id, order_number, debit_alias_id
     (17, 6, 1, (select id from acc_posting_alias where code = 'Employee'), (select id from acc_posting_alias where code = 'PaymentAccount'), 'Total', true),
     (18, 6, 1, (select id from acc_posting_alias where code = 'EmployeeAdvance'), (select id from acc_posting_alias where code = 'PaymentAccount'), 'Total', true),
     (19, 6, 1, (select id from acc_posting_alias where code = 'Founder'), (select id from acc_posting_alias where code = 'PaymentAccount'), 'Total', true),
-    (20, 6, 1, (select id from acc_posting_alias where code = 'TaxAuthority'), (select id from acc_posting_alias where code = 'PaymentAccount'), 'Total', true),
     (21, 6, 1, (select id from acc_posting_alias where code = 'LoanGiven'), (select id from acc_posting_alias where code = 'PaymentAccount'), 'Total', true),
     (22, 7, 1, (select id from acc_posting_alias where code = 'CashBoxSource'), (select id from acc_posting_alias where code = 'CashBoxDestination'), 'Total', false),
     (23, 8, 1, (select id from acc_posting_alias where code = 'CurrencyAsset'), (select id from acc_posting_alias where code = 'CurrencyRevaluationGain'), 'Total', false),

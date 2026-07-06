@@ -7,8 +7,7 @@ create table sys_notification_delivery
     error character varying(1000),
     sent_at timestamp without time zone,
     created_date timestamp without time zone default now() not null,
-    constraint sys_notification_delivery_pkey primary key (id),
-    constraint sys_notification_delivery_notification_id_fkey foreign key (notification_id) references sys_notification(id) on delete cascade
+    constraint sys_notification_delivery_pkey primary key (id)
 );
 
 create index idx_sys_notification_delivery_notification_id on sys_notification_delivery using btree (notification_id);

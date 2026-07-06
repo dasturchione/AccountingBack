@@ -27,9 +27,7 @@
     constraint pur_doc_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint pur_doc_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint pur_doc_status_id_fkey foreign key (status_id) references cmn_document_status(id),
-    constraint pur_doc_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id),
-    constraint pur_doc_posted_by_user_id_fkey foreign key (posted_by_user_id) references sys_user(id),
-    constraint pur_doc_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
+    constraint pur_doc_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id)
 );
 
 create index idx_pur_doc_contract_id on pur_doc using btree (contract_id);

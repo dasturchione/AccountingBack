@@ -11,10 +11,7 @@ create table org_claim_request
     reviewed_by_user_id integer,
     reviewed_at timestamp without time zone,
     created_date timestamp without time zone default now() not null,
-    constraint org_claim_request_pkey primary key (id),
-    constraint org_claim_request_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint org_claim_request_requested_by_user_id_fkey foreign key (requested_by_user_id) references sys_user(id),
-    constraint org_claim_request_reviewed_by_user_id_fkey foreign key (reviewed_by_user_id) references sys_user(id)
+    constraint org_claim_request_pkey primary key (id)
 );
 
 create index idx_org_claim_request_inn on org_claim_request using btree (inn);

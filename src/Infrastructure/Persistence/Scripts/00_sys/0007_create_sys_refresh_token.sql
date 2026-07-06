@@ -12,8 +12,7 @@
     replaced_by_token_hash character varying(512),
     created_date timestamp without time zone default now() not null,
     constraint sys_refresh_token_pkey primary key (id),
-    constraint sys_refresh_token_token_hash_key UNIQUE (token_hash),
-    constraint sys_refresh_token_user_id_fkey foreign key (user_id) references sys_user(id)
+    constraint sys_refresh_token_token_hash_key UNIQUE (token_hash)
 );
 
 create index idx_sys_refresh_token_expires_at on sys_refresh_token using btree (expires_at);

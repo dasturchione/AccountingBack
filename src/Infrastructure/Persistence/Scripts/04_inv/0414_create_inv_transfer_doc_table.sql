@@ -3,8 +3,8 @@
     id bigint primary key,
     owner_id bigint not null references inv_transfer_line(id) on delete cascade,
     product_table_id integer not null references inv_product_table(id),
-    source_warehouse_id integer not null references inv_warehouse(id),
-    destination_warehouse_id integer not null references inv_warehouse(id),
+    source_warehouse_id integer not null,
+    destination_warehouse_id integer not null,
     cost_price numeric(24,8) not null);
 
 create index ix_inv_transfer_doc_table_owner_id on inv_transfer_doc_table (owner_id);

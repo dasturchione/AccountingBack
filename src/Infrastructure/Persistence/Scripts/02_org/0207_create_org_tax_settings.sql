@@ -11,10 +11,7 @@ create table org_tax_settings
     state_id smallint default 1 not null,
     created_date timestamp without time zone default now() not null,
     constraint ck_org_tax_settings_dates CHECK (((effective_to IS null) OR (effective_to >= effective_from))),
-    constraint org_tax_settings_pkey primary key (id),
-    constraint org_tax_settings_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint org_tax_settings_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint org_tax_settings_tax_type_id_fkey foreign key (tax_type_id) references cmn_tax_type(id)
+    constraint org_tax_settings_pkey primary key (id)
 );
 
 create index idx_org_tax_settings_effective_dates on org_tax_settings using btree (effective_from, effective_to);

@@ -18,8 +18,7 @@
     constraint counterparty_reg_balance_currency_id_fkey foreign key (currency_id) references cmn_currency(id),
     constraint counterparty_reg_balance_document_type_id_fkey foreign key (document_type_id) references cmn_document_type(id),
     constraint counterparty_reg_balance_operation_type_id_fkey foreign key (operation_type_id) references cmn_operation_type(id),
-    constraint counterparty_reg_balance_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint counterparty_reg_balance_posting_batch_id_fkey foreign key (posting_batch_id) references acc_posting_batch(id)
+    constraint counterparty_reg_balance_organization_id_fkey foreign key (organization_id) references org_organization(id)
 );
 
 create index idx_counterparty_reg_balance_counterparty_id on counterparty_reg_balance using btree (counterparty_id);

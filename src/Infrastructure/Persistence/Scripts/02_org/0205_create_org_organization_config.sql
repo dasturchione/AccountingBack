@@ -10,8 +10,6 @@ create table org_organization_config
     constraint org_organization_config_inventory_valuation_method_check CHECK (((inventory_valuation_method)::text = ANY ((ARRAY['fifo'::character varying, 'lifo'::character varying, 'average'::character varying])::text[]))),
     constraint org_organization_config_pkey primary key (organization_id),
     constraint org_organization_config_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint org_organization_config_accounting_policy_id_fkey foreign key (accounting_policy_id) references acc_accounting_policy(id),
-    constraint org_organization_config_base_currency_id_fkey foreign key (base_currency_id) references cmn_currency(id),
     constraint org_organization_config_fiscal_year_start_month_check CHECK (((fiscal_year_start_month >= 1) AND (fiscal_year_start_month <= 12)))
 );
 

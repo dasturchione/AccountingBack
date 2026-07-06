@@ -5,7 +5,7 @@
     bank_account_id integer not null,
     operation_type_id smallint not null,
     payment_type_id smallint,
-    payment_purpose_id smallint,
+    payment_purpose_id smallint not null default 1,
     counterparty_id integer,
     counterparty_bank_account_id integer,
     contract_id bigint,
@@ -31,10 +31,10 @@
     constraint bank_operation_operation_type_id_fkey foreign key (operation_type_id) references cmn_operation_type(id),
     constraint bank_operation_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint bank_operation_payment_type_id_fkey foreign key (payment_type_id) references cmn_payment_type(id),
+    constraint bank_operation_payment_purpose_id_fkey foreign key (payment_purpose_id) references acc_payment_purpose(id),
     constraint bank_operation_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint bank_operation_status_id_fkey foreign key (status_id) references cmn_document_status(id),
-    constraint bank_operation_posted_by_user_id_fkey foreign key (posted_by_user_id) references sys_user(id),
-    constraint bank_operation_cancelled_by_user_id_fkey foreign key (cancelled_by_user_id) references sys_user(id)
+    constraint bank_operation_cancelled_at_check check (cancelled_by_user_id is null or cancelled_at is not null)
 );
 
 create index idx_bank_operation_bank_account_id on bank_operation using btree (bank_account_id);
@@ -92,3 +92,10 @@ insert into bank_operation (id, organization_id, bank_account_id, operation_type
     ('33', '8', '12', '1', '2', '18', '100000032', '2026-05-21 09:42:11', '1', '4400000.00', '00634 2026 йил май ойи ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328928'),
     ('34', '8', '12', '1', '2', '18', '100000033', '2026-06-04 12:24:52', '1', '5016000.00', '00634 00634 2026 йил май ишчи ходимлар иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.32893'),
     ('35', '8', '12', '1', '2', '18', '100000034', '2026-06-04 12:25:21', '1', '1408000.00', '00634 2026 йил май ишчи ходим иш хакки хисобидан реестрга асосан пл картага кучирилди.', '2', '1', '2026-06-25 12:49:53.328932');
+
+update bank_operation
+set payment_purpose_id = case
+    when operation_type_id = 1 then 1
+    else 2
+end
+where payment_purpose_id = 1;

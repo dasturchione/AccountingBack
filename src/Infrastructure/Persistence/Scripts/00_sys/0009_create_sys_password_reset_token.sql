@@ -7,8 +7,7 @@
     used_at timestamp without time zone,
     created_date timestamp without time zone default now() not null,
     constraint sys_password_reset_token_pkey primary key (id),
-    constraint sys_password_reset_token_token_hash_key UNIQUE (token_hash),
-    constraint sys_password_reset_token_user_id_fkey foreign key (user_id) references sys_user(id)
+    constraint sys_password_reset_token_token_hash_key UNIQUE (token_hash)
 );
 
 create index idx_sys_password_reset_token_expires_at on sys_password_reset_token using btree (expires_at);

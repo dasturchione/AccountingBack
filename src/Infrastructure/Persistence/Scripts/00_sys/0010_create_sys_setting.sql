@@ -10,9 +10,7 @@ create table sys_setting (
     state_id smallint default 1 not null,
     created_date timestamp without time zone default now() not null,
     updated_date timestamp without time zone,
-    constraint sys_setting_pkey primary key (id),
-    constraint sys_setting_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint sys_setting_state_id_fkey foreign key (state_id) references cmn_state(id)
+    constraint sys_setting_pkey primary key (id)
 );
 
 create unique index ux_sys_setting_global_code on sys_setting using btree (code) where organization_id is null;

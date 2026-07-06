@@ -15,8 +15,7 @@
     constraint sys_user_organization_organization_id_fkey foreign key (organization_id) references org_organization(id) on DELETE CASCADE,
     constraint sys_user_organization_role_id_fkey foreign key (role_id) references sys_role(id),
     constraint sys_user_organization_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint sys_user_organization_user_id_fkey foreign key (user_id) references sys_user(id) on DELETE CASCADE,
-    constraint sys_user_organization_invited_by_user_id_fkey foreign key (invited_by_user_id) references sys_user(id)
+    constraint sys_user_organization_user_id_fkey foreign key (user_id) references sys_user(id) on DELETE CASCADE
 );
 
 create unique index idx_sys_user_organization_default_user on sys_user_organization using btree (user_id) WHERE (is_default = true);

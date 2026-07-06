@@ -1,6 +1,8 @@
 ﻿using Application.Features.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SharedKernel.Constants;
+using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
 
@@ -31,6 +33,7 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [ModuleAuthorize(PermissionCodeConst.AuthCheckToken)]
     [HttpGet("check-token")]
     public async Task<IActionResult> CheckToken()
     {

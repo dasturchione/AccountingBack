@@ -10,13 +10,13 @@
     state_id smallint not null references cmn_state(id),
     created_date timestamp without time zone not null default now(),
     count_completed_at timestamp without time zone,
-    count_completed_by_user_id integer references sys_user(id),
+    count_completed_by_user_id integer,
     positive_adjustment_doc_id bigint references inv_inventory_adjustment_doc(id),
     negative_adjustment_doc_id bigint references inv_inventory_adjustment_doc(id),
     posted_at timestamp without time zone,
-    posted_by_user_id integer references sys_user(id),
+    posted_by_user_id integer,
     cancelled_at timestamp without time zone,
-    cancelled_by_user_id integer references sys_user(id)
+    cancelled_by_user_id integer
 );
 
 create index idx_inv_inventory_count_doc_organization_id on inv_inventory_count_doc (organization_id);

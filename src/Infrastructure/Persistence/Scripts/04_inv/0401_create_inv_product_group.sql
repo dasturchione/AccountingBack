@@ -10,8 +10,7 @@
     sort_order integer default 0 not null,
     constraint inv_product_group_pkey primary key (id),
     constraint inv_product_group_organization_id_fkey foreign key (organization_id) references org_organization(id),
-    constraint inv_product_group_state_id_fkey foreign key (state_id) references cmn_state(id),
-    constraint inv_product_group_parent_id_fkey foreign key (parent_id) references inv_product_group(id)
+    constraint inv_product_group_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
 create index idx_inv_product_group_organization_id on inv_product_group using btree (organization_id);

@@ -10,6 +10,7 @@ using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
 using System.Linq.Expressions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace UnitTests;
 
@@ -89,7 +90,8 @@ public class AuthServiceTests
             commandRepo,
             roleModuleRepo,
             userOrgRepo,
-            moduleRepo);
+            moduleRepo,
+            NullLogger<AuthService>.Instance);
 
         var result = await service.LoginAsync(new LoginDto
         {
@@ -142,7 +144,8 @@ public class AuthServiceTests
             new FakeCommandRepository<User>(),
             new FakeQueryRepository<RoleModule>([]),
             new FakeQueryRepository<UserOrganization>([]),
-            new FakeQueryRepository<Module>([]));
+            new FakeQueryRepository<Module>([]),
+            NullLogger<AuthService>.Instance);
 
         var result = await service.SuperAdminLoginAsync(new LoginDto
         {
@@ -153,6 +156,74 @@ public class AuthServiceTests
         Assert.False(result.IsSuccess);
         Assert.Equal("Auth.InvalidCredentials", result.Error.Code);
         Assert.Equal(ErrorType.Unauthorized, result.Error.Type);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ShouldFallbackToLegacyUserOrganization_WhenMembershipRowsAreMissing()
+    {
+        var role = new Role
+        {
+            Id = 10,
+            FullName = "Accountant",
+            ShortName = "acc",
+            HasGlobalAccess = false,
+            StateId = StateIdConst.ACTIVE,
+            State = new State { Id = StateIdConst.ACTIVE, ShortName = "Active" }
+        };
+
+        var organization = new Organization
+        {
+            Id = 8,
+            ShortName = "Legacy Org",
+            FullName = "Legacy Organization",
+            Inn = "123",
+            RegionId = 1,
+            IsParent = false,
+            StateId = StateIdConst.ACTIVE,
+            SetupStatus = "DONE",
+            CreatedDate = DateTime.UtcNow
+        };
+
+        var user = new User
+        {
+            Id = 4,
+            UserName = "sardorbek_hafizov",
+            PasswordHash = "hash",
+            PasswordSalt = "salt",
+            PhoneNumber = "+998900000000",
+            FirstName = "Sardorbek",
+            LastName = "Hafizov",
+            RoleId = role.Id,
+            Role = role,
+            StateId = StateIdConst.ACTIVE,
+            State = new State { Id = StateIdConst.ACTIVE, ShortName = "Active" },
+            OrganizationId = organization.Id,
+            Organization = organization,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        var service = new AuthService(
+            new FakeUserContext(),
+            new FakeQueryBuilder(),
+            new FakeTokenProvider(),
+            new FakePasswordHasher(verifyResult: true),
+            new FakeQueryRepository<User>([user]),
+            new FakeCommandRepository<User>(),
+            new FakeQueryRepository<RoleModule>([]),
+            new FakeQueryRepository<UserOrganization>([]),
+            new FakeQueryRepository<Module>([]),
+            NullLogger<AuthService>.Instance);
+
+        var result = await service.LoginAsync(new LoginDto
+        {
+            UserName = "sardorbek_hafizov",
+            Password = "secret123"
+        });
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Value.User.Organizations);
+        Assert.Equal(organization.Id, result.Value.User.Organizations[0].OrganizationId);
+        Assert.True(result.Value.User.Organizations[0].IsDefault);
     }
 
     private sealed class FakeQueryRepository<TEntity>(List<TEntity> items) : IQueryRepository<TEntity> where TEntity : class

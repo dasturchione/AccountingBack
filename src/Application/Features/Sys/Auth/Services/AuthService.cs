@@ -6,6 +6,7 @@ using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Auth;
 
@@ -20,6 +21,7 @@ public class AuthService : IAuthService
     private readonly IQueryRepository<RoleModule> _roleModuleQuery;
     private readonly IQueryRepository<UserOrganization> _userOrgQuery;
     private readonly IQueryRepository<Module> _moduleQuery;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(IUserContext userContext,
                        IQueryBuilder queryBuilder,
@@ -29,7 +31,8 @@ public class AuthService : IAuthService
                        ICommandRepository<User> userCommand,
                        IQueryRepository<RoleModule> roleModuleQuery,
                        IQueryRepository<UserOrganization> userOrgQuery,
-                       IQueryRepository<Module> moduleQuery)
+                       IQueryRepository<Module> moduleQuery,
+                       ILogger<AuthService> logger)
     {
         _userQuery = userQuery;
         _userCommand = userCommand;
@@ -40,6 +43,7 @@ public class AuthService : IAuthService
         _roleModuleQuery = roleModuleQuery;
         _userOrgQuery = userOrgQuery;
         _moduleQuery = moduleQuery;
+        _logger = logger;
     }
 
     public ValueTask<Result<LoginResponseDto>> LoginAsync(LoginDto dto, CancellationToken ct = default)
@@ -64,12 +68,18 @@ public class AuthService : IAuthService
         {
             b.Include(u => u.Role);
             b.Include(u => u.State);
+            b.Include(u => u.Organization);
         });
 
         var user = await _userQuery.GetAsync(query, ct);
 
         if (user is null || user.Role is null || user.State is null || user.StateId != StateIdConst.ACTIVE)
+        {
+            _logger.LogInformation(
+                "Authentication failed for {UserName}: user not found, inactive, or missing role/state.",
+                normalizedUserName);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
 
         bool passwordMatches;
         try
@@ -78,19 +88,31 @@ public class AuthService : IAuthService
         }
         catch (FormatException)
         {
+            _logger.LogWarning("Authentication failed for {UserName}: password salt/hash format is invalid.", normalizedUserName);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
         catch (CryptographicException)
         {
+            _logger.LogWarning("Authentication failed for {UserName}: password verification threw a cryptographic exception.", normalizedUserName);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
         if (!passwordMatches)
+        {
+            _logger.LogInformation("Authentication failed for {UserName}: password mismatch.", normalizedUserName);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
 
         var hasGlobalAccess = user.Role.HasGlobalAccess;
         if (hasGlobalAccess != requireGlobalAccess)
+        {
+            _logger.LogInformation(
+                "Authentication failed for {UserName}: role global-access flag {HasGlobalAccess} does not match endpoint requirement {RequireGlobalAccess}.",
+                normalizedUserName,
+                hasGlobalAccess,
+                requireGlobalAccess);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
 
         var orgSpec = new QuerySpecification<UserOrganization, UserOrgDto>
         {
@@ -107,8 +129,39 @@ public class AuthService : IAuthService
         };
         var organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
 
+        // Legacy databases may still keep the default organization on sys_user.organization_id
+        // without a corresponding sys_user_organization membership row.
+        if (!hasGlobalAccess
+            && organizations.Count == 0
+            && user.OrganizationId.HasValue
+            && user.Organization is not null)
+        {
+            organizations =
+            [
+                new UserOrgDto
+                {
+                    OrganizationId = user.OrganizationId.Value,
+                    OrganizationName = user.Organization.ShortName,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role.FullName,
+                    IsDefault = true
+                }
+            ];
+
+            _logger.LogWarning(
+                "Authentication used legacy sys_user.organization_id fallback for {UserName}. Consider backfilling sys_user_organization for user {UserId}.",
+                normalizedUserName,
+                user.Id);
+        }
+
         if (!hasGlobalAccess && organizations.Count == 0)
+        {
+            _logger.LogInformation(
+                "Authentication failed for {UserName}: non-global user {UserId} has no active organization memberships.",
+                normalizedUserName,
+                user.Id);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
+        }
 
         var defaultOrg = organizations.FirstOrDefault(o => o.IsDefault)
                       ?? organizations.FirstOrDefault();

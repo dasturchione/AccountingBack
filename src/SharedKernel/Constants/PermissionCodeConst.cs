@@ -5,10 +5,6 @@ namespace SharedKernel.Constants;
 /// </summary>
 public static class PermissionCodeConst
 {
-    #region Auth
-    public const string AuthCheckToken = "AUTH_CHECK_TOKEN";
-    #endregion
-
     #region Role
     public const string RoleView         = "ROLE_VIEW";
     public const string RoleViewDetail   = "ROLE_VIEW_DETAIL";

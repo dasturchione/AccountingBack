@@ -8,3 +8,11 @@ create table sys_role_module
     constraint sys_role_module_module_id_fkey foreign key (module_id) references sys_module(id),
     constraint sys_role_module_role_id_fkey foreign key (role_id) references sys_role(id)
 );
+
+insert into sys_role_module (role_id, module_id)
+select r.id, m.id
+from sys_role r
+cross join sys_module m
+where r.id = 4
+  and r.short_name = 'super_admin'
+on conflict (role_id, module_id) do nothing;

@@ -107,6 +107,45 @@ public sealed class SuperAdminAuditSafetyNetTests
     }
 
     [Fact]
+    public async Task AuditLogService_CreateAsync_ShouldUseNextAuditId()
+    {
+        var logs = new List<AuditLog>
+        {
+            new()
+            {
+                Id = 500,
+                OrganizationId = 1,
+                SchemaName = "public",
+                TableName = "existing_doc",
+                RecordId = "10",
+                Action = AuditLogOperationTypeConst.Update,
+                NewData = "{\"status\":\"existing\"}",
+                ChangedUserId = 101,
+                ChangedDate = DateTime.UtcNow
+            }
+        };
+
+        var service = CreateAuditLogService(
+            new FakeUserContext { Id = 101, OrganizationId = 1, AllowedOrganizationIds = [1] },
+            logs,
+            [],
+            []);
+
+        service.SetNewValues(new { endpoint = "/api/currencies", result = "GLOBAL_ACCESS_BYPASS_GRANTED" });
+
+        await service.CreateAsync(
+            AuditLogTableConst.AuthorizationBypass,
+            "101",
+            AuditLogOperationTypeConst.Update);
+
+        var created = Assert.Single(logs, x => x.TableName == AuditLogTableConst.AuthorizationBypass);
+        Assert.Equal(501, created.Id);
+        Assert.Equal("101", created.RecordId);
+        Assert.Equal(AuditLogOperationTypeConst.Update, created.Action);
+        Assert.NotNull(created.NewData);
+    }
+
+    [Fact]
     public async Task AuditLogQueryCore_OrganizationScope_ShouldProtectAgainstCrossTenantReads()
     {
         var core = CreateAuditLogQueryCore(
@@ -217,9 +256,11 @@ public sealed class SuperAdminAuditSafetyNetTests
         List<Organization> organizations)
     {
         var queryCore = CreateAuditLogQueryCore(userContext, logs, users, organizations);
+        var auditLogQuery = new InMemoryQueryRepository<AuditLog>(logs);
         return new AuditLogService(
             userContext,
             new InMemoryCommandRepository<AuditLog>(logs),
+            auditLogQuery,
             queryCore);
     }
 

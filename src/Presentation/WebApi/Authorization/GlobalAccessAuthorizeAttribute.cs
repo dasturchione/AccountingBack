@@ -9,18 +9,11 @@ public sealed class GlobalAccessAuthorizeAttribute : Attribute, IAsyncAuthorizat
 {
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
-        if (context == null)
-            throw new ArgumentNullException(nameof(context));
-
-        var user = context.HttpContext.User;
-        if (user?.Identity?.IsAuthenticated != true)
-        {
-            context.Result = new UnauthorizedResult();
+        if (!AuthorizationGuard.EnsureAuthenticated(context))
             return Task.CompletedTask;
-        }
 
         var userContext = context.HttpContext.RequestServices.GetService<IUserContext>();
-        if (userContext?.HasGlobalAccess != true)
+        if (!AuthorizationGuard.HasGlobalAccess(userContext))
             context.Result = new ForbidResult();
 
         return Task.CompletedTask;

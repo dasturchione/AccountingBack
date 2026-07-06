@@ -37,7 +37,6 @@ values
     ('113', 'USER_CREATE', 'Foydalanuvchi yaratish', 'Yangi foydalanuvchi', '1', '1', '2026-06-08 11:46:35.397683'),
     ('114', 'USER_UPDATE', 'Foydalanuvchi tahrir', 'Foydalanuvchini tahrirlash', '1', '1', '2026-06-08 11:46:35.397683'),
     ('115', 'USER_DELETE', 'Foydalanuvchi o''chirish', 'Foydalanuvchini o''chirish', '1', '1', '2026-06-08 11:46:35.397683'),
-    ('1142', 'AUTH_CHECK_TOKEN', 'Token tekshirish', 'Foydalanuvchi tokenini tekshirish', '1', '1', '2026-07-06 00:00:00'),
     ('1143', 'NOTIFICATION_MANAGE', 'Bildirishnomalar', 'Bildirishnomalarni boshqarish', '1', '1', '2026-07-06 00:00:00'),
     ('1144', 'PLATFORM_TENANT_MANAGE', 'Tenantlar', 'Tenantlarni boshqarish', '1', '1', '2026-07-06 00:00:00'),
     ('1145', 'PLATFORM_USER_MANAGE', 'Platform foydalanuvchilari', 'Platform foydalanuvchilarini boshqarish', '1', '1', '2026-07-06 00:00:00'),

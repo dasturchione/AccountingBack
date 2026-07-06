@@ -3,6 +3,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Query.Specifications;
 
 namespace Application.Features.AuditLogs;
 
@@ -12,14 +13,17 @@ public class AuditLogService : IAuditLogService
     private string? _newValues;
     private readonly IUserContext _userContext;
     private readonly ICommandRepository<AuditLog> _command;
+    private readonly IQueryRepository<AuditLog> _auditLogQuery;
     private readonly IAuditLogQueryCore _auditLogQueryCore;
 
     public AuditLogService(IUserContext userContext,
                            ICommandRepository<AuditLog> command,
+                           IQueryRepository<AuditLog> auditLogQuery,
                            IAuditLogQueryCore auditLogQueryCore)
     {
         _userContext = userContext;
         _command = command;
+        _auditLogQuery = auditLogQuery;
         _auditLogQueryCore = auditLogQueryCore;
     }
 
@@ -36,6 +40,7 @@ public class AuditLogService : IAuditLogService
 
         var entity = new AuditLog
         {
+            Id = await GetNextIdAsync(),
             OrganizationId = ResolveOrganizationId(),
             SchemaName = "public",
             TableName = tableName,
@@ -119,6 +124,18 @@ public class AuditLogService : IAuditLogService
         return _userContext.AllowedOrganizationIds.Count == 1
             ? _userContext.AllowedOrganizationIds[0]
             : null;
+    }
+
+    private async Task<long> GetNextIdAsync()
+    {
+        var currentMaxId = await _auditLogQuery.GetAsync(new QuerySpecification<AuditLog, long?>
+        {
+            IgnoreQueryFilters = true,
+            Selector = x => (long?)x.Id,
+            OrderBy = query => query.OrderByDescending(x => x)
+        });
+
+        return (currentMaxId ?? 0) + 1;
     }
 
     public static List<ChangeResult> DeepCompareJson(string oldJson, string newJson)

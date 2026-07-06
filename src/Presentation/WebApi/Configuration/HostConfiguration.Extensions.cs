@@ -23,6 +23,7 @@ using WebApi.Infrastructure;
 using WebApi.Middlewares;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Constraints;
+using Npgsql;
 
 namespace WebApi.Configuration
 {
@@ -203,13 +204,16 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddPersistence(this WebApplicationBuilder builder)
         {
-            var connectionString = builder.Configuration.GetConnectionString("Default");
+            var rawConnectionString = builder.Configuration.GetConnectionString("Default");
             ValidateSecuritySettings(builder.Configuration, builder.Environment.EnvironmentName);
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrEmpty(rawConnectionString))
             {
                 throw new InvalidOperationException("Connection string 'Default' is not configured.");
             }
+
+            var connectionString = NormalizeConnectionString(rawConnectionString);
+            LogConnectionStringSource(builder.Configuration, connectionString);
 
             // Npgsql ga UTC DateTime ni "timestamp without time zone" ga yozishga ruxsat beradi
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -230,6 +234,59 @@ namespace WebApi.Configuration
             });
 
             return builder;
+        }
+
+        private static string NormalizeConnectionString(string connectionString)
+        {
+            try
+            {
+                var builder = new NpgsqlConnectionStringBuilder(connectionString);
+                return builder.ConnectionString;
+            }
+            catch (ArgumentException ex)
+            {
+                throw new InvalidOperationException(
+                    "ConnectionStrings:Default is malformed. If the password contains ';' or '=', wrap the password value in double quotes.",
+                    ex);
+            }
+        }
+
+        private static void LogConnectionStringSource(ConfigurationManager configuration, string connectionString)
+        {
+            var providerName = "unknown";
+
+            if (configuration is IConfigurationRoot root)
+            {
+                foreach (var provider in root.Providers.Reverse())
+                {
+                    if (provider.TryGet("ConnectionStrings:Default", out _))
+                    {
+                        providerName = provider.ToString() ?? provider.GetType().Name;
+                        break;
+                    }
+                }
+            }
+
+            try
+            {
+                var builder = new NpgsqlConnectionStringBuilder(connectionString);
+                var password = builder.Password ?? string.Empty;
+
+                Log.Information(
+                    "Resolved ConnectionStrings:Default from {Provider}. Host={Host}; Port={Port}; Database={Database}; Username={Username}; PasswordLength={PasswordLength}; ContainsSemicolon={ContainsSemicolon}; ContainsEquals={ContainsEquals}",
+                    providerName,
+                    builder.Host,
+                    builder.Port,
+                    builder.Database,
+                    builder.Username,
+                    password.Length,
+                    password.Contains(';'),
+                    password.Contains('='));
+            }
+            catch (ArgumentException)
+            {
+                Log.Warning("Resolved ConnectionStrings:Default from {Provider}, but Npgsql could not parse it.", providerName);
+            }
         }
 
         private static void ValidateSecuritySettings(ConfigurationManager configuration, string env)

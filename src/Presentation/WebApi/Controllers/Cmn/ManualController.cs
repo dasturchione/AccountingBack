@@ -356,7 +356,8 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetModuleSubGroups)]
+    [AllowAnonymous]
+    //[ModuleAuthorize(PermissionCodeConst.ManualGetModuleSubGroups)]
     [HttpGet("module-sub-groups")]
     public async Task<IActionResult> GetModuleSubGroups(CancellationToken ct)
     {

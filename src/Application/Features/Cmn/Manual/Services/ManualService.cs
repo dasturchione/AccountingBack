@@ -540,6 +540,7 @@ public class ManualService : IManualService
 
     public async Task<List<ProductSelectListDto>> GetProductsAsync(
         int? productGroupId = null,
+        int? warehouseId = null,
         bool? isService = null,
         short? productTypeId = null,
         bool? isSold = null,
@@ -554,7 +555,8 @@ public class ManualService : IManualService
                                              (isService == null || x.IsService == isService) &&
                                              (productTypeId == null || x.ProductTypeId == productTypeId) &&
                                              (isSold == null || x.IsSold == isSold) &&
-                                             (isPurchased == null || x.IsPurchased == isPurchased))
+                                             (isPurchased == null || x.IsPurchased == isPurchased) && 
+                                             (warehouseId == null || x.RegisterBalances.Any(a => a.WarehouseId == warehouseId)))
                                  .As(s => new ProductSelectListDto
                                  {
                                      Id = s.Id,

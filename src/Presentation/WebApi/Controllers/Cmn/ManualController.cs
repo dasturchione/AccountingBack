@@ -1,4 +1,5 @@
 using Application.Features.Manual;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -280,13 +281,14 @@ public class ManualController : ControllerBase
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts(
         [FromQuery] int? productGroupId,
+        [FromQuery] int? warehouseId,
         [FromQuery] bool? isService,
         [FromQuery] short? productTypeId,
         [FromQuery] bool? isSold,
         [FromQuery] bool? isPurchased,
         CancellationToken ct)
     {
-        var result = await _manualService.GetProductsAsync(productGroupId, isService, productTypeId, isSold, isPurchased, ct);
+        var result = await _manualService.GetProductsAsync(productGroupId, warehouseId, isService, productTypeId, isSold, isPurchased, ct);
         return Ok(result);
     }
 

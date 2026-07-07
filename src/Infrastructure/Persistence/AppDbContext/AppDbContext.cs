@@ -121,6 +121,26 @@ public partial class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<PostingBatch>()
+            .Property(x => x.Id)
+            .UseIdentityAlwaysColumn();
+
+        modelBuilder.Entity<AccountingPeriod>()
+            .Property(x => x.Id)
+            .UseIdentityAlwaysColumn();
+
+        modelBuilder.Entity<FaAsset>()
+            .Property(x => x.Id)
+            .UseIdentityAlwaysColumn();
+
+        modelBuilder.Entity<AccountingRegisterEntry>()
+            .Property(x => x.Id)
+            .UseIdentityAlwaysColumn();
+
+        modelBuilder.Entity<RegisterEntrySubkonto>()
+            .Property(x => x.Id)
+            .UseIdentityAlwaysColumn();
+
+        modelBuilder.Entity<PostingBatch>()
             .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
             .HasDatabaseName("ux_acc_posting_batch_document_posted")
             .IsUnique()

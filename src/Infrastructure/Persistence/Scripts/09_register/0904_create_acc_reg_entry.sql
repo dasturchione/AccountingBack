@@ -1,6 +1,6 @@
 ﻿create table acc_reg_entry 
 (
-    id bigint not null,
+    id bigint generated always as identity not null,
     organization_id integer not null,
     document_type_id smallint not null,
     document_id bigint not null,

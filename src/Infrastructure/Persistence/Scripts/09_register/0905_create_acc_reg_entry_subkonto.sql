@@ -1,6 +1,6 @@
 ﻿create table acc_reg_entry_subkonto 
 (
-    id bigint   not null,
+    id bigint generated always as identity not null,
     entry_id bigint not null,
     side character varying(2) not null,
     subkonto_type_id smallint not null,

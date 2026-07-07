@@ -1,6 +1,6 @@
 ﻿create table acc_accounting_period 
 (
-    id integer   not null,
+    id integer generated always as identity not null,
     organization_id integer not null,
     year smallint not null,
     month smallint not null,

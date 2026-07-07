@@ -18,6 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IResult> Login([FromBody] LoginDto dto, CancellationToken ct = default)
     {
@@ -25,6 +26,7 @@ public class AuthController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [AllowAnonymous]
     [HttpPost("login-superadmin")]
     public async Task<IResult> SuperAdminLogin([FromBody] LoginDto dto, CancellationToken ct = default)
     {

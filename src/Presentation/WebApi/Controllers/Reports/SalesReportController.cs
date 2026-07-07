@@ -25,17 +25,17 @@ public sealed class SalesReportController : ControllerBase
     }
 
     [HttpGet("documents")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocView)]
+    [ModuleAuthorize(PermissionCodeConst.SalesReportGetAll)]
     public async Task<IResult> GetAllAsync([FromQuery] SaleDocListFilter filter, CancellationToken ct = default)
         => (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("documents/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.SalesReportGetById)]
     public async Task<IResult> GetByIdAsync([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("documents/export")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocView)]
+    [ModuleAuthorize(PermissionCodeConst.SalesReportExport)]
     public async Task<IResult> ExportAsync([FromQuery] SaleDocListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);

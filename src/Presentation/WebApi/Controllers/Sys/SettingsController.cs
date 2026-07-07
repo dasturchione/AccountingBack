@@ -12,7 +12,6 @@ namespace WebApi.Controllers.Sys;
 [ApiController]
 [Authorize]
 [GlobalAccessAuthorize]
-[ModuleAuthorize(PermissionCodeConst.SettingsManage)]
 public sealed class SettingsController : ControllerBase
 {
     private readonly ISettingService _service;
@@ -22,6 +21,7 @@ public sealed class SettingsController : ControllerBase
         _service = service;
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SettingsGetAll)]
     [HttpGet]
     public async Task<IResult> GetAll([FromQuery] string? category, CancellationToken ct = default)
     {
@@ -29,6 +29,7 @@ public sealed class SettingsController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SettingsGetByCode)]
     [HttpGet("{code}")]
     public async Task<IResult> GetByCode([FromRoute] string code, CancellationToken ct = default)
     {
@@ -36,6 +37,7 @@ public sealed class SettingsController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SettingsUpdate)]
     [HttpPut("{code}")]
     public async Task<IResult> Update([FromRoute] string code, [FromBody] SettingUpdateDto dto, CancellationToken ct = default)
     {

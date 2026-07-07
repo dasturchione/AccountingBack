@@ -1,32 +1,371 @@
 namespace SharedKernel.Constants;
 
 /// <summary>
-/// Tizim ruxsat kodlari — sys_module.code qiymatlariga mos keladi.
+/// Tizim ruxsat kodlari. Har bir authorize qilingan endpoint uchun bitta unique permission.
 /// </summary>
 public static class PermissionCodeConst
 {
-    #region Role
-    public const string RoleView         = "ROLE_VIEW";
-    public const string RoleViewDetail   = "ROLE_VIEW_DETAIL";
-    public const string RoleCreate       = "ROLE_CREATE";
-    public const string RoleUpdate       = "ROLE_UPDATE";
-    public const string RoleDelete       = "ROLE_DELETE";
+    #region AccountingPeriod
+    public const string AccountingPeriodClose  = "ACCOUNTING_PERIOD_CLOSE";
+    public const string AccountingPeriodReopen = "ACCOUNTING_PERIOD_REOPEN";
     #endregion
 
-    #region User
-    public const string UserView         = "USER_VIEW";
-    public const string UserViewDetail   = "USER_VIEW_DETAIL";
-    public const string UserCreate       = "USER_CREATE";
-    public const string UserUpdate       = "USER_UPDATE";
-    public const string UserDelete       = "USER_DELETE";
+    #region ChartAccount
+    public const string ChartAccountView       = "CHART_ACCOUNT_VIEW";
+    public const string ChartAccountViewDetail = "CHART_ACCOUNT_VIEW_DETAIL";
+    public const string ChartAccountCreate     = "CHART_ACCOUNT_CREATE";
+    public const string ChartAccountUpdate     = "CHART_ACCOUNT_UPDATE";
+    public const string ChartAccountDelete     = "CHART_ACCOUNT_DELETE";
     #endregion
 
-    #region Organization
-    public const string OrganizationView       = "ORGANIZATION_VIEW";
-    public const string OrganizationViewDetail = "ORGANIZATION_VIEW_DETAIL";
-    public const string OrganizationCreate     = "ORGANIZATION_CREATE";
-    public const string OrganizationUpdate     = "ORGANIZATION_UPDATE";
-    public const string OrganizationDelete     = "ORGANIZATION_DELETE";
+    #region PostingTemplateView
+    public const string PostingRuleView       = "POSTING_RULE_VIEW";
+    public const string PostingRuleViewDetail = "POSTING_RULE_VIEW_DETAIL";
+    #endregion
+
+    #region BankOperation
+    public const string BankOperationView       = "BANK_OPERATION_VIEW";
+    public const string BankOperationViewDetail = "BANK_OPERATION_VIEW_DETAIL";
+    public const string BankOperationCreate     = "BANK_OPERATION_CREATE";
+    public const string BankOperationCreateMany = "BANK_OPERATION_CREATE_MANY";
+    public const string BankOperationUpdate     = "BANK_OPERATION_UPDATE";
+    public const string ConfirmBankOperation    = "CONFIRM_BANK_OPERATION";
+    public const string CancelBankOperation     = "CANCEL_BANK_OPERATION";
+    public const string BankOperationDelete     = "BANK_OPERATION_DELETE";
+    #endregion
+
+    #region BankStatementParser
+    public const string BankStatementParse = "BANK_STATEMENT_PARSE";
+    #endregion
+
+    #region OrgBankAccount
+    public const string OrgBankAccountView       = "ORG_BANK_ACCOUNT_VIEW";
+    public const string OrgBankAccountViewDetail = "ORG_BANK_ACCOUNT_VIEW_DETAIL";
+    public const string OrgBankAccountCreate     = "ORG_BANK_ACCOUNT_CREATE";
+    public const string OrgBankAccountCreateMany = "ORG_BANK_ACCOUNT_CREATE_MANY";
+    public const string OrgBankAccountUpdate     = "ORG_BANK_ACCOUNT_UPDATE";
+    public const string OrgBankAccountDelete     = "ORG_BANK_ACCOUNT_DELETE";
+    #endregion
+
+    #region CashBox
+    public const string CashBoxView       = "CASH_BOX_VIEW";
+    public const string CashBoxViewDetail = "CASH_BOX_VIEW_DETAIL";
+    public const string CashBoxCreate     = "CASH_BOX_CREATE";
+    public const string CashBoxUpdate     = "CASH_BOX_UPDATE";
+    public const string CashBoxDelete     = "CASH_BOX_DELETE";
+    #endregion
+
+    #region CashDocument
+    public const string CashDocumentGetReceiptOrders    = "CASH_DOCUMENT_GET_RECEIPT_ORDERS";
+    public const string CashDocumentGetPaymentOrders    = "CASH_DOCUMENT_GET_PAYMENT_ORDERS";
+    public const string CashDocumentGetReceiptOrderById = "CASH_DOCUMENT_GET_RECEIPT_ORDER_BY_ID";
+    public const string CashDocumentGetPaymentOrderById = "CASH_DOCUMENT_GET_PAYMENT_ORDER_BY_ID";
+    public const string CashDocumentCreateReceiptOrder  = "CASH_DOCUMENT_CREATE_RECEIPT_ORDER";
+    public const string CashDocumentCreatePaymentOrder  = "CASH_DOCUMENT_CREATE_PAYMENT_ORDER";
+    public const string CashDocumentUpdateReceiptOrder  = "CASH_DOCUMENT_UPDATE_RECEIPT_ORDER";
+    public const string CashDocumentUpdatePaymentOrder  = "CASH_DOCUMENT_UPDATE_PAYMENT_ORDER";
+    public const string CashDocumentConfirmReceiptOrder = "CASH_DOCUMENT_CONFIRM_RECEIPT_ORDER";
+    public const string CashDocumentConfirmPaymentOrder = "CASH_DOCUMENT_CONFIRM_PAYMENT_ORDER";
+    public const string CashDocumentCancelReceiptOrder  = "CASH_DOCUMENT_CANCEL_RECEIPT_ORDER";
+    public const string CashDocumentCancelPaymentOrder  = "CASH_DOCUMENT_CANCEL_PAYMENT_ORDER";
+    public const string CashDocumentDeleteReceiptOrder  = "CASH_DOCUMENT_DELETE_RECEIPT_ORDER";
+    public const string CashDocumentDeletePaymentOrder  = "CASH_DOCUMENT_DELETE_PAYMENT_ORDER";
+    #endregion
+
+    #region CashOperation
+    public const string CashOperationView       = "CASH_OPERATION_VIEW";
+    public const string CashOperationViewDetail = "CASH_OPERATION_VIEW_DETAIL";
+    public const string CashOperationCreate     = "CASH_OPERATION_CREATE";
+    public const string ConfirmCashOperation    = "CONFIRM_CASH_OPERATION";
+    public const string CancelCashOperation     = "CANCEL_CASH_OPERATION";
+    public const string CashOperationUpdate     = "CASH_OPERATION_UPDATE";
+    public const string CashOperationDelete     = "CASH_OPERATION_DELETE";
+    #endregion
+
+    #region Bank
+    public const string BankView       = "BANK_VIEW";
+    public const string BankViewDetail = "BANK_VIEW_DETAIL";
+    public const string BankCreate     = "BANK_CREATE";
+    public const string BankUpdate     = "BANK_UPDATE";
+    public const string BankDelete     = "BANK_DELETE";
+    #endregion
+
+    #region Barcode
+    public const string BarcodeGenerateQr      = "BARCODE_GENERATE_QR";
+    public const string BarcodeGenerateCode128 = "BARCODE_GENERATE_CODE128";
+    public const string BarcodeGenerateEan13   = "BARCODE_GENERATE_EAN13";
+    #endregion
+
+    #region Contract
+    public const string ContractView       = "CONTRACT_VIEW";
+    public const string ContractViewDetail = "CONTRACT_VIEW_DETAIL";
+    public const string ContractCreate     = "CONTRACT_CREATE";
+    public const string ContractUpdate     = "CONTRACT_UPDATE";
+    public const string ContractDelete     = "CONTRACT_DELETE";
+    #endregion
+
+    #region Currency
+    public const string CurrencyView       = "CURRENCY_VIEW";
+    public const string CurrencyViewDetail = "CURRENCY_VIEW_DETAIL";
+    public const string CurrencyCreate     = "CURRENCY_CREATE";
+    public const string CurrencyUpdate     = "CURRENCY_UPDATE";
+    public const string CurrencyDelete     = "CURRENCY_DELETE";
+    #endregion
+
+    #region CurrencyRates
+    public const string CurrencyRateView             = "CURRENCY_RATE_VIEW";
+    public const string CurrencyRateViewDetail       = "CURRENCY_RATE_VIEW_DETAIL";
+    public const string CurrencyRatesGetLatest       = "CURRENCY_RATES_GET_LATEST";
+    public const string CurrencyRatesGetHistory      = "CURRENCY_RATES_GET_HISTORY";
+    public const string CurrencyRateCreate           = "CURRENCY_RATE_CREATE";
+    public const string CurrencyRateUpdate           = "CURRENCY_RATE_UPDATE";
+    public const string CurrencyRateDelete           = "CURRENCY_RATE_DELETE";
+    public const string CurrencyRatesGetProviders    = "CURRENCY_RATES_GET_PROVIDERS";
+    public const string CurrencyRatesGetImportStatus = "CURRENCY_RATES_GET_IMPORT_STATUS";
+    public const string CurrencyRateImport           = "CURRENCY_RATE_IMPORT";
+    public const string CurrencyRateSync             = "CURRENCY_RATE_SYNC";
+    #endregion
+
+    #region CurrencyRevaluations
+    public const string CurrencyRevaluationView       = "CURRENCY_REVALUATION_VIEW";
+    public const string CurrencyRevaluationViewDetail = "CURRENCY_REVALUATION_VIEW_DETAIL";
+    public const string CurrencyRevaluationPreview    = "CURRENCY_REVALUATION_PREVIEW";
+    public const string CurrencyRevaluationCreate     = "CURRENCY_REVALUATION_CREATE";
+    public const string CurrencyRevaluationConfirm    = "CURRENCY_REVALUATION_CONFIRM";
+    public const string CurrencyRevaluationCancel     = "CURRENCY_REVALUATION_CANCEL";
+    #endregion
+
+    #region Manual
+    public const string ManualGetStates                   = "MANUAL_GET_STATES";
+    public const string ManualGetRegions                  = "MANUAL_GET_REGIONS";
+    public const string ManualGetDistricts                = "MANUAL_GET_DISTRICTS";
+    public const string ManualGetCurrencies               = "MANUAL_GET_CURRENCIES";
+    public const string ManualGetUnits                    = "MANUAL_GET_UNITS";
+    public const string ManualGetDocumentStatuses         = "MANUAL_GET_DOCUMENT_STATUSES";
+    public const string ManualGetCounterpartyTypes        = "MANUAL_GET_COUNTERPARTY_TYPES";
+    public const string ManualGetPaymentTypes             = "MANUAL_GET_PAYMENT_TYPES";
+    public const string ManualGetInventoryAdjustmentTypes = "MANUAL_GET_INVENTORY_ADJUSTMENT_TYPES";
+    public const string ManualGetPostingAliases           = "MANUAL_GET_POSTING_ALIASES";
+    public const string ManualGetPaymentPurposes          = "MANUAL_GET_PAYMENT_PURPOSES";
+    public const string ManualGetPriceRoundingMethods     = "MANUAL_GET_PRICE_ROUNDING_METHODS";
+    public const string ManualGetPricingMethods           = "MANUAL_GET_PRICING_METHODS";
+    public const string ManualGetCostingMethods           = "MANUAL_GET_COSTING_METHODS";
+    public const string ManualGetBanks                    = "MANUAL_GET_BANKS";
+    public const string ManualGetDocumentTypes            = "MANUAL_GET_DOCUMENT_TYPES";
+    public const string ManualGetOperationTypes           = "MANUAL_GET_OPERATION_TYPES";
+    public const string ManualGetTaxTypes                 = "MANUAL_GET_TAX_TYPES";
+    public const string ManualGetVatRates                 = "MANUAL_GET_VAT_RATES";
+    public const string ManualGetContractTypes            = "MANUAL_GET_CONTRACT_TYPES";
+    public const string ManualGetRoles                    = "MANUAL_GET_ROLES";
+    public const string ManualGetUsers                    = "MANUAL_GET_USERS";
+    public const string ManualGetOrganizations            = "MANUAL_GET_ORGANIZATIONS";
+    public const string ManualGetBranches                 = "MANUAL_GET_BRANCHES";
+    public const string ManualGetDepartments              = "MANUAL_GET_DEPARTMENTS";
+    public const string ManualGetPositions                = "MANUAL_GET_POSITIONS";
+    public const string ManualGetContracts                = "MANUAL_GET_CONTRACTS";
+    public const string ManualGetCounterparties           = "MANUAL_GET_COUNTERPARTIES";
+    public const string ManualGetSuppliers                = "MANUAL_GET_SUPPLIERS";
+    public const string ManualGetClients                  = "MANUAL_GET_CLIENTS";
+    public const string ManualGetProductGroups            = "MANUAL_GET_PRODUCT_GROUPS";
+    public const string ManualGetProductTypes             = "MANUAL_GET_PRODUCT_TYPES";
+    public const string ManualGetProducts                 = "MANUAL_GET_PRODUCTS";
+    public const string ManualGetWarehouses               = "MANUAL_GET_WAREHOUSES";
+    public const string ManualGetChartAccounts            = "MANUAL_GET_CHART_ACCOUNTS";
+    public const string ManualGetAccountingPolicies       = "MANUAL_GET_ACCOUNTING_POLICIES";
+    public const string ManualGetOrgBankAccounts          = "MANUAL_GET_ORG_BANK_ACCOUNTS";
+    public const string ManualGetCounterpartyBankAccounts = "MANUAL_GET_COUNTERPARTY_BANK_ACCOUNTS";
+    public const string ManualGetCashBoxes                = "MANUAL_GET_CASH_BOXES";
+    public const string ManualGetCashOperations           = "MANUAL_GET_CASH_OPERATIONS";
+    public const string ManualGetLanguages                = "MANUAL_GET_LANGUAGES";
+    public const string ManualGetModuleSubGroups          = "MANUAL_GET_MODULE_SUB_GROUPS";
+    #endregion
+
+    #region PricingCondition
+    public const string PricingConditionView       = "PRICING_CONDITION_VIEW";
+    public const string PricingConditionGetNow     = "PRICING_CONDITION_GET_NOW";
+    public const string PricingConditionViewDetail = "PRICING_CONDITION_VIEW_DETAIL";
+    public const string PricingConditionCreate     = "PRICING_CONDITION_CREATE";
+    public const string PricingConditionDelete     = "PRICING_CONDITION_DELETE";
+    #endregion
+
+    #region Tax
+    public const string TaxView              = "TAX_VIEW";
+    public const string TaxViewDetail        = "TAX_VIEW_DETAIL";
+    public const string TaxCreate            = "TAX_CREATE";
+    public const string TaxUpdate            = "TAX_UPDATE";
+    public const string TaxDelete            = "TAX_DELETE";
+    public const string TaxCalculate         = "TAX_CALCULATE";
+    public const string TaxResolve           = "TAX_RESOLVE";
+    public const string TaxGetProviders      = "TAX_GET_PROVIDERS";
+    public const string TaxGetProviderStatus = "TAX_GET_PROVIDER_STATUS";
+    public const string TaxSearchMxik        = "TAX_SEARCH_MXIK";
+    public const string TaxGetMxikByCode     = "TAX_GET_MXIK_BY_CODE";
+    public const string TaxSearchSoliq       = "TAX_SEARCH_SOLIQ";
+    public const string TaxSubmitEFaktura    = "TAX_SUBMIT_E_FAKTURA";
+    public const string TaxGetEFakturaStatus = "TAX_GET_E_FAKTURA_STATUS";
+    public const string TaxCancelEFaktura    = "TAX_CANCEL_E_FAKTURA";
+    public const string TaxSubmitDidox       = "TAX_SUBMIT_DIDOX";
+    public const string TaxGetDidoxStatus    = "TAX_GET_DIDOX_STATUS";
+    public const string TaxCancelDidox       = "TAX_CANCEL_DIDOX";
+    #endregion
+
+    #region CounterpartyBankAccount
+    public const string CounterpartyBankAccountView       = "COUNTERPARTY_BANK_ACCOUNT_VIEW";
+    public const string CounterpartyBankAccountViewDetail = "COUNTERPARTY_BANK_ACCOUNT_VIEW_DETAIL";
+    public const string CounterpartyBankAccountCreate     = "COUNTERPARTY_BANK_ACCOUNT_CREATE";
+    public const string CounterpartyBankAccountUpdate     = "COUNTERPARTY_BANK_ACCOUNT_UPDATE";
+    public const string CounterpartyBankAccountDelete     = "COUNTERPARTY_BANK_ACCOUNT_DELETE";
+    #endregion
+
+    #region CounterpartyCard
+    public const string CounterpartyCardView       = "COUNTERPARTY_CARD_VIEW";
+    public const string CounterpartyCardViewDetail = "COUNTERPARTY_CARD_VIEW_DETAIL";
+    public const string CounterpartyCardCreate     = "COUNTERPARTY_CARD_CREATE";
+    public const string CounterpartyCardCreateMany = "COUNTERPARTY_CARD_CREATE_MANY";
+    public const string CounterpartyCardUpdate     = "COUNTERPARTY_CARD_UPDATE";
+    public const string CounterpartyCardDelete     = "COUNTERPARTY_CARD_DELETE";
+    #endregion
+
+    #region CounterpartyContact
+    public const string CounterpartyContactView       = "COUNTERPARTY_CONTACT_VIEW";
+    public const string CounterpartyContactViewDetail = "COUNTERPARTY_CONTACT_VIEW_DETAIL";
+    public const string CounterpartyContactCreate     = "COUNTERPARTY_CONTACT_CREATE";
+    public const string CounterpartyContactUpdate     = "COUNTERPARTY_CONTACT_UPDATE";
+    public const string CounterpartyContactDelete     = "COUNTERPARTY_CONTACT_DELETE";
+    #endregion
+
+    #region FaAsset
+    public const string FaAssetView       = "FA_ASSET_VIEW";
+    public const string FaAssetViewDetail = "FA_ASSET_VIEW_DETAIL";
+    public const string FaAssetCreate     = "FA_ASSET_CREATE";
+    public const string FaAssetUpdate     = "FA_ASSET_UPDATE";
+    public const string FaAssetDelete     = "FA_ASSET_DELETE";
+    #endregion
+
+    #region FaDepreciation
+    public const string FaDepreciationView       = "FA_DEPRECIATION_VIEW";
+    public const string FaDepreciationViewDetail = "FA_DEPRECIATION_VIEW_DETAIL";
+    public const string FaDepreciationRun        = "FA_DEPRECIATION_RUN";
+    public const string CancelFaDepreciation     = "FA_DEPRECIATION_CANCEL";
+    #endregion
+
+    #region FaDisposal
+    public const string FaDisposalView       = "FA_DISPOSAL_VIEW";
+    public const string FaDisposalViewDetail = "FA_DISPOSAL_VIEW_DETAIL";
+    public const string FaDisposalCreate     = "FA_DISPOSAL_CREATE";
+    public const string FaDisposalUpdate     = "FA_DISPOSAL_UPDATE";
+    public const string ConfirmFaDisposal    = "FA_DISPOSAL_CONFIRM";
+    public const string CancelFaDisposal     = "FA_DISPOSAL_CANCEL";
+    #endregion
+
+    #region FaMovement
+    public const string FaMovementView       = "FA_MOVEMENT_VIEW";
+    public const string FaMovementViewDetail = "FA_MOVEMENT_VIEW_DETAIL";
+    public const string FaMovementCreate     = "FA_MOVEMENT_CREATE";
+    public const string FaMovementUpdate     = "FA_MOVEMENT_UPDATE";
+    public const string ConfirmFaMovement    = "FA_MOVEMENT_CONFIRM";
+    public const string CancelFaMovement     = "FA_MOVEMENT_CANCEL";
+    #endregion
+
+    #region FaReceipt
+    public const string FaReceiptView       = "FA_RECEIPT_VIEW";
+    public const string FaReceiptViewDetail = "FA_RECEIPT_VIEW_DETAIL";
+    public const string FaReceiptCreate     = "FA_RECEIPT_CREATE";
+    public const string FaReceiptUpdate     = "FA_RECEIPT_UPDATE";
+    public const string ConfirmFaReceipt    = "FA_RECEIPT_CONFIRM";
+    public const string CancelFaReceipt     = "FA_RECEIPT_CANCEL";
+    public const string FaReceiptDelete     = "FA_RECEIPT_DELETE";
+    #endregion
+
+    #region FaRevaluation
+    public const string FaRevaluationView       = "FA_REVALUATION_VIEW";
+    public const string FaRevaluationViewDetail = "FA_REVALUATION_VIEW_DETAIL";
+    public const string FaRevaluationCreate     = "FA_REVALUATION_CREATE";
+    public const string FaRevaluationUpdate     = "FA_REVALUATION_UPDATE";
+    public const string ConfirmFaRevaluation    = "FA_REVALUATION_CONFIRM";
+    public const string CancelFaRevaluation     = "FA_REVALUATION_CANCEL";
+    #endregion
+
+    #region InventoryAdjustment
+    public const string InventoryAdjustmentView                  = "INVENTORY_ADJUSTMENT_VIEW";
+    public const string InventoryAdjustmentViewDetail            = "INVENTORY_ADJUSTMENT_VIEW_DETAIL";
+    public const string InventoryAdjustmentCreate                = "INVENTORY_ADJUSTMENT_CREATE";
+    public const string InventoryAdjustmentUpdate                = "INVENTORY_ADJUSTMENT_UPDATE";
+    public const string InventoryAdjustmentDelete                = "INVENTORY_ADJUSTMENT_DELETE";
+    public const string ConfirmInventoryAdjustment               = "CONFIRM_INVENTORY_ADJUSTMENT";
+    public const string CancelInventoryAdjustment                = "CANCEL_INVENTORY_ADJUSTMENT";
+    public const string InventoryAdjustmentGetPostingBatches     = "INVENTORY_ADJUSTMENT_GET_POSTING_BATCHES";
+    public const string InventoryAdjustmentGetInventoryMovements = "INVENTORY_ADJUSTMENT_GET_INVENTORY_MOVEMENTS";
+    #endregion
+
+    #region InventoryCount
+    public const string InventoryCountView                  = "INVENTORY_COUNT_VIEW";
+    public const string InventoryCountViewDetail            = "INVENTORY_COUNT_VIEW_DETAIL";
+    public const string InventoryCountCreate                = "INVENTORY_COUNT_CREATE";
+    public const string InventoryCountUpdate                = "INVENTORY_COUNT_UPDATE";
+    public const string InventoryCountDelete                = "INVENTORY_COUNT_DELETE";
+    public const string ConfirmInventoryCount               = "CONFIRM_INVENTORY_COUNT";
+    public const string CancelInventoryCount                = "CANCEL_INVENTORY_COUNT";
+    public const string InventoryCountGetPostingBatches     = "INVENTORY_COUNT_GET_POSTING_BATCHES";
+    public const string InventoryCountGetInventoryMovements = "INVENTORY_COUNT_GET_INVENTORY_MOVEMENTS";
+    public const string InventoryCountGetDifferences        = "INVENTORY_COUNT_GET_DIFFERENCES";
+    #endregion
+
+    #region Product
+    public const string ProductView       = "PRODUCT_VIEW";
+    public const string ProductViewDetail = "PRODUCT_VIEW_DETAIL";
+    public const string ProductCreate     = "PRODUCT_CREATE";
+    public const string ProductCreateMany = "PRODUCT_CREATE_MANY";
+    public const string ProductUpdate     = "PRODUCT_UPDATE";
+    public const string ProductDelete     = "PRODUCT_DELETE";
+    #endregion
+
+    #region ProductGroup
+    public const string ProductGroupView       = "PRODUCT_GROUP_VIEW";
+    public const string ProductGroupViewDetail = "PRODUCT_GROUP_VIEW_DETAIL";
+    public const string ProductGroupCreate     = "PRODUCT_GROUP_CREATE";
+    public const string ProductGroupUpdate     = "PRODUCT_GROUP_UPDATE";
+    public const string ProductGroupDelete     = "PRODUCT_GROUP_DELETE";
+    #endregion
+
+    #region ProductImport
+    public const string ProductImportImport = "PRODUCT_IMPORT_IMPORT";
+    #endregion
+
+    #region ProductPrice
+    public const string ProductPriceView                       = "PRODUCT_PRICE_VIEW";
+    public const string ProductPriceViewDetail                 = "PRODUCT_PRICE_VIEW_DETAIL";
+    public const string ProductPriceGetPriceDetailsByProductId = "PRODUCT_PRICE_GET_PRICE_DETAILS_BY_PRODUCT_ID";
+    public const string ProductPriceCreate                     = "PRODUCT_PRICE_CREATE";
+    public const string ProductPriceUpdate                     = "PRODUCT_PRICE_UPDATE";
+    public const string ProductPriceDelete                     = "PRODUCT_PRICE_DELETE";
+    #endregion
+
+    #region ProductStock
+    public const string ProductStockGetByMarkingNumber     = "PRODUCT_STOCK_GET_BY_MARKING_NUMBER";
+    public const string ProductStockGetProductGroupSummary = "PRODUCT_STOCK_GET_PRODUCT_GROUP_SUMMARY";
+    public const string ProductStockGetProductSummary      = "PRODUCT_STOCK_GET_PRODUCT_SUMMARY";
+    public const string ProductStockGetProductTableSummary = "PRODUCT_STOCK_GET_PRODUCT_TABLE_SUMMARY";
+    #endregion
+
+    #region Warehouse
+    public const string WarehouseView       = "WAREHOUSE_VIEW";
+    public const string WarehouseViewDetail = "WAREHOUSE_VIEW_DETAIL";
+    public const string WarehouseCreate     = "WAREHOUSE_CREATE";
+    public const string WarehouseUpdate     = "WAREHOUSE_UPDATE";
+    public const string WarehouseDelete     = "WAREHOUSE_DELETE";
+    #endregion
+
+    #region WarehouseTransfer
+    public const string WarehouseTransferView                  = "WAREHOUSE_TRANSFER_VIEW";
+    public const string WarehouseTransferViewDetail            = "WAREHOUSE_TRANSFER_VIEW_DETAIL";
+    public const string WarehouseTransferCreate                = "WAREHOUSE_TRANSFER_CREATE";
+    public const string WarehouseTransferUpdate                = "WAREHOUSE_TRANSFER_UPDATE";
+    public const string WarehouseTransferDelete                = "WAREHOUSE_TRANSFER_DELETE";
+    public const string ConfirmWarehouseTransfer               = "CONFIRM_WAREHOUSE_TRANSFER";
+    public const string CancelWarehouseTransfer                = "CANCEL_WAREHOUSE_TRANSFER";
+    public const string WarehouseTransferGetPostingBatches     = "WAREHOUSE_TRANSFER_GET_POSTING_BATCHES";
+    public const string WarehouseTransferGetInventoryMovements = "WAREHOUSE_TRANSFER_GET_INVENTORY_MOVEMENTS";
     #endregion
 
     #region Branch
@@ -53,138 +392,51 @@ public static class PermissionCodeConst
     public const string PositionDelete     = "POSITION_DELETE";
     #endregion
 
-    #region CounterpartyCard
-    public const string CounterpartyCardView       = "COUNTERPARTY_CARD_VIEW";
-    public const string CounterpartyCardViewDetail = "COUNTERPARTY_CARD_VIEW_DETAIL";
-    public const string CounterpartyCardCreate     = "COUNTERPARTY_CARD_CREATE";
-    public const string CounterpartyCardUpdate     = "COUNTERPARTY_CARD_UPDATE";
-    public const string CounterpartyCardDelete     = "COUNTERPARTY_CARD_DELETE";
+    #region Organization
+    public const string OrganizationView       = "ORGANIZATION_VIEW";
+    public const string OrganizationViewDetail = "ORGANIZATION_VIEW_DETAIL";
+    public const string OrganizationCreate     = "ORGANIZATION_CREATE";
+    public const string OrganizationUpdate     = "ORGANIZATION_UPDATE";
+    public const string OrganizationDelete     = "ORGANIZATION_DELETE";
     #endregion
 
-    #region CounterpartyBankAccount
-    public const string CounterpartyBankAccountView       = "COUNTERPARTY_BANK_ACCOUNT_VIEW";
-    public const string CounterpartyBankAccountViewDetail = "COUNTERPARTY_BANK_ACCOUNT_VIEW_DETAIL";
-    public const string CounterpartyBankAccountCreate     = "COUNTERPARTY_BANK_ACCOUNT_CREATE";
-    public const string CounterpartyBankAccountUpdate     = "COUNTERPARTY_BANK_ACCOUNT_UPDATE";
-    public const string CounterpartyBankAccountDelete     = "COUNTERPARTY_BANK_ACCOUNT_DELETE";
+    #region Setup
+    public const string SetupGet                    = "SETUP_GET";
+    public const string SetupUpdateCompanyProfile   = "SETUP_UPDATE_COMPANY_PROFILE";
+    public const string SetupUpdateTaxSettings      = "SETUP_UPDATE_TAX_SETTINGS";
+    public const string SetupUpdateAccountingPolicy = "SETUP_UPDATE_ACCOUNTING_POLICY";
+    public const string SetupUpdateDefaults         = "SETUP_UPDATE_DEFAULTS";
+    public const string SetupUpdateUsers            = "SETUP_UPDATE_USERS";
+    public const string SetupComplete               = "SETUP_COMPLETE";
     #endregion
 
-    #region CounterpartyContact
-    public const string CounterpartyContactView       = "COUNTERPARTY_CONTACT_VIEW";
-    public const string CounterpartyContactViewDetail = "COUNTERPARTY_CONTACT_VIEW_DETAIL";
-    public const string CounterpartyContactCreate     = "COUNTERPARTY_CONTACT_CREATE";
-    public const string CounterpartyContactUpdate     = "COUNTERPARTY_CONTACT_UPDATE";
-    public const string CounterpartyContactDelete     = "COUNTERPARTY_CONTACT_DELETE";
-    #endregion
-
-    #region ProductGroup
-    public const string ProductGroupView       = "PRODUCT_GROUP_VIEW";
-    public const string ProductGroupViewDetail = "PRODUCT_GROUP_VIEW_DETAIL";
-    public const string ProductGroupCreate     = "PRODUCT_GROUP_CREATE";
-    public const string ProductGroupUpdate     = "PRODUCT_GROUP_UPDATE";
-    public const string ProductGroupDelete     = "PRODUCT_GROUP_DELETE";
-    #endregion
-
-    #region Product
-    public const string ProductView       = "PRODUCT_VIEW";
-    public const string ProductViewDetail = "PRODUCT_VIEW_DETAIL";
-    public const string ProductCreate     = "PRODUCT_CREATE";
-    public const string ProductUpdate     = "PRODUCT_UPDATE";
-    public const string ProductDelete     = "PRODUCT_DELETE";
-    #endregion
-
-    #region ProductPrice
-    public const string ProductPriceView       = "PRODUCT_PRICE_VIEW";
-    public const string ProductPriceViewDetail = "PRODUCT_PRICE_VIEW_DETAIL";
-    public const string ProductPriceCreate     = "PRODUCT_PRICE_CREATE";
-    public const string ProductPriceUpdate     = "PRODUCT_PRICE_UPDATE";
-    public const string ProductPriceDelete     = "PRODUCT_PRICE_DELETE";
-    #endregion
-
-    #region Warehouse
-    public const string WarehouseView       = "WAREHOUSE_VIEW";
-    public const string WarehouseViewDetail = "WAREHOUSE_VIEW_DETAIL";
-    public const string WarehouseCreate     = "WAREHOUSE_CREATE";
-    public const string WarehouseUpdate     = "WAREHOUSE_UPDATE";
-    public const string WarehouseDelete     = "WAREHOUSE_DELETE";
-    #endregion
-
-    #region WarehouseTransfer
-    public const string WarehouseTransferView       = "WAREHOUSE_TRANSFER_VIEW";
-    public const string WarehouseTransferViewDetail = "WAREHOUSE_TRANSFER_VIEW_DETAIL";
-    public const string WarehouseTransferCreate     = "WAREHOUSE_TRANSFER_CREATE";
-    public const string WarehouseTransferUpdate     = "WAREHOUSE_TRANSFER_UPDATE";
-    public const string WarehouseTransferDelete     = "WAREHOUSE_TRANSFER_DELETE";
-    public const string ConfirmWarehouseTransfer    = "CONFIRM_WAREHOUSE_TRANSFER";
-    public const string CancelWarehouseTransfer     = "CANCEL_WAREHOUSE_TRANSFER";
-    #endregion
-
-    #region InventoryAdjustment
-    public const string InventoryAdjustmentView       = "INVENTORY_ADJUSTMENT_VIEW";
-    public const string InventoryAdjustmentViewDetail = "INVENTORY_ADJUSTMENT_VIEW_DETAIL";
-    public const string InventoryAdjustmentCreate     = "INVENTORY_ADJUSTMENT_CREATE";
-    public const string InventoryAdjustmentUpdate     = "INVENTORY_ADJUSTMENT_UPDATE";
-    public const string InventoryAdjustmentDelete     = "INVENTORY_ADJUSTMENT_DELETE";
-    public const string ConfirmInventoryAdjustment    = "CONFIRM_INVENTORY_ADJUSTMENT";
-    public const string CancelInventoryAdjustment     = "CANCEL_INVENTORY_ADJUSTMENT";
-    #endregion
-
-    #region InventoryCount
-    public const string InventoryCountView       = "INVENTORY_COUNT_VIEW";
-    public const string InventoryCountViewDetail = "INVENTORY_COUNT_VIEW_DETAIL";
-    public const string InventoryCountCreate     = "INVENTORY_COUNT_CREATE";
-    public const string InventoryCountUpdate     = "INVENTORY_COUNT_UPDATE";
-    public const string InventoryCountDelete     = "INVENTORY_COUNT_DELETE";
-    public const string ConfirmInventoryCount    = "CONFIRM_INVENTORY_COUNT";
-    public const string CancelInventoryCount     = "CANCEL_INVENTORY_COUNT";
-    #endregion
-
-    #region OrgBankAccount
-    public const string OrgBankAccountView       = "ORG_BANK_ACCOUNT_VIEW";
-    public const string OrgBankAccountViewDetail = "ORG_BANK_ACCOUNT_VIEW_DETAIL";
-    public const string OrgBankAccountCreate     = "ORG_BANK_ACCOUNT_CREATE";
-    public const string OrgBankAccountUpdate     = "ORG_BANK_ACCOUNT_UPDATE";
-    public const string OrgBankAccountDelete     = "ORG_BANK_ACCOUNT_DELETE";
-    #endregion
-
-    #region BankOperation
-    public const string BankOperationView       = "BANK_OPERATION_VIEW";
-    public const string BankOperationViewDetail = "BANK_OPERATION_VIEW_DETAIL";
-    public const string BankOperationCreate     = "BANK_OPERATION_CREATE";
-    public const string BankOperationUpdate     = "BANK_OPERATION_UPDATE";
-    public const string BankOperationDelete     = "BANK_OPERATION_DELETE";
-    public const string ConfirmBankOperation    = "CONFIRM_BANK_OPERATION";
-    public const string CancelBankOperation     = "CANCEL_BANK_OPERATION";
-    #endregion
-
-    #region BankStatementParser
-    public const string BankStatementParse = "BANK_STATEMENT_PARSE";
-    #endregion
-
-    #region Bank
-    public const string BankView       = "BANK_VIEW";
-    public const string BankViewDetail = "BANK_VIEW_DETAIL";
-    public const string BankCreate     = "BANK_CREATE";
-    public const string BankUpdate     = "BANK_UPDATE";
-    public const string BankDelete     = "BANK_DELETE";
-    #endregion
-
-    #region CashBox
-    public const string CashBoxView       = "CASH_BOX_VIEW";
-    public const string CashBoxViewDetail = "CASH_BOX_VIEW_DETAIL";
-    public const string CashBoxCreate     = "CASH_BOX_CREATE";
-    public const string CashBoxUpdate     = "CASH_BOX_UPDATE";
-    public const string CashBoxDelete     = "CASH_BOX_DELETE";
-    #endregion
-
-    #region CashOperation
-    public const string CashOperationView       = "CASH_OPERATION_VIEW";
-    public const string CashOperationViewDetail = "CASH_OPERATION_VIEW_DETAIL";
-    public const string CashOperationCreate     = "CASH_OPERATION_CREATE";
-    public const string CashOperationUpdate     = "CASH_OPERATION_UPDATE";
-    public const string CashOperationDelete     = "CASH_OPERATION_DELETE";
-    public const string ConfirmCashOperation = "CONFIRM_CASH_OPERATION";
-    public const string CancelCashOperation  = "CANCEL_CASH_OPERATION";
+    #region Platform
+    public const string PlatformGetDashboard               = "PLATFORM_GET_DASHBOARD";
+    public const string PlatformGetTenants                 = "PLATFORM_GET_TENANTS";
+    public const string PlatformGetTenantById              = "PLATFORM_GET_TENANT_BY_ID";
+    public const string PlatformCreateTenant               = "PLATFORM_CREATE_TENANT";
+    public const string PlatformUpdateTenant               = "PLATFORM_UPDATE_TENANT";
+    public const string PlatformActivateTenant             = "PLATFORM_ACTIVATE_TENANT";
+    public const string PlatformDeactivateTenant           = "PLATFORM_DEACTIVATE_TENANT";
+    public const string PlatformGetUsers                   = "PLATFORM_GET_USERS";
+    public const string PlatformGetUserById                = "PLATFORM_GET_USER_BY_ID";
+    public const string PlatformCreateUser                 = "PLATFORM_CREATE_USER";
+    public const string PlatformUpdateUser                 = "PLATFORM_UPDATE_USER";
+    public const string PlatformBlockUser                  = "PLATFORM_BLOCK_USER";
+    public const string PlatformUnblockUser                = "PLATFORM_UNBLOCK_USER";
+    public const string PlatformGetOrganizations           = "PLATFORM_GET_ORGANIZATIONS";
+    public const string PlatformGetOrganizationById        = "PLATFORM_GET_ORGANIZATION_BY_ID";
+    public const string PlatformUpdateOrganization         = "PLATFORM_UPDATE_ORGANIZATION";
+    public const string PlatformActivateOrganization       = "PLATFORM_ACTIVATE_ORGANIZATION";
+    public const string PlatformDeactivateOrganization     = "PLATFORM_DEACTIVATE_ORGANIZATION";
+    public const string PlatformArchiveOrganization        = "PLATFORM_ARCHIVE_ORGANIZATION";
+    public const string PlatformCreateAccountantWorkspace  = "PLATFORM_CREATE_ACCOUNTANT_WORKSPACE";
+    public const string PlatformGetAccountantWorkspace     = "PLATFORM_GET_ACCOUNTANT_WORKSPACE";
+    public const string PlatformAttachUserToOrganization   = "PLATFORM_ATTACH_USER_TO_ORGANIZATION";
+    public const string PlatformUpdateUserOrganization     = "PLATFORM_UPDATE_USER_ORGANIZATION";
+    public const string PlatformRemoveUserFromOrganization = "PLATFORM_REMOVE_USER_FROM_ORGANIZATION";
+    public const string PlatformSetUserPassword            = "PLATFORM_SET_USER_PASSWORD";
+    public const string PlatformGetAuditLogs               = "PLATFORM_GET_AUDIT_LOGS";
     #endregion
 
     #region PurchaseDoc
@@ -192,9 +444,9 @@ public static class PermissionCodeConst
     public const string PurchaseDocViewDetail = "PURCHASE_DOC_VIEW_DETAIL";
     public const string PurchaseDocCreate     = "PURCHASE_DOC_CREATE";
     public const string PurchaseDocUpdate     = "PURCHASE_DOC_UPDATE";
-    public const string PurchaseDocDelete     = "PURCHASE_DOC_DELETE";
     public const string ConfirmPurchase       = "CONFIRM_PURCHASE";
     public const string CancelPurchase        = "CANCEL_PURCHASE";
+    public const string PurchaseDocDelete     = "PURCHASE_DOC_DELETE";
     #endregion
 
     #region PurchaseDocTable
@@ -205,35 +457,13 @@ public static class PermissionCodeConst
     public const string PurchaseDocTableDelete     = "PURCHASE_DOC_TABLE_DELETE";
     #endregion
 
-    #region SaleDoc
-    public const string SaleDocView       = "SALE_DOC_VIEW";
-    public const string SaleDocViewDetail = "SALE_DOC_VIEW_DETAIL";
-    public const string SaleDocCreate     = "SALE_DOC_CREATE";
-    public const string SaleDocUpdate     = "SALE_DOC_UPDATE";
-    public const string SaleDocDelete     = "SALE_DOC_DELETE";
-    public const string ConfirmSale       = "CONFIRM_SALE";
-    public const string CancelSale        = "CANCEL_SALE";
-    #endregion
-
-    #region SaleDocTable
-    public const string SaleDocTableView       = "SALE_DOC_TABLE_VIEW";
-    public const string SaleDocTableViewDetail = "SALE_DOC_TABLE_VIEW_DETAIL";
-    public const string SaleDocTableCreate     = "SALE_DOC_TABLE_CREATE";
-    public const string SaleDocTableUpdate     = "SALE_DOC_TABLE_UPDATE";
-    public const string SaleDocTableDelete     = "SALE_DOC_TABLE_DELETE";
-    #endregion
-
-    #region ChartAccount
-    public const string ChartAccountView       = "CHART_ACCOUNT_VIEW";
-    public const string ChartAccountViewDetail = "CHART_ACCOUNT_VIEW_DETAIL";
-    public const string ChartAccountCreate     = "CHART_ACCOUNT_CREATE";
-    public const string ChartAccountUpdate     = "CHART_ACCOUNT_UPDATE";
-    public const string ChartAccountDelete     = "CHART_ACCOUNT_DELETE";
-    #endregion
-
     #region AccountingRegisterEntry
-    public const string AccRegEntryView   = "ACC_REG_ENTRY_VIEW";
-    public const string AccRegEntryUpdate = "ACC_REG_ENTRY_UPDATE";
+    public const string AccountingRegisterEntryGetPostings      = "ACCOUNTING_REGISTER_ENTRY_GET_POSTINGS";
+    public const string AccountingRegisterEntryGetDailyPostings = "ACCOUNTING_REGISTER_ENTRY_GET_DAILY_POSTINGS";
+    #endregion
+
+    #region CashBook
+    public const string CashBookGet = "CASH_BOOK_GET";
     #endregion
 
     #region CounterpartyRegisterBalance
@@ -249,6 +479,10 @@ public static class PermissionCodeConst
     public const string InventoryRegBalanceViewDetail = "INVENTORY_REG_BALANCE_VIEW_DETAIL";
     #endregion
 
+    #region Ledger
+    public const string LedgerGet = "LEDGER_GET";
+    #endregion
+
     #region MoneyRegisterBalance
     public const string MoneyRegBalanceView       = "MONEY_REG_BALANCE_VIEW";
     public const string MoneyRegBalanceViewDetail = "MONEY_REG_BALANCE_VIEW_DETAIL";
@@ -257,121 +491,148 @@ public static class PermissionCodeConst
     public const string MoneyRegBalanceDelete     = "MONEY_REG_BALANCE_DELETE";
     #endregion
 
-    #region Contract
-    public const string ContractView       = "CONTRACT_VIEW";
-    public const string ContractViewDetail = "CONTRACT_VIEW_DETAIL";
-    public const string ContractCreate     = "CONTRACT_CREATE";
-    public const string ContractUpdate     = "CONTRACT_UPDATE";
-    public const string ContractDelete     = "CONTRACT_DELETE";
+    #region Repost
+    public const string RepostRepost = "REPOST_REPOST";
     #endregion
 
-    #region ProductTable
-    public const string ProductTableView = "PRODUCT_TABLE_VIEW";
+    #region TrialBalance
+    public const string TrialBalanceGet = "TRIAL_BALANCE_GET";
     #endregion
 
-    #region Manual (ma'lumotnomalar)
-    public const string ManualView = "MANUAL_VIEW";
+    #region AccountingReport
+    public const string AccountingReportGetBalanceSheet    = "ACCOUNTING_REPORT_GET_BALANCE_SHEET";
+    public const string AccountingReportGetIncomeStatement = "ACCOUNTING_REPORT_GET_INCOME_STATEMENT";
+    public const string AccountingReportGetCashFlow        = "ACCOUNTING_REPORT_GET_CASH_FLOW";
+    public const string AccountingReportGetAccountTurnover = "ACCOUNTING_REPORT_GET_ACCOUNT_TURNOVER";
+    public const string AccountingReportGetAccountCard     = "ACCOUNTING_REPORT_GET_ACCOUNT_CARD";
+    public const string AccountingReportGetJournal         = "ACCOUNTING_REPORT_GET_JOURNAL";
     #endregion
 
-    #region Barcode
-    public const string BarcodeGenerate = "BARCODE_GENERATE";
+    #region BankReport
+    public const string BankReportOperations       = "BANK_REPORT_OPERATIONS";
+    public const string BankReportOperationById    = "BANK_REPORT_OPERATION_BY_ID";
+    public const string BankReportExportOperations = "BANK_REPORT_EXPORT_OPERATIONS";
     #endregion
 
-    #region PricingCondition
-    public const string PricingConditionView       = "PRICING_CONDITION_VIEW";
-    public const string PricingConditionViewDetail = "PRICING_CONDITION_VIEW_DETAIL";
-    public const string PricingConditionCreate     = "PRICING_CONDITION_CREATE";
-    public const string PricingConditionDelete     = "PRICING_CONDITION_DELETE";
+    #region CashReport
+    public const string CashReportOperations       = "CASH_REPORT_OPERATIONS";
+    public const string CashReportOperationById    = "CASH_REPORT_OPERATION_BY_ID";
+    public const string CashReportExportOperations = "CASH_REPORT_EXPORT_OPERATIONS";
+    #endregion
+
+    #region FinancialReport
+    public const string FinancialReportBalanceSheet          = "FINANCIAL_REPORT_BALANCE_SHEET";
+    public const string FinancialReportExportBalanceSheet    = "FINANCIAL_REPORT_EXPORT_BALANCE_SHEET";
+    public const string FinancialReportIncomeStatement       = "FINANCIAL_REPORT_INCOME_STATEMENT";
+    public const string FinancialReportExportIncomeStatement = "FINANCIAL_REPORT_EXPORT_INCOME_STATEMENT";
+    public const string FinancialReportCashFlow              = "FINANCIAL_REPORT_CASH_FLOW";
+    public const string FinancialReportExportCashFlow        = "FINANCIAL_REPORT_EXPORT_CASH_FLOW";
+    public const string FinancialReportTurnover              = "FINANCIAL_REPORT_TURNOVER";
+    public const string FinancialReportExportTurnover        = "FINANCIAL_REPORT_EXPORT_TURNOVER";
+    public const string FinancialReportCard                  = "FINANCIAL_REPORT_CARD";
+    public const string FinancialReportExportCard            = "FINANCIAL_REPORT_EXPORT_CARD";
+    public const string FinancialReportJournal               = "FINANCIAL_REPORT_JOURNAL";
+    public const string FinancialReportExportJournal         = "FINANCIAL_REPORT_EXPORT_JOURNAL";
+    #endregion
+
+    #region PayableReport
+    public const string PayableReportBalances       = "PAYABLE_REPORT_BALANCES";
+    public const string PayableReportBalanceById    = "PAYABLE_REPORT_BALANCE_BY_ID";
+    public const string PayableReportExportBalances = "PAYABLE_REPORT_EXPORT_BALANCES";
+    #endregion
+
+    #region PurchaseReport
+    public const string PurchaseReportGetAll  = "PURCHASE_REPORT_GET_ALL";
+    public const string PurchaseReportGetById = "PURCHASE_REPORT_GET_BY_ID";
+    public const string PurchaseReportExport  = "PURCHASE_REPORT_EXPORT";
+    #endregion
+
+    #region ReceivableReport
+    public const string ReceivableReportBalances       = "RECEIVABLE_REPORT_BALANCES";
+    public const string ReceivableReportBalanceById    = "RECEIVABLE_REPORT_BALANCE_BY_ID";
+    public const string ReceivableReportExportBalances = "RECEIVABLE_REPORT_EXPORT_BALANCES";
+    #endregion
+
+    #region SalesReport
+    public const string SalesReportGetAll  = "SALES_REPORT_GET_ALL";
+    public const string SalesReportGetById = "SALES_REPORT_GET_BY_ID";
+    public const string SalesReportExport  = "SALES_REPORT_EXPORT";
+    #endregion
+
+    #region WarehouseReport
+    public const string WarehouseReportTransfers       = "WAREHOUSE_REPORT_TRANSFERS";
+    public const string WarehouseReportTransferById    = "WAREHOUSE_REPORT_TRANSFER_BY_ID";
+    public const string WarehouseReportExportTransfers = "WAREHOUSE_REPORT_EXPORT_TRANSFERS";
+    public const string WarehouseReportCounts          = "WAREHOUSE_REPORT_COUNTS";
+    public const string WarehouseReportCountById       = "WAREHOUSE_REPORT_COUNT_BY_ID";
+    public const string WarehouseReportExportCounts    = "WAREHOUSE_REPORT_EXPORT_COUNTS";
     #endregion
 
     #region SaleCondition
     public const string SaleConditionView       = "SALE_CONDITION_VIEW";
+    public const string SaleConditionGetNow     = "SALE_CONDITION_GET_NOW";
     public const string SaleConditionViewDetail = "SALE_CONDITION_VIEW_DETAIL";
     public const string SaleConditionCreate     = "SALE_CONDITION_CREATE";
     public const string SaleConditionDelete     = "SALE_CONDITION_DELETE";
     #endregion
 
-    #region PostingRule
-    public const string PostingRuleView       = "POSTING_RULE_VIEW";
-    public const string PostingRuleViewDetail = "POSTING_RULE_VIEW_DETAIL";
+    #region SaleDoc
+    public const string SaleDocView             = "SALE_DOC_VIEW";
+    public const string SaleDocViewDetail       = "SALE_DOC_VIEW_DETAIL";
+    public const string SaleDocCreate           = "SALE_DOC_CREATE";
+    public const string SaleDocUpdate           = "SALE_DOC_UPDATE";
+    public const string SaleDocWarehouseConfirm = "SALE_DOC_WAREHOUSE_CONFIRM";
+    public const string ConfirmSale             = "CONFIRM_SALE";
+    public const string CancelSale              = "CANCEL_SALE";
+    public const string SaleDocDelete           = "SALE_DOC_DELETE";
     #endregion
 
-    #region Currency
-    public const string CurrencyView       = "CURRENCY_VIEW";
-    public const string CurrencyViewDetail = "CURRENCY_VIEW_DETAIL";
-    public const string CurrencyCreate     = "CURRENCY_CREATE";
-    public const string CurrencyUpdate     = "CURRENCY_UPDATE";
-    public const string CurrencyDelete     = "CURRENCY_DELETE";
-    #endregion
-
-    #region CurrencyRate
-    public const string CurrencyRateView       = "CURRENCY_RATE_VIEW";
-    public const string CurrencyRateViewDetail = "CURRENCY_RATE_VIEW_DETAIL";
-    public const string CurrencyRateCreate     = "CURRENCY_RATE_CREATE";
-    public const string CurrencyRateUpdate     = "CURRENCY_RATE_UPDATE";
-    public const string CurrencyRateDelete     = "CURRENCY_RATE_DELETE";
-    public const string CurrencyRateImport     = "CURRENCY_RATE_IMPORT";
-    public const string CurrencyRateSync       = "CURRENCY_RATE_SYNC";
-    #endregion
-
-    #region CurrencyRevaluation
-    public const string CurrencyRevaluationView = "CURRENCY_REVALUATION_VIEW";
-    public const string CurrencyRevaluationCreate = "CURRENCY_REVALUATION_CREATE";
-    public const string CurrencyRevaluationConfirm = "CURRENCY_REVALUATION_CONFIRM";
-    public const string CurrencyRevaluationCancel = "CURRENCY_REVALUATION_CANCEL";
-    #endregion
-
-    #region Tax
-    public const string TaxView = "TAX_VIEW";
-    public const string TaxViewDetail = "TAX_VIEW_DETAIL";
-    public const string TaxCreate = "TAX_CREATE";
-    public const string TaxUpdate = "TAX_UPDATE";
-    public const string TaxDelete = "TAX_DELETE";
-    #endregion
-
-    #region Notification
-    public const string NotificationManage = "NOTIFICATION_MANAGE";
+    #region SaleDocTable
+    public const string SaleDocTableView       = "SALE_DOC_TABLE_VIEW";
+    public const string SaleDocTableViewDetail = "SALE_DOC_TABLE_VIEW_DETAIL";
+    public const string SaleDocTableCreate     = "SALE_DOC_TABLE_CREATE";
+    public const string SaleDocTableUpdate     = "SALE_DOC_TABLE_UPDATE";
+    public const string SaleDocTableDelete     = "SALE_DOC_TABLE_DELETE";
     #endregion
 
     #region AuditLog
     public const string AuditLogView = "AUDIT_LOG_VIEW";
     #endregion
 
-    #region Settings
-    public const string SettingsManage = "SETTINGS_MANAGE";
+    #region Auth
+    public const string AuthCheckToken = "AUTH_CHECK_TOKEN";
     #endregion
 
     #region Dashboard
     public const string DashboardView = "DASHBOARD_VIEW";
     #endregion
 
-    #region Platform
-    public const string PlatformTenantManage              = "PLATFORM_TENANT_MANAGE";
-    public const string PlatformUserManage                = "PLATFORM_USER_MANAGE";
-    public const string PlatformOrganizationManage        = "PLATFORM_ORGANIZATION_MANAGE";
-    public const string PlatformAccountantWorkspaceManage = "PLATFORM_ACCOUNTANT_WORKSPACE_MANAGE";
-    public const string PlatformUserOrganizationManage    = "PLATFORM_USER_ORGANIZATION_MANAGE";
+    #region Notifications
+    public const string NotificationsGetForCurrentUser = "NOTIFICATIONS_GET_FOR_CURRENT_USER";
+    public const string NotificationsGetUnreadCount    = "NOTIFICATIONS_GET_UNREAD_COUNT";
+    public const string NotificationsMarkAsRead        = "NOTIFICATIONS_MARK_AS_READ";
+    public const string NotificationsMarkAllAsRead     = "NOTIFICATIONS_MARK_ALL_AS_READ";
     #endregion
 
-    #region OrganizationSetup
-    public const string OrganizationSetupManage = "ORGANIZATION_SETUP_MANAGE";
+    #region Role
+    public const string RoleView       = "ROLE_VIEW";
+    public const string RoleViewDetail = "ROLE_VIEW_DETAIL";
+    public const string RoleCreate     = "ROLE_CREATE";
+    public const string RoleUpdate     = "ROLE_UPDATE";
+    public const string RoleDelete     = "ROLE_DELETE";
     #endregion
 
-    #region FaAsset
-    public const string FaAssetView       = "FA_ASSET_VIEW";
-    public const string FaAssetViewDetail = "FA_ASSET_VIEW_DETAIL";
-    public const string FaAssetCreate     = "FA_ASSET_CREATE";
-    public const string FaAssetUpdate     = "FA_ASSET_UPDATE";
-    public const string FaAssetDelete     = "FA_ASSET_DELETE";
+    #region Settings
+    public const string SettingsGetAll    = "SETTINGS_GET_ALL";
+    public const string SettingsGetByCode = "SETTINGS_GET_BY_CODE";
+    public const string SettingsUpdate    = "SETTINGS_UPDATE";
     #endregion
 
-    #region FaReceipt
-    public const string FaReceiptView       = "FA_RECEIPT_VIEW";
-    public const string FaReceiptViewDetail = "FA_RECEIPT_VIEW_DETAIL";
-    public const string FaReceiptCreate     = "FA_RECEIPT_CREATE";
-    public const string FaReceiptUpdate     = "FA_RECEIPT_UPDATE";
-    public const string FaReceiptDelete     = "FA_RECEIPT_DELETE";
-    public const string ConfirmFaReceipt    = "FA_RECEIPT_CONFIRM";
-    public const string CancelFaReceipt     = "FA_RECEIPT_CANCEL";
+    #region User
+    public const string UserView       = "USER_VIEW";
+    public const string UserViewDetail = "USER_VIEW_DETAIL";
+    public const string UserCreate     = "USER_CREATE";
+    public const string UserUpdate     = "USER_UPDATE";
+    public const string UserDelete     = "USER_DELETE";
     #endregion
 }

@@ -21,3 +21,15 @@ insert into acc_posting_rule (id, code, name) values
 -- FA-P4: Asosiy vosita keldi (qabul + ekspluatatsiyaga topshirish).
 insert into acc_posting_rule (id, code, name) values
     (10, 'FA_RECEIPT', 'Asosiy vosita keldi (qabul + ekspluatatsiya)');
+
+insert into acc_posting_rule (id, code, name) values
+    (11, 'FA_DEPRECIATION', 'Asosiy vosita amortizatsiyasi');
+
+insert into acc_posting_rule (id, code, name) values
+    (12, 'FA_DISPOSAL', 'Asosiy vosita chiqib ketishi');
+
+insert into acc_posting_rule (id, code, name) values
+    (13, 'FA_REVALUATION_INCREASE', 'Asosiy vosita qayta baholash (oshirish)');
+
+insert into acc_posting_rule (id, code, name) values
+    (14, 'FA_REVALUATION_DECREASE', 'Asosiy vosita qayta baholash (kamaytirish)');

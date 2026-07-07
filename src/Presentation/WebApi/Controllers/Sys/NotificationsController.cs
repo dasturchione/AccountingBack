@@ -11,7 +11,6 @@ namespace WebApi.Controllers.Sys;
 [Route("api/notifications")]
 [ApiController]
 [Authorize]
-[ModuleAuthorize(PermissionCodeConst.NotificationManage)]
 public sealed class NotificationsController : ControllerBase
 {
     private readonly INotificationService _service;
@@ -21,6 +20,7 @@ public sealed class NotificationsController : ControllerBase
         _service = service;
     }
 
+    [ModuleAuthorize(PermissionCodeConst.NotificationsGetForCurrentUser)]
     [HttpGet]
     public async Task<IResult> GetForCurrentUser([FromQuery] NotificationQuery query, CancellationToken ct = default)
     {
@@ -28,6 +28,7 @@ public sealed class NotificationsController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.NotificationsGetUnreadCount)]
     [HttpGet("unread-count")]
     public async Task<IResult> GetUnreadCount(CancellationToken ct = default)
     {
@@ -35,6 +36,7 @@ public sealed class NotificationsController : ControllerBase
         return result.Match(count => Results.Ok(new { count }), CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.NotificationsMarkAsRead)]
     [HttpPost("{id:long}/read")]
     public async Task<IResult> MarkAsRead([FromRoute] long id, CancellationToken ct = default)
     {
@@ -42,6 +44,7 @@ public sealed class NotificationsController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.NotificationsMarkAllAsRead)]
     [HttpPost("read-all")]
     public async Task<IResult> MarkAllAsRead(CancellationToken ct = default)
     {

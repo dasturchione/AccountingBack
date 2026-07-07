@@ -73,7 +73,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("calculate")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxCalculate)]
     public async Task<IResult> Calculate([FromBody] TaxCalculationRequestDto request, CancellationToken ct = default)
     {
         var result = await _calculationService.CalculateAsync(request, ct);
@@ -81,7 +81,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpGet("resolve")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxResolve)]
     public async Task<IResult> Resolve([FromQuery] short taxTypeId, [FromQuery] int? organizationId, [FromQuery] DateOnly? effectiveDate, CancellationToken ct = default)
     {
         var resolvedOrganizationId = organizationId ?? 0;
@@ -93,7 +93,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpGet("providers")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetProviders)]
     public async Task<IResult> GetProviders(CancellationToken ct = default)
     {
         var result = await _integrationService.GetSupportedProvidersAsync(ct);
@@ -101,7 +101,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpGet("providers/status")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetProviderStatus)]
     public async Task<IResult> GetProviderStatus(CancellationToken ct = default)
     {
         var result = await _integrationService.GetProviderStatusAsync(ct);
@@ -109,7 +109,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("mxik/search")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxSearchMxik)]
     public async Task<IResult> SearchMxik([FromBody] TaxLookupRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.SearchMxikAsync(request, ct);
@@ -117,7 +117,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpGet("mxik/{code}")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetMxikByCode)]
     public async Task<IResult> GetMxikByCode([FromRoute] string code, CancellationToken ct = default)
     {
         var result = await _integrationService.GetMxikByCodeAsync(code, ct);
@@ -125,7 +125,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("soliq/search")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxSearchSoliq)]
     public async Task<IResult> SearchSoliq([FromBody] TaxLookupRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.SearchSoliqAsync(request, ct);
@@ -133,7 +133,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("efaktura/submit")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxSubmitEFaktura)]
     public async Task<IResult> SubmitEFaktura([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.SubmitEFakturaAsync(request, ct);
@@ -141,7 +141,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("efaktura/status")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetEFakturaStatus)]
     public async Task<IResult> GetEFakturaStatus([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.GetEFakturaStatusAsync(request, ct);
@@ -149,7 +149,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("efaktura/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxCancelEFaktura)]
     public async Task<IResult> CancelEFaktura([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.CancelEFakturaAsync(request, ct);
@@ -157,7 +157,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("didox/submit")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxSubmitDidox)]
     public async Task<IResult> SubmitDidox([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.SubmitDidoxAsync(request, ct);
@@ -165,7 +165,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("didox/status")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetDidoxStatus)]
     public async Task<IResult> GetDidoxStatus([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.GetDidoxStatusAsync(request, ct);
@@ -173,7 +173,7 @@ public sealed class TaxController : ControllerBase
     }
 
     [HttpPost("didox/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.TaxView)]
+    [ModuleAuthorize(PermissionCodeConst.TaxCancelDidox)]
     public async Task<IResult> CancelDidox([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.CancelDidoxAsync(request, ct);

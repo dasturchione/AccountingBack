@@ -26,17 +26,17 @@ public sealed class WarehouseReportController : ControllerBase
     }
 
     [HttpGet("transfers")]
-    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferView)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportTransfers)]
     public async Task<IResult> Transfers([FromQuery] WarehouseTransferListFilter filter, CancellationToken ct = default)
         => (await _service.GetTransfersAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("transfers/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportTransferById)]
     public async Task<IResult> TransferById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetTransferAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("transfers/export")]
-    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferView)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportExportTransfers)]
     public async Task<IResult> ExportTransfers([FromQuery] WarehouseTransferListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetTransfersAsync(filter, ct);
@@ -48,17 +48,17 @@ public sealed class WarehouseReportController : ControllerBase
     }
 
     [HttpGet("counts")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountView)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportCounts)]
     public async Task<IResult> Counts([FromQuery] InventoryCountListFilter filter, CancellationToken ct = default)
         => (await _service.GetCountsAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("counts/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportCountById)]
     public async Task<IResult> CountById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetCountAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("counts/export")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountView)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseReportExportCounts)]
     public async Task<IResult> ExportCounts([FromQuery] InventoryCountListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetCountsAsync(filter, ct);

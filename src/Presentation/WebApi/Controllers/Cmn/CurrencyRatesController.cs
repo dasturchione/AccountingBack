@@ -40,7 +40,7 @@ public sealed class CurrencyRatesController : ControllerBase
     }
 
     [HttpGet("latest")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRateView)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRatesGetLatest)]
     public async Task<IResult> GetLatest([FromQuery] short baseCurrencyId, [FromQuery] short targetCurrencyId, CancellationToken ct = default)
     {
         var result = await _service.GetLatestAsync(baseCurrencyId, targetCurrencyId, ct);
@@ -48,7 +48,7 @@ public sealed class CurrencyRatesController : ControllerBase
     }
 
     [HttpGet("history")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRateView)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRatesGetHistory)]
     public async Task<IResult> GetHistory([FromQuery] short baseCurrencyId, [FromQuery] short targetCurrencyId, [FromQuery] CurrencyRateListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetHistoryAsync(baseCurrencyId, targetCurrencyId, filter, ct);
@@ -80,7 +80,7 @@ public sealed class CurrencyRatesController : ControllerBase
     }
 
     [HttpGet("providers")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRateView)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRatesGetProviders)]
     public async Task<IResult> GetProviders(CancellationToken ct = default)
     {
         var result = await _importService.GetProvidersAsync(ct);
@@ -88,7 +88,7 @@ public sealed class CurrencyRatesController : ControllerBase
     }
 
     [HttpGet("import/status")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRateView)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRatesGetImportStatus)]
     public async Task<IResult> GetImportStatus(CancellationToken ct = default)
     {
         var result = await _importService.GetStatusAsync(ct);

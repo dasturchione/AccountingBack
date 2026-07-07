@@ -22,7 +22,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    [ModuleAuthorize(PermissionCodeConst.DashboardView)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetDashboard)]
     public async Task<IResult> GetDashboardAsync(CancellationToken ct = default)
     {
         var response = await _platformService.GetDashboardAsync(ct);
@@ -30,7 +30,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("tenants")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetTenants)]
     public async Task<IResult> GetTenantsAsync([FromQuery] PlatformTenantListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetTenantsAsync(filter, ct);
@@ -38,7 +38,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("tenants/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetTenantById)]
     public async Task<IResult> GetTenantByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.GetTenantByIdAsync(id, ct);
@@ -46,7 +46,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("tenants")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformCreateTenant)]
     public async Task<IResult> CreateTenantAsync([FromBody] PlatformTenantCreateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.CreateTenantAsync(dto, ct);
@@ -54,7 +54,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPut("tenants/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateTenant)]
     public async Task<IResult> UpdateTenantAsync([FromRoute] int id, [FromBody] PlatformTenantUpdateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.UpdateTenantAsync(id, dto, ct);
@@ -62,7 +62,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("tenants/{id:int}/activate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformActivateTenant)]
     public async Task<IResult> ActivateTenantAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.ActivateTenantAsync(id, ct);
@@ -70,7 +70,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("tenants/{id:int}/deactivate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformTenantManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformDeactivateTenant)]
     public async Task<IResult> DeactivateTenantAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.DeactivateTenantAsync(id, ct);
@@ -78,7 +78,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("users")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetUsers)]
     public async Task<IResult> GetUsersAsync([FromQuery] PlatformUserListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetUsersAsync(filter, ct);
@@ -86,7 +86,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("users/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetUserById)]
     public async Task<IResult> GetUserByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.GetUserByIdAsync(id, ct);
@@ -94,7 +94,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("users")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformCreateUser)]
     public async Task<IResult> CreateUserAsync([FromBody] PlatformUserCreateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.CreateUserAsync(dto, ct);
@@ -102,7 +102,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPut("users/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateUser)]
     public async Task<IResult> UpdateUserAsync([FromRoute] int id, [FromBody] PlatformUserUpdateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.UpdateUserAsync(id, dto, ct);
@@ -110,7 +110,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("users/{id:int}/block")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformBlockUser)]
     public async Task<IResult> BlockUserAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.BlockUserAsync(id, ct);
@@ -118,7 +118,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("users/{id:int}/unblock")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUnblockUser)]
     public async Task<IResult> UnblockUserAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.UnblockUserAsync(id, ct);
@@ -126,7 +126,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("organizations")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizations)]
     public async Task<IResult> GetOrganizationsAsync([FromQuery] PlatformOrganizationListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetOrganizationsAsync(filter, ct);
@@ -134,7 +134,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("organizations/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizationById)]
     public async Task<IResult> GetOrganizationByIdAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.GetOrganizationByIdAsync(id, ct);
@@ -142,7 +142,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPut("organizations/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateOrganization)]
     public async Task<IResult> UpdateOrganizationAsync([FromRoute] int id, [FromBody] PlatformOrganizationUpdateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.UpdateOrganizationAsync(id, dto, ct);
@@ -150,7 +150,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("organizations/{id:int}/activate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformActivateOrganization)]
     public async Task<IResult> ActivateOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.ActivateOrganizationAsync(id, ct);
@@ -158,7 +158,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("organizations/{id:int}/deactivate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformDeactivateOrganization)]
     public async Task<IResult> DeactivateOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.DeactivateOrganizationAsync(id, ct);
@@ -166,7 +166,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("organizations/{id:int}/archive")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformArchiveOrganization)]
     public async Task<IResult> ArchiveOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var response = await _platformService.ArchiveOrganizationAsync(id, ct);
@@ -174,7 +174,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("accountant-workspaces")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformAccountantWorkspaceManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformCreateAccountantWorkspace)]
     public async Task<IResult> CreateAccountantWorkspaceAsync([FromBody] AccountantWorkspaceCreateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.CreateAccountantWorkspaceAsync(dto, ct);
@@ -182,7 +182,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("accountant-workspaces/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformAccountantWorkspaceManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetAccountantWorkspace)]
     public async Task<IResult> GetAccountantWorkspaceAsync([FromRoute] int organizationId, CancellationToken ct = default)
     {
         var response = await _platformService.GetAccountantWorkspaceAsync(organizationId, ct);
@@ -190,7 +190,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("users/{userId:int}/organizations")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformAttachUserToOrganization)]
     public async Task<IResult> AttachUserToOrganizationAsync(
         [FromRoute] int userId,
         [FromBody] PlatformUserOrganizationCreateDto dto,
@@ -201,7 +201,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPut("users/{userId:int}/organizations/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateUserOrganization)]
     public async Task<IResult> UpdateUserOrganizationAsync(
         [FromRoute] int userId,
         [FromRoute] int organizationId,
@@ -213,7 +213,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpDelete("users/{userId:int}/organizations/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserOrganizationManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformRemoveUserFromOrganization)]
     public async Task<IResult> RemoveUserFromOrganizationAsync(
         [FromRoute] int userId,
         [FromRoute] int organizationId,
@@ -224,7 +224,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpPost("users/{userId:int}/set-password")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUserManage)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformSetUserPassword)]
     public async Task<IResult> SetUserPasswordAsync([FromRoute] int userId, [FromBody] PlatformSetPasswordDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.SetUserPasswordAsync(userId, dto, ct);
@@ -232,7 +232,7 @@ public sealed class PlatformController : ControllerBase
     }
 
     [HttpGet("audit-logs")]
-    [ModuleAuthorize(PermissionCodeConst.AuditLogView)]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetAuditLogs)]
     public async Task<IResult> GetAuditLogsAsync([FromQuery] PlatformAuditLogListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetAuditLogsAsync(filter, ct);

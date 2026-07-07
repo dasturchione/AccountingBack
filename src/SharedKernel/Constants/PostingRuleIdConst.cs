@@ -21,5 +21,13 @@
 		public const short CURRENCY_REVALUATION_LOSS = 9;
 
 		public const short FA_RECEIPT = 10;
+
+		public const short FA_DEPRECIATION = 11;
+
+		public const short FA_DISPOSAL = 12;
+
+		public const short FA_REVALUATION_INCREASE = 13;
+
+		public const short FA_REVALUATION_DECREASE = 14;
     }
 }

@@ -13,6 +13,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentPurposesAsync(short? operationTypeId, CancellationToken ct = default);
     Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default);

@@ -115,4 +115,7 @@ public partial class FaAsset
     [ForeignKey("StatusId")]
     [InverseProperty("FaAssets")]
     public virtual FaAssetStatus Status { get; set; } = null!;
+
+    [InverseProperty("FaAsset")]
+    public virtual ICollection<FaDepreciationRunLine> DepreciationRunLines { get; set; } = new List<FaDepreciationRunLine>();
 }

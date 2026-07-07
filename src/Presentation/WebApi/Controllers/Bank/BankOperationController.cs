@@ -45,7 +45,7 @@ public class BankOperationController : ControllerBase
     }
 
     [HttpPost("many")]
-    [ModuleAuthorize(PermissionCodeConst.BankOperationCreate)]
+    [ModuleAuthorize(PermissionCodeConst.BankOperationCreateMany)]
     public async Task<IResult> CreateManyAsync([FromBody] BankOperationsCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateManyAsync(dto, ct);

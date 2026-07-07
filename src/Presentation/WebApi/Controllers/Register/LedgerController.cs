@@ -21,7 +21,7 @@ public class LedgerController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.LedgerGet)]
     public async Task<IResult> GetAsync([FromQuery] LedgerFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAsync(filter, ct);

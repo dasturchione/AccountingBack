@@ -21,7 +21,7 @@ public class RepostController : ControllerBase
     }
 
     [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.RepostRepost)]
     public async Task<IResult> RepostAsync([FromBody] RepostFilter filter, CancellationToken ct = default)
     {
         var result = await _service.RepostAsync(filter, ct);

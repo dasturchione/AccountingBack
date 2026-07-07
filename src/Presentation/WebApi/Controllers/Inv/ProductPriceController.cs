@@ -37,7 +37,7 @@ public class ProductPriceController : ControllerBase
     }
 
     [HttpGet("{productId:int}/details")]
-    [ModuleAuthorize(PermissionCodeConst.ProductPriceViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.ProductPriceGetPriceDetailsByProductId)]
     public async Task<IResult> GetPriceDetailsByProductIdAsync([FromRoute] int productId, CancellationToken ct = default)
     {
         var result = await _service.GetPriceDetailsByProductIdAsync(productId, ct);

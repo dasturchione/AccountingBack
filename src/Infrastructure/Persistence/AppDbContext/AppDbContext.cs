@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using SharedKernel.Constants;
 
 namespace Infrastructure.Persistence;
@@ -38,6 +39,14 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaReceiptDoc> FaReceiptDocs { get; set; }
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }
+    public virtual DbSet<FaMovementDoc> FaMovementDocs { get; set; }
+    public virtual DbSet<FaMovementDocLine> FaMovementDocLines { get; set; }
+    public virtual DbSet<FaDepreciationRun> FaDepreciationRuns { get; set; }
+    public virtual DbSet<FaDepreciationRunLine> FaDepreciationRunLines { get; set; }
+    public virtual DbSet<FaDisposalDoc> FaDisposalDocs { get; set; }
+    public virtual DbSet<FaDisposalDocLine> FaDisposalDocLines { get; set; }
+    public virtual DbSet<FaRevaluationDoc> FaRevaluationDocs { get; set; }
+    public virtual DbSet<FaRevaluationDocLine> FaRevaluationDocLines { get; set; }
     public virtual DbSet<FaGroup> FaGroups { get; set; }
     public virtual DbSet<FaOkof> FaOkofs { get; set; }
     public virtual DbSet<District> Districts { get; set; }
@@ -45,6 +54,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
     public virtual DbSet<Language> Languages { get; set; }
+    public virtual DbSet<InventoryAdjustmentType> InventoryAdjustmentTypes { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
     public virtual DbSet<PriceRoundingMethod> PriceRoundingMethods { get; set; }
@@ -120,26 +130,6 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<PostingBatch>()
-            .Property(x => x.Id)
-            .UseIdentityAlwaysColumn();
-
-        modelBuilder.Entity<AccountingPeriod>()
-            .Property(x => x.Id)
-            .UseIdentityAlwaysColumn();
-
-        modelBuilder.Entity<FaAsset>()
-            .Property(x => x.Id)
-            .UseIdentityAlwaysColumn();
-
-        modelBuilder.Entity<AccountingRegisterEntry>()
-            .Property(x => x.Id)
-            .UseIdentityAlwaysColumn();
-
-        modelBuilder.Entity<RegisterEntrySubkonto>()
-            .Property(x => x.Id)
-            .UseIdentityAlwaysColumn();
-
         modelBuilder.Entity<PostingBatch>()
             .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
             .HasDatabaseName("ux_acc_posting_batch_document_posted")
@@ -368,6 +358,32 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sale_condition_vat_rate_id_fkey");
         });
 
+        ConfigureIdentityPrimaryKeys(modelBuilder);
         ApplyOrganizationFilters(modelBuilder);
+    }
+
+    private static void ConfigureIdentityPrimaryKeys(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var primaryKey = entityType.FindPrimaryKey();
+            if (primaryKey is null || primaryKey.Properties.Count != 1)
+                continue;
+
+            var idProperty = primaryKey.Properties[0];
+            if (idProperty.Name != "Id")
+                continue;
+
+            var clrType = idProperty.ClrType;
+            if (clrType != typeof(int) && clrType != typeof(long))
+                continue;
+
+            idProperty.ValueGenerated = ValueGenerated.OnAdd;
+
+            modelBuilder.Entity(entityType.ClrType)
+                .Property(idProperty.Name)
+                .ValueGeneratedOnAdd()
+                .UseIdentityByDefaultColumn();
+        }
     }
 }

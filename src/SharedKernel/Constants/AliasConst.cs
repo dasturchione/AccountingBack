@@ -126,5 +126,20 @@
         /// Loss on fixed asset disposal account.
         /// </summary>
         public const string FixedAssetDisposalLoss = "FixedAssetDisposalLoss";
+
+        /// <summary>
+        /// Proceeds or positive result from fixed asset disposal.
+        /// </summary>
+        public const string FixedAssetDisposalGain = "FixedAssetDisposalGain";
+
+        /// <summary>
+        /// Fixed asset revaluation surplus account.
+        /// </summary>
+        public const string FixedAssetRevaluationSurplus = "FixedAssetRevaluationSurplus";
+
+        /// <summary>
+        /// Fixed asset revaluation loss account.
+        /// </summary>
+        public const string FixedAssetRevaluationLoss = "FixedAssetRevaluationLoss";
     }
 }

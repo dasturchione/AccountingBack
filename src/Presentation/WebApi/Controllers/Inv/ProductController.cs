@@ -45,7 +45,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost("many")]
-    [ModuleAuthorize(PermissionCodeConst.ProductCreate)]
+    [ModuleAuthorize(PermissionCodeConst.ProductCreateMany)]
     public async Task<IResult> CreateMany([FromBody] ProductsCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateManyAsync(dto, ct);

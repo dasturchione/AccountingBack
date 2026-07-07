@@ -21,7 +21,7 @@ public class AccountingPeriodController : ControllerBase
     }
 
     [HttpPost("{id:int}/close")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingPeriodClose)]
     public async Task<IResult> CloseAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.CloseAsync(id, ct);
@@ -29,7 +29,7 @@ public class AccountingPeriodController : ControllerBase
     }
 
     [HttpPost("{id:int}/reopen")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingPeriodReopen)]
     public async Task<IResult> ReopenAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.ReopenAsync(id, ct);

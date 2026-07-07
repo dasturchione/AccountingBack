@@ -11,6 +11,10 @@ public static class AuditLogTableConst
     public const string InventoryAdjustmentDoc = "inv_inventory_adjustment_doc";
     public const string InventoryCountDoc = "inv_inventory_count_doc";
     public const string FaReceiptDoc = "fa_receipt_doc";
+    public const string FaMovementDoc = "fa_movement_doc";
+    public const string FaDepreciationRun = "fa_depreciation_run";
+    public const string FaDisposalDoc = "fa_disposal_doc";
+    public const string FaRevaluationDoc = "fa_revaluation_doc";
     public const string AuthorizationBypass = "sys_authorization_bypass";
 }
 

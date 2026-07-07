@@ -20,6 +20,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<DocumentStatus> _documentStatusQuery;
     private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+    private readonly IQueryRepository<InventoryAdjustmentType> _inventoryAdjustmentTypeQuery;
     private readonly IQueryRepository<PostingAlias> _postingAliasQuery;
     private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
@@ -62,6 +63,7 @@ public class ManualService : IManualService
         IQueryRepository<DocumentStatus> documentStatusQuery,
         IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<InventoryAdjustmentType> inventoryAdjustmentTypeQuery,
         IQueryRepository<PostingAlias> postingAliasQuery,
         IQueryRepository<PaymentPurpose> paymentPurposeQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
@@ -104,6 +106,7 @@ public class ManualService : IManualService
         _documentStatusQuery   = documentStatusQuery;
         _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery      = paymentTypeQuery;
+        _inventoryAdjustmentTypeQuery = inventoryAdjustmentTypeQuery;
         _postingAliasQuery     = postingAliasQuery;
         _paymentPurposeQuery   = paymentPurposeQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
@@ -223,6 +226,17 @@ public class ManualService : IManualService
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<InventoryAdjustmentType, SelectListDto>
+        {
+            Criteria = p => p.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(p => p.Name),
+            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
+        };
+        return (await _inventoryAdjustmentTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default)

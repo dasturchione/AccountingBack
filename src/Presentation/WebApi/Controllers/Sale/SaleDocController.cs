@@ -53,7 +53,7 @@ public class SaleDocController : ControllerBase
     }
 
     [HttpPut("{id:long}/warehouse-confirm")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocWarehouseConfirm)]
     public async Task<IResult> WarehouseConfirmAsync([FromRoute] long id, [FromBody] SaleDocWarehouseConfirmDto dto, CancellationToken ct = default)
     {
         var result = await _service.WarehouseConfirmAsync(id, dto, ct);

@@ -147,10 +147,16 @@ select 1, 'FixedAsset',            '_none', '_default', id, 100 from acc_chart_a
 select 1, 'FixedAssetInProgress',  '_none', '_default', id, 100 from acc_chart_account where code = '0820'
 	union all
 select 1, 'FixedAssetDepreciation','_none', '_default', id, 100 from acc_chart_account where code = '0290'
-	union all
+union all
 select 1, 'FixedAssetExpense',     '_none', '_default', id, 100 from acc_chart_account where code = '9430'
-	union all
-select 1, 'FixedAssetDisposalLoss','_none', '_default', id, 100 from acc_chart_account where code = '9430';
+union all
+select 1, 'FixedAssetDisposalLoss','_none', '_default', id, 100 from acc_chart_account where code = '9430'
+union all
+select 1, 'FixedAssetDisposalGain','_none', '_default', id, 100 from acc_chart_account where code = '9030.1'
+union all
+select 1, 'FixedAssetRevaluationSurplus','_none', '_default', id, 100 from acc_chart_account where code = '9030.1'
+union all
+select 1, 'FixedAssetRevaluationLoss','_none', '_default', id, 100 from acc_chart_account where code = '9430';
 
 -- Входной НДС при приобретении ОС (счёт 4410.1). Измерение vatKind='fixedAsset'.
 insert into acc_account_resolve_rule (policy_id, alias, dimension_key, dimension_value, account_id, priority)

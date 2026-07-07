@@ -48,3 +48,6 @@ insert into acc_posting_alias (id, code, name) values (36, 'FixedAssetInProgress
 insert into acc_posting_alias (id, code, name) values (37, 'FixedAssetDepreciation', 'OS amortizatsiyasi (0200)');
 insert into acc_posting_alias (id, code, name) values (38, 'FixedAssetExpense', 'OS bo''yicha xarajat');
 insert into acc_posting_alias (id, code, name) values (39, 'FixedAssetDisposalLoss', 'OS chiqib ketishidan zarar');
+insert into acc_posting_alias (id, code, name) values (40, 'FixedAssetDisposalGain', 'OS chiqib ketishidan tushum/foyda');
+insert into acc_posting_alias (id, code, name) values (41, 'FixedAssetRevaluationSurplus', 'OS qayta baholash zaxirasi');
+insert into acc_posting_alias (id, code, name) values (42, 'FixedAssetRevaluationLoss', 'OS qayta baholash zarari');

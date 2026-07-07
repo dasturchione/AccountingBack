@@ -29,7 +29,7 @@ public class SaleConditionController : ControllerBase
     }
 
     [HttpGet("now")]
-    [ModuleAuthorize(PermissionCodeConst.SaleConditionView)]
+    [ModuleAuthorize(PermissionCodeConst.SaleConditionGetNow)]
     public async Task<IResult> GetNowAsync(CancellationToken ct = default)
     {
         var result = await _service.GetNowAsync(ct);

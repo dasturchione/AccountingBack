@@ -77,7 +77,7 @@ public class WarehouseTransferController : ControllerBase
     }
 
     [HttpGet("{id:long}/posting-batches")]
-    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferGetPostingBatches)]
     public async Task<IResult> GetPostingBatchesAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetPostingBatchesAsync(id, ct);
@@ -85,7 +85,7 @@ public class WarehouseTransferController : ControllerBase
     }
 
     [HttpGet("{id:long}/inventory-movements")]
-    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.WarehouseTransferGetInventoryMovements)]
     public async Task<IResult> GetInventoryMovementsAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetInventoryMovementsAsync(id, ct);

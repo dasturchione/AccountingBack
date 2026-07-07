@@ -25,17 +25,17 @@ public sealed class PayableReportController : ControllerBase
     }
 
     [HttpGet("balances")]
-    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceView)]
+    [ModuleAuthorize(PermissionCodeConst.PayableReportBalances)]
     public async Task<IResult> Balances([FromQuery] CounterpartyRegisterBalanceListFilter filter, CancellationToken ct = default)
         => (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("balances/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.PayableReportBalanceById)]
     public async Task<IResult> BalanceById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("balances/export")]
-    [ModuleAuthorize(PermissionCodeConst.CounterpartyRegBalanceView)]
+    [ModuleAuthorize(PermissionCodeConst.PayableReportExportBalances)]
     public async Task<IResult> ExportBalances([FromQuery] CounterpartyRegisterBalanceListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);

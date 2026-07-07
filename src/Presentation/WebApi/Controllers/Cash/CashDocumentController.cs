@@ -21,7 +21,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpGet("pko")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentGetReceiptOrders)]
     public async Task<IResult> GetReceiptOrdersAsync([FromQuery] CashDocumentListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetReceiptOrdersAsync(filter, ct);
@@ -29,7 +29,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpGet("rko")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentGetPaymentOrders)]
     public async Task<IResult> GetPaymentOrdersAsync([FromQuery] CashDocumentListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetPaymentOrdersAsync(filter, ct);
@@ -37,7 +37,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpGet("pko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentGetReceiptOrderById)]
     public async Task<IResult> GetReceiptOrderByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetReceiptOrderByIdAsync(id, ct);
@@ -45,7 +45,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpGet("rko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentGetPaymentOrderById)]
     public async Task<IResult> GetPaymentOrderByIdAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetPaymentOrderByIdAsync(id, ct);
@@ -53,7 +53,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPost("pko")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationCreate)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentCreateReceiptOrder)]
     public async Task<IResult> CreateReceiptOrderAsync([FromBody] CashDocumentCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateReceiptOrderAsync(dto, ct);
@@ -61,7 +61,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPost("rko")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationCreate)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentCreatePaymentOrder)]
     public async Task<IResult> CreatePaymentOrderAsync([FromBody] CashDocumentCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreatePaymentOrderAsync(dto, ct);
@@ -69,7 +69,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("pko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentUpdateReceiptOrder)]
     public async Task<IResult> UpdateReceiptOrderAsync([FromRoute] long id, [FromBody] CashDocumentUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateReceiptOrderAsync(id, dto, ct);
@@ -77,7 +77,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("rko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentUpdatePaymentOrder)]
     public async Task<IResult> UpdatePaymentOrderAsync([FromRoute] long id, [FromBody] CashDocumentUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdatePaymentOrderAsync(id, dto, ct);
@@ -85,7 +85,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("pko/{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.ConfirmCashOperation)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentConfirmReceiptOrder)]
     public async Task<IResult> ConfirmReceiptOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.ConfirmReceiptOrderAsync(id, ct);
@@ -93,7 +93,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("rko/{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.ConfirmCashOperation)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentConfirmPaymentOrder)]
     public async Task<IResult> ConfirmPaymentOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.ConfirmPaymentOrderAsync(id, ct);
@@ -101,7 +101,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("pko/{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.CancelCashOperation)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentCancelReceiptOrder)]
     public async Task<IResult> CancelReceiptOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.CancelReceiptOrderAsync(id, ct);
@@ -109,7 +109,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpPut("rko/{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.CancelCashOperation)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentCancelPaymentOrder)]
     public async Task<IResult> CancelPaymentOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.CancelPaymentOrderAsync(id, ct);
@@ -117,7 +117,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpDelete("pko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationDelete)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentDeleteReceiptOrder)]
     public async Task<IResult> DeleteReceiptOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteReceiptOrderAsync(id, ct);
@@ -125,7 +125,7 @@ public class CashDocumentController : ControllerBase
     }
 
     [HttpDelete("rko/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationDelete)]
+    [ModuleAuthorize(PermissionCodeConst.CashDocumentDeletePaymentOrder)]
     public async Task<IResult> DeletePaymentOrderAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeletePaymentOrderAsync(id, ct);

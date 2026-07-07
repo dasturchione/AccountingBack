@@ -11,7 +11,6 @@ namespace WebApi.Controllers;
 [Route("api/setup")]
 [ApiController]
 [Authorize]
-[ModuleAuthorize(PermissionCodeConst.OrganizationSetupManage)]
 public sealed class SetupController : ControllerBase
 {
     private readonly IOrganizationSetupService _setupService;
@@ -21,6 +20,7 @@ public sealed class SetupController : ControllerBase
         _setupService = setupService;
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupGet)]
     [HttpGet]
     public async Task<IResult> GetAsync(CancellationToken ct = default)
     {
@@ -28,6 +28,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupUpdateCompanyProfile)]
     [HttpPut("company-profile")]
     public async Task<IResult> UpdateCompanyProfileAsync([FromBody] OrganizationSetupCompanyProfileDto dto, CancellationToken ct = default)
     {
@@ -35,6 +36,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupUpdateTaxSettings)]
     [HttpPut("tax-settings")]
     public async Task<IResult> UpdateTaxSettingsAsync([FromBody] OrganizationSetupTaxSettingsDto dto, CancellationToken ct = default)
     {
@@ -42,6 +44,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupUpdateAccountingPolicy)]
     [HttpPut("accounting-policy")]
     public async Task<IResult> UpdateAccountingPolicyAsync([FromBody] OrganizationSetupAccountingPolicyDto dto, CancellationToken ct = default)
     {
@@ -49,6 +52,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupUpdateDefaults)]
     [HttpPut("defaults")]
     public async Task<IResult> UpdateDefaultsAsync([FromBody] OrganizationSetupDefaultsDto dto, CancellationToken ct = default)
     {
@@ -56,6 +60,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupUpdateUsers)]
     [HttpPut("users")]
     public async Task<IResult> UpdateUsersAsync([FromBody] OrganizationSetupUsersDto dto, CancellationToken ct = default)
     {
@@ -63,6 +68,7 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.SetupComplete)]
     [HttpPost("complete")]
     public async Task<IResult> CompleteAsync(CancellationToken ct = default)
     {

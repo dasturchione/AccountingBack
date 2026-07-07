@@ -22,7 +22,7 @@ public class AccountingRegisterEntryController : ControllerBase
     }
 
     [HttpGet("postings")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingRegisterEntryGetPostings)]
     public async Task<IResult> GetPostingsAsync([Required] [FromQuery] short documentTypeId, [Required] [FromQuery] long documentId, CancellationToken ct = default)
     {
         var result = await _service.GetPostingAsync(documentTypeId, documentId, ct);
@@ -30,7 +30,7 @@ public class AccountingRegisterEntryController : ControllerBase
     }
 
     [HttpGet("postings/daily")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingRegisterEntryGetDailyPostings)]
     public async Task<IResult> GetDailyPostingsAsync([Required][FromQuery] DateTime startDate, [Required][FromQuery] DateTime endDate, [FromQuery] short? documentTypeId, CancellationToken ct = default)
     {
         var result = await _service.GetDailyPostingAsync(startDate, endDate, documentTypeId, ct);

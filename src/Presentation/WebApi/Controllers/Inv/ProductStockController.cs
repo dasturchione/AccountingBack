@@ -20,7 +20,7 @@ public class ProductStockController : ControllerBase
     }
 
     [HttpGet("by-marking")]
-    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    [ModuleAuthorize(PermissionCodeConst.ProductStockGetByMarkingNumber)]
     public async Task<IResult> GetByMarkingNumber([FromQuery] string markingNumber, CancellationToken ct = default)
     {
         markingNumber = Uri.UnescapeDataString(markingNumber);
@@ -29,7 +29,7 @@ public class ProductStockController : ControllerBase
     }
 
     [HttpGet("groups")]
-    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    [ModuleAuthorize(PermissionCodeConst.ProductStockGetProductGroupSummary)]
     public async Task<IResult> GetProductGroupSummary([FromQuery] ProductGroupStockFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetProductGroupsStockAsync(filter, ct);
@@ -37,7 +37,7 @@ public class ProductStockController : ControllerBase
     }
 
     [HttpGet("products")]
-    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    [ModuleAuthorize(PermissionCodeConst.ProductStockGetProductSummary)]
     public async Task<IResult> GetProductSummary([FromQuery] ProductStockFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetProductsStockAsync(filter, ct);
@@ -45,7 +45,7 @@ public class ProductStockController : ControllerBase
     }
 
     [HttpGet("tables")]
-    [ModuleAuthorize(PermissionCodeConst.ProductTableView)]
+    [ModuleAuthorize(PermissionCodeConst.ProductStockGetProductTableSummary)]
     public async Task<IResult> GetProductTableSummary([FromQuery] ProductTableStockFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetProductTablesStockAsync(filter, ct);

@@ -21,7 +21,7 @@ public class CashBookController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.CashBookGet)]
     public async Task<IResult> GetAsync([FromQuery] CashBookFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAsync(filter, ct);

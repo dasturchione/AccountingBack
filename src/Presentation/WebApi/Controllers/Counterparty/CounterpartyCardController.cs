@@ -45,7 +45,7 @@ public class CounterpartyCardController : ControllerBase
     }
 
     [HttpPost("many")]
-    [ModuleAuthorize(PermissionCodeConst.CounterpartyCardCreate)]
+    [ModuleAuthorize(PermissionCodeConst.CounterpartyCardCreateMany)]
     public async Task<IResult> CreateMany([FromBody] CounterpartyCardCreateManyDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateManyAsync(dto, ct);

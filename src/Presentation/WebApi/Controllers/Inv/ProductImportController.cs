@@ -23,7 +23,7 @@ public sealed class ProductImportController : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    [ModuleAuthorize(PermissionCodeConst.ProductCreate)]
+    [ModuleAuthorize(PermissionCodeConst.ProductImportImport)]
     public async Task<IResult> Import(IFormFile file, CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)

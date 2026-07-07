@@ -25,17 +25,17 @@ public sealed class CashReportController : ControllerBase
     }
 
     [HttpGet("operations")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.CashReportOperations)]
     public async Task<IResult> Operations([FromQuery] CashOperationListFilter filter, CancellationToken ct = default)
         => (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("operations/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.CashReportOperationById)]
     public async Task<IResult> OperationById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("operations/export")]
-    [ModuleAuthorize(PermissionCodeConst.CashOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.CashReportExportOperations)]
     public async Task<IResult> ExportOperations([FromQuery] CashOperationListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);

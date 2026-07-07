@@ -77,7 +77,7 @@ public class InventoryCountController : ControllerBase
     }
 
     [HttpGet("{id:long}/posting-batches")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.InventoryCountGetPostingBatches)]
     public async Task<IResult> GetPostingBatchesAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetPostingBatchesAsync(id, ct);
@@ -85,7 +85,7 @@ public class InventoryCountController : ControllerBase
     }
 
     [HttpGet("{id:long}/inventory-movements")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.InventoryCountGetInventoryMovements)]
     public async Task<IResult> GetInventoryMovementsAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetInventoryMovementsAsync(id, ct);
@@ -93,7 +93,7 @@ public class InventoryCountController : ControllerBase
     }
 
     [HttpGet("{id:long}/differences")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryCountViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.InventoryCountGetDifferences)]
     public async Task<IResult> GetDifferencesAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetDifferencesAsync(id, ct);

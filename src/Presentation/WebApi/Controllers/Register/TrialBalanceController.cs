@@ -21,7 +21,7 @@ public class TrialBalanceController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.TrialBalanceGet)]
     public async Task<IResult> GetAsync([FromQuery] TrialBalanceFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAsync(filter, ct);

@@ -76,6 +76,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<ProductTable>(modelBuilder);
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
+            ApplyScopedFilter<FaMovementDoc>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(e => HasGlobalAccess
@@ -112,6 +113,13 @@ namespace Infrastructure.Persistence
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+            modelBuilder.Entity<FaMovementDocLine>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.MovementDoc.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.MovementDoc.OrganizationId))));
 
             modelBuilder.Entity<SaleDocTable>()
                 .HasQueryFilter(e => HasGlobalAccess

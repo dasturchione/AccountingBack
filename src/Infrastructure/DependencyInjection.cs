@@ -39,6 +39,10 @@ using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
 using Application.Features.FaAssets;
+using Application.Features.FaDepreciations;
+using Application.Features.FaDisposals;
+using Application.Features.FaRevaluations;
+using Application.Features.FaMovements;
 using Application.Features.FaReceipts;
 using Application.Features.InventoryRegisterBalances;
 using Application.Features.Imports;
@@ -148,6 +152,17 @@ namespace Infrastructure
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
             services.AddScoped<IFaAssetService, FaAssetService>();
+            services.AddScoped<IFaMovementCommandRepository, FaMovementCommandRepository>();
+            services.AddScoped<IFaMovementService, FaMovementService>();
+            services.AddScoped<IFaMovementLifecycleService, FaMovementLifecycleService>();
+            services.AddScoped<IFaDepreciationRunCommandRepository, FaDepreciationRunCommandRepository>();
+            services.AddScoped<IFaDepreciationRunService, FaDepreciationRunService>();
+            services.AddScoped<IFaDisposalCommandRepository, FaDisposalCommandRepository>();
+            services.AddScoped<IFaDisposalService, FaDisposalService>();
+            services.AddScoped<IFaDisposalLifecycleService, FaDisposalLifecycleService>();
+            services.AddScoped<IFaRevaluationCommandRepository, FaRevaluationCommandRepository>();
+            services.AddScoped<IFaRevaluationService, FaRevaluationService>();
+            services.AddScoped<IFaRevaluationLifecycleService, FaRevaluationLifecycleService>();
             services.AddScoped<IFaReceiptCommandRepository, FaReceiptCommandRepository>();
             services.AddScoped<IFaReceiptService, FaReceiptService>();
             services.AddScoped<IFaReceiptLifecycleService, FaReceiptLifecycleService>();
@@ -239,6 +254,9 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CurrencyRevaluation>, CurrencyRevaluationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<FaDepreciationRun>, FaDepreciationRunContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<FaDisposalDoc>, FaDisposalContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<FaRevaluationDoc>, FaRevaluationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaReceiptDoc>, FaReceiptContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();

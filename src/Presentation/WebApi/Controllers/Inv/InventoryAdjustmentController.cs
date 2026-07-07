@@ -77,7 +77,7 @@ public class InventoryAdjustmentController : ControllerBase
     }
 
     [HttpGet("{id:long}/posting-batches")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryAdjustmentViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.InventoryAdjustmentGetPostingBatches)]
     public async Task<IResult> GetPostingBatchesAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetPostingBatchesAsync(id, ct);
@@ -85,7 +85,7 @@ public class InventoryAdjustmentController : ControllerBase
     }
 
     [HttpGet("{id:long}/inventory-movements")]
-    [ModuleAuthorize(PermissionCodeConst.InventoryAdjustmentViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.InventoryAdjustmentGetInventoryMovements)]
     public async Task<IResult> GetInventoryMovementsAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.GetInventoryMovementsAsync(id, ct);

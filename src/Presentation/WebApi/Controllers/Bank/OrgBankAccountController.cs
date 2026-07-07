@@ -45,7 +45,7 @@ public class OrgBankAccountController : ControllerBase
     }
 
     [HttpPost("many")]
-    [ModuleAuthorize(PermissionCodeConst.OrgBankAccountCreate)]
+    [ModuleAuthorize(PermissionCodeConst.OrgBankAccountCreateMany)]
     public async Task<IResult> CreateManyAsync([FromBody] OrgBankAccountCreateManyDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateManyAsync(dto, ct);

@@ -22,12 +22,12 @@ public sealed class CurrencyRevaluationsController : ControllerBase
         => (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("{id}")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRevaluationView)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRevaluationViewDetail)]
     public async Task<IResult> GetById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpPost("preview")]
-    [ModuleAuthorize(PermissionCodeConst.CurrencyRevaluationCreate)]
+    [ModuleAuthorize(PermissionCodeConst.CurrencyRevaluationPreview)]
     public async Task<IResult> Preview([FromBody] CurrencyRevaluationPreviewDto dto, CancellationToken ct = default)
         => (await _service.PreviewAsync(dto, ct)).Match(Results.Ok, CustomResults.Problem);
 

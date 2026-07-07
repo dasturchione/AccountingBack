@@ -21,7 +21,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("balance-sheet")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetBalanceSheet)]
     public async Task<IResult> GetBalanceSheetAsync([FromQuery] BalanceSheetFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetBalanceSheetAsync(filter, ct);
@@ -29,7 +29,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("income-statement")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetIncomeStatement)]
     public async Task<IResult> GetIncomeStatementAsync([FromQuery] IncomeStatementFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetIncomeStatementAsync(filter, ct);
@@ -37,7 +37,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("cash-flow")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetCashFlow)]
     public async Task<IResult> GetCashFlowAsync([FromQuery] CashFlowFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetCashFlowAsync(filter, ct);
@@ -45,7 +45,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("account-turnover")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetAccountTurnover)]
     public async Task<IResult> GetAccountTurnoverAsync([FromQuery] AccountTurnoverFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAccountTurnoverAsync(filter, ct);
@@ -53,7 +53,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("account-card")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetAccountCard)]
     public async Task<IResult> GetAccountCardAsync([FromQuery] AccountCardFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAccountCardAsync(filter, ct);
@@ -61,7 +61,7 @@ public class AccountingReportController : ControllerBase
     }
 
     [HttpGet("journal")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.AccountingReportGetJournal)]
     public async Task<IResult> GetJournalAsync([FromQuery] JournalFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetJournalAsync(filter, ct);

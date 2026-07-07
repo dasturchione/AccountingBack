@@ -25,17 +25,17 @@ public sealed class BankReportController : ControllerBase
     }
 
     [HttpGet("operations")]
-    [ModuleAuthorize(PermissionCodeConst.BankOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.BankReportOperations)]
     public async Task<IResult> Operations([FromQuery] BankOperationListFilter filter, CancellationToken ct = default)
         => (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("operations/{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.BankOperationViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.BankReportOperationById)]
     public async Task<IResult> OperationById([FromRoute] long id, CancellationToken ct = default)
         => (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("operations/export")]
-    [ModuleAuthorize(PermissionCodeConst.BankOperationView)]
+    [ModuleAuthorize(PermissionCodeConst.BankReportExportOperations)]
     public async Task<IResult> ExportOperations([FromQuery] BankOperationListFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);

@@ -25,12 +25,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("balance-sheet")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportBalanceSheet)]
     public async Task<IResult> BalanceSheet([FromQuery] BalanceSheetFilter filter, CancellationToken ct = default)
         => (await _service.GetBalanceSheetAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("balance-sheet/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportBalanceSheet)]
     public async Task<IResult> ExportBalanceSheet([FromQuery] BalanceSheetFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetBalanceSheetAsync(filter, ct);
@@ -42,12 +42,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("income-statement")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportIncomeStatement)]
     public async Task<IResult> IncomeStatement([FromQuery] IncomeStatementFilter filter, CancellationToken ct = default)
         => (await _service.GetIncomeStatementAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("income-statement/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportIncomeStatement)]
     public async Task<IResult> ExportIncomeStatement([FromQuery] IncomeStatementFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetIncomeStatementAsync(filter, ct);
@@ -59,12 +59,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("cash-flow")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportCashFlow)]
     public async Task<IResult> CashFlow([FromQuery] CashFlowFilter filter, CancellationToken ct = default)
         => (await _service.GetCashFlowAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("cash-flow/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportCashFlow)]
     public async Task<IResult> ExportCashFlow([FromQuery] CashFlowFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetCashFlowAsync(filter, ct);
@@ -76,12 +76,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("turnover")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportTurnover)]
     public async Task<IResult> Turnover([FromQuery] AccountTurnoverFilter filter, CancellationToken ct = default)
         => (await _service.GetAccountTurnoverAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("turnover/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportTurnover)]
     public async Task<IResult> ExportTurnover([FromQuery] AccountTurnoverFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAccountTurnoverAsync(filter, ct);
@@ -93,12 +93,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("card")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportCard)]
     public async Task<IResult> Card([FromQuery] AccountCardFilter filter, CancellationToken ct = default)
         => (await _service.GetAccountCardAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("card/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportCard)]
     public async Task<IResult> ExportCard([FromQuery] AccountCardFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetAccountCardAsync(filter, ct);
@@ -110,12 +110,12 @@ public sealed class FinancialReportController : ControllerBase
     }
 
     [HttpGet("journal")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportJournal)]
     public async Task<IResult> Journal([FromQuery] JournalFilter filter, CancellationToken ct = default)
         => (await _service.GetJournalAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("journal/export")]
-    [ModuleAuthorize(PermissionCodeConst.AccRegEntryView)]
+    [ModuleAuthorize(PermissionCodeConst.FinancialReportExportJournal)]
     public async Task<IResult> ExportJournal([FromQuery] JournalFilter filter, [FromQuery] ReportExportRequestDto request, CancellationToken ct = default)
     {
         var result = await _service.GetJournalAsync(filter, ct);

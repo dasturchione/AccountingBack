@@ -12,7 +12,6 @@ namespace WebApi.Controllers;
 [Route("api/manuals")]
 [ApiController]
 [Authorize]
-[ModuleAuthorize(PermissionCodeConst.ManualView)]
 public class ManualController : ControllerBase
 {
     private readonly IManualService _manualService;
@@ -22,6 +21,7 @@ public class ManualController : ControllerBase
         _manualService = manualService;
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetStates)]
     [HttpGet("states")]
     public async Task<IActionResult> GetStates(CancellationToken ct)
     {
@@ -29,6 +29,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRegions)]
     [HttpGet("regions")]
     public async Task<IActionResult> GetRegions(CancellationToken ct)
     {
@@ -36,6 +37,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetDistricts)]
     [HttpGet("districts")]
     public async Task<IActionResult> GetDistricts([FromQuery] int? regionId, CancellationToken ct)
     {
@@ -43,6 +45,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCurrencies)]
     [HttpGet("currencies")]
     public async Task<IActionResult> GetCurrencies(CancellationToken ct)
     {
@@ -50,6 +53,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetUnits)]
     [HttpGet("units")]
     public async Task<IActionResult> GetUnits(CancellationToken ct)
     {
@@ -57,6 +61,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetDocumentStatuses)]
     [HttpGet("document-statuses")]
     public async Task<IActionResult> GetDocumentStatuses(CancellationToken ct)
     {
@@ -64,6 +69,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCounterpartyTypes)]
     [HttpGet("counterparty-types")]
     public async Task<IActionResult> GetCounterpartyTypes(CancellationToken ct)
     {
@@ -71,6 +77,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentTypes)]
     [HttpGet("payment-types")]
     public async Task<IActionResult> GetPaymentTypes(CancellationToken ct)
     {
@@ -78,6 +85,15 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetInventoryAdjustmentTypes)]
+    [HttpGet("inventory-adjustment-types")]
+    public async Task<IActionResult> GetInventoryAdjustmentTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetInventoryAdjustmentTypesAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPostingAliases)]
     [HttpGet("posting-aliases")]
     public async Task<IActionResult> GetPostingAliases(CancellationToken ct)
     {
@@ -85,6 +101,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentPurposes)]
     [HttpGet("payment-purposes")]
     public async Task<IActionResult> GetPaymentPurposes([FromQuery] short? operationTypeId, CancellationToken ct)
     {
@@ -92,6 +109,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPriceRoundingMethods)]
     [HttpGet("price-rounding-methods")]
     public async Task<IActionResult> GetPriceRoundingMethods(CancellationToken ct)
     {
@@ -99,6 +117,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPricingMethods)]
     [HttpGet("pricing-methods")]
     public async Task<IActionResult> GetPricingMethods(CancellationToken ct)
     {
@@ -106,6 +125,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCostingMethods)]
     [HttpGet("costing-methods")]
     public async Task<IActionResult> GetCostingMethods(CancellationToken ct)
     {
@@ -113,6 +133,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetBanks)]
     [HttpGet("banks")]
     public async Task<IActionResult> GetBanks(CancellationToken ct)
     {
@@ -120,6 +141,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetDocumentTypes)]
     [HttpGet("document-types")]
     public async Task<IActionResult> GetDocumentTypes(CancellationToken ct)
     {
@@ -127,6 +149,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetOperationTypes)]
     [HttpGet("operation-types")]
     public async Task<IActionResult> GetOperationTypes(CancellationToken ct)
     {
@@ -134,6 +157,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetTaxTypes)]
     [HttpGet("tax-types")]
     public async Task<IActionResult> GetTaxTypes(CancellationToken ct)
     {
@@ -141,6 +165,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetVatRates)]
     [HttpGet("vat-rates")]
     public async Task<IActionResult> GetVatRates(CancellationToken ct)
     {
@@ -148,6 +173,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetContractTypes)]
     [HttpGet("contract-types")]
     public async Task<IActionResult> GetContractTypes(CancellationToken ct)
     {
@@ -155,6 +181,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRoles)]
     [HttpGet("roles")]
     public async Task<IActionResult> GetRoles(CancellationToken ct)
     {
@@ -162,6 +189,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetUsers)]
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers([FromQuery] int? roleId, CancellationToken ct)
     {
@@ -169,6 +197,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetOrganizations)]
     [HttpGet("organizations")]
     public async Task<IActionResult> GetOrganizations(CancellationToken ct)
     {
@@ -176,6 +205,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetBranches)]
     [HttpGet("branches")]
     public async Task<IActionResult> GetBranches(CancellationToken ct)
     {
@@ -183,6 +213,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetDepartments)]
     [HttpGet("departments")]
     public async Task<IActionResult> GetDepartments([FromQuery] int? branchId, CancellationToken ct)
     {
@@ -190,6 +221,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPositions)]
     [HttpGet("positions")]
     public async Task<IActionResult> GetPositions(CancellationToken ct)
     {
@@ -197,6 +229,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetContracts)]
     [HttpGet("contracts")]
     public async Task<IResult> GetContracts([FromQuery] int? counterpartyId = null, [FromQuery] short? contractTypeId = null, [FromQuery] DateTime? choosedDate = null, CancellationToken ct = default)
     {
@@ -204,6 +237,7 @@ public class ManualController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCounterparties)]
     [HttpGet("counterparties")]
     public async Task<IActionResult> GetCounterparties(CancellationToken ct)
     {
@@ -211,6 +245,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetSuppliers)]
     [HttpGet("suppliers")]
     public async Task<IActionResult> GetSuppliers(CancellationToken ct)
     {
@@ -218,6 +253,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetClients)]
     [HttpGet("clients")]
     public async Task<IActionResult> GetClients(CancellationToken ct)
     {
@@ -225,6 +261,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetProductGroups)]
     [HttpGet("product-groups")]
     public async Task<IActionResult> GetProductGroups(CancellationToken ct)
     {
@@ -232,6 +269,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetProductTypes)]
     [HttpGet("product-types")]
     public async Task<IActionResult> GetProductTypes([FromQuery] bool? isService, CancellationToken ct)
     {
@@ -239,6 +277,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetProducts)]
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts(
         [FromQuery] int? productGroupId,
@@ -253,6 +292,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetWarehouses)]
     [HttpGet("warehouses")]
     public async Task<IActionResult> GetWarehouses([FromQuery] int? branchId, CancellationToken ct)
     {
@@ -260,6 +300,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetChartAccounts)]
     [HttpGet("chart-accounts")]
     public async Task<IActionResult> GetChartAccounts(CancellationToken ct)
     {
@@ -267,6 +308,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetAccountingPolicies)]
     [HttpGet("accounting-policies")]
     public async Task<IActionResult> GetAccountingPolicies(CancellationToken ct)
     {
@@ -274,6 +316,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetOrgBankAccounts)]
     [HttpGet("org-bank-accounts")]
     public async Task<IActionResult> GetOrgBankAccounts(CancellationToken ct)
     {
@@ -281,6 +324,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCounterpartyBankAccounts)]
     [HttpGet("counterparty-bank-accounts")]
     public async Task<IActionResult> GetCounterpartyBankAccounts([FromQuery] int? counterpartyId, [FromQuery] int? bankId, CancellationToken ct)
     {
@@ -288,6 +332,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCashBoxes)]
     [HttpGet("cash-boxes")]
     public async Task<IActionResult> GetCashBoxes([FromQuery] int? branchId, CancellationToken ct)
     {
@@ -295,6 +340,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetCashOperations)]
     [HttpGet("cash-operations")]
     public async Task<IActionResult> GetCashOperations([FromQuery] int? cashBoxId, CancellationToken ct)
     {
@@ -302,6 +348,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetLanguages)]
     [HttpGet("languages")]
     public async Task<IActionResult> GetLanguages(CancellationToken ct)
     {
@@ -309,6 +356,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetModuleSubGroups)]
     [HttpGet("module-sub-groups")]
     public async Task<IActionResult> GetModuleSubGroups(CancellationToken ct)
     {

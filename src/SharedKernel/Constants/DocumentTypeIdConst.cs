@@ -60,5 +60,25 @@
         /// Fixed asset receipt document.
         /// </summary>
         public const short FARECEIPT = 11;
+
+        /// <summary>
+        /// Fixed asset movement document.
+        /// </summary>
+        public const short FAMOVEMENT = 12;
+
+        /// <summary>
+        /// Fixed asset depreciation run document.
+        /// </summary>
+        public const short FADEPRECIATION = 13;
+
+        /// <summary>
+        /// Fixed asset disposal document.
+        /// </summary>
+        public const short FADISPOSAL = 14;
+
+        /// <summary>
+        /// Fixed asset revaluation document.
+        /// </summary>
+        public const short FAREVALUATION = 15;
     }
 }

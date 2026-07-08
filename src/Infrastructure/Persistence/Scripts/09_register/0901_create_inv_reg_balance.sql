@@ -32,6 +32,7 @@ create index idx_inv_reg_balance_product_table_id on inv_reg_balance using btree
 create index idx_inv_reg_balance_warehouse_id on inv_reg_balance using btree (warehouse_id);
 create index idx_inv_reg_balance_posting_batch_id on inv_reg_balance using btree (posting_batch_id);
 create index idx_inv_reg_balance_reversal_entry_id on inv_reg_balance using btree (reversal_entry_id);
+create unique index idx_inv_reg_balance_document_product_id on inv_reg_balance (document_type_id, document_id, product_id, product_table_id);
 
 insert into inv_reg_balance (id, organization_id, document_type_id, document_id, warehouse_id, product_id, operation_type_id, quantity, amount, doc_date, created_date) values
     ('203', '8', '1', '92', '7', '23', '1', '1.000', '11200.00', '2026-06-27 18:05:43', '2026-06-27 18:07:18.670817'),

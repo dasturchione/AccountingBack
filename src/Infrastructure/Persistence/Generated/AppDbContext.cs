@@ -86,6 +86,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnFaOkof> CmnFaOkofs { get; set; }
 
+    public virtual DbSet<CmnInventoryAdjustmentType> CmnInventoryAdjustmentTypes { get; set; }
+
     public virtual DbSet<CmnLanguage> CmnLanguages { get; set; }
 
     public virtual DbSet<CmnNotificationType> CmnNotificationTypes { get; set; }
@@ -132,11 +134,27 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaAsset> FaAssets { get; set; }
 
+    public virtual DbSet<FaDepreciationRun> FaDepreciationRuns { get; set; }
+
+    public virtual DbSet<FaDepreciationRunLine> FaDepreciationRunLines { get; set; }
+
+    public virtual DbSet<FaDisposalDoc> FaDisposalDocs { get; set; }
+
+    public virtual DbSet<FaDisposalDocLine> FaDisposalDocLines { get; set; }
+
+    public virtual DbSet<FaMovementDoc> FaMovementDocs { get; set; }
+
+    public virtual DbSet<FaMovementDocLine> FaMovementDocLines { get; set; }
+
     public virtual DbSet<FaReceiptDoc> FaReceiptDocs { get; set; }
 
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }
 
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
+
+    public virtual DbSet<FaRevaluationDoc> FaRevaluationDocs { get; set; }
+
+    public virtual DbSet<FaRevaluationDocLine> FaRevaluationDocLines { get; set; }
 
     public virtual DbSet<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; }
 
@@ -167,6 +185,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InvTransferLine> InvTransferLines { get; set; }
 
     public virtual DbSet<InvWarehouse> InvWarehouses { get; set; }
+
+    public virtual DbSet<InvWarehouseProduct> InvWarehouseProducts { get; set; }
 
     public virtual DbSet<MoneyRegBalance> MoneyRegBalances { get; set; }
 
@@ -286,7 +306,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("acc_chart_account_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.AccountType).WithMany(p => p.AccChartAccounts).HasConstraintName("acc_chart_account_account_type_id_fkey");
@@ -302,7 +321,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("acc_chart_account_subkonto_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsRequired).HasDefaultValue(true);
 
@@ -381,7 +399,7 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("((status)::text = 'REVERSAL'::text)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
             entity.Property(e => e.PostedAt).HasDefaultValueSql("now()");
             entity.Property(e => e.Status).HasDefaultValueSql("'posted'::character varying");
         });
@@ -397,7 +415,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.IsOptional).HasDefaultValue(true);
 
             entity.HasOne(d => d.CreditAlias).WithMany(p => p.AccPostingRuleLineCreditAliases)
@@ -469,7 +486,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("bank_operation_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
             entity.Property(e => e.PaymentPurposeId).HasDefaultValue((short)1);
@@ -528,7 +544,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cash_box_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.CashBoxes).HasConstraintName("cash_box_branch_id_fkey");
@@ -550,7 +565,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cash_operation_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
 
@@ -593,7 +607,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_bank_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.State).WithMany(p => p.CmnBanks)
@@ -605,7 +618,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
@@ -670,7 +682,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_currency_rate_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.EffectiveDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -692,7 +703,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_currency_revaluation_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.CmnCurrencyRevaluations)
@@ -708,7 +718,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_currency_revaluation_line_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.BaseCurrency).WithMany(p => p.CmnCurrencyRevaluationLineBaseCurrencies)
@@ -732,7 +741,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_district_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -740,7 +748,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_document_sequence_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.Padding).HasDefaultValue((short)5);
             entity.Property(e => e.ResetPeriod).HasDefaultValueSql("'yearly'::character varying");
@@ -796,8 +803,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_fa_group_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Organization).WithMany(p => p.CmnFaGroups)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_fa_group_organization_id_fkey");
@@ -816,6 +821,17 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnFaOkofs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_fa_okof_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnInventoryAdjustmentType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_inventory_adjustment_type_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnInventoryAdjustmentTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_inventory_adjustment_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnLanguage>(entity =>
@@ -876,7 +892,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_pricing_condition_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.RoundingPrecision).HasDefaultValue(1m);
             entity.Property(e => e.StartDate).HasDefaultValueSql("now()");
@@ -947,7 +962,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.State).WithMany(p => p.CmnRegions)
@@ -979,7 +993,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_translation_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Language).WithMany(p => p.CmnTranslations)
@@ -1030,7 +1043,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("counterparty_bank_account_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Bank).WithMany(p => p.CounterpartyBankAccounts)
@@ -1062,7 +1074,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsCustomer).HasDefaultValue(true);
             entity.Property(e => e.IsSupplier).HasDefaultValue(true);
@@ -1088,7 +1099,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("counterparty_contact_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Counterparty).WithMany(p => p.CounterpartyContacts)
@@ -1108,7 +1118,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("counterparty_reg_balance_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Counterparty).WithMany(p => p.CounterpartyRegBalances)
@@ -1167,6 +1176,144 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Status).WithMany(p => p.FaAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_asset_status_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDepreciationRun>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_depreciation_run_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.PeriodMonth }, "ux_fa_depreciation_run_org_period_active")
+                .IsUnique()
+                .HasFilter("(status_id <> 3)");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaDepreciationRunCancelledByUsers).HasConstraintName("fa_depreciation_run_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaDepreciationRunCreatedByUsers).HasConstraintName("fa_depreciation_run_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FaDepreciationRuns)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_depreciation_run_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaDepreciationRunPostedByUsers).HasConstraintName("fa_depreciation_run_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FaDepreciationRuns)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_depreciation_run_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.FaDepreciationRuns)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_depreciation_run_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaDepreciationRunUpdatedByUsers).HasConstraintName("fa_depreciation_run_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDepreciationRunLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_depreciation_run_line_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.DepreciationRun).WithMany(p => p.FaDepreciationRunLines).HasConstraintName("fa_depreciation_run_line_depreciation_run_id_fkey");
+
+            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaDepreciationRunLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_depreciation_run_line_fa_asset_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDisposalDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_disposal_doc_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaDisposalDocCancelledByUsers).HasConstraintName("fa_disposal_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaDisposalDocCreatedByUsers).HasConstraintName("fa_disposal_doc_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FaDisposalDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaDisposalDocPostedByUsers).HasConstraintName("fa_disposal_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FaDisposalDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.FaDisposalDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaDisposalDocUpdatedByUsers).HasConstraintName("fa_disposal_doc_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDisposalDocLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_disposal_doc_line_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.DisposalDoc).WithMany(p => p.FaDisposalDocLines).HasConstraintName("fa_disposal_doc_line_disposal_doc_id_fkey");
+
+            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaDisposalDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_line_fa_asset_id_fkey");
+        });
+
+        modelBuilder.Entity<FaMovementDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_movement_doc_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaMovementDocCancelledByUsers).HasConstraintName("fa_movement_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaMovementDocCreatedByUsers).HasConstraintName("fa_movement_doc_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.FromDepartment).WithMany(p => p.FaMovementDocFromDepartments).HasConstraintName("fa_movement_doc_from_department_id_fkey");
+
+            entity.HasOne(d => d.FromResponsibleUser).WithMany(p => p.FaMovementDocFromResponsibleUsers).HasConstraintName("fa_movement_doc_from_responsible_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FaMovementDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_movement_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaMovementDocPostedByUsers).HasConstraintName("fa_movement_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FaMovementDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_movement_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.FaMovementDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_movement_doc_status_id_fkey");
+
+            entity.HasOne(d => d.ToDepartment).WithMany(p => p.FaMovementDocToDepartments).HasConstraintName("fa_movement_doc_to_department_id_fkey");
+
+            entity.HasOne(d => d.ToResponsibleUser).WithMany(p => p.FaMovementDocToResponsibleUsers).HasConstraintName("fa_movement_doc_to_responsible_user_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaMovementDocUpdatedByUsers).HasConstraintName("fa_movement_doc_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<FaMovementDocLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_movement_doc_line_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaMovementDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_movement_doc_line_fa_asset_id_fkey");
+
+            entity.HasOne(d => d.MovementDoc).WithMany(p => p.FaMovementDocLines).HasConstraintName("fa_movement_doc_line_movement_doc_id_fkey");
         });
 
         modelBuilder.Entity<FaReceiptDoc>(entity =>
@@ -1236,11 +1383,52 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.VatRate).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_vat_rate_id_fkey");
         });
 
+        modelBuilder.Entity<FaRevaluationDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_revaluation_doc_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaRevaluationDocCancelledByUsers).HasConstraintName("fa_revaluation_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaRevaluationDocCreatedByUsers).HasConstraintName("fa_revaluation_doc_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FaRevaluationDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_revaluation_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaRevaluationDocPostedByUsers).HasConstraintName("fa_revaluation_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FaRevaluationDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_revaluation_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.FaRevaluationDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_revaluation_doc_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaRevaluationDocUpdatedByUsers).HasConstraintName("fa_revaluation_doc_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<FaRevaluationDocLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_revaluation_doc_line_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaRevaluationDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_revaluation_doc_line_fa_asset_id_fkey");
+
+            entity.HasOne(d => d.RevaluationDoc).WithMany(p => p.FaRevaluationDocLines).HasConstraintName("fa_revaluation_doc_line_revaluation_doc_id_fkey");
+        });
+
         modelBuilder.Entity<InvInventoryAdjustmentDoc>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_doc_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvInventoryAdjustmentDocs)
@@ -1264,8 +1452,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_doc_table_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryAdjustmentDocTables).HasConstraintName("inv_inventory_adjustment_doc_table_owner_id_fkey");
 
             entity.HasOne(d => d.ProductTable).WithMany(p => p.InvInventoryAdjustmentDocTables).HasConstraintName("inv_inventory_adjustment_doc_table_product_table_id_fkey");
@@ -1274,8 +1460,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<InvInventoryAdjustmentLine>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_line_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryAdjustmentLines).HasConstraintName("inv_inventory_adjustment_line_owner_id_fkey");
 
@@ -1292,7 +1476,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_count_doc_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.NegativeAdjustmentDoc).WithMany(p => p.InvInventoryCountDocNegativeAdjustmentDocs).HasConstraintName("inv_inventory_count_doc_negative_adjustment_doc_id_fkey");
@@ -1320,8 +1503,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_count_doc_table_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryCountDocTables).HasConstraintName("inv_inventory_count_doc_table_owner_id_fkey");
 
             entity.HasOne(d => d.ProductTable).WithMany(p => p.InvInventoryCountDocTables).HasConstraintName("inv_inventory_count_doc_table_product_table_id_fkey");
@@ -1330,8 +1511,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<InvInventoryCountLine>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_count_line_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.HasOne(d => d.Owner).WithMany(p => p.InvInventoryCountLines).HasConstraintName("inv_inventory_count_line_owner_id_fkey");
 
@@ -1354,7 +1533,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsPurchased).HasDefaultValue(true);
             entity.Property(e => e.IsSold).HasDefaultValue(true);
@@ -1387,7 +1565,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvProductGroups)
@@ -1403,7 +1580,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_product_price_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StartDate).HasDefaultValueSql("now()");
 
@@ -1444,7 +1620,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(serial_number IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StatusId).HasDefaultValue((short)1);
 
@@ -1471,7 +1646,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.DocumentType).WithMany(p => p.InvRegBalances)
@@ -1501,7 +1675,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_transfer_doc_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.DestinationWarehouse).WithMany(p => p.InvTransferDocDestinationWarehouses)
@@ -1529,8 +1702,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_transfer_doc_table_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.InvTransferDocTables).HasConstraintName("inv_transfer_doc_table_owner_id_fkey");
 
             entity.HasOne(d => d.ProductTable).WithMany(p => p.InvTransferDocTables)
@@ -1541,8 +1712,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<InvTransferLine>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_transfer_line_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.HasOne(d => d.Owner).WithMany(p => p.InvTransferLines).HasConstraintName("inv_transfer_line_owner_id_fkey");
 
@@ -1563,7 +1732,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.InvWarehouses).HasConstraintName("inv_warehouse_branch_id_fkey");
@@ -1579,11 +1747,30 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("inv_warehouse_state_id_fkey");
         });
 
+        modelBuilder.Entity<InvWarehouseProduct>(entity =>
+        {
+            entity.HasKey(e => new { e.WarehouseId, e.ProductId }).HasName("inv_warehouse_product_pkey");
+
+            entity.Property(e => e.AvailableQuantity).HasComputedColumnSql("((quantity - reserved_quantity) - blocked_quantity)", true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvWarehouseProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvWarehouseProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_unit_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_warehouse_id_fkey");
+        });
+
         modelBuilder.Entity<MoneyRegBalance>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("money_reg_balance_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Currency).WithMany(p => p.MoneyRegBalances)
@@ -1611,7 +1798,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Bank).WithMany(p => p.OrgBankAccounts)
@@ -1635,7 +1821,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_branch_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.District).WithMany(p => p.OrgBranches).HasConstraintName("org_branch_district_id_fkey");
@@ -1655,7 +1840,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_claim_request_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.Status).HasDefaultValueSql("'pending'::character varying");
         });
@@ -1664,7 +1848,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_defaults_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -1672,7 +1855,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_department_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.OrgDepartments).HasConstraintName("org_department_branch_id_fkey");
@@ -1690,7 +1872,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_organization_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.SetupStatus).HasDefaultValueSql("'not_started'::character varying");
 
@@ -1724,7 +1905,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_position_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.OrgPositions)
@@ -1740,7 +1920,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_setup_state_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.CurrentStep).HasDefaultValueSql("'organization'::character varying");
             entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
@@ -1750,7 +1929,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_tax_settings_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.EffectiveFrom).HasDefaultValueSql("CURRENT_DATE");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
@@ -1760,7 +1938,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("org_user_invitation_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
         });
@@ -1769,7 +1946,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("platform_tenant_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
         });
@@ -1778,7 +1954,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("pur_doc_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
 
@@ -1815,8 +1990,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductId, "ix_pur_doc_product_product_id").HasFilter("(product_id IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.PurDocProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_product_owner_id_fkey");
@@ -1836,8 +2009,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("pur_doc_table_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.PurDocTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_table_owner_id_fkey");
@@ -1853,7 +2024,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sale_condition_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StartDate).HasDefaultValueSql("now()");
 
@@ -1880,7 +2050,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ContractId, "idx_sale_doc_contract_id").HasFilter("(contract_id IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
 
@@ -1915,7 +2084,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sale_doc_product_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.UnitId).HasDefaultValue((short)1);
 
             entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_owner_id_fkey");
@@ -1935,8 +2103,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sale_doc_table_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_table_owner_id_fkey");
@@ -1952,7 +2118,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_audit_log_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.ChangedDate).HasDefaultValueSql("now()");
         });
 
@@ -1960,7 +2125,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_email_verification_token_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -1968,7 +2132,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_module_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsVisible).HasDefaultValue(true);
 
@@ -1987,7 +2150,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_module_sub_group_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -1995,7 +2157,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_notification_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
         });
@@ -2004,7 +2165,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_notification_delivery_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -2012,7 +2172,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_notification_read_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ReadAt).HasDefaultValueSql("now()");
         });
@@ -2021,7 +2180,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_password_reset_token_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -2029,7 +2187,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_refresh_token_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
@@ -2041,7 +2198,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.SysRoles).HasConstraintName("sys_role_organization_id_fkey");
@@ -2078,7 +2234,6 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(organization_id IS NOT NULL)");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsEditable).HasDefaultValue(true);
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
@@ -2088,7 +2243,6 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("sys_user_pkey");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Language).WithMany(p => p.SysUsers).HasConstraintName("sys_user_language_id_fkey");

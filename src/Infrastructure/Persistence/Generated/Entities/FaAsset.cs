@@ -93,12 +93,24 @@ public partial class FaAsset
     [InverseProperty("FaAssets")]
     public virtual CmnFaDepreciationMethod DepreciationMethod { get; set; } = null!;
 
+    [InverseProperty("FaAsset")]
+    public virtual ICollection<FaDepreciationRunLine> FaDepreciationRunLines { get; set; } = new List<FaDepreciationRunLine>();
+
+    [InverseProperty("FaAsset")]
+    public virtual ICollection<FaDisposalDocLine> FaDisposalDocLines { get; set; } = new List<FaDisposalDocLine>();
+
     [ForeignKey("FaGroupId")]
     [InverseProperty("FaAssets")]
     public virtual CmnFaGroup FaGroup { get; set; } = null!;
 
     [InverseProperty("FaAsset")]
+    public virtual ICollection<FaMovementDocLine> FaMovementDocLines { get; set; } = new List<FaMovementDocLine>();
+
+    [InverseProperty("FaAsset")]
     public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
+
+    [InverseProperty("FaAsset")]
+    public virtual ICollection<FaRevaluationDocLine> FaRevaluationDocLines { get; set; } = new List<FaRevaluationDocLine>();
 
     [ForeignKey("OkofId")]
     [InverseProperty("FaAssets")]

@@ -41,6 +41,9 @@ public partial class CmnUnit
     public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
     [InverseProperty("Unit")]
+    public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [InverseProperty("Unit")]

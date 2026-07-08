@@ -44,6 +44,12 @@ public partial class OrgDepartment
     [InverseProperty("Department")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty("FromDepartment")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocFromDepartments { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("ToDepartment")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocToDepartments { get; set; } = new List<FaMovementDoc>();
+
     [InverseProperty("Department")]
     public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
 

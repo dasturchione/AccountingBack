@@ -74,6 +74,9 @@ public partial class InvWarehouse
     [InverseProperty("SourceWarehouse")]
     public virtual ICollection<InvTransferDoc> InvTransferDocSourceWarehouses { get; set; } = new List<InvTransferDoc>();
 
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvWarehouses")]
     public virtual OrgOrganization Organization { get; set; } = null!;

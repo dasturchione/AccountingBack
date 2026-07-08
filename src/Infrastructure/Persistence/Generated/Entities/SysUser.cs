@@ -87,8 +87,62 @@ public partial class SysUser
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaDepreciationRun> FaDepreciationRunCancelledByUsers { get; set; } = new List<FaDepreciationRun>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<FaDepreciationRun> FaDepreciationRunCreatedByUsers { get; set; } = new List<FaDepreciationRun>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaDepreciationRun> FaDepreciationRunPostedByUsers { get; set; } = new List<FaDepreciationRun>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<FaDepreciationRun> FaDepreciationRunUpdatedByUsers { get; set; } = new List<FaDepreciationRun>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocCancelledByUsers { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocCreatedByUsers { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocPostedByUsers { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocUpdatedByUsers { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocCancelledByUsers { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocCreatedByUsers { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("FromResponsibleUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocFromResponsibleUsers { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocPostedByUsers { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("ToResponsibleUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocToResponsibleUsers { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocUpdatedByUsers { get; set; } = new List<FaMovementDoc>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocCancelledByUsers { get; set; } = new List<FaRevaluationDoc>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocCreatedByUsers { get; set; } = new List<FaRevaluationDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocPostedByUsers { get; set; } = new List<FaRevaluationDoc>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocUpdatedByUsers { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();

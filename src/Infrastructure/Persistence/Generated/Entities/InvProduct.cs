@@ -110,6 +110,9 @@ public partial class InvProduct
     [InverseProperty("Product")]
     public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
+    [InverseProperty("Product")]
+    public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProducts")]
     public virtual OrgOrganization Organization { get; set; } = null!;

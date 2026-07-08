@@ -91,6 +91,9 @@ public partial class CmnState
     public virtual ICollection<CmnFaOkof> CmnFaOkofs { get; set; } = new List<CmnFaOkof>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CmnInventoryAdjustmentType> CmnInventoryAdjustmentTypes { get; set; } = new List<CmnInventoryAdjustmentType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CmnLanguage> CmnLanguages { get; set; } = new List<CmnLanguage>();
 
     [InverseProperty("State")]
@@ -130,7 +133,19 @@ public partial class CmnState
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("State")]
+    public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocs { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaMovementDoc> FaMovementDocs { get; set; } = new List<FaMovementDoc>();
+
+    [InverseProperty("State")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("State")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();

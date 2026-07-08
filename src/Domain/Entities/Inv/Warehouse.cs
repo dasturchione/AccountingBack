@@ -36,7 +36,6 @@ public partial class Warehouse
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -53,6 +52,9 @@ public partial class Warehouse
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
     [InverseProperty("CurrentWarehouse")]
     public virtual ICollection<ProductTable> CurrentProductTables { get; set; } = new List<ProductTable>();

@@ -88,6 +88,9 @@ public partial class Product
     [InverseProperty("Product")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
 
+    [InverseProperty("Product")]
+    public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("Products")]
     public virtual Organization Organization { get; set; } = null!;

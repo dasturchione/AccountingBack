@@ -389,7 +389,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 return Result.Failure<List<PurchaseDocProduct>>(
                     PurchaseDocTableErrors.InvalidProductUnitPrice(dto.ProductId, dto.UnitPrice, _userContext.LanguageId));
 
-            if (product.IsService)
+            if (product.IsService || !product.IsPieceTracked)
             {
                 if (dto.Items.Count > 0)
                     return Result.Failure<List<PurchaseDocProduct>>(

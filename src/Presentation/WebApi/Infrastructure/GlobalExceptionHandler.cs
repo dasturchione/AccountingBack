@@ -12,7 +12,7 @@ namespace WebApi.Infrastructure
             logger.LogError(exception, "Unhandled exception occurred");
             var correlationId = httpContext.TraceIdentifier;
 
-            var problemDetails = exception switch
+            var problemDetails = exception switch 
             {
                 OptimisticConcurrencyException concurrencyException => new ProblemDetails
                 {

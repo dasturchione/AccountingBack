@@ -93,6 +93,30 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFaGroups)]
+    [HttpGet("fa-groups")]
+    public async Task<IActionResult> GetFaGroups(CancellationToken ct)
+    {
+        var result = await _manualService.GetFaGroupsAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFaOkofs)]
+    [HttpGet("fa-okofs")]
+    public async Task<IActionResult> GetFaOkofs(CancellationToken ct)
+    {
+        var result = await _manualService.GetFaOkofsAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFaDepreciationMethods)]
+    [HttpGet("fa-depreciation-methods")]
+    public async Task<IActionResult> GetFaDepreciationMethods(CancellationToken ct)
+    {
+        var result = await _manualService.GetFaDepreciationMethodsAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetPostingAliases)]
     [HttpGet("posting-aliases")]
     public async Task<IActionResult> GetPostingAliases(CancellationToken ct)
@@ -289,6 +313,14 @@ public class ManualController : ControllerBase
         CancellationToken ct)
     {
         var result = await _manualService.GetProductsAsync(productGroupId, warehouseId, isService, productTypeId, isSold, isPurchased, ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetSourceProductTables)]
+    [HttpGet("source-product-tables")]
+    public async Task<IActionResult> GetSourceProductTables(CancellationToken ct)
+    {
+        var result = await _manualService.GetSourceProductTablesAsync(ct);
         return Ok(result);
     }
 

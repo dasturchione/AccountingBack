@@ -145,6 +145,10 @@ public static class PermissionCodeConst
     public const string ManualGetCounterpartyTypes        = "MANUAL_GET_COUNTERPARTY_TYPES";
     public const string ManualGetPaymentTypes             = "MANUAL_GET_PAYMENT_TYPES";
     public const string ManualGetInventoryAdjustmentTypes = "MANUAL_GET_INVENTORY_ADJUSTMENT_TYPES";
+    public const string ManualGetFaGroups                 = "MANUAL_GET_FA_GROUPS";
+    public const string ManualGetFaOkofs                  = "MANUAL_GET_FA_OKOFS";
+    public const string ManualGetFaDepreciationMethods    = "MANUAL_GET_FA_DEPRECIATION_METHODS";
+    public const string ManualGetSourceProductTables       = "MANUAL_GET_SOURCE_PRODUCT_TABLES";
     public const string ManualGetPostingAliases           = "MANUAL_GET_POSTING_ALIASES";
     public const string ManualGetPaymentPurposes          = "MANUAL_GET_PAYMENT_PURPOSES";
     public const string ManualGetPriceRoundingMethods     = "MANUAL_GET_PRICE_ROUNDING_METHODS";

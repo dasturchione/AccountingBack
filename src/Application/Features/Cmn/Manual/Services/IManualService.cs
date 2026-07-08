@@ -16,6 +16,9 @@ public interface IManualService
     Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentPurposesAsync(short? operationTypeId, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFaOkofsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default);
@@ -57,6 +60,7 @@ public interface IManualService
         bool? isPurchased = null,
         CancellationToken ct = default);
     Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default);
 
     // acc
     Task<List<SelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);

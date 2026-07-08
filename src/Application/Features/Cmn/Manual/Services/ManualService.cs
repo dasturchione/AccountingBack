@@ -21,6 +21,10 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
     private readonly IQueryRepository<InventoryAdjustmentType> _inventoryAdjustmentTypeQuery;
+    private readonly IQueryRepository<FaGroup> _faGroupQuery;
+    private readonly IQueryRepository<FaOkof> _faOkofQuery;
+    private readonly IQueryRepository<FaDepreciationMethod> _faDepreciationMethodQuery;
+    private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<PostingAlias> _postingAliasQuery;
     private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
@@ -64,6 +68,10 @@ public class ManualService : IManualService
         IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<InventoryAdjustmentType> inventoryAdjustmentTypeQuery,
+        IQueryRepository<FaGroup> faGroupQuery,
+        IQueryRepository<FaOkof> faOkofQuery,
+        IQueryRepository<FaDepreciationMethod> faDepreciationMethodQuery,
+        IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<PostingAlias> postingAliasQuery,
         IQueryRepository<PaymentPurpose> paymentPurposeQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
@@ -107,6 +115,10 @@ public class ManualService : IManualService
         _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery      = paymentTypeQuery;
         _inventoryAdjustmentTypeQuery = inventoryAdjustmentTypeQuery;
+        _faGroupQuery         = faGroupQuery;
+        _faOkofQuery          = faOkofQuery;
+        _faDepreciationMethodQuery = faDepreciationMethodQuery;
+        _productTableQuery    = productTableQuery;
         _postingAliasQuery     = postingAliasQuery;
         _paymentPurposeQuery   = paymentPurposeQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
@@ -237,6 +249,45 @@ public class ManualService : IManualService
             Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
         };
         return (await _inventoryAdjustmentTypeQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+        {
+            return new List<SelectListDto>();
+        }
+
+        var spec = new QuerySpecification<FaGroup, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            x.OrganizationId == _userContext.OrganizationId,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _faGroupQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetFaOkofsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<FaOkof, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _faOkofQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default)
+    {
+        var spec = new QuerySpecification<FaDepreciationMethod, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE,
+            OrderBy  = q => q.OrderBy(x => x.Name),
+            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
+        };
+        return (await _faDepreciationMethodQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default)
@@ -578,6 +629,30 @@ public class ManualService : IManualService
                                  }).Build();
 
         return await _productQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+        {
+            return new List<SelectListDto>();
+        }
+
+        var spec = new QuerySpecification<ProductTable, SelectListDto>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            x.OrganizationId == _userContext.OrganizationId,
+            OrderBy  = q => q.OrderBy(x => x.Id),
+            Selector = x => new SelectListDto
+            {
+                Id   = x.Id,
+                Name = string.IsNullOrWhiteSpace(x.SerialNumber) 
+                            ? (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.Id.ToString() : x.MarkingNumber)
+                            : (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.SerialNumber : $"{x.SerialNumber} / {x.MarkingNumber}"),
+                Code = x.Id.ToString()
+            }
+        };
+        return (await _productTableQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)

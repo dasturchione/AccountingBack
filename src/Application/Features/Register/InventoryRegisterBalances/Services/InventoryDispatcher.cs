@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using SharedKernel.Results;
 
@@ -11,18 +12,21 @@ public class InventoryDispatcher : IInventoryDispatcher
     private readonly IInventoryDocumentHandler<WarehouseTransferDoc> _warehouseTransferHandler;
     private readonly IInventoryDocumentHandler<InventoryAdjustmentDoc> _inventoryAdjustmentHandler;
     private readonly ICommandRepository<RegisterBalance> _command;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
 
     public InventoryDispatcher(IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
                                IInventoryDocumentHandler<SaleDoc> saleHandler,
                                IInventoryDocumentHandler<WarehouseTransferDoc> warehouseTransferHandler,
                                IInventoryDocumentHandler<InventoryAdjustmentDoc> inventoryAdjustmentHandler,
-                               ICommandRepository<RegisterBalance> command)
+                               ICommandRepository<RegisterBalance> command,
+                               IWarehouseProductBalanceService warehouseProductBalanceService)
     {
         _purchaseHandler = purchaseHandler;
         _saleHandler = saleHandler;
         _warehouseTransferHandler = warehouseTransferHandler;
         _inventoryAdjustmentHandler = inventoryAdjustmentHandler;
         _command = command;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
     }
 
     public async Task<Result<List<RegisterBalance>>> ProcessAsync(object document, CancellationToken ct = default, long? postingBatchId = null)
@@ -46,6 +50,10 @@ public class InventoryDispatcher : IInventoryDispatcher
         }
 
         await _command.CreateAsync(result.Value, ct);
+        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(result.Value, ct);
+        if (!warehouseProductUpdate.IsSuccess)
+            return Result.Failure<List<RegisterBalance>>(warehouseProductUpdate.Error);
+
         return result;
     }
 }

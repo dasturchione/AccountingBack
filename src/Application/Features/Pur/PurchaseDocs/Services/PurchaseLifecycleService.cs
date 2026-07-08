@@ -5,6 +5,7 @@ using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
@@ -24,6 +25,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IPurchaseCounterpartyRegisterService _purchaseCounterpartyRegisterService;
     private readonly IQueryRepository<PurchaseDoc> _query;
@@ -50,6 +52,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                                     IAuditLogService auditLogService,
                                     IAccountingDispatcher dispatcher,
                                     IInventoryDispatcher inventoryDispatcher,
+                                    IWarehouseProductBalanceService warehouseProductBalanceService,
                                     IActiveInventoryCountGuardService activeInventoryCountGuardService,
                                     IPurchaseCounterpartyRegisterService purchaseCounterpartyRegisterService,
                                     IQueryRepository<PurchaseDoc> query,
@@ -79,6 +82,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
         _inventoryDispatcher = inventoryDispatcher;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _purchaseCounterpartyRegisterService = purchaseCounterpartyRegisterService;
         _query = query;
@@ -517,6 +521,10 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         }).ToList();
 
         await _inventoryRegisterCommand.CreateAsync(reversalEntries, ct);
+        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversalEntries, ct);
+        if (!warehouseProductUpdate.IsSuccess)
+            return Result.Failure(warehouseProductUpdate.Error);
+
         return Result.Success();
     }
 

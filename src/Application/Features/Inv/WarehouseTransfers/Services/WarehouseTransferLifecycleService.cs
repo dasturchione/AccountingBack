@@ -4,6 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IQueryRepository<WarehouseTransferDoc> _query;
     private readonly ICommandRepository<WarehouseTransferDoc> _command;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
@@ -38,6 +40,7 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
         IActiveInventoryCountGuardService activeInventoryCountGuardService,
         IAuditLogService auditLogService,
         IInventoryDispatcher inventoryDispatcher,
+        IWarehouseProductBalanceService warehouseProductBalanceService,
         IQueryRepository<WarehouseTransferDoc> query,
         ICommandRepository<WarehouseTransferDoc> command,
         ICommandRepository<ProductTable> productTableCommand,
@@ -56,6 +59,7 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _auditLogService = auditLogService;
         _inventoryDispatcher = inventoryDispatcher;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
         _query = query;
         _command = command;
         _productTableCommand = productTableCommand;
@@ -409,6 +413,10 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
         }).ToList();
 
         await _inventoryRegisterCommand.CreateAsync(reversals, ct);
+        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversals, ct);
+        if (!warehouseProductUpdate.IsSuccess)
+            return Result.Failure(warehouseProductUpdate.Error);
+
         return Result.Success();
     }
 

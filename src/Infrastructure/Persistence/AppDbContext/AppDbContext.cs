@@ -87,6 +87,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WarehouseTransferLine> WarehouseTransferLines { get; set; }
     public virtual DbSet<WarehouseTransferDocTable> WarehouseTransferDocTables { get; set; }
     public virtual DbSet<Warehouse> Warehouses { get; set; }
+    public virtual DbSet<WarehouseProduct> WarehouseProducts { get; set; }
     public virtual DbSet<Branch> Branches { get; set; }
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<Position> Positions { get; set; }
@@ -192,6 +193,15 @@ public partial class AppDbContext : DbContext
             .ToTable(t => t.HasCheckConstraint(
                 "chk_inv_product_table_active_stock_warehouse",
                 "status_id <> 1 OR current_warehouse_id IS NOT NULL"));
+
+        modelBuilder.Entity<WarehouseProduct>()
+            .Property(x => x.AvailableQuantity)
+            .HasComputedColumnSql("quantity - reserved_quantity - blocked_quantity", stored: true);
+
+        modelBuilder.Entity<WarehouseProduct>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
 
         modelBuilder.Entity<SaleDocTable>()
             .HasIndex(x => new { x.OwnerId, x.ProductTableId })

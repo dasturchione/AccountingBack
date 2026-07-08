@@ -8,6 +8,7 @@ using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.PurchaseDocs;
 using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.Warehouses;
@@ -403,6 +404,7 @@ file sealed class PurchaseLifecycleFixture
             new PurchaseDocAuditLogService(),
             accountingDispatcher,
             inventoryDispatcher,
+            new NoopWarehouseProductBalanceService(),
             new PurchaseLifecycleInventoryCountGuardService(),
             new PurchaseLifecycleCounterpartyRegisterService(),
             new PurchaseDocQueryRepository<PurchaseDoc>(docs),
@@ -503,6 +505,18 @@ file sealed class PurchaseLifecycleInventoryDispatcher : IInventoryDispatcher
         CallCount++;
         return Task.FromResult(Result.Success(new List<RegisterBalance>()));
     }
+}
+
+file sealed class NoopWarehouseProductBalanceService : IWarehouseProductBalanceService
+{
+    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReleaseReservedAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
 }
 
 file sealed class PurchaseLifecycleCounterpartyRegisterService : IPurchaseCounterpartyRegisterService

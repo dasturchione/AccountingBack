@@ -5,6 +5,7 @@ using Application.Features.AuditLogs;
 using Application.Features.InventoryAdjustments;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
 using SharedKernel.Constants;
@@ -130,13 +131,15 @@ file sealed class InventoryAdjustmentLifecycleFixture
         var postingBatchCommand = new FakeLifecycleCommandRepository<PostingBatch>(context.PostingBatches, entity => entity.Id = entity.Id == 0 ? context.NextPostingBatchId++ : entity.Id);
         var registerCommand = new FakeLifecycleCommandRepository<RegisterBalance>(context.RegisterBalances, entity => entity.Id = entity.Id == 0 ? context.NextRegisterBalanceId++ : entity.Id);
         var productTableCommand = new FakeLifecycleCommandRepository<ProductTable>(context.ProductTables, entity => entity.Id = entity.Id == 0 ? context.NextProductTableId++ : entity.Id);
+        var warehouseProductBalanceService = new NoopWarehouseProductBalanceService();
 
         var inventoryDispatcher = new InventoryDispatcher(
             new NoopInventoryDocumentHandler<PurchaseDoc>(),
             new NoopInventoryDocumentHandler<SaleDoc>(),
             new NoopInventoryDocumentHandler<WarehouseTransferDoc>(),
             new InventoryAdjustmentInventoryHandler(),
-            registerCommand);
+            registerCommand,
+            warehouseProductBalanceService);
 
         var service = new InventoryAdjustmentLifecycleService(
             new FakeLifecycleUserContext(),
@@ -146,6 +149,7 @@ file sealed class InventoryAdjustmentLifecycleFixture
             new FakeLifecycleActiveInventoryCountGuardService(),
             new FakeLifecycleAuditLogService(),
             inventoryDispatcher,
+            warehouseProductBalanceService,
             new FakeLifecycleQueryRepository<InventoryAdjustmentDoc>(context.Docs),
             new FakeLifecycleCommandRepository<InventoryAdjustmentDoc>(context.Docs),
             new FakeLifecycleCommandRepository<InventoryAdjustmentDocTable>(context.Tables),
@@ -323,6 +327,18 @@ file sealed class NoopInventoryDocumentHandler<T> : IInventoryDocumentHandler<T>
 {
     public Task<Result<List<RegisterBalance>>> HandleAsync(T document, CancellationToken ct = default) =>
         Task.FromResult(Result.Success(new List<RegisterBalance>()));
+}
+
+file sealed class NoopWarehouseProductBalanceService : IWarehouseProductBalanceService
+{
+    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReleaseReservedAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
 }
 
 file sealed class FakeLifecycleCommandRepository<TEntity> : ICommandRepository<TEntity> where TEntity : class

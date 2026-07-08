@@ -4,6 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _query;
     private readonly ICommandRepository<InventoryAdjustmentDoc> _command;
     private readonly ICommandRepository<InventoryAdjustmentDocTable> _tableCommand;
@@ -39,6 +41,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
         IActiveInventoryCountGuardService activeInventoryCountGuardService,
         IAuditLogService auditLogService,
         IInventoryDispatcher inventoryDispatcher,
+        IWarehouseProductBalanceService warehouseProductBalanceService,
         IQueryRepository<InventoryAdjustmentDoc> query,
         ICommandRepository<InventoryAdjustmentDoc> command,
         ICommandRepository<InventoryAdjustmentDocTable> tableCommand,
@@ -58,6 +61,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _auditLogService = auditLogService;
         _inventoryDispatcher = inventoryDispatcher;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
         _query = query;
         _command = command;
         _tableCommand = tableCommand;
@@ -512,6 +516,10 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
         }).ToList();
 
         await _inventoryRegisterCommand.CreateAsync(reversals, ct);
+        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversals, ct);
+        if (!warehouseProductUpdate.IsSuccess)
+            return Result.Failure(warehouseProductUpdate.Error);
+
         return Result.Success();
     }
 

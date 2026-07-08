@@ -5,6 +5,7 @@ using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.SaleDocTables;
@@ -25,6 +26,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly ISaleCounterpartyRegisterService _saleCounterpartyRegisterService;
     private readonly ISaleMoneyRegisterService _saleMoneyRegisterService;
@@ -51,6 +53,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                                 IAuditLogService auditLogService,
                                 IAccountingDispatcher dispatcher,
                                 IInventoryDispatcher inventoryDispatcher,
+                                IWarehouseProductBalanceService warehouseProductBalanceService,
                                 IActiveInventoryCountGuardService activeInventoryCountGuardService,
                                 ISaleCounterpartyRegisterService saleCounterpartyRegisterService,
                                 ISaleMoneyRegisterService saleMoneyRegisterService,
@@ -80,6 +83,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
         _inventoryDispatcher = inventoryDispatcher;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _saleCounterpartyRegisterService = saleCounterpartyRegisterService;
         _saleMoneyRegisterService = saleMoneyRegisterService;
@@ -126,6 +130,8 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (doc.StatusId != DocumentStatusIdConst.DRAFT && doc.StatusId != DocumentStatusIdConst.PENDING)
                 return Result.Failure(SaleDocErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
 
+            var oldStatusId = doc.StatusId;
+
             var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
             if (!periodValidation.IsSuccess)
                 return periodValidation;
@@ -158,6 +164,13 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 return costSourceValidation;
 
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Sale confirmed", ct);
+
+            if (oldStatusId == DocumentStatusIdConst.PENDING)
+            {
+                var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(doc.WarehouseId, GetSaleWarehouseProductBalanceItems(doc), ct);
+                if (!reserveRelease.IsSuccess)
+                    return Result.Failure(reserveRelease.Error);
+            }
 
             await UpdateSaleProductTablesAsync(doc, ProductTableStatusIdConst.SOLD, StateIdConst.ACTIVE, ct);
 
@@ -271,6 +284,13 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             }
             else
             {
+                if (doc.StatusId == DocumentStatusIdConst.PENDING)
+                {
+                    var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(doc.WarehouseId, GetSaleWarehouseProductBalanceItems(doc), ct);
+                    if (!reserveRelease.IsSuccess)
+                        return Result.Failure(reserveRelease.Error);
+                }
+
                 await ReleaseReservedProductTablesAsync(doc, ct);
             }
 
@@ -668,6 +688,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         }).ToList();
 
         await _inventoryRegisterCommand.CreateAsync(reversalEntries, ct);
+        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversalEntries, ct);
+        if (!warehouseProductUpdate.IsSuccess)
+            return Result.Failure(warehouseProductUpdate.Error);
+
         return Result.Success();
     }
 
@@ -685,6 +709,21 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Select(x => x.ProductTable)
             .GroupBy(x => x.Id)
             .Select(x => x.First())
+            .ToList();
+
+    private static List<WarehouseProductBalanceItem> GetSaleWarehouseProductBalanceItems(SaleDoc doc) =>
+        doc.SaleDocProducts
+            .Where(x => !x.Product.IsService)
+            .Select(x => new WarehouseProductBalanceItem(
+                x.ProductId,
+                x.UnitId,
+                x.SaleDocTables.Count))
+            .Where(x => x.Quantity > 0m)
+            .GroupBy(x => new { x.ProductId, x.UnitId })
+            .Select(x => new WarehouseProductBalanceItem(
+                x.Key.ProductId,
+                x.Key.UnitId,
+                x.Sum(i => i.Quantity)))
             .ToList();
 
     private static string ReverseSubkontoSide(string side) =>

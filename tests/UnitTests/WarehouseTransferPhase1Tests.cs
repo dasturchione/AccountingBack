@@ -5,6 +5,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryRegisterBalances;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.WarehouseTransfers;
 using Domain.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -314,13 +315,15 @@ file sealed class WarehouseTransferLifecycleFixture
 
         var inventoryCommand = new FakeCommandRepository<RegisterBalance>(inventoryEntries, entity => entity.Id = entity.Id == 0 ? inventoryEntries.Count + 1 : entity.Id);
         var postingBatchCommand = new FakeCommandRepository<PostingBatch>(postingBatches, entity => entity.Id = entity.Id == 0 ? postingBatches.Count + 1 : entity.Id);
+        var warehouseProductBalanceService = new NoopWarehouseProductBalanceService();
 
         var inventoryDispatcher = new InventoryDispatcher(
             new NoopInventoryHandler<PurchaseDoc>(),
             new NoopInventoryHandler<SaleDoc>(),
             new WarehouseTransferInventoryHandler(),
             new NoopInventoryHandler<InventoryAdjustmentDoc>(),
-            inventoryCommand);
+            inventoryCommand,
+            warehouseProductBalanceService);
 
         var lifecycleService = new WarehouseTransferLifecycleService(
             userContext,
@@ -330,6 +333,7 @@ file sealed class WarehouseTransferLifecycleFixture
             new FakeActiveInventoryCountGuardService(),
             new FakeAuditLogService(),
             inventoryDispatcher,
+            warehouseProductBalanceService,
             new FakeQueryRepository<WarehouseTransferDoc>(data.Docs),
             new FakeCommandRepository<WarehouseTransferDoc>(data.Docs),
             new FakeCommandRepository<ProductTable>(data.ProductTables),
@@ -722,4 +726,16 @@ file sealed class NoopInventoryHandler<T> : IInventoryDocumentHandler<T>
 {
     public Task<Result<List<RegisterBalance>>> HandleAsync(T document, CancellationToken ct = default) =>
         Task.FromResult(Result.Success(new List<RegisterBalance>()));
+}
+
+file sealed class NoopWarehouseProductBalanceService : IWarehouseProductBalanceService
+{
+    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
+
+    public Task<Result> ReleaseReservedAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default) =>
+        Task.FromResult(Result.Success());
 }

@@ -7,6 +7,7 @@ using Application.Features.CounterpartyCards;
 using Application.Features.InventoryCounts;
 using Application.Features.SaleDocTables;
 using Application.Features.Warehouses;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -33,6 +34,7 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
     private readonly IProductTableReservationService _reservationService;
+    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
@@ -53,6 +55,7 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<Product> productQuery,
                           IProductPriceCalculateService priceCalculateService,
                           IProductTableReservationService reservationService,
+                          IWarehouseProductBalanceService warehouseProductBalanceService,
                           IActiveInventoryCountGuardService activeInventoryCountGuardService,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
@@ -74,6 +77,7 @@ public class SaleDocService : BaseService, ISaleDocService
         _productQuery = productQuery;
         _priceCalculateService = priceCalculateService;
         _reservationService = reservationService;
+        _warehouseProductBalanceService = warehouseProductBalanceService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _docNumberGenerator = docNumberGenerator;
     }
@@ -249,6 +253,13 @@ public class SaleDocService : BaseService, ISaleDocService
                 return Result.Failure(selectionResult.Error);
 
             var selectedItems = selectionResult.Value;
+
+            var warehouseReserve = await _warehouseProductBalanceService.ReserveAsync(
+                doc.WarehouseId,
+                BuildWarehouseProductBalanceItems(goodsProductLines, selectedItems),
+                ct);
+            if (!warehouseReserve.IsSuccess)
+                return Result.Failure(warehouseReserve.Error);
 
             var reserved = await _reservationService.TryReserveAsync(doc.WarehouseId, selectedProductTableIds, ct);
             if (!reserved)
@@ -601,6 +612,23 @@ public class SaleDocService : BaseService, ISaleDocService
         }
 
         return lines;
+    }
+
+    private static List<WarehouseProductBalanceItem> BuildWarehouseProductBalanceItems(
+        IReadOnlyCollection<SaleDocProduct> productLines,
+        IReadOnlyCollection<ProductTableSelectionDto> selectedItems)
+    {
+        var unitIdByProductId = productLines
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(x => x.Key, x => x.First().UnitId);
+
+        return selectedItems
+            .GroupBy(x => x.ProductId)
+            .Select(x => new WarehouseProductBalanceItem(
+                x.Key,
+                unitIdByProductId[x.Key],
+                x.Count()))
+            .ToList();
     }
 
 }

@@ -78,6 +78,7 @@ using Application.Features.SaleDocTables;
 using Application.Features.Users;
 using Application.Features.Users.Services;
 using Application.Features.Warehouses;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.Inv.ProductStocks;
 using Domain.Entities;
 using Infrastructure.Authentication;
@@ -120,6 +121,7 @@ namespace Infrastructure
 
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();
+            services.AddScoped<IWarehouseProductBalanceService, WarehouseProductBalanceService>();
 
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();

@@ -304,7 +304,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
 
         foreach (var line in doc.PurchaseDocProducts)
         {
-            if (line.Product.IsService)
+            if (line.Product.IsService || !line.Product.IsPieceTracked)
             {
                 if (line.PurchaseDocTables.Count > 0)
                     return Result.Failure(PurchaseDocErrors.ServiceItemsNotAllowed(line.ProductId, _userContext.LanguageId));

@@ -114,7 +114,6 @@ namespace Infrastructure
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
-            services.AddScoped<IInventoryReadDbContext, InventoryReadDbContext>();
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
             services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();

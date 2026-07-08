@@ -1,6 +1,5 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Common.Extensions;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryAdjustments;
@@ -16,7 +15,6 @@ namespace Application.Features.InventoryCounts;
 public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecycleService
 {
     private readonly IUserContext _userContext;
-    private readonly IInventoryReadDbContext _inventoryReadDbContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IDocumentPostingLock _postingLock;
     private readonly IAccountingPeriodValidator _periodValidator;
@@ -35,7 +33,6 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
 
     public InventoryCountLifecycleService(
         IUserContext userContext,
-        IInventoryReadDbContext inventoryReadDbContext,
         IQueryBuilder queryBuilder,
         IDocumentPostingLock postingLock,
         IAccountingPeriodValidator periodValidator,
@@ -56,7 +53,6 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         : base(logger, unitOfWork)
     {
         _userContext = userContext;
-        _inventoryReadDbContext = inventoryReadDbContext;
         _queryBuilder = queryBuilder;
         _postingLock = postingLock;
         _periodValidator = periodValidator;
@@ -266,13 +262,12 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
 
     private async Task<List<InventoryCountDifferenceDto>> BuildDifferencesAsync(InventoryCountDoc doc, CancellationToken ct)
     {
-        var expectedProductTables = await _inventoryReadDbContext.ProductTables
-            .AsNoTracking()
+        var expectedQuery = _queryBuilder.For<ProductTable>()
             .Where(x => x.OrganizationId == doc.OrganizationId &&
                         x.CurrentWarehouseId == doc.WarehouseId &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StatusId == ProductTableStatusIdConst.IN_STOCK)
-            .Select(x => new InventoryCountExpectedRow
+            .As(x => new InventoryCountExpectedRow
             {
                 Id = x.Id,
                 ProductId = x.ProductId,
@@ -280,7 +275,9 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
                 UnitId = x.Product.UnitId,
                 UnitName = x.Product.Unit.Name
             })
-            .ToListAsyncSafe(ct);
+            .Build();
+
+        var expectedProductTables = await _productTableQuery.GetAllAsync(expectedQuery, ct);
 
         var expectedByProduct = expectedProductTables.GroupBy(x => new { x.ProductId, x.UnitId })
             .ToDictionary(x => (x.Key.ProductId, x.Key.UnitId), x => x.ToList());

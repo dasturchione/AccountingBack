@@ -206,7 +206,6 @@ file sealed class InventoryCountCrudFixture
         var data = InventoryCountTestData.CreateBaseData();
         var service = new InventoryCountService(
             new FakeCountUserContext(),
-            new FakeCountInventoryReadDbContext(data.ProductTables, data.Products),
             new FakeCountQueryBuilder(),
             new FakeCountAuditLogService(),
             new FakeCountLifecycleService(),
@@ -258,7 +257,6 @@ file sealed class InventoryCountLifecycleFixture
 
         var service = new InventoryCountService(
             new FakeCountUserContext(),
-            new FakeCountInventoryReadDbContext(data.ProductTables, data.Products),
             new FakeCountQueryBuilder(),
             new FakeCountAuditLogService(),
             new FakeCountLifecycleService(),
@@ -280,7 +278,6 @@ file sealed class InventoryCountLifecycleFixture
 
         var lifecycle = new InventoryCountLifecycleService(
             new FakeCountUserContext(),
-            new FakeCountInventoryReadDbContext(data.ProductTables, data.Products),
             new FakeCountQueryBuilder(),
             new FakeCountPostingLock(),
             periodValidator,
@@ -501,18 +498,6 @@ file sealed class FakeCountDocNumberGenerator : IDocNumberGenerator
         Task.FromResult($"{prefix}-{Guid.NewGuid():N}".Substring(0, 12));
 }
 
-file sealed class FakeCountInventoryReadDbContext : IInventoryReadDbContext
-{
-    public FakeCountInventoryReadDbContext(List<ProductTable> productTables, List<Product> products)
-    {
-        ProductTables = productTables.AsQueryable();
-        Products = products.AsQueryable();
-    }
-
-    public IQueryable<ProductTable> ProductTables { get; }
-    public IQueryable<Product> Products { get; }
-}
-
 file sealed class FakeCountAuditLogService : IAuditLogService
 {
     public void SetOldValues(object oldValues) { }
@@ -730,22 +715,52 @@ file sealed class FakeCountQueryRepository<TEntity> : IQueryRepository<TEntity> 
     public Task<TEntity?> GetAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default) =>
         Task.FromResult(_data.AsQueryable().Where(specification.Criteria).FirstOrDefault());
 
-    public Task<TResult?> GetAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default) =>
-        Task.FromResult(default(TResult));
+    public Task<TResult?> GetAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
+    {
+        var query = _data.AsQueryable().Where(specification.Criteria).Select(specification.Selector);
+
+        if (specification.ResultCriteria is not null)
+            query = query.Where(specification.ResultCriteria);
+
+        return Task.FromResult(query.FirstOrDefault());
+    }
 
     public Task<List<TEntity>> GetAllAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default) =>
         Task.FromResult(_data.AsQueryable().Where(specification.Criteria).ToList());
 
-    public Task<List<TResult>> GetAllAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default) =>
-        Task.FromResult(new List<TResult>());
+    public Task<List<TResult>> GetAllAsync<TResult>(QuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
+    {
+        var query = _data.AsQueryable().Where(specification.Criteria).Select(specification.Selector);
+
+        if (specification.OrderBy is not null)
+            query = specification.OrderBy(query);
+
+        if (specification.ResultCriteria is not null)
+            query = query.Where(specification.ResultCriteria);
+
+        return Task.FromResult(query.ToList());
+    }
 
     public Task<PagedList<TEntity>> GetPagedAsync(PagedQuerySpecification<TEntity> specification, CancellationToken ct = default) =>
         Task.FromResult(new PagedList<TEntity>(
             _data.AsQueryable().Where(specification.Criteria).Skip(specification.Skip).Take(specification.Take ?? 50).ToList(),
             _data.AsQueryable().Count(specification.Criteria)));
 
-    public Task<PagedList<TResult>> GetPagedAsync<TResult>(PagedQuerySpecification<TEntity, TResult> specification, CancellationToken ct = default) =>
-        Task.FromResult(new PagedList<TResult>([], 0));
+    public Task<PagedList<TResult>> GetPagedAsync<TResult>(PagedQuerySpecification<TEntity, TResult> specification, CancellationToken ct = default)
+    {
+        var query = _data.AsQueryable().Where(specification.Criteria).Select(specification.Selector);
+
+        if (specification.ResultCriteria is not null)
+            query = query.Where(specification.ResultCriteria);
+
+        if (specification.OrderBy is not null)
+            query = specification.OrderBy(query);
+
+        var total = query.Count();
+        return Task.FromResult(new PagedList<TResult>(
+            query.Skip(specification.Skip).Take(specification.Take ?? 50).ToList(),
+            total));
+    }
 }
 
 file sealed class FakeCountQueryBuilder : IQueryBuilder

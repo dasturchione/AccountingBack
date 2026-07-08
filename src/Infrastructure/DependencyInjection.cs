@@ -181,6 +181,7 @@ namespace Infrastructure
             services.AddScoped<IInventoryAdjustmentLifecycleService, InventoryAdjustmentLifecycleService>();
             services.AddScoped<IInventoryCountLifecycleService, InventoryCountLifecycleService>();
             services.AddScoped<IProductStockService, ProductStockService>();
+            services.AddScoped<IProductStockCalculateService, ProductStockCalculateService>();
             services.AddScoped<IProductPriceCalculateService, ProductPriceCalculateService>();
             services.AddScoped<IProductPriceService, ProductPriceService>();
             services.AddScoped<IPricingConditionService, PricingConditionService>();

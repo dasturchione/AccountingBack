@@ -1,13 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("acc_chart_account")]
-[Index("AccountTypeId", Name = "idx_acc_chart_account_account_type_id")]
-[Index("ParentId", Name = "idx_acc_chart_account_parent_id")]
-[Index("StateId", Name = "idx_acc_chart_account_state_id")]
 public partial class ChartAccount
 {
     [Key]
@@ -19,7 +15,11 @@ public partial class ChartAccount
 
     [Column("code")]
     [StringLength(50)]
-    public string Code { get; set; } = null!;
+    public string? Code { get; set; }
+
+    [Column("number")]
+    [StringLength(50)]
+    public string Number { get; set; } = null!;
 
     [Column("name")]
     [StringLength(250)]
@@ -27,12 +27,6 @@ public partial class ChartAccount
 
     [Column("is_group")]
     public bool IsGroup { get; set; }
-
-    [Column("state_id")]
-    public short StateId { get; set; }
-
-    [Column("created_date", TypeName = "timestamp without time zone")]
-    public DateTime CreatedDate { get; set; }
 
     [Column("account_type_id")]
     public short? AccountTypeId { get; set; }
@@ -43,6 +37,24 @@ public partial class ChartAccount
     [Column("is_currency")]
     public bool IsCurrency { get; set; }
 
+    [Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    [Column("is_department")]
+    public bool IsDepartment { get; set; }
+
+    [Column("is_tax_accounting")]
+    public bool IsTaxAccounting { get; set; }
+
+    [Column("is_off_balance")]
+    public bool IsOffBalance { get; set; }
+
+    [Column("state_id")]
+    public short StateId { get; set; }
+
+    [Column("created_date", TypeName = "timestamp without time zone")]
+    public DateTime CreatedDate { get; set; }
+
     [InverseProperty("Account")]
     public virtual ICollection<AccountResolveRule> AccountResolveRules { get; set; } = new List<AccountResolveRule>();
 
@@ -51,6 +63,10 @@ public partial class ChartAccount
 
     [InverseProperty("CreditAccount")]
     public virtual ICollection<AccountingRegisterEntry> RegisterEntryCreditAccounts { get; set; } = new List<AccountingRegisterEntry>();
+
+    [ForeignKey("OrganizationId")]
+    [InverseProperty("ChartAccounts")]
+    public virtual Organization Organization { get; set; } = null!;
 
     [InverseProperty("DebitAccount")]
     public virtual ICollection<AccountingRegisterEntry> RegisterEntryDebitAccounts { get; set; } = new List<AccountingRegisterEntry>();

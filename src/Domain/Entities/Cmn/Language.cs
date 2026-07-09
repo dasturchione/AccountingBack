@@ -49,6 +49,12 @@ public partial class Language
     [InverseProperty("Language")]
     public virtual ICollection<ProductTypeTranslation> ProductTypeTranslations { get; set; } = new List<ProductTypeTranslation>();
 
+    [InverseProperty(nameof(ChartAccountPresetTranslation.Language))]
+    public virtual ICollection<ChartAccountPresetTranslation> ChartAccountPresetTranslations { get; set; } = new List<ChartAccountPresetTranslation>();
+
+    [InverseProperty(nameof(ChartAccountPresetAccountTranslation.Language))]
+    public virtual ICollection<ChartAccountPresetAccountTranslation> ChartAccountPresetAccountTranslations { get; set; } = new List<ChartAccountPresetAccountTranslation>();
+
     [InverseProperty("Language")]
     public virtual ICollection<PaymentPurposeTranslation> PaymentPurposeTranslations { get; set; } = new List<PaymentPurposeTranslation>();
 

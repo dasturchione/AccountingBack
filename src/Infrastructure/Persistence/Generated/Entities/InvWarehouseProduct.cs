@@ -28,11 +28,11 @@ public partial class InvWarehouseProduct
     public decimal Quantity { get; set; }
 
     [Column("reserved_quantity")]
-    [Precision(18, 3)]
+    [Precision(19, 6)]
     public decimal ReservedQuantity { get; set; }
 
     [Column("blocked_quantity")]
-    [Precision(18, 3)]
+    [Precision(19, 6)]
     public decimal BlockedQuantity { get; set; }
 
     [Column("available_quantity")]

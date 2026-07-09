@@ -90,6 +90,9 @@ public partial class OrgOrganization
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<AccChartAccount> AccChartAccounts { get; set; } = new List<AccChartAccount>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("Organization")]

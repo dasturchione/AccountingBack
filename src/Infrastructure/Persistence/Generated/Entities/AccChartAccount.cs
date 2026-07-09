@@ -8,8 +8,10 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("acc_chart_account")]
 [Index("AccountTypeId", Name = "idx_acc_chart_account_account_type_id")]
+[Index("Number", Name = "idx_acc_chart_account_number")]
 [Index("ParentId", Name = "idx_acc_chart_account_parent_id")]
 [Index("StateId", Name = "idx_acc_chart_account_state_id")]
+[Index("OrganizationId", "Number", Name = "ux_acc_chart_account_organization_number", IsUnique = true)]
 public partial class AccChartAccount
 {
     [Key]
@@ -21,7 +23,7 @@ public partial class AccChartAccount
 
     [Column("code")]
     [StringLength(50)]
-    public string Code { get; set; } = null!;
+    public string? Code { get; set; }
 
     [Column("name")]
     [StringLength(250)]
@@ -45,6 +47,22 @@ public partial class AccChartAccount
     [Column("is_currency")]
     public bool IsCurrency { get; set; }
 
+    [Column("number")]
+    [StringLength(50)]
+    public string Number { get; set; } = null!;
+
+    [Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    [Column("is_department")]
+    public bool IsDepartment { get; set; }
+
+    [Column("is_tax_accounting")]
+    public bool IsTaxAccounting { get; set; }
+
+    [Column("is_off_balance")]
+    public bool IsOffBalance { get; set; }
+
     [InverseProperty("Account")]
     public virtual ICollection<AccAccountResolveRule> AccAccountResolveRules { get; set; } = new List<AccAccountResolveRule>();
 
@@ -63,6 +81,10 @@ public partial class AccChartAccount
 
     [InverseProperty("Parent")]
     public virtual ICollection<AccChartAccount> InverseParent { get; set; } = new List<AccChartAccount>();
+
+    [ForeignKey("OrganizationId")]
+    [InverseProperty("AccChartAccounts")]
+    public virtual OrgOrganization Organization { get; set; } = null!;
 
     [ForeignKey("ParentId")]
     [InverseProperty("InverseParent")]

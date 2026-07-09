@@ -91,6 +91,9 @@ public partial class Organization
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [InverseProperty("Organization")]

@@ -10,10 +10,27 @@
 );
 
 create unique index idx_acc_account_type_code on acc_account_type using btree (code);
-create index idx_acc_account_type_state_id on acc_account_type using btree (state_id);
 
-insert into acc_account_type (id, code, name, state_id, created_date) values
-    ('1', 'active', 'Aktiv', '1', '2026-06-09 15:28:20.198084'),
-    ('2', 'passive', 'Passiv', '1', '2026-06-09 15:28:20.198084'),
-    ('3', 'active_passive', 'Aktiv-passiv', '1', '2026-06-09 15:28:20.198084'),
-    ('4', 'off_balance', 'Balansdan tashqari', '1', '2026-06-09 15:28:20.198084');
+insert into acc_account_type (id, code, name, state_id) values
+    ('1', 'active',             'Aktiv',                '1'),
+    ('2', 'passive',            'Passiv',               '1'),
+    ('3', 'active_passive',     'Aktiv-passiv',         '1'),
+    ('4', 'counter_active',     'Kontr-aktiv',          '1'),
+    ('5', 'counter_passive',    'Kontr-passiv',         '1'),
+    ('6', 'tranzit',            'Tranzit',              '1'),
+    ('7', 'off_balance',        'Balansdan tashqari',   '1');
+
+    /*
+        public const short Active = 1;
+
+        public const short Passive = 2;
+
+        public const short ActivePassive = 3;
+
+        public const short CounterActive = 4;
+
+        public const short CounterPassive = 5;
+
+        public const short Tranzit = 6;
+
+        public const short OffBalance = 7;*/

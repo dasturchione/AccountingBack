@@ -40,6 +40,12 @@ public partial class CmnLanguage
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("Language")]
+    public virtual ICollection<AccChartAccountPresetAccountTranslation> AccChartAccountPresetAccountTranslations { get; set; } = new List<AccChartAccountPresetAccountTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<AccChartAccountPresetTranslation> AccChartAccountPresetTranslations { get; set; } = new List<AccChartAccountPresetTranslation>();
+
+    [InverseProperty("Language")]
     public virtual ICollection<AccPaymentPurposeTranslation> AccPaymentPurposeTranslations { get; set; } = new List<AccPaymentPurposeTranslation>();
 
     [InverseProperty("Language")]

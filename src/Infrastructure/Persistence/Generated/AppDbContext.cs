@@ -22,6 +22,16 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccChartAccount> AccChartAccounts { get; set; }
 
+    public virtual DbSet<AccChartAccountPreset> AccChartAccountPresets { get; set; }
+
+    public virtual DbSet<AccChartAccountPresetAccount> AccChartAccountPresetAccounts { get; set; }
+
+    public virtual DbSet<AccChartAccountPresetAccountSubkonto> AccChartAccountPresetAccountSubkontos { get; set; }
+
+    public virtual DbSet<AccChartAccountPresetAccountTranslation> AccChartAccountPresetAccountTranslations { get; set; }
+
+    public virtual DbSet<AccChartAccountPresetTranslation> AccChartAccountPresetTranslations { get; set; }
+
     public virtual DbSet<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; }
 
     public virtual DbSet<AccPaymentPurpose> AccPaymentPurposes { get; set; }
@@ -310,11 +320,84 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.AccountType).WithMany(p => p.AccChartAccounts).HasConstraintName("acc_chart_account_account_type_id_fkey");
 
+            entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_organization_id_fkey");
+
             entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent).HasConstraintName("acc_chart_account_parent_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.AccChartAccounts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_chart_account_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccChartAccountPreset>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_chart_account_preset_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccChartAccountPresets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccChartAccountPresetAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_chart_account_preset_account_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(1);
+
+            entity.HasOne(d => d.AccountType).WithMany(p => p.AccChartAccountPresetAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_account_account_type_id_fkey");
+
+            entity.HasOne(d => d.Preset).WithMany(p => p.AccChartAccountPresetAccounts).HasConstraintName("acc_chart_account_preset_account_preset_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccChartAccountPresetAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_account_state_id_fkey");
+
+            entity.HasOne(d => d.AccChartAccountPresetAccountNavigation).WithMany(p => p.InverseAccChartAccountPresetAccountNavigation)
+                .HasPrincipalKey(p => new { p.PresetId, p.Id })
+                .HasForeignKey(d => new { d.PresetId, d.ParentPresetAccountId })
+                .HasConstraintName("fk_acc_chart_account_preset_account_parent");
+        });
+
+        modelBuilder.Entity<AccChartAccountPresetAccountSubkonto>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_chart_account_preset_account_subkonto_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.PresetAccount).WithMany(p => p.AccChartAccountPresetAccountSubkontos).HasConstraintName("acc_chart_account_preset_account_subkont_preset_account_id_fkey");
+
+            entity.HasOne(d => d.SubkontoType).WithMany(p => p.AccChartAccountPresetAccountSubkontos)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_account_subkonto_subkonto_type_id_fkey");
+        });
+
+        modelBuilder.Entity<AccChartAccountPresetAccountTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.PresetAccountId, e.LanguageId }).HasName("acc_chart_account_preset_account_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccChartAccountPresetAccountTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_account_translation_language_id_fkey");
+
+            entity.HasOne(d => d.PresetAccount).WithMany(p => p.AccChartAccountPresetAccountTranslations).HasConstraintName("acc_chart_account_preset_account_transla_preset_account_id_fkey");
+        });
+
+        modelBuilder.Entity<AccChartAccountPresetTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.PresetId, e.LanguageId }).HasName("acc_chart_account_preset_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccChartAccountPresetTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_chart_account_preset_translation_language_id_fkey");
+
+            entity.HasOne(d => d.Preset).WithMany(p => p.AccChartAccountPresetTranslations).HasConstraintName("acc_chart_account_preset_translation_preset_id_fkey");
         });
 
         modelBuilder.Entity<AccChartAccountSubkonto>(entity =>

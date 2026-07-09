@@ -37,6 +37,9 @@ public partial class SubkontoType
     [InverseProperty("SubkontoType")]
     public virtual ICollection<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; } = new List<RegisterEntrySubkonto>();
 
+    [InverseProperty(nameof(ChartAccountPresetAccountSubkonto.SubkontoType))]
+    public virtual ICollection<ChartAccountPresetAccountSubkonto> ChartAccountPresetAccountSubkontos { get; set; } = new List<ChartAccountPresetAccountSubkonto>();
+
     [ForeignKey("StateId")]
     [InverseProperty("SubkontoTypes")]
     public virtual State State { get; set; } = null!;

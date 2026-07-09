@@ -36,10 +36,10 @@ public partial class State
     [InverseProperty("State")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
-    [InverseProperty(nameof(ChartAccountPreset.StateId))]
+    [InverseProperty(nameof(ChartAccountPreset.State))]
     public virtual ICollection<ChartAccountPreset> ChartAccountPresets { get; set; } = new List<ChartAccountPreset>();
 
-    [InverseProperty(nameof(ChartAccountPresetAccount.StateId))]
+    [InverseProperty(nameof(ChartAccountPresetAccount.State))]
     public virtual ICollection<ChartAccountPresetAccount> ChartAccountPresetAccounts { get; set; } = new List<ChartAccountPresetAccount>();
 
     [InverseProperty("State")]

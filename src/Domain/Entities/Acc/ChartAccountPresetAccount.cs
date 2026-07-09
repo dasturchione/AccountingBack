@@ -52,7 +52,7 @@ public partial class ChartAccountPresetAccount
     public DateTime CreatedDate { get; set; }
 
     [ForeignKey("PresetId, ParentPresetAccountId")]
-    [InverseProperty("InverseAccChartAccountPresetAccountNavigation")]
+    [InverseProperty(nameof(InverseChartAccountPresetAccountNavigation))]
     public virtual ChartAccountPresetAccount? ChartAccountPresetAccountNavigation { get; set; }
 
     [InverseProperty("PresetAccount")]
@@ -62,14 +62,14 @@ public partial class ChartAccountPresetAccount
     public virtual ICollection<ChartAccountPresetAccountTranslation> ChartAccountPresetAccountTranslations { get; set; } = new List<ChartAccountPresetAccountTranslation>();
 
     [ForeignKey("AccountTypeId")]
-    [InverseProperty("ChartAccountPresetAccounts")]
+    [InverseProperty(nameof(AccountType.ChartAccountPresetAccounts))]
     public virtual AccountType AccountType { get; set; } = null!;
 
-    [InverseProperty("ChartAccountPresetAccountNavigation")]
+    [InverseProperty(nameof(ChartAccountPresetAccountNavigation))]
     public virtual ICollection<ChartAccountPresetAccount> InverseChartAccountPresetAccountNavigation { get; set; } = new List<ChartAccountPresetAccount>();
 
     [ForeignKey("PresetId")]
-    [InverseProperty("ChartAccountPresetAccounts")]
+    [InverseProperty(nameof(ChartAccountPreset.ChartAccountPresetAccounts))]
     public virtual ChartAccountPreset Preset { get; set; } = null!;
 
     [ForeignKey("StateId")]

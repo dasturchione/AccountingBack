@@ -183,6 +183,14 @@ public partial class AppDbContext : DbContext
             .HasIndex(x => new { x.OrganizationId, x.CurrentWarehouseId, x.StatusId, x.ProductId })
             .HasDatabaseName("idx_inv_product_table_org_warehouse_status_product");
 
+        modelBuilder.Entity<ChartAccountPresetAccount>(entity =>
+            entity.HasOne(e => e.ChartAccountPresetAccountNavigation)
+                    .WithMany(e => e.InverseChartAccountPresetAccountNavigation)
+                    .HasForeignKey(e => new { e.PresetId, e.ParentPresetAccountId })
+                    .HasPrincipalKey(e => new { e.PresetId, e.Id })
+                    .HasConstraintName("fk_acc_chart_account_preset_account_parent")
+                    );
+
         modelBuilder.Entity<ProductTable>()
             .HasIndex(x => x.SerialNumber)
             .HasDatabaseName("ux_inv_product_table_serial_number_active")

@@ -431,7 +431,7 @@ file sealed class FakeFaDepreciationAccountingDispatcher : IAccountingDispatcher
                 {
                     Id = 1,
                     Side = SubkontoSideConst.DEBIT,
-                    SubkontoTypeId = SubkontoTypeIdConst.FIXED_ASSET,
+                    SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
                     SortOrder = 1,
                     EntityId = line.FaAssetId,
                     DisplayValue = line.FaAsset?.Name,
@@ -441,7 +441,7 @@ file sealed class FakeFaDepreciationAccountingDispatcher : IAccountingDispatcher
                 {
                     Id = 2,
                     Side = SubkontoSideConst.CREDIT,
-                    SubkontoTypeId = SubkontoTypeIdConst.FIXED_ASSET,
+                    SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
                     SortOrder = 1,
                     EntityId = line.FaAssetId,
                     DisplayValue = line.FaAsset?.Name,

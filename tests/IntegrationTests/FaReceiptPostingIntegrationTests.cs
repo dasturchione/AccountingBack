@@ -69,23 +69,23 @@ public class FaReceiptPostingIntegrationTests
         var capitalizationEntry = GetEntry(entries, accountCodes, "0820", "6010");
         Assert.Equal(100m, capitalizationEntry.Amount);
         Assert.Contains(capitalizationEntry.RegisterEntrySubkontos,
-            x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET &&
+            x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets &&
                  x.EntityId == createdAssetId &&
                  x.Side == SubkontoSideConst.DEBIT);
 
         var vatEntry = GetEntry(entries, accountCodes, "4410.1", "6010");
         Assert.Equal(12m, vatEntry.Amount);
         Assert.DoesNotContain(vatEntry.RegisterEntrySubkontos,
-            x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET);
+            x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets);
 
         var commissioningEntry = GetEntry(entries, accountCodes, "0190", "0820");
         Assert.Equal(100m, commissioningEntry.Amount);
         Assert.Contains(commissioningEntry.RegisterEntrySubkontos,
-            x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET &&
+            x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets &&
                  x.EntityId == createdAssetId &&
                  x.Side == SubkontoSideConst.DEBIT);
         Assert.Contains(commissioningEntry.RegisterEntrySubkontos,
-            x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET &&
+            x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets &&
                  x.EntityId == createdAssetId &&
                  x.Side == SubkontoSideConst.CREDIT);
     }
@@ -155,10 +155,10 @@ public class FaReceiptPostingIntegrationTests
             Assert.Equal(original.Amount, reversal.Amount);
 
             var originalFixedAssetSubkontos = original.RegisterEntrySubkontos
-                .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET)
+                .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets)
                 .ToList();
             var reversalFixedAssetSubkontos = reversal.RegisterEntrySubkontos
-                .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET)
+                .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets)
                 .ToList();
 
             Assert.Equal(originalFixedAssetSubkontos.Count, reversalFixedAssetSubkontos.Count);
@@ -312,7 +312,7 @@ public class FaReceiptPostingIntegrationTests
 
         db.SubkontoTypes.Add(new SubkontoType
         {
-            Id = SubkontoTypeIdConst.FIXED_ASSET,
+            Id = SubkontoTypeIdConst.FixedAssets,
             Code = "fixed_asset",
             Name = "Fixed asset",
             SourceTable = "fa_asset",

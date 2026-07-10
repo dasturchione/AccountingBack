@@ -42,6 +42,9 @@ public partial class AccSubkontoType
     [InverseProperty("SubkontoType")]
     public virtual ICollection<AccRegEntrySubkonto> AccRegEntrySubkontos { get; set; } = new List<AccRegEntrySubkonto>();
 
+    [InverseProperty("SubkontoType")]
+    public virtual ICollection<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; } = new List<AccSubkontoTypeTranslation>();
+
     [ForeignKey("StateId")]
     [InverseProperty("AccSubkontoTypes")]
     public virtual CmnState State { get; set; } = null!;

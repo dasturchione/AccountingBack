@@ -165,14 +165,14 @@ public class BankOperationContextBuilder :
         {
             new()
             {
-                SubkontoTypeId = SubkontoTypeIdConst.BANK_ACCOUNT,
+                SubkontoTypeId = SubkontoTypeIdConst.BankAccounts,
                 DisplayValue = bankAccountMap.GetValueOrDefault(operation.BankAccountId),
                 EntityId = operation.BankAccountId,
                 SortOrder = 1
             },
             new()
             {
-                SubkontoTypeId = SubkontoTypeIdConst.BANK_OPERATION,
+                SubkontoTypeId = SubkontoTypeIdConst.CounterpartySettlementDocuments,
                 DisplayValue = JsonSerializer.Serialize(new
                 {
                     number = operation.DocNumber,
@@ -187,7 +187,7 @@ public class BankOperationContextBuilder :
         {
             subkontos.Add(new SubkontoValue
             {
-                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                 DisplayValue = counterpartyName,
                 EntityId = counterpartyId.Value,
                 SortOrder = 3
@@ -198,7 +198,7 @@ public class BankOperationContextBuilder :
         {
             subkontos.Add(new SubkontoValue
             {
-                SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
+                SubkontoTypeId = SubkontoTypeIdConst.Contracts,
                 DisplayValue = JsonSerializer.Serialize(new
                 {
                     number = contractData.Number,

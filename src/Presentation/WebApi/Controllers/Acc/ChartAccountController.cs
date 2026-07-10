@@ -62,4 +62,13 @@ public class ChartAccountController : ControllerBase
         var result = await _service.DeleteAsync(id, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
+
+    [HttpGet("grouped")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    [GlobalAccessAuthorize]
+    public async Task<IResult> GetGroupedAsync([FromQuery] ChartAccountListFilter filter, CancellationToken ct = default)
+    {
+        var result = await _service.GetGroupedListAsync(filter, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }

@@ -52,6 +52,9 @@ public partial class CmnLanguage
     public virtual ICollection<AccPostingAliasTranslation> AccPostingAliasTranslations { get; set; } = new List<AccPostingAliasTranslation>();
 
     [InverseProperty("Language")]
+    public virtual ICollection<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; } = new List<AccSubkontoTypeTranslation>();
+
+    [InverseProperty("Language")]
     public virtual ICollection<CmnProductTypeTranslation> CmnProductTypeTranslations { get; set; } = new List<CmnProductTypeTranslation>();
 
     [InverseProperty("Language")]

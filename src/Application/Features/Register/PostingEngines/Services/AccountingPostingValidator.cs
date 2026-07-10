@@ -54,14 +54,14 @@ public class AccountingPostingValidator : IAccountingPostingValidator
     private static bool IsCashBoxTransferEntry(ICollection<RegisterEntrySubkonto> subkontos)
     {
         var debitCashBoxIds = subkontos
-            .Where(x => x.Side == SubkontoSideConst.DEBIT && x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+            .Where(x => x.Side == SubkontoSideConst.DEBIT && x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
             .Select(x => x.EntityId)
             .Where(x => x.HasValue)
             .Distinct()
             .ToList();
 
         var creditCashBoxIds = subkontos
-            .Where(x => x.Side == SubkontoSideConst.CREDIT && x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+            .Where(x => x.Side == SubkontoSideConst.CREDIT && x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
             .Select(x => x.EntityId)
             .Where(x => x.HasValue)
             .Distinct()

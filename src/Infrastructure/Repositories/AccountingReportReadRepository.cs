@@ -90,12 +90,12 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
                 OrganizationId = x.OrganizationId,
                 Organization = x.Organization.ShortName,
                 Counterparty = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.DisplayValue)
                     .FirstOrDefault(),
                 Warehouse = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Warehouses)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.DisplayValue)
                     .FirstOrDefault()

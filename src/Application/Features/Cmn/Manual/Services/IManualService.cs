@@ -63,7 +63,8 @@ public interface IManualService
     Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default);
 
     // acc
-    Task<List<SelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default);
+    Task<List<ChartAccountSelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetAccountingPoliciesAsync(CancellationToken ct = default);
 
     // bank

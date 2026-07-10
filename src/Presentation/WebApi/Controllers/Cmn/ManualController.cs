@@ -396,4 +396,12 @@ public class ManualController : ControllerBase
         var result = await _manualService.GetModuleSubGroupSelectListAsync(ct);
         return Ok(result);
     }
+
+    [AllowAnonymous]
+    [HttpGet("subkonto-types")]
+    public async Task<IActionResult> GetSubkontoTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetSubkontoTypesAsync(ct);
+        return Ok(result);
+    }
 }

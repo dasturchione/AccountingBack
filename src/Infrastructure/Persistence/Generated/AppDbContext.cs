@@ -54,6 +54,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccSubkontoType> AccSubkontoTypes { get; set; }
 
+    public virtual DbSet<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; }
+
     public virtual DbSet<BankOperation> BankOperations { get; set; }
 
     public virtual DbSet<BankOperationLine> BankOperationLines { get; set; }
@@ -563,6 +565,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.AccSubkontoTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_subkonto_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccSubkontoTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.SubkontoTypeId, e.LanguageId }).HasName("acc_subkonto_type_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccSubkontoTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_subkonto_type_translation_language_id_fkey");
+
+            entity.HasOne(d => d.SubkontoType).WithMany(p => p.AccSubkontoTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_subkonto_type_translation_subkonto_type_id_fkey");
         });
 
         modelBuilder.Entity<BankOperation>(entity =>

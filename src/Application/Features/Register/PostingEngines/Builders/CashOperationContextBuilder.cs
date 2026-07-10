@@ -106,7 +106,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
         {
             context.Subkontos.Add(new SubkontoValue
             {
-                SubkontoTypeId = SubkontoTypeIdConst.CASH_BOX,
+                SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
                 DisplayValue = $"{RegisterDefaultsConst.SourceCashBoxDisplayPrefix}:{document.CashBoxId}",
                 EntityId = document.CashBoxId,
                 SortOrder = 1
@@ -116,7 +116,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
             {
                 context.Subkontos.Add(new SubkontoValue
                 {
-                    SubkontoTypeId = SubkontoTypeIdConst.CASH_BOX,
+                    SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
                     DisplayValue = $"{RegisterDefaultsConst.DestinationCashBoxDisplayPrefix}:{document.DestinationCashBoxId}",
                     EntityId = document.DestinationCashBoxId.Value,
                     SortOrder = 2
@@ -128,7 +128,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
 
         context.Subkontos.Add(new SubkontoValue
         {
-            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+            SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
             DisplayValue = JsonSerializer.Serialize(new { type = RegisterDefaultsConst.CashOperation, id = document.Id }),
             EntityId = document.Id,
             SortOrder = 1
@@ -157,7 +157,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
         var name = await GetCounterpartyNameAsync(document.CounterpartyId.Value);
         context.Subkontos.Add(new SubkontoValue
         {
-            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
             DisplayValue = name,
             EntityId = document.CounterpartyId.Value,
             SortOrder = 2

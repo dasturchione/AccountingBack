@@ -53,6 +53,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<Language> _languageQuery;
+    private readonly IQueryRepository<SubkontoType> _subkontoTypeQuery;
     private readonly IQueryRepository<Module>   _moduleQuery;
     private readonly IUserContext               _userContext;
     private readonly IQueryBuilder _queryBuilder;
@@ -101,6 +102,7 @@ public class ManualService : IManualService
         IQueryRepository<Language> languageQuery,
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Module>   moduleQuery,
+        IQueryRepository<SubkontoType> subkontoTypeQuery,
         IQueryBuilder queryBuilder,
         IUserContext               userContext)
     {
@@ -141,6 +143,7 @@ public class ManualService : IManualService
         _chartAccountQuery     = chartAccountQuery;
         _accountingPolicyQuery = accountingPolicyQuery;
         _orgBankAccountQuery   = orgBankAccountQuery;
+        _subkontoTypeQuery     = subkontoTypeQuery;
         _cashBoxQuery          = cashBoxQuery;
         _cashOperationQuery    = cashOperationQuery;
         _contractQuery         = contractQuery;
@@ -679,15 +682,21 @@ public class ManualService : IManualService
         return (await _warehouseQuery.GetAllAsync(spec, ct)).ToList();
     }
 
-    public async Task<List<SelectListDto>> GetChartAccountsAsync(CancellationToken ct = default)
+    public async Task<List<ChartAccountSelectListDto>> GetChartAccountsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<ChartAccount, SelectListDto>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE,
-            OrderBy  = q => q.OrderBy(x => x.Code),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
-        return (await _chartAccountQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<ChartAccount>()
+                            .Where(x => x.StateId == StateIdConst.ACTIVE) 
+                            .As(s => new ChartAccountSelectListDto
+                            {
+                                Id = s.Id,
+                                Name = s.Name,
+                                Code = s.Code,
+                                Number = s.Number
+                            })
+                            .OrderBy(x => x.Number)
+                            .Build();
+
+        return await _chartAccountQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetAccountingPoliciesAsync(CancellationToken ct = default)
@@ -806,6 +815,26 @@ public class ManualService : IManualService
             })
             .OrderBy(sg => sg.FullName)
             .ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+
+        var query = _queryBuilder.For<SubkontoType>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
+                                 .As(x => new SelectListDto
+                                 {
+                                     Id = x.Id,
+                                     Code = x.Code,
+                                     Name = x.SubkontoTypeTranslations
+                                                .Where(t => t.LanguageId == languageId)
+                                                .Select(t => t.Name)
+                                                .FirstOrDefault() ?? x.Name
+                                 })
+                                 .OrderBy(x => x.Name).Build();
+
+        return await _subkontoTypeQuery.GetAllAsync(query, ct);
     }
 
     // Private flat projection DTO (only used inside ManualService)

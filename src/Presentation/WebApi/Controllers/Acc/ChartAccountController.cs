@@ -45,6 +45,15 @@ public class ChartAccountController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("from-preset")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
+    [GlobalAccessAuthorize]
+    public async Task<IResult> ImportFromPresetAsync([FromBody] List<ChartAccountImportFromPresetRequestDto> dto, CancellationToken ct = default)
+    {
+        var result = await _service.ImportFromPresetAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
     [GlobalAccessAuthorize]

@@ -6,7 +6,7 @@ public class ChartAccountBaseDtoValidator : AbstractValidator<ChartAccountBaseDt
 {
     public ChartAccountBaseDtoValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.Number).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Name).NotEmpty().MaximumLength(250);
     }
 }

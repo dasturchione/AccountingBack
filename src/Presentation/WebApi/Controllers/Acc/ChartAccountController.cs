@@ -47,7 +47,7 @@ public class ChartAccountController : ControllerBase
 
     [HttpPost("from-preset")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> ImportFromPresetAsync([FromBody] List<ChartAccountImportFromPresetRequestDto> dto, CancellationToken ct = default)
     {
         var result = await _service.ImportFromPresetAsync(dto, ct);
@@ -74,7 +74,7 @@ public class ChartAccountController : ControllerBase
 
     [HttpGet("grouped")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> GetGroupedAsync([FromQuery] ChartAccountListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetGroupedListAsync(filter, ct);

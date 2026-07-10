@@ -579,9 +579,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 SELECT setval(pg_get_serial_sequence('acc_chart_account_preset_account', 'id'), (SELECT MAX(id) FROM acc_chart_account_preset_account));
 
--- Fill acc_chart_account_preset_account_translation: Russian only
 INSERT INTO acc_chart_account_preset_account_translation
-(preset_account_id, language_id, name)
+    (preset_account_id, language_id, name)
 VALUES
     (1, 2, 'Вспомогательный счет'),
     (2, 2, 'Основные средства'),

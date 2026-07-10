@@ -46,12 +46,17 @@ public class ChartAccountService : IChartAccountService
         if (!_userContext.OrganizationId.HasValue)
             return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
+        var duplicateSubkontoTypeId = GetDuplicateSubkontoTypeId(dto.Subkontos);
+        if (duplicateSubkontoTypeId.HasValue)
+            return Result.Failure<int>(ChartAccountErrors.DuplicateSubkontoType(duplicateSubkontoTypeId.Value, _userContext.LanguageId));
+
         if (!string.IsNullOrEmpty(dto.Code) && await _query.AnyAsync(x => x.Code == dto.Code && x.OrganizationId == _userContext.OrganizationId.Value, ct))
             return Result.Failure<int>(ChartAccountErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
         if (await _query.AnyAsync(x => x.Number == dto.Number && x.OrganizationId == _userContext.OrganizationId.Value, ct))
             return Result.Failure<int>(ChartAccountErrors.NumberConflict(dto.Number, _userContext.LanguageId));
 
+        var organizationId = _userContext.OrganizationId.Value;
         var entity = new ChartAccount
         {
             ParentId = dto.ParentId,
@@ -65,10 +70,23 @@ public class ChartAccountService : IChartAccountService
             IsDepartment = dto.IsDepartment,
             IsOffBalance = dto.IsOffBalance,
             AccountTypeId = dto.AccountTypeId,
-            OrganizationId = _userContext.OrganizationId.Value,
+            OrganizationId = organizationId,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
         };
+
+        foreach (var subkonto in dto.Subkontos ?? new List<ChartAccountSubkontoUpsertDto>())
+        {
+            entity.ChartAccountSubkontos.Add(new ChartAccountSubkonto
+            {
+                OrganizationId = organizationId,
+                SubkontoTypeId = subkonto.SubkontoTypeId,
+                SortOrder = subkonto.SortOrder,
+                IsRequired = subkonto.IsRequired,
+                StateId = StateIdConst.ACTIVE,
+                CreatedDate = DateTime.Now
+            });
+        }
 
         await _command.CreateAsync(entity, ct);
         return entity.Id;
@@ -206,6 +224,8 @@ public class ChartAccountService : IChartAccountService
         if (entity == null) 
             return Result.Failure<ChartAccountDto>(ChartAccountErrors.NotFound(id, _userContext.LanguageId));
 
+        entity.Subkontos = await GetChartAccountSubkontosAsync(id, ct);
+
         return entity;
     }
 
@@ -213,6 +233,10 @@ public class ChartAccountService : IChartAccountService
     {
         if (!_userContext.OrganizationId.HasValue)
             return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var duplicateSubkontoTypeId = GetDuplicateSubkontoTypeId(dto.Subkontos);
+        if (duplicateSubkontoTypeId.HasValue)
+            return Result.Failure(ChartAccountErrors.DuplicateSubkontoType(duplicateSubkontoTypeId.Value, _userContext.LanguageId));
 
         var query = _queryBuilder.For<ChartAccount>().Where(x => x.Id == id).Build();
         var entity = await _query.GetAsync(query, ct);
@@ -248,7 +272,102 @@ public class ChartAccountService : IChartAccountService
         entity.StateId = dto.StateId;
 
         await _command.UpdateAsync(entity, ct);
+
+        if (dto.Subkontos is not null)
+            await SyncChartAccountSubkontosAsync(entity.Id, dto.Subkontos, _userContext.OrganizationId.Value, ct);
+
         return Result.Success();
+    }
+
+    private async Task<List<ChartAccountSubkontoDto>> GetChartAccountSubkontosAsync(int accountId, CancellationToken ct)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+
+        var query = _queryBuilder.For<ChartAccountSubkonto>()
+            .Where(x => x.AccountId == accountId)
+            .As(x => new ChartAccountSubkontoDto
+            {
+                Id = x.Id,
+                SubkontoTypeId = x.SubkontoTypeId,
+                SubkontoTypeCode = x.SubkontoType.Code,
+                SubkontoTypeName = x.SubkontoType.SubkontoTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.SubkontoType.Name,
+                SortOrder = x.SortOrder,
+                IsRequired = x.IsRequired,
+                StateId = x.StateId,
+                StateName = x.State.FullName,
+                CreatedDate = x.CreatedDate
+            })
+            .OrderBy(x => x.SortOrder)
+            .Build();
+
+        return await _chartAccountSubkontoQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task SyncChartAccountSubkontosAsync(
+        int accountId,
+        List<ChartAccountSubkontoUpsertDto> subkontos,
+        int organizationId,
+        CancellationToken ct)
+    {
+        var existingQuery = new QuerySpecification<ChartAccountSubkonto>
+        {
+            Criteria = x => x.OrganizationId == organizationId && x.AccountId == accountId
+        };
+
+        var existing = await _chartAccountSubkontoQuery.GetAllAsync(existingQuery, ct);
+        var existingByTypeId = existing.ToDictionary(x => x.SubkontoTypeId);
+        var requestedTypeIds = subkontos.Select(x => x.SubkontoTypeId).ToHashSet();
+
+        var toDelete = existing
+            .Where(x => !requestedTypeIds.Contains(x.SubkontoTypeId))
+            .ToList();
+
+        if (toDelete.Count > 0)
+            await _chartAccountSubkontoCommand.DeleteAsync(toDelete, ct);
+
+        var toCreate = new List<ChartAccountSubkonto>();
+        var toUpdate = new List<ChartAccountSubkonto>();
+
+        foreach (var subkonto in subkontos)
+        {
+            if (existingByTypeId.TryGetValue(subkonto.SubkontoTypeId, out var entity))
+            {
+                entity.SortOrder = subkonto.SortOrder;
+                entity.IsRequired = subkonto.IsRequired;
+                entity.StateId = StateIdConst.ACTIVE;
+                toUpdate.Add(entity);
+                continue;
+            }
+
+            toCreate.Add(new ChartAccountSubkonto
+            {
+                OrganizationId = organizationId,
+                AccountId = accountId,
+                SubkontoTypeId = subkonto.SubkontoTypeId,
+                SortOrder = subkonto.SortOrder,
+                IsRequired = subkonto.IsRequired,
+                StateId = StateIdConst.ACTIVE,
+                CreatedDate = DateTime.Now
+            });
+        }
+
+        if (toUpdate.Count > 0)
+            await _chartAccountSubkontoCommand.UpdateAsync(toUpdate, ct);
+
+        if (toCreate.Count > 0)
+            await _chartAccountSubkontoCommand.CreateAsync(toCreate, ct);
+    }
+
+    private static short? GetDuplicateSubkontoTypeId(List<ChartAccountSubkontoUpsertDto>? subkontos)
+    {
+        return subkontos?
+            .GroupBy(x => x.SubkontoTypeId)
+            .Where(x => x.Count() > 1)
+            .Select(x => (short?)x.Key)
+            .FirstOrDefault();
     }
 
     private async Task<Dictionary<int, PresetAccountImportSnapshot>> GetPresetAccountClosureAsync(

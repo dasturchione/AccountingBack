@@ -1,5 +1,7 @@
 namespace Application.Features.ChartAccountPresetAccounts;
 
+public class ChartAccountPresetAccountGroupedListDto : ChartAccountPresetAccountListDto { }
+
 public class ChartAccountPresetAccountListDto
 {
     public int Id { get; set; }

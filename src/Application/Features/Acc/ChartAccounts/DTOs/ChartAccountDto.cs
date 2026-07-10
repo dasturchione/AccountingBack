@@ -24,4 +24,5 @@ public class ChartAccountDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+    public List<ChartAccountSubkontoDto> Subkontos { get; set; } = new();
 }

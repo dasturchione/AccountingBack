@@ -20,6 +20,15 @@ public class ChartAccountPresetAccountController : ControllerBase
         _service = service;
     }
 
+    [HttpGet]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    //[GlobalAccessAuthorize]
+    public async Task<IResult> GetAllAsync([FromQuery] ChartAccountPresetAccountListFilter filter, CancellationToken ct = default)
+    {
+        var result = await _service.GetAllAsync(filter, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpGet("grouped")]
     //[ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
     //[GlobalAccessAuthorize]

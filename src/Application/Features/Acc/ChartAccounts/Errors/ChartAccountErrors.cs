@@ -44,4 +44,12 @@ public static class ChartAccountErrors
             LanguageIdConst.RU => $"Шаблонный счёт с id {id} не найден.",
             _ => $"Preset account with id {id} was not found."
         });
+
+    public static Error DuplicateSubkontoType(short subkontoTypeId, short? languageId = null) =>
+        Error.Conflict("ChartAccount.DuplicateSubkontoType", languageId switch
+        {
+            LanguageIdConst.UZ => $"Subkonto turi {subkontoTypeId} bir hisobda bir martadan ko'p ishlatilmasligi kerak.",
+            LanguageIdConst.RU => $"Тип субконто {subkontoTypeId} нельзя добавлять к одному счёту больше одного раза.",
+            _ => $"Subkonto type {subkontoTypeId} cannot be added to the same account more than once."
+        });
 }

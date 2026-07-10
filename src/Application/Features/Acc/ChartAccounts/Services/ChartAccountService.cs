@@ -124,7 +124,7 @@ public class ChartAccountService : IChartAccountService
                     Code = presetAccount.Code,
                     Name = presetAccount.Name,
                     Number = presetAccount.Number,
-                    IsGroup = childParentIds.Contains(presetAccount.Id),
+                    IsGroup = presetAccount.IsGroup,
                     IsTaxAccounting = presetAccount.IsTaxAccounting,
                     IsQuantity = presetAccount.IsQuantity,
                     IsCurrency = presetAccount.IsCurrency,
@@ -286,6 +286,7 @@ public class ChartAccountService : IChartAccountService
                     AccountTypeId = x.AccountTypeId,
                     IsQuantity = x.IsQuantity,
                     IsCurrency = x.IsCurrency,
+                    IsGroup = x.IsGroup,
                     IsDepartment = x.IsDepartment,
                     IsTaxAccounting = x.IsTaxAccounting,
                     IsOffBalance = x.IsOffBalance,
@@ -438,6 +439,7 @@ public class ChartAccountService : IChartAccountService
         public string Name { get; set; } = null!;
         public int? ParentPresetAccountId { get; set; }
         public short AccountTypeId { get; set; }
+        public bool IsGroup { get; set; }
         public bool IsQuantity { get; set; }
         public bool IsCurrency { get; set; }
         public bool IsDepartment { get; set; }

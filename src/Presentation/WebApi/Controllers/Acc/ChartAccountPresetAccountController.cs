@@ -10,7 +10,7 @@ namespace WebApi.Controllers;
 
 [Route("api/chart-account-preset-accounts")]
 [ApiController]
-[Authorize]
+//[Authorize]
 public class ChartAccountPresetAccountController : ControllerBase
 {
     private readonly IChartAccountPresetAccountService _service;
@@ -21,8 +21,8 @@ public class ChartAccountPresetAccountController : ControllerBase
     }
 
     [HttpGet("grouped")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
-    [GlobalAccessAuthorize]
+    //[ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> GetGroupedAsync([FromQuery] ChartAccountPresetAccountListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetGroupedListAsync(filter, ct);

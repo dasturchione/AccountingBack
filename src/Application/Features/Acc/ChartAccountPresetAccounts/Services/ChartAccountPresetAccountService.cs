@@ -57,6 +57,7 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
                 IsDepartment = x.IsDepartment,
                 IsTaxAccounting = x.IsTaxAccounting,
                 IsOffBalance = x.IsOffBalance,
+                IsGroup = x.IsGroup,
                 DisplayOrder = x.DisplayOrder,
                 StateId = x.StateId,
                 StateName = x.State.FullName
@@ -131,7 +132,7 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
             AccountTypeId = snapshot.AccountTypeId,
             AccountTypeCode = snapshot.AccountTypeCode,
             AccountTypeName = snapshot.AccountTypeName,
-            IsGroup = children is { Count: > 0 },
+            IsGroup = snapshot.IsGroup,
             IsQuantity = snapshot.IsQuantity,
             IsCurrency = snapshot.IsCurrency,
             IsDepartment = snapshot.IsDepartment,
@@ -171,6 +172,7 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
         public short AccountTypeId { get; set; }
         public string AccountTypeCode { get; set; } = null!;
         public string AccountTypeName { get; set; } = null!;
+        public bool IsGroup { get; set; }
         public bool IsQuantity { get; set; }
         public bool IsCurrency { get; set; }
         public bool IsDepartment { get; set; }

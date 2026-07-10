@@ -6,6 +6,7 @@ create table acc_chart_account_preset_account
     number                      varchar(20) not null,
     parent_preset_account_id    int null,
     account_type_id             smallint not null                   references acc_account_type(id),
+    is_group                    boolean not null default false,
     is_currency                 boolean not null default false,
     is_quantity                 boolean not null default false,
     is_department               boolean not null default false,

@@ -48,9 +48,9 @@ public partial class Product
     [StringLength(17)]
     public string? Mxik { get; set; }
 
-    [Column("gtin")]
-    [StringLength(14)]
-    public string? Gtin { get; set; }
+    //[Column("gtin")]
+    //[StringLength(14)]
+    //public string? Gtin { get; set; }
 
     [Column("product_type_id")]
     public short ProductTypeId { get; set; }

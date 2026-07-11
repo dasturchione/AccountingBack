@@ -24,7 +24,7 @@ public class TrialBalanceReadRepository : ITrialBalanceReadRepository
             .Select(x => new TrialBalanceReadRow
             {
                 AccountId = x.Id,
-                AccountCode = x.Code,
+                AccountCode = x.Code!,
                 AccountName = x.Name,
                 AccountTypeId = x.AccountTypeId
             })

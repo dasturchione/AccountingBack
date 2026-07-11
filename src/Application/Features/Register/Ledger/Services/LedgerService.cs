@@ -96,7 +96,7 @@ public class LedgerService : ILedgerService
         return new LedgerDto
         {
             AccountId = account.Id,
-            AccountCode = account.Code,
+            AccountCode = account.Code!,
             AccountName = account.Name,
             PeriodId = filter.PeriodId,
             DateFrom = dateFrom,

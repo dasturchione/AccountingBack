@@ -449,7 +449,7 @@ public class FaReceiptPostingIntegrationTests
 
     private static AccountingRegisterEntry GetEntry(
         IEnumerable<AccountingRegisterEntry> entries,
-        IReadOnlyDictionary<int, string> accountCodes,
+        IReadOnlyDictionary<int, string?> accountCodes,
         string debitCode,
         string creditCode)
     {

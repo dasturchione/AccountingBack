@@ -38,7 +38,7 @@ public class ChartAccountController : ControllerBase
 
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> CreateAsync([FromBody] ChartAccountCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -56,7 +56,7 @@ public class ChartAccountController : ControllerBase
 
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] ChartAccountUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -65,7 +65,7 @@ public class ChartAccountController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountDelete)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> DeleteAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);

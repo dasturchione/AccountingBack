@@ -64,8 +64,9 @@ public interface IManualService
 
     // acc
     Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default);
-    Task<List<ChartAccountSelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetAccountTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetAccountingPoliciesAsync(CancellationToken ct = default);
+    Task<List<ChartAccountSelectListDto>> GetChartAccountsAsync(CancellationToken ct = default);
 
     // bank
     Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default);

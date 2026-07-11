@@ -592,6 +592,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_bank_account_id_fkey");
 
+            entity.HasOne(d => d.BankChartAccount).WithMany(p => p.BankOperationBankChartAccounts).HasConstraintName("bank_operation_bank_chart_account_id_fkey");
+
             entity.HasOne(d => d.Contract).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_contract_id_fkey");
 
             entity.HasOne(d => d.CounterpartyBankAccount).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_counterparty_bank_account_id_fkey");
@@ -601,6 +603,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Currency).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_currency_id_fkey");
+
+            entity.HasOne(d => d.OffsetAccount).WithMany(p => p.BankOperationOffsetAccounts).HasConstraintName("bank_operation_offset_account_id_fkey");
 
             entity.HasOne(d => d.OperationType).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -670,6 +674,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cash_operation_cash_box_id_fkey");
 
+            entity.HasOne(d => d.CashChartAccount).WithMany(p => p.CashOperationCashChartAccounts).HasConstraintName("cash_operation_cash_chart_account_id_fkey");
+
             entity.HasOne(d => d.Counterparty).WithMany(p => p.CashOperations).HasConstraintName("cash_operation_counterparty_id_fkey");
 
             entity.HasOne(d => d.Currency).WithMany(p => p.CashOperations)
@@ -677,6 +683,8 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cash_operation_currency_id_fkey");
 
             entity.HasOne(d => d.DestinationCashBox).WithMany(p => p.CashOperationDestinationCashBoxes).HasConstraintName("cash_operation_destination_cash_box_id_fkey");
+
+            entity.HasOne(d => d.OffsetAccount).WithMany(p => p.CashOperationOffsetAccounts).HasConstraintName("cash_operation_offset_account_id_fkey");
 
             entity.HasOne(d => d.OperationType).WithMany(p => p.CashOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2077,6 +2085,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_status_id_fkey");
 
+            entity.HasOne(d => d.SupplierAccount).WithMany(p => p.PurDocs).HasConstraintName("pur_doc_supplier_account_id_fkey");
+
             entity.HasOne(d => d.Warehouse).WithMany(p => p.PurDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_warehouse_id_fkey");
@@ -2087,6 +2097,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("pur_doc_product_pkey");
 
             entity.HasIndex(e => e.ProductId, "ix_pur_doc_product_product_id").HasFilter("(product_id IS NOT NULL)");
+
+            entity.HasOne(d => d.DebitAccount).WithMany(p => p.PurDocProductDebitAccounts).HasConstraintName("pur_doc_product_debit_account_id_fkey");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.PurDocProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2099,6 +2111,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Unit).WithMany(p => p.PurDocProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pur_doc_product_unit_id_fkey");
+
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.PurDocProductVatAccounts).HasConstraintName("pur_doc_product_vat_account_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocProducts).HasConstraintName("pur_doc_product_vat_rate_id_fkey");
         });
@@ -2161,6 +2175,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_currency_id_fkey");
 
+            entity.HasOne(d => d.CustomerAccount).WithMany(p => p.SaleDocCustomerAccounts).HasConstraintName("sale_doc_customer_account_id_fkey");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.SaleDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_organization_id_fkey");
@@ -2173,6 +2189,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_status_id_fkey");
 
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.SaleDocVatAccounts).HasConstraintName("sale_doc_vat_account_id_fkey");
+
             entity.HasOne(d => d.Warehouse).WithMany(p => p.SaleDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_doc_warehouse_id_fkey");
@@ -2183,6 +2201,12 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("sale_doc_product_pkey");
 
             entity.Property(e => e.UnitId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.CostAccount).WithMany(p => p.SaleDocProductCostAccounts).HasConstraintName("sale_doc_product_cost_account_id_fkey");
+
+            entity.HasOne(d => d.IncomeAccount).WithMany(p => p.SaleDocProductIncomeAccounts).HasConstraintName("sale_doc_product_income_account_id_fkey");
+
+            entity.HasOne(d => d.InventoryAccount).WithMany(p => p.SaleDocProductInventoryAccounts).HasConstraintName("sale_doc_product_inventory_account_id_fkey");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_owner_id_fkey");
 

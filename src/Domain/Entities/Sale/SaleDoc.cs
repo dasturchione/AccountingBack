@@ -50,6 +50,12 @@ public partial class SaleDoc
     [Precision(24, 8)]
     public decimal FinalAmount { get; set; }
 
+    [Column("customer_account_id")]
+    public int? CustomerAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
     [Column("status_id")]
     public short StatusId { get; set; }
 
@@ -65,7 +71,6 @@ public partial class SaleDoc
 
     [Column("contract_id")]
     public long? ContractId { get; set; }
-
 
     [Column("exchange_rate")]
     [Precision(18, 6)]
@@ -100,6 +105,14 @@ public partial class SaleDoc
 
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
+    [ForeignKey("CustomerAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocCustomerAccounts))]
+    public virtual ChartAccount? CustomerAccount { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("SaleDocs")]

@@ -9,9 +9,11 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("cash_operation")]
 [Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
 [Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
+[Index("CashChartAccountId", Name = "idx_cash_operation_cash_chart_account_id")]
 [Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
 [Index("DestinationCashBoxId", Name = "idx_cash_operation_destination_cash_box_id")]
 [Index("DocDate", Name = "idx_cash_operation_doc_date")]
+[Index("OffsetAccountId", Name = "idx_cash_operation_offset_account_id")]
 [Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
 [Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
@@ -86,6 +88,20 @@ public partial class CashOperation
 
     [Column("payment_purpose_id")]
     public short PaymentPurposeId { get; set; }
+
+    [Column("cash_chart_account_id")]
+    public int? CashChartAccountId { get; set; }
+
+    [Column("offset_account_id")]
+    public int? OffsetAccountId { get; set; }
+
+    [ForeignKey("CashChartAccountId")]
+    [InverseProperty("CashOperationCashChartAccounts")]
+    public virtual AccChartAccount? CashChartAccount { get; set; }
+
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty("CashOperationOffsetAccounts")]
+    public virtual AccChartAccount? OffsetAccount { get; set; }
 
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperationCashBoxes")]

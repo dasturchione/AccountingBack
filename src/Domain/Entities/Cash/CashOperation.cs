@@ -68,7 +68,6 @@ public partial class CashOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("exchange_rate")]
     [Precision(18, 6)]
     public decimal ExchangeRate { get; set; }
@@ -84,6 +83,21 @@ public partial class CashOperation
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [Column("cash_chart_account_id")]
+    public int? CashChartAccountId { get; set; }
+
+    [Column("offset_account_id")]
+    public int? OffsetAccountId { get; set; }
+
+    [ForeignKey("CashChartAccountId")]
+    [InverseProperty(nameof(ChartAccount.CashOperationCashChartAccounts))]
+    public virtual ChartAccount? CashChartAccount { get; set; }
+
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty(nameof(ChartAccount.CashOperationOffsetAccounts))]
+    public virtual ChartAccount? OffsetAccount { get; set; }
+
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperations")]
     public virtual CashBox CashBox { get; set; } = null!;

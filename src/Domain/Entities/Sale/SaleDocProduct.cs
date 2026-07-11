@@ -49,6 +49,27 @@ public partial class SaleDocProduct
     [Column("unit_id")]
     public short UnitId { get; set; }
 
+    [Column("inventory_account_id")]
+    public int? InventoryAccountId { get; set; }
+
+    [Column("income_account_id")]
+    public int? IncomeAccountId { get; set; }
+
+    [Column("cost_account_id")]
+    public int? CostAccountId { get; set; }
+
+    [ForeignKey("CostAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocProductCostAccounts))]
+    public virtual ChartAccount? CostAccount { get; set; }
+
+    [ForeignKey("IncomeAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocProductIncomeAccounts))]
+    public virtual ChartAccount? IncomeAccount { get; set; }
+
+    [ForeignKey("InventoryAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocProductInventoryAccounts))]
+    public virtual ChartAccount? InventoryAccount { get; set; }
+
     [ForeignKey("OwnerId")]
     [InverseProperty("SaleDocProducts")]
     public virtual SaleDoc Owner { get; set; } = null!;

@@ -58,10 +58,6 @@ public partial class InvProduct
     [StringLength(17)]
     public string? Mxik { get; set; }
 
-    [Column("gtin")]
-    [StringLength(14)]
-    public string? Gtin { get; set; }
-
     [Column("is_piece_tracked")]
     public bool IsPieceTracked { get; set; }
 

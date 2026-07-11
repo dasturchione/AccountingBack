@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("pur_doc_product")]
+[Index("DebitAccountId", Name = "idx_pur_doc_product_debit_account_id")]
+[Index("VatAccountId", Name = "idx_pur_doc_product_vat_account_id")]
 [Index("OwnerId", Name = "ix_pur_doc_product_owner_id")]
 public partial class PurDocProduct
 {
@@ -46,6 +48,16 @@ public partial class PurDocProduct
     [Precision(24, 8)]
     public decimal UnitPrice { get; set; }
 
+    [Column("debit_account_id")]
+    public int? DebitAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [ForeignKey("DebitAccountId")]
+    [InverseProperty("PurDocProductDebitAccounts")]
+    public virtual AccChartAccount? DebitAccount { get; set; }
+
     [ForeignKey("OwnerId")]
     [InverseProperty("PurDocProducts")]
     public virtual PurDoc Owner { get; set; } = null!;
@@ -60,6 +72,10 @@ public partial class PurDocProduct
     [ForeignKey("UnitId")]
     [InverseProperty("PurDocProducts")]
     public virtual CmnUnit Unit { get; set; } = null!;
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty("PurDocProductVatAccounts")]
+    public virtual AccChartAccount? VatAccount { get; set; }
 
     [ForeignKey("VatRateId")]
     [InverseProperty("PurDocProducts")]

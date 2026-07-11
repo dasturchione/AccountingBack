@@ -8,9 +8,11 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("bank_operation")]
 [Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
+[Index("BankChartAccountId", Name = "idx_bank_operation_bank_chart_account_id")]
 [Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
+[Index("OffsetAccountId", Name = "idx_bank_operation_offset_account_id")]
 [Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
 [Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
@@ -88,6 +90,20 @@ public partial class BankOperation
 
     [Column("payment_purpose_id")]
     public short PaymentPurposeId { get; set; }
+
+    [Column("bank_chart_account_id")]
+    public int? BankChartAccountId { get; set; }
+
+    [Column("offset_account_id")]
+    public int? OffsetAccountId { get; set; }
+
+    [ForeignKey("BankChartAccountId")]
+    [InverseProperty("BankOperationBankChartAccounts")]
+    public virtual AccChartAccount? BankChartAccount { get; set; }
+
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty("BankOperationOffsetAccounts")]
+    public virtual AccChartAccount? OffsetAccount { get; set; }
 
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]

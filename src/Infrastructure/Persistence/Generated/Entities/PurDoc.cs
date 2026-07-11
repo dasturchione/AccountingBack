@@ -15,6 +15,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("PostedByUserId", Name = "idx_pur_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_pur_doc_state_id")]
 [Index("StatusId", Name = "idx_pur_doc_status_id")]
+[Index("SupplierAccountId", Name = "idx_pur_doc_supplier_account_id")]
 [Index("WarehouseId", Name = "idx_pur_doc_warehouse_id")]
 public partial class PurDoc
 {
@@ -85,6 +86,9 @@ public partial class PurDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("supplier_account_id")]
+    public int? SupplierAccountId { get; set; }
+
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]
     public virtual CmnContract? Contract { get; set; }
@@ -111,6 +115,10 @@ public partial class PurDoc
     [ForeignKey("StatusId")]
     [InverseProperty("PurDocs")]
     public virtual CmnDocumentStatus Status { get; set; } = null!;
+
+    [ForeignKey("SupplierAccountId")]
+    [InverseProperty("PurDocs")]
+    public virtual AccChartAccount? SupplierAccount { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("PurDocs")]

@@ -44,6 +44,20 @@ public partial class PurchaseDocProduct
     [Precision(24, 8)]
     public decimal UnitPrice { get; set; }
 
+    [Column("debit_account_id")]
+    public int? DebitAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [ForeignKey("DebitAccountId")]
+    [InverseProperty(nameof(ChartAccount.PurchaseDocProductDebitAccounts))]
+    public virtual ChartAccount? DebitAccount { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty(nameof(ChartAccount.PurchaseDocProductVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
+
     [ForeignKey("OwnerId")]
     [InverseProperty("PurchaseDocProducts")]
     public virtual PurchaseDoc Owner { get; set; } = null!;

@@ -71,6 +71,20 @@ public partial class BankOperation
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("bank_chart_account_id")]
+    public int? BankChartAccountId { get; set; }
+
+    [Column("offset_account_id")]
+    public int? OffsetAccountId { get; set; }
+
+    [ForeignKey("BankChartAccountId")]
+    [InverseProperty(nameof(ChartAccount.BankOperationBankChartAccounts))]
+    public virtual ChartAccount? BankChartAccount { get; set; }
+
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty(nameof(ChartAccount.BankOperationOffsetAccounts))]
+    public virtual ChartAccount? OffsetAccount { get; set; }
+
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual Contract? Contract { get; set; }

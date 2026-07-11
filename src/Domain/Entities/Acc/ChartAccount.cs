@@ -78,6 +78,42 @@ public partial class ChartAccount
     [InverseProperty("Parent")]
     public virtual ICollection<ChartAccount> InverseParent { get; set; } = new List<ChartAccount>();
 
+    [InverseProperty(nameof(SaleDoc.CustomerAccount))]
+    public virtual ICollection<SaleDoc> SaleDocCustomerAccounts { get; set; } = new List<SaleDoc>();
+
+    [InverseProperty(nameof(SaleDoc.VatAccount))]
+    public virtual ICollection<SaleDoc> SaleDocVatAccounts { get; set; } = new List<SaleDoc>();
+
+    [InverseProperty(nameof(SaleDocProduct.CostAccount))]
+    public virtual ICollection<SaleDocProduct> SaleDocProductCostAccounts { get; set; } = new List<SaleDocProduct>();
+
+    [InverseProperty(nameof(SaleDocProduct.IncomeAccount))]
+    public virtual ICollection<SaleDocProduct> SaleDocProductIncomeAccounts { get; set; } = new List<SaleDocProduct>();
+
+    [InverseProperty(nameof(SaleDocProduct.InventoryAccount))]
+    public virtual ICollection<SaleDocProduct> SaleDocProductInventoryAccounts { get; set; } = new List<SaleDocProduct>();
+
+    [InverseProperty(nameof(PurchaseDoc.SupplierAccount))]
+    public virtual ICollection<PurchaseDoc> PurchaseDocSupplierAccounts { get; set; } = new List<PurchaseDoc>();
+
+    [InverseProperty(nameof(PurchaseDocProduct.DebitAccount))]
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProductDebitAccounts { get; set; } = new List<PurchaseDocProduct>();
+
+    [InverseProperty(nameof(PurchaseDocProduct.VatAccount))]
+    public virtual ICollection<PurchaseDocProduct> PurchaseDocProductVatAccounts { get; set; } = new List<PurchaseDocProduct>();
+
+    [InverseProperty(nameof(BankOperation.OffsetAccount))]
+    public virtual ICollection<BankOperation> BankOperationOffsetAccounts { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(BankOperation.BankChartAccount))]
+    public virtual ICollection<BankOperation> BankOperationBankChartAccounts { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(CashOperation.CashChartAccount))]
+    public virtual ICollection<CashOperation> CashOperationCashChartAccounts { get; set; } = new List<CashOperation>();
+
+    [InverseProperty(nameof(CashOperation.OffsetAccount))]
+    public virtual ICollection<CashOperation> CashOperationOffsetAccounts { get; set; } = new List<CashOperation>();
+
     [ForeignKey("ParentId")]
     [InverseProperty("InverseParent")]
     public virtual ChartAccount? Parent { get; set; }

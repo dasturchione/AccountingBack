@@ -1,7 +1,5 @@
 namespace Application.Features.ChartAccountPresetAccounts;
 
-public class ChartAccountPresetAccountGroupedListDto : ChartAccountPresetAccountListDto { }
-
 public class ChartAccountPresetAccountListDto
 {
     public int Id { get; set; }
@@ -24,5 +22,5 @@ public class ChartAccountPresetAccountListDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public bool HasChartAccount { get; set; }
-    public List<ChartAccountPresetAccountListDto> Lines { get; set; } = new();
+    public DateTime CreatedDate { get; set; }
 }

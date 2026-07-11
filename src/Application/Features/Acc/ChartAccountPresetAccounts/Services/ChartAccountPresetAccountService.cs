@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
@@ -12,17 +13,20 @@ namespace Application.Features.ChartAccountPresetAccounts;
 public class ChartAccountPresetAccountService : IChartAccountPresetAccountService
 {
     private readonly IUserContext _userContext;
-    private readonly IQueryRepository<ChartAccountPresetAccount> _presetAccountQuery;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
+    private readonly IQueryRepository<ChartAccountPresetAccount> _presetAccountQuery;
 
     public ChartAccountPresetAccountService(
         IUserContext userContext,
-        IQueryRepository<ChartAccountPresetAccount> presetAccountQuery,
-        IQueryRepository<ChartAccount> chartAccountQuery)
+        IQueryBuilder queryBuilder,
+        IQueryRepository<ChartAccount> chartAccountQuery,
+        IQueryRepository<ChartAccountPresetAccount> presetAccountQuery)
     {
         _userContext = userContext;
-        _presetAccountQuery = presetAccountQuery;
+        _queryBuilder = queryBuilder;
         _chartAccountQuery = chartAccountQuery;
+        _presetAccountQuery = presetAccountQuery;
     }
 
     public async Task<Result<PagedResponse<ChartAccountPresetAccountListDto>>> GetAllAsync(
@@ -32,29 +36,13 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
         if (_userContext.OrganizationId is null)
             return Result.Failure<PagedResponse<ChartAccountPresetAccountListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        var snapshots = await GetPresetAccountSnapshotsAsync(filter, ct);
-        var existingNumbers = await GetExistingChartAccountNumbersAsync(snapshots.Select(x => x.Number).Distinct().ToList(), ct);
-        var filtered = snapshots
-            .Where(x => !filter.ParentPresetAccountId.HasValue || x.ParentPresetAccountId == filter.ParentPresetAccountId)
-            .Where(x => !filter.IsGroup.HasValue || x.IsGroup == filter.IsGroup.Value)
-            .Where(x => MatchesSearch(x, filter.Search))
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Number)
-            .ToList();
+        var query = _queryBuilder.BuildPaged<ChartAccountPresetAccount, ChartAccountPresetAccountListDto, ChartAccountPresetAccountListFilter>(filter);
+        var pagedList = await _presetAccountQuery.GetPagedAsync(query, ct);
 
-        var totalCount = filtered.Count;
-        var pageSize = filter.PageSize ?? 50;
-        var skip = Math.Max(filter.Page - 1, 0) * pageSize;
-        var items = filtered
-            .Skip(skip)
-            .Take(pageSize)
-            .Select(x => MapFlatDto(x, existingNumbers))
-            .ToList();
+        foreach (var item in pagedList.Items) 
+            item.HasChartAccount = await _chartAccountQuery.AnyAsync(x => x.OrganizationId == _userContext.OrganizationId && x.Number == item.Number, ct);
 
-        return Result.Success(PagedResponseFactory.Create(
-            new PagedList<ChartAccountPresetAccountListDto>(items, totalCount),
-            filter.Page,
-            filter.PageSize));
+        return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
     }
 
     public async Task<Result<PagedResponse<ChartAccountPresetAccountGroupedListDto>>> GetGroupedListAsync(
@@ -71,10 +59,7 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
             .GroupBy(x => x.ParentPresetAccountId!.Value)
             .ToDictionary(x => x.Key, x => x.OrderBy(y => y.DisplayOrder).ThenBy(y => y.Number).ToList());
 
-        var rootParentId = filter.ParentPresetAccountId;
         var roots = snapshots
-            .Where(x => x.ParentPresetAccountId == rootParentId)
-            .Where(x => !filter.IsGroup.HasValue || childrenByParentId.ContainsKey(x.Id) == filter.IsGroup.Value)
             .Where(x => MatchesSearch(x, filter.Search))
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Number)

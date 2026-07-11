@@ -348,6 +348,14 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetAccountingPolicies)]
+    [HttpGet("account-types")]
+    public async Task<IActionResult> GetAccountTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetAccountTypesAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetOrgBankAccounts)]
     [HttpGet("org-bank-accounts")]
     public async Task<IActionResult> GetOrgBankAccounts(CancellationToken ct)

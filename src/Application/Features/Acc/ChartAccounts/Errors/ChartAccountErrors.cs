@@ -22,4 +22,13 @@ public static class ChartAccountErrors
             LanguageIdConst.RU      => $"План счетов с кодом '{code}' уже существует.",
             _                       => $"Chart of accounts with code '{code}' already exists."
         });
+
+    public static Error NumberConflict(string number, short? languageId = null) =>
+        Error.Conflict("ChartAccount.NumberConflict", languageId switch
+        {
+            LanguageIdConst.UZ => $"Kodi '{number}' bo'lgan hisoblar rejasi allaqachon mavjud.",
+            LanguageIdConst.UZ_CYRL => $"Коди '{number}' бўлган ҳисоблар режаси аллақачон мавжуд.",
+            LanguageIdConst.RU => $"План счетов с кодом '{number}' уже существует.",
+            _ => $"Chart of accounts with code '{number}' already exists."
+        });
 }

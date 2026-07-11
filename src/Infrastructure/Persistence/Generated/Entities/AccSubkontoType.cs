@@ -34,6 +34,9 @@ public partial class AccSubkontoType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("SubkontoType")]
+    public virtual ICollection<AccChartAccountPresetAccountSubkonto> AccChartAccountPresetAccountSubkontos { get; set; } = new List<AccChartAccountPresetAccountSubkonto>();
+
+    [InverseProperty("SubkontoType")]
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 
     [InverseProperty("SubkontoType")]

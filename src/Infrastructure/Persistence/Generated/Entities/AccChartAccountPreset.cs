@@ -6,10 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Generated.Entities;
 
-[Table("acc_account_type")]
-[Index("Code", Name = "idx_acc_account_type_code", IsUnique = true)]
-[Index("StateId", Name = "idx_acc_account_type_state_id")]
-public partial class AccAccountType
+[Table("acc_chart_account_preset")]
+[Index("Code", Name = "acc_chart_account_preset_code_key", IsUnique = true)]
+public partial class AccChartAccountPreset
 {
     [Key]
     [Column("id")]
@@ -20,8 +19,12 @@ public partial class AccAccountType
     public string Code { get; set; } = null!;
 
     [Column("name")]
-    [StringLength(150)]
+    [StringLength(255)]
     public string Name { get; set; } = null!;
+
+    [Column("description")]
+    [StringLength(500)]
+    public string? Description { get; set; }
 
     [Column("state_id")]
     public short StateId { get; set; }
@@ -29,13 +32,13 @@ public partial class AccAccountType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("AccountType")]
+    [InverseProperty("Preset")]
     public virtual ICollection<AccChartAccountPresetAccount> AccChartAccountPresetAccounts { get; set; } = new List<AccChartAccountPresetAccount>();
 
-    [InverseProperty("AccountType")]
-    public virtual ICollection<AccChartAccount> AccChartAccounts { get; set; } = new List<AccChartAccount>();
+    [InverseProperty("Preset")]
+    public virtual ICollection<AccChartAccountPresetTranslation> AccChartAccountPresetTranslations { get; set; } = new List<AccChartAccountPresetTranslation>();
 
     [ForeignKey("StateId")]
-    [InverseProperty("AccAccountTypes")]
+    [InverseProperty("AccChartAccountPresets")]
     public virtual CmnState State { get; set; } = null!;
 }

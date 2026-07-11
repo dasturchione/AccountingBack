@@ -217,7 +217,7 @@ public class FaAssetService : BaseService, IFaAssetService
 
         if (dto.ResponsibleUserId.HasValue &&
             !await _userQuery.AnyAsync(x => x.Id == dto.ResponsibleUserId.Value &&
-                                            x.OrganizationId == organizationId &&
+                                            x.UserOrganizations.Any(a => a.OrganizationId == organizationId) &&
                                             x.StateId == StateIdConst.ACTIVE, ct))
         {
             return FaAssetErrors.ResponsibleUserNotFound(dto.ResponsibleUserId.Value, _userContext.LanguageId);

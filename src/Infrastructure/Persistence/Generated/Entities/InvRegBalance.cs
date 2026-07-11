@@ -9,6 +9,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("inv_reg_balance")]
 [Index("DocDate", Name = "idx_inv_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_inv_reg_balance_document")]
+[Index("DocumentTypeId", "DocumentId", "ProductId", "ProductTableId", Name = "idx_inv_reg_balance_document_product_id", IsUnique = true)]
 [Index("OrganizationId", Name = "idx_inv_reg_balance_organization_id")]
 [Index("PostingBatchId", Name = "idx_inv_reg_balance_posting_batch_id")]
 [Index("ProductId", Name = "idx_inv_reg_balance_product_id")]

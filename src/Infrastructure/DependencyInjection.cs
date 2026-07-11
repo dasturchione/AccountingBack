@@ -117,7 +117,6 @@ namespace Infrastructure
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
-            services.AddScoped<IInventoryReadDbContext, InventoryReadDbContext>();
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
             services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();
@@ -188,6 +187,7 @@ namespace Infrastructure
             services.AddScoped<IInventoryAdjustmentLifecycleService, InventoryAdjustmentLifecycleService>();
             services.AddScoped<IInventoryCountLifecycleService, InventoryCountLifecycleService>();
             services.AddScoped<IProductStockService, ProductStockService>();
+            services.AddScoped<IProductStockCalculateService, ProductStockCalculateService>();
             services.AddScoped<IProductPriceCalculateService, ProductPriceCalculateService>();
             services.AddScoped<IProductPriceService, ProductPriceService>();
             services.AddScoped<IPricingConditionService, PricingConditionService>();

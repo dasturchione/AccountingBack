@@ -1,6 +1,5 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Common.Extensions;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryAdjustments;
@@ -17,7 +16,6 @@ namespace Application.Features.InventoryCounts;
 public class InventoryCountService : BaseService, IInventoryCountService
 {
     private readonly IUserContext _userContext;
-    private readonly IInventoryReadDbContext _inventoryReadDbContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryCountLifecycleService _lifecycleService;
@@ -37,7 +35,6 @@ public class InventoryCountService : BaseService, IInventoryCountService
 
     public InventoryCountService(
         IUserContext userContext,
-        IInventoryReadDbContext inventoryReadDbContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IInventoryCountLifecycleService lifecycleService,
@@ -59,7 +56,6 @@ public class InventoryCountService : BaseService, IInventoryCountService
         : base(logger, unitOfWork)
     {
         _userContext = userContext;
-        _inventoryReadDbContext = inventoryReadDbContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
@@ -658,13 +654,12 @@ public class InventoryCountService : BaseService, IInventoryCountService
 
     private async Task<List<InventoryCountExpectedRow>> GetExpectedProductTablesAsync(int organizationId, int warehouseId, CancellationToken ct)
     {
-        return await _inventoryReadDbContext.ProductTables
-            .AsNoTracking()
+        var query = _queryBuilder.For<ProductTable>()
             .Where(x => x.OrganizationId == organizationId &&
                         x.CurrentWarehouseId == warehouseId &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StatusId == ProductTableStatusIdConst.IN_STOCK)
-            .Select(x => new InventoryCountExpectedRow
+            .As(x => new InventoryCountExpectedRow
             {
                 Id = x.Id,
                 ProductId = x.ProductId,
@@ -672,7 +667,9 @@ public class InventoryCountService : BaseService, IInventoryCountService
                 UnitId = x.Product.UnitId,
                 UnitName = x.Product.Unit.Name
             })
-            .ToListAsyncSafe(ct);
+            .Build();
+
+        return await _productTableQuery.GetAllAsync(query, ct);
     }
 
     private async Task<InventoryAdjustmentDoc?> GetInventoryAdjustmentAsync(long id, CancellationToken ct)

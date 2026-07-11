@@ -13,9 +13,6 @@ namespace Application.Features.AccountingReports;
 public class AccountingReportService : IAccountingReportService
 {
     private const int DefaultPageSize = 50;
-    private const short ActiveAccountTypeId = 1;
-    private const short PassiveAccountTypeId = 2;
-    private const short ActivePassiveAccountTypeId = 3;
 
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
@@ -536,9 +533,9 @@ public class AccountingReportService : IAccountingReportService
 
         return row.AccountTypeId switch
         {
-            ActiveAccountTypeId => net >= 0m ? assetRows : liabilityRows,
-            PassiveAccountTypeId => net <= 0m ? liabilityRows : assetRows,
-            ActivePassiveAccountTypeId => net >= 0m ? assetRows : liabilityRows,
+            AccountTypeIdConst.Active => net >= 0m ? assetRows : liabilityRows,
+            AccountTypeIdConst.Passive => net <= 0m ? liabilityRows : assetRows,
+            AccountTypeIdConst.ActivePassive => net >= 0m ? assetRows : liabilityRows,
             _ => IsAssetCode(row.AccountCode) ? assetRows :
                 IsLiabilityCode(row.AccountCode) ? liabilityRows :
                 IsEquityCode(row.AccountCode) ? equityRows :

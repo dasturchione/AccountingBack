@@ -1,13 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
-[Table("acc_account_type")]
-[Index("Code", Name = "idx_acc_account_type_code", IsUnique = true)]
-[Index("StateId", Name = "idx_acc_account_type_state_id")]
-public partial class AccountType
+[Table("acc_chart_account_preset")]
+public partial class ChartAccountPreset
 {
     [Key]
     [Column("id")]
@@ -18,8 +15,12 @@ public partial class AccountType
     public string Code { get; set; } = null!;
 
     [Column("name")]
-    [StringLength(150)]
+    [StringLength(255)]
     public string Name { get; set; } = null!;
+
+    [Column("description")]
+    [StringLength(500)]
+    public string? Description { get; set; }
 
     [Column("state_id")]
     public short StateId { get; set; }
@@ -27,13 +28,13 @@ public partial class AccountType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("AccountType")]
-    public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
-
-    [InverseProperty(nameof(ChartAccountPresetAccount.AccountType))]
+    [InverseProperty("Preset")]
     public virtual ICollection<ChartAccountPresetAccount> ChartAccountPresetAccounts { get; set; } = new List<ChartAccountPresetAccount>();
 
+    [InverseProperty("Preset")]
+    public virtual ICollection<ChartAccountPresetTranslation> ChartAccountPresetTranslations { get; set; } = new List<ChartAccountPresetTranslation>();
+
     [ForeignKey("StateId")]
-    [InverseProperty("AccountTypes")]
+    [InverseProperty(nameof(State.ChartAccountPresets))]
     public virtual State State { get; set; } = null!;
 }

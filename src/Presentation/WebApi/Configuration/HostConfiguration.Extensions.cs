@@ -24,6 +24,7 @@ using WebApi.Middlewares;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Npgsql;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace WebApi.Configuration
 {
@@ -78,6 +79,7 @@ namespace WebApi.Configuration
                 })
                 .AddJsonOptions(options => 
                 {
+                    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
@@ -158,9 +160,52 @@ namespace WebApi.Configuration
         private static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
         {
             builder.Services.AddHttpContextAccessor();
+            builder.AddDataProtectionKeys(builder.Environment);
 
             builder.Services.AddInfrastructure(builder.Configuration);
             
+            return builder;
+        }
+
+        private static WebApplicationBuilder AddDataProtectionKeys(this WebApplicationBuilder builder, IWebHostEnvironment environment)
+        {
+            var rootPath = Environment.GetEnvironmentVariable("APPDATA")
+                ?? Environment.GetEnvironmentVariable("HOME")
+                ?? environment.ContentRootPath;
+
+            var candidatePath = rootPath != null
+                ? Path.Combine(rootPath, "ASP.NET", "DataProtection-Keys")
+                : Path.Combine(environment.ContentRootPath, ".aspnet-dataprotection-keys");
+
+            var configuredPath = builder.Configuration["DataProtection:KeysPath"];
+            var keyDirectory = !string.IsNullOrWhiteSpace(configuredPath)
+                ? configuredPath
+                : candidatePath;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(keyDirectory))
+                {
+                    throw new InvalidOperationException("DataProtection keys path is not configured.");
+                }
+
+                if (!Path.IsPathRooted(keyDirectory))
+                {
+                    keyDirectory = Path.GetFullPath(Path.Combine(environment.ContentRootPath, keyDirectory));
+                }
+
+                Directory.CreateDirectory(keyDirectory);
+
+                var directoryInfo = new DirectoryInfo(keyDirectory);
+                builder.Services.AddDataProtection()
+                    .PersistKeysToFileSystem(directoryInfo)
+                    .SetApplicationName("accounting-back");
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
+            {
+                Log.Warning(ex, "Could not initialize file system DataProtection key persistence. Key persistence will fall back to system defaults.");
+            }
+
             return builder;
         }
 
@@ -304,6 +349,27 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(backupPassword))
                 throw new InvalidOperationException("BackupJob:Database:Password is not configured with a real secret value.");
 
+            var aslBelgiServerBaseUrl = configuration["AslBelgi:ServerBaseUrl"];
+            var aslBelgiAuthPath = configuration["AslBelgi:AuthenticatePath"];
+            var aslBelgiRefreshPath = configuration["AslBelgi:RefreshPath"];
+
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            {
+                if (IsPlaceholderValue(aslBelgiServerBaseUrl))
+                    throw new InvalidOperationException("AslBelgi:ServerBaseUrl is not configured with a real value.");
+
+                if (string.IsNullOrWhiteSpace(aslBelgiAuthPath))
+                    throw new InvalidOperationException("AslBelgi:AuthenticatePath is required in production.");
+
+                if (string.IsNullOrWhiteSpace(aslBelgiRefreshPath))
+                    throw new InvalidOperationException("AslBelgi:RefreshPath is required in production.");
+            }
+            else
+            {
+                if (IsPlaceholderValue(aslBelgiServerBaseUrl) || IsPlaceholderValue(aslBelgiAuthPath) || IsPlaceholderValue(aslBelgiRefreshPath))
+                    Log.Warning("AslBelgi development config still uses placeholder values. Set real values or override via environment variables before production.");
+            }
+
             var fakturaClientSecret = configuration["FakturaAuthSettings:ClientSecret"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaClientSecret))
                 throw new InvalidOperationException("FakturaAuthSettings:ClientSecret is not configured with a real secret value.");
@@ -312,6 +378,14 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaPassword))
                 throw new InvalidOperationException("FakturaAuthSettings:Password is not configured with a real secret value.");
 
+            var fakturaUsername = configuration["FakturaAuthSettings:Username"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaUsername))
+                throw new InvalidOperationException("FakturaAuthSettings:Username is not configured with a real value.");
+
+            var emailUsername = configuration["Email:Username"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailUsername))
+                throw new InvalidOperationException("Email:Username is not configured with a real value.");
+
             var eImzoCertificatePassword = configuration["EImzo:CertificatePassword"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(eImzoCertificatePassword))
                 throw new InvalidOperationException("EImzo:CertificatePassword is not configured with a real secret value.");
@@ -319,6 +393,10 @@ namespace WebApi.Configuration
             var emailPassword = configuration["Email:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))
                 throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
+
+            var didoxPartnerToken = configuration["TaxIntegration:Didox:PartnerToken"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
+                throw new InvalidOperationException("TaxIntegration:Didox:PartnerToken is not configured with a real secret value.");
         }
 
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
@@ -452,3 +530,6 @@ namespace WebApi.Configuration
         }
     }
 }
+
+
+

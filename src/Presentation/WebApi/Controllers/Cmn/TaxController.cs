@@ -172,11 +172,54 @@ public sealed class TaxController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("didox/status/{externalDocumentId}")]
+    [ModuleAuthorize(PermissionCodeConst.TaxGetDidoxStatus)]
+    public async Task<IResult> GetDidoxStatusByPath([FromRoute] string externalDocumentId, [FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
+    {
+        var adaptedRequest = new TaxDocumentRequestDto
+        {
+            ProviderCode = request.ProviderCode,
+            OrganizationId = request.OrganizationId,
+            DocumentNumber = request.DocumentNumber,
+            Payload = request.Payload,
+            ExternalDocumentId = string.IsNullOrWhiteSpace(request.ExternalDocumentId)
+                ? externalDocumentId
+                : request.ExternalDocumentId
+        };
+
+        var result = await _integrationService.GetDidoxStatusAsync(adaptedRequest, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost("didox/cancel")]
     [ModuleAuthorize(PermissionCodeConst.TaxCancelDidox)]
     public async Task<IResult> CancelDidox([FromBody] TaxDocumentRequestDto request, CancellationToken ct = default)
     {
         var result = await _integrationService.CancelDidoxAsync(request, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("didox/auth/token")]
+    [ModuleAuthorize(PermissionCodeConst.TaxSubmitDidox)]
+    public async Task<IResult> GetDidoxTokenBySignature([FromBody] DidoxAuthSignatureRequestDto request, CancellationToken ct = default)
+    {
+        var result = await _integrationService.GetDidoxTokenBySignatureAsync(request, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("didox/auth/password")]
+    [ModuleAuthorize(PermissionCodeConst.TaxSubmitDidox)]
+    public async Task<IResult> GetDidoxTokenByPassword([FromBody] DidoxAuthPasswordRequestDto request, CancellationToken ct = default)
+    {
+        var result = await _integrationService.GetDidoxTokenByPasswordAsync(request, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("didox/sign")]
+    [ModuleAuthorize(PermissionCodeConst.TaxSubmitDidox)]
+    public async Task<IResult> SignDidox([FromBody] DidoxSignRequestDto request, CancellationToken ct = default)
+    {
+        var result = await _integrationService.SignDidoxAsync(request, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

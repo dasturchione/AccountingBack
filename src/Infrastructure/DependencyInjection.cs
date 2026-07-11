@@ -89,6 +89,9 @@ using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Infrastructure.Services.Barcode;
 using Infrastructure.Security;
+using Application.Features.Cmn.AslBelgi.Abstractions;
+using Application.Features.Cmn.AslBelgi.Services;
+using Integration.AslBelgi.Configs;
 using Integration.EImzo.Configs;
 using Integration.Faktura.Configs;
 using Integration.CentralBank.Configs;
@@ -132,10 +135,13 @@ namespace Infrastructure
             services.AddFaktura(config);
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
+            services.AddAslBelgiIntegration(config);
             services.AddEmailIntegration(config);
             services.AddGoogleDriveIntegration(config);
             services.AddBarcodeGenerator();
             services.AddScoped<ICurrencyRateImportService, CurrencyRateImportService>();
+            services.AddScoped<IAslBelgiService, AslBelgiService>();
+            services.AddScoped<IAslBelgiMarkingService, AslBelgiMarkingService>();
 
             services.AddScoped<IUserManagementCore, UserManagementCore>();
             services.AddScoped<IOrganizationManagementCore, OrganizationManagementCore>();

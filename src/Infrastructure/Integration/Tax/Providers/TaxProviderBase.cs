@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SharedKernel.Exceptions;
 using System.Text.Json;
 using System.Text;
 
@@ -48,7 +49,9 @@ public abstract class TaxProviderBase : ITaxProvider
     protected HttpClient CreateClient()
     {
         var client = _httpClientFactory.CreateClient(Settings.ClientName ?? "TaxIntegration");
-        client.Timeout = TimeSpan.FromSeconds(Math.Max(5, Settings.TimeoutSeconds));
+        var providerSettings = ResolveProviderSettings();
+        var timeoutSeconds = providerSettings.TimeoutSeconds ?? Settings.TimeoutSeconds;
+        client.Timeout = TimeSpan.FromSeconds(Math.Max(5, timeoutSeconds));
         return client;
     }
 
@@ -80,7 +83,7 @@ public abstract class TaxProviderBase : ITaxProvider
             ApplyCorrelationId(request);
             return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         }, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
     }
@@ -97,14 +100,14 @@ public abstract class TaxProviderBase : ITaxProvider
             ApplyCorrelationId(request);
             return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         }, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonSerializer.DeserializeAsync<TResponse>(stream, JsonOptions, ct);
     }
 
     protected async Task<HttpResponseMessage> SendWithRetryAsync(Func<Task<HttpResponseMessage>> action, CancellationToken ct)
     {
-        var attempts = Math.Max(1, Settings.RetryCount);
+        var attempts = Math.Max(1, ResolveRetryCount());
         var delay = TimeSpan.FromMilliseconds(200);
         Exception? lastException = null;
 
@@ -143,6 +146,37 @@ public abstract class TaxProviderBase : ITaxProvider
         }
 
         throw lastException ?? new HttpRequestException($"Tax provider {Code} request failed.");
+    }
+
+    private int ResolveRetryCount()
+    {
+        var providerSettings = ResolveProviderSettings();
+        return providerSettings.RetryCount ?? Settings.RetryCount;
+    }
+
+    protected async Task EnsureSuccessStatusOrThrowAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var responseBody = await ReadResponseBodySafelyAsync(response);
+        var detail = string.IsNullOrWhiteSpace(responseBody)
+            ? response.ReasonPhrase ?? "Integration request failed."
+            : responseBody;
+
+        throw new IntegrationHttpException(detail, (int)response.StatusCode);
+    }
+
+    private static async Task<string> ReadResponseBodySafelyAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            return await response.Content.ReadAsStringAsync();
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private void ApplyCorrelationId(HttpRequestMessage request)

@@ -11,6 +11,7 @@ create table inv_product
     state_id smallint not null,
     created_date timestamp without time zone default now() not null,
     mxik character varying(17),
+    gtin character varying(14),
     is_piece_tracked boolean default false not null,
     product_type_id smallint not null default 1,
     is_sold boolean not null default true,

@@ -7,10 +7,17 @@ namespace Application.Features.Cmn.Taxes.Integration.Services;
 public sealed class TaxIntegrationService : ITaxIntegrationService
 {
     private readonly ITaxProviderFactory _factory;
+    private readonly IDidoxAuthClient _didoxAuthClient;
+    private readonly IDidoxDocumentClient _didoxDocumentClient;
 
-    public TaxIntegrationService(ITaxProviderFactory factory)
+    public TaxIntegrationService(
+        ITaxProviderFactory factory,
+        IDidoxAuthClient didoxAuthClient,
+        IDidoxDocumentClient didoxDocumentClient)
     {
         _factory = factory;
+        _didoxAuthClient = didoxAuthClient;
+        _didoxDocumentClient = didoxDocumentClient;
     }
 
     public Task<Result<IReadOnlyCollection<TaxProviderInfoDto>>> GetSupportedProvidersAsync(CancellationToken ct = default)
@@ -64,6 +71,46 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
 
     public async Task<Result<TaxDocumentResultDto>> CancelDidoxAsync(TaxDocumentRequestDto request, CancellationToken ct = default)
         => await ExecuteDocumentAsync("DIDOX", "cancel", request, ct);
+
+    public async Task<Result<DidoxTokenResultDto>> GetDidoxTokenBySignatureAsync(DidoxAuthSignatureRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.TaxId))
+            return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.TaxIdRequired", "Tax id is required."));
+
+        if (string.IsNullOrWhiteSpace(request.Signature))
+            return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.SignatureRequired", "E-IMZO signature is required."));
+
+        var result = await _didoxAuthClient.GetTokenBySignatureAsync(request.TaxId, request.Signature, request.Locale, ct);
+        return result.IsSuccessful
+            ? Result.Success(result)
+            : Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.AuthFailed", result.Message ?? "Didox authentication failed."));
+    }
+
+    public async Task<Result<DidoxTokenResultDto>> GetDidoxTokenByPasswordAsync(DidoxAuthPasswordRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.TaxId))
+            return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.TaxIdRequired", "Tax id is required."));
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+            return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.PasswordRequired", "Password is required."));
+
+        var result = await _didoxAuthClient.GetTokenByPasswordAsync(request.TaxId, request.Password, request.Locale, ct);
+        return result.IsSuccessful
+            ? Result.Success(result)
+            : Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.AuthFailed", result.Message ?? "Didox authentication failed."));
+    }
+
+    public async Task<Result<TaxDocumentResultDto>> SignDidoxAsync(DidoxSignRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.DocumentId))
+            return Result.Failure<TaxDocumentResultDto>(Error.Problem("Didox.DocumentIdRequired", "Document id is required."));
+
+        if (string.IsNullOrWhiteSpace(request.Signature))
+            return Result.Failure<TaxDocumentResultDto>(Error.Problem("Didox.SignatureRequired", "Signature is required (produced by the frontend E-IMZO flow)."));
+
+        var response = await _didoxDocumentClient.SignAsync(request.DocumentId, request.Signature, request.CompanyToken, ct);
+        return Result.Success(ToDocumentResult(response));
+    }
 
     public async Task<Result<IReadOnlyCollection<TaxProviderStatusDto>>> GetProviderStatusAsync(CancellationToken ct = default)
     {
@@ -130,7 +177,8 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
             OrganizationId = request.OrganizationId,
             DocumentNumber = request.DocumentNumber,
             Payload = request.Payload,
-            ExternalDocumentId = request.ExternalDocumentId
+            ExternalDocumentId = request.ExternalDocumentId,
+            CompanyToken = request.CompanyToken
         };
 
         var response = operation switch
@@ -141,16 +189,18 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        return Result.Success(new TaxDocumentResultDto
-        {
-            ProviderCode = response.ProviderCode,
-            Operation = response.Operation,
-            ExternalDocumentId = response.ExternalDocumentId,
-            StatusCode = response.StatusCode,
-            StatusName = response.StatusName,
-            IsSuccessful = response.IsSuccessful,
-            Message = response.Message,
-            RequestedAt = response.RequestedAt
-        });
+        return Result.Success(ToDocumentResult(response));
     }
+
+    private static TaxDocumentResultDto ToDocumentResult(TaxProviderOperationResultDto response) => new()
+    {
+        ProviderCode = response.ProviderCode,
+        Operation = response.Operation,
+        ExternalDocumentId = response.ExternalDocumentId,
+        StatusCode = response.StatusCode,
+        StatusName = response.StatusName,
+        IsSuccessful = response.IsSuccessful,
+        Message = response.Message,
+        RequestedAt = response.RequestedAt
+    };
 }

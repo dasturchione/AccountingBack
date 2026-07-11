@@ -4,7 +4,6 @@ public class CashOperationBaseDto
 {
     public int CashBoxId { get; set; }
     public int? DestinationCashBoxId { get; set; }
-    public short PaymentPurposeId { get; set; }
     public short OperationTypeId { get; set; }
     public short? PaymentTypeId { get; set; }
     public int? CashChartAccountId { get; set; }

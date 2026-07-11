@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Application.Features.CashOperations;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -11,20 +11,17 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
 {
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
-    private readonly IQueryRepository<PaymentPurpose> _paymentPurposeQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
     public CashOperationContextBuilder(
         IQueryBuilder queryBuilder,
         IQueryRepository<PaymentType> paymentTypeQuery,
-        IQueryRepository<PaymentPurpose> paymentPurposeQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IOrganizationAccountingPolicyResolver accountingPolicyResolver)
     {
         _queryBuilder = queryBuilder;
         _paymentTypeQuery = paymentTypeQuery;
-        _paymentPurposeQuery = paymentPurposeQuery;
         _counterpartyQuery = counterpartyQuery;
         _accountingPolicyResolver = accountingPolicyResolver;
     }
@@ -32,6 +29,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
     public async Task<List<PostingContext>> BuildAsync(CashOperation document)
     {
         var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
+        var paymentMethod = await GetPaymentMethodAsync(document.PaymentTypeId);
         var context = new PostingContext
         {
             OrganizationId = document.OrganizationId,
@@ -41,15 +39,10 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
             CurrencyId = document.CurrencyId,
             DocDate = document.DocDate,
             JournalNumber = document.DocNumber,
-            RuleId = GetRuleId(document),
-            RequiredDebitAlias = await ResolveRequiredDebitAliasAsync(document),
-            RequiredCreditAlias = await ResolveRequiredCreditAliasAsync(document),
-            AllowedAliases = await ResolveAllowedAliasesAsync(document),
-            Amounts = new Dictionary<string, decimal>
+            Entries = new List<PostingEntryContext>
             {
-                [AmountSourceConst.Total] = document.Amount
+                BuildEntry(document, paymentMethod)
             },
-            PaymentMethod = await GetPaymentMethodAsync(document.PaymentTypeId),
             Subkontos = new List<SubkontoValue>()
         };
 
@@ -59,46 +52,35 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
         return new List<PostingContext> { context };
     }
 
-    private static short GetRuleId(CashOperation operation) =>
-        operation.OperationTypeId == OperationTypeIdConst.OUT
-            ? PostingRuleIdConst.CREDIT_OPERATION
-            : operation.OperationTypeId == OperationTypeIdConst.TRANSFER
-                ? PostingRuleIdConst.CASH_TRANSFER
-                : PostingRuleIdConst.DEBIT_OPERATION;
-
-    private async Task<string[]> ResolveAllowedAliasesAsync(CashOperation document)
-    {
-        var alias = await GetPaymentPurposeAliasAsync(document.PaymentPurposeId);
-        return string.IsNullOrWhiteSpace(alias) ? Array.Empty<string>() : [alias];
-    }
-
-    private async Task<string?> ResolveRequiredDebitAliasAsync(CashOperation document)
-    {
-        if (document.OperationTypeId == OperationTypeIdConst.TRANSFER)
-            return null;
-
-        var alias = await GetPaymentPurposeAliasAsync(document.PaymentPurposeId);
-        if (string.IsNullOrWhiteSpace(alias))
-            return null;
-
-        return document.OperationTypeId == OperationTypeIdConst.IN
-            ? AliasConst.PaymentAccount
-            : alias;
-    }
-
-    private async Task<string?> ResolveRequiredCreditAliasAsync(CashOperation document)
-    {
-        if (document.OperationTypeId == OperationTypeIdConst.TRANSFER)
-            return null;
-
-        var alias = await GetPaymentPurposeAliasAsync(document.PaymentPurposeId);
-        if (string.IsNullOrWhiteSpace(alias))
-            return null;
-
-        return document.OperationTypeId == OperationTypeIdConst.IN
-            ? alias
-            : AliasConst.PaymentAccount;
-    }
+    private static PostingEntryContext BuildEntry(CashOperation document, string paymentMethod) =>
+        document.OperationTypeId switch
+        {
+            OperationTypeIdConst.IN => new PostingEntryContext
+            {
+                DebitAccountId = document.CashChartAccountId,
+                CreditAccountId = document.OffsetAccountId,
+                Amount = document.Amount,
+                Content = paymentMethod
+            },
+            OperationTypeIdConst.OUT => new PostingEntryContext
+            {
+                DebitAccountId = document.OffsetAccountId,
+                CreditAccountId = document.CashChartAccountId,
+                Amount = document.Amount,
+                Content = paymentMethod
+            },
+            OperationTypeIdConst.TRANSFER => new PostingEntryContext
+            {
+                DebitAccountId = document.OffsetAccountId,
+                CreditAccountId = document.CashChartAccountId,
+                Amount = document.Amount,
+                Content = RegisterDefaultsConst.CashOperation
+            },
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(document.OperationTypeId),
+                document.OperationTypeId,
+                "Unsupported cash operation type for accounting posting.")
+        };
 
     private static void AddAmountSubkonto(PostingContext context, CashOperation document)
     {
@@ -109,7 +91,8 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
                 SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
                 DisplayValue = $"{RegisterDefaultsConst.SourceCashBoxDisplayPrefix}:{document.CashBoxId}",
                 EntityId = document.CashBoxId,
-                SortOrder = 1
+                SortOrder = 1,
+                AppliesToAccountId = document.CashChartAccountId
             });
 
             if (document.DestinationCashBoxId.HasValue)
@@ -119,7 +102,8 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
                     SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
                     DisplayValue = $"{RegisterDefaultsConst.DestinationCashBoxDisplayPrefix}:{document.DestinationCashBoxId}",
                     EntityId = document.DestinationCashBoxId.Value,
-                    SortOrder = 2
+                    SortOrder = 2,
+                    AppliesToAccountId = document.OffsetAccountId
                 });
             }
 
@@ -130,8 +114,21 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
         {
             SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
             DisplayValue = JsonSerializer.Serialize(new { type = RegisterDefaultsConst.CashOperation, id = document.Id }),
+            EntityId = document.CashBoxId,
+            SortOrder = 1,
+            AppliesToAccountId = document.CashChartAccountId
+        });
+
+        context.Subkontos.Add(new SubkontoValue
+        {
+            SubkontoTypeId = SubkontoTypeIdConst.CounterpartySettlementDocuments,
+            DisplayValue = JsonSerializer.Serialize(new
+            {
+                number = document.DocNumber,
+                date = document.DocDate
+            }),
             EntityId = document.Id,
-            SortOrder = 1
+            SortOrder = 2
         });
     }
 
@@ -160,7 +157,7 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
             SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
             DisplayValue = name,
             EntityId = document.CounterpartyId.Value,
-            SortOrder = 2
+            SortOrder = 3
         });
     }
 
@@ -173,18 +170,5 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
 
         var name = await _counterpartyQuery.GetAsync(query);
         return name ?? string.Empty;
-    }
-
-    private async Task<string?> GetPaymentPurposeAliasAsync(short paymentPurposeId)
-    {
-        if (paymentPurposeId <= 0)
-            return null;
-
-        var query = _queryBuilder.For<PaymentPurpose>()
-            .Where(x => x.Id == paymentPurposeId)
-            .As(x => x.Alias.Code)
-            .Build();
-
-        return await _paymentPurposeQuery.GetAsync(query);
     }
 }

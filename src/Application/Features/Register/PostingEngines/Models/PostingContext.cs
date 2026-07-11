@@ -1,17 +1,13 @@
 ﻿namespace Application.Features.Register.PostingEngines
 {
     /// <summary>
-    /// Полная модель "со всем, что нужно" для формирования проводки: суммы для резолва
-    /// AmountSource, измерения для резолва AccountAlias (категория, вид услуги и т.д.),
-    /// и субконто, которые должны попасть в RegisterEntrySubkonto.
-    ///
-    /// Один экземпляр строится под один документ через IPostingContextBuilder.
+    /// Полная модель "со всем, что нужно" для формирования проводок:
+    /// готовые строки ДТ/КТ, метаданные документа и кандидаты субконто.
     /// </summary>
     public class PostingContext
     {
         public int OrganizationId { get; set; }
         public short DocumentTypeId { get; set; }
-        public short RuleId { get; set; }
         public long DocumentId { get; set; }
         public short CurrencyId { get; set; }
         public DateTime DocDate { get; set; }
@@ -21,32 +17,11 @@
         /// <summary>Учётная политика организации (acc_accounting_policy.id) — НСБУ, IFRS и т.д.</summary>
         public short AccountingPolicyId { get; set; }
 
-        // ---- Измерения для резолва AccountAlias ----
-        public string? ProductCategory { get; set; }
-        public string? ServiceType { get; set; }
-        public string? PaymentMethod { get; set; }
-        public string? AssetType { get; set; }
-
-        /// <summary>
-        /// Вид входного НДС (счёт 4410.x): "goods" — по МПЗ (4410.3), "services" — по услугам (4410.4).
-        /// Позволяет выбрать конкретный субсчёт входного НДС вместо группового счёта 4410.
-        /// </summary>
-        public string? VatKind { get; set; }
         public int? FixedAssetId { get; set; }
-        public string? RequiredDebitAlias { get; set; }
-        public string? RequiredCreditAlias { get; set; }
 
-        // ---- Суммы для AmountSource ----
-        public Dictionary<string, decimal> Amounts { get; set; } = new();
-
-        /// <summary>Количество по дебету/кредиту, если у операции есть количественный учёт (товар).</summary>
-        public decimal? DebitQuantity { get; set; }
-        public decimal? CreditQuantity { get; set; }
+        public List<PostingEntryContext> Entries { get; set; } = new();
 
         // ---- Субконто, которые нужно прикрепить к проводкам этого документа ----
         public List<SubkontoValue> Subkontos { get; set; } = new();
-
-        public string[] SkippedAmountSources { get; set; } = Array.Empty<string>();
-        public string[] AllowedAliases { get; set; } = Array.Empty<string>();
     }
 }

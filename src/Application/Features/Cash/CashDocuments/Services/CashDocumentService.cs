@@ -115,9 +115,9 @@ public class CashDocumentService : ICashDocumentService
         {
             CashBoxId = dto.CashBoxId,
             DestinationCashBoxId = null,
-            PaymentPurposeId = dto.PaymentPurposeId,
             OperationTypeId = operationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
+            PaymentTypeId = dto.PaymentTypeId,            CashChartAccountId = dto.CashChartAccountId,
+            OffsetAccountId = dto.OffsetAccountId,
             CounterpartyId = dto.CounterpartyId,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
@@ -131,9 +131,9 @@ public class CashDocumentService : ICashDocumentService
         {
             CashBoxId = dto.CashBoxId,
             DestinationCashBoxId = null,
-            PaymentPurposeId = dto.PaymentPurposeId,
             OperationTypeId = operationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
+            PaymentTypeId = dto.PaymentTypeId,            CashChartAccountId = dto.CashChartAccountId,
+            OffsetAccountId = dto.OffsetAccountId,
             CounterpartyId = dto.CounterpartyId,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,

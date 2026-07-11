@@ -1,12 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_operation_type")]
-[Index("Code", Name = "idx_cmn_operation_type_code", IsUnique = true)]
-[Index("StateId", Name = "idx_cmn_operation_type_state_id")]
 public partial class OperationType
 {
     [Key]
@@ -44,9 +41,6 @@ public partial class OperationType
 
     [InverseProperty("OperationType")]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
-
-    [InverseProperty("OperationType")]
-    public virtual ICollection<PaymentPurpose> PaymentPurposes { get; set; } = new List<PaymentPurpose>();
 
     [ForeignKey("StateId")]
     [InverseProperty("OperationTypes")]

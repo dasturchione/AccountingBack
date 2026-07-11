@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -62,10 +62,6 @@ public partial class AccChartAccount
 
     [Column("is_off_balance")]
     public bool IsOffBalance { get; set; }
-
-    [InverseProperty("Account")]
-    public virtual ICollection<AccAccountResolveRule> AccAccountResolveRules { get; set; } = new List<AccAccountResolveRule>();
-
     [InverseProperty("Account")]
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 

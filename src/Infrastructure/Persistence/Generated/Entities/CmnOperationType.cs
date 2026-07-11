@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -28,10 +28,6 @@ public partial class CmnOperationType
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
-
-    [InverseProperty("OperationType")]
-    public virtual ICollection<AccPaymentPurpose> AccPaymentPurposes { get; set; } = new List<AccPaymentPurpose>();
-
     [InverseProperty("OperationType")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 

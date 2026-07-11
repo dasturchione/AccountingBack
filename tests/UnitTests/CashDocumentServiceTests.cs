@@ -17,7 +17,8 @@ public class CashDocumentServiceTests
         var result = await service.CreateReceiptOrderAsync(new CashDocumentCreateDto
         {
             CashBoxId = 4,
-            PaymentPurposeId = 5,
+            CashChartAccountId = 5010,
+            OffsetAccountId = 6010,
             DocDate = new DateTime(2026, 7, 3),
             CurrencyId = 1,
             Amount = 250m
@@ -27,6 +28,8 @@ public class CashDocumentServiceTests
         Assert.NotNull(cashOperationService.LastCreateDto);
         Assert.Equal(OperationTypeIdConst.IN, cashOperationService.LastCreateDto!.OperationTypeId);
         Assert.Null(cashOperationService.LastCreateDto.DestinationCashBoxId);
+        Assert.Equal(5010, cashOperationService.LastCreateDto.CashChartAccountId);
+        Assert.Equal(6010, cashOperationService.LastCreateDto.OffsetAccountId);
     }
 
     [Fact]
@@ -38,7 +41,8 @@ public class CashDocumentServiceTests
         var result = await service.CreatePaymentOrderAsync(new CashDocumentCreateDto
         {
             CashBoxId = 4,
-            PaymentPurposeId = 5,
+            CashChartAccountId = 5010,
+            OffsetAccountId = 6010,
             DocDate = new DateTime(2026, 7, 3),
             CurrencyId = 1,
             Amount = 250m
@@ -48,6 +52,8 @@ public class CashDocumentServiceTests
         Assert.NotNull(cashOperationService.LastCreateDto);
         Assert.Equal(OperationTypeIdConst.OUT, cashOperationService.LastCreateDto!.OperationTypeId);
         Assert.Null(cashOperationService.LastCreateDto.DestinationCashBoxId);
+        Assert.Equal(5010, cashOperationService.LastCreateDto.CashChartAccountId);
+        Assert.Equal(6010, cashOperationService.LastCreateDto.OffsetAccountId);
     }
 }
 

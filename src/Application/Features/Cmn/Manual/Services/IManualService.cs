@@ -14,8 +14,6 @@ public interface IManualService
     Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetPostingAliasesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetPaymentPurposesAsync(short? operationTypeId, CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaOkofsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default);

@@ -5,14 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("sale_doc")]
-[Index("CounterpartyId", Name = "idx_sale_doc_counterparty_id")]
-[Index("DocDate", Name = "idx_sale_doc_doc_date")]
-[Index("OrganizationId", Name = "idx_sale_doc_organization_id")]
-[Index("StateId", Name = "idx_sale_doc_state_id")]
-[Index("StatusId", Name = "idx_sale_doc_status_id")]
-[Index("WarehouseId", Name = "idx_sale_doc_warehouse_id")]
-[Index("CancelledByUserId", Name = "idx_sale_doc_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_sale_doc_posted_by_user_id")]
 public partial class SaleDoc
 {
     [Key]

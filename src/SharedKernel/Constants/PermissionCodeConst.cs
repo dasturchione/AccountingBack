@@ -17,12 +17,6 @@ public static class PermissionCodeConst
     public const string ChartAccountUpdate     = "CHART_ACCOUNT_UPDATE";
     public const string ChartAccountDelete     = "CHART_ACCOUNT_DELETE";
     #endregion
-
-    #region PostingTemplateView
-    public const string PostingRuleView       = "POSTING_RULE_VIEW";
-    public const string PostingRuleViewDetail = "POSTING_RULE_VIEW_DETAIL";
-    #endregion
-
     #region BankOperation
     public const string BankOperationView       = "BANK_OPERATION_VIEW";
     public const string BankOperationViewDetail = "BANK_OPERATION_VIEW_DETAIL";
@@ -149,8 +143,6 @@ public static class PermissionCodeConst
     public const string ManualGetFaOkofs                  = "MANUAL_GET_FA_OKOFS";
     public const string ManualGetFaDepreciationMethods    = "MANUAL_GET_FA_DEPRECIATION_METHODS";
     public const string ManualGetSourceProductTables       = "MANUAL_GET_SOURCE_PRODUCT_TABLES";
-    public const string ManualGetPostingAliases           = "MANUAL_GET_POSTING_ALIASES";
-    public const string ManualGetPaymentPurposes          = "MANUAL_GET_PAYMENT_PURPOSES";
     public const string ManualGetPriceRoundingMethods     = "MANUAL_GET_PRICE_ROUNDING_METHODS";
     public const string ManualGetPricingMethods           = "MANUAL_GET_PRICING_METHODS";
     public const string ManualGetCostingMethods           = "MANUAL_GET_COSTING_METHODS";

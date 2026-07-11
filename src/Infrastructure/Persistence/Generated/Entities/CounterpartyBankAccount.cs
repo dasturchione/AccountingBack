@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -53,10 +53,6 @@ public partial class CounterpartyBankAccount
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
-
-    [InverseProperty("CounterpartyBankAccount")]
-    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
-
     [ForeignKey("CurrencyId")]
     [InverseProperty("CounterpartyBankAccounts")]
     public virtual CmnCurrency Currency { get; set; } = null!;

@@ -5,8 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("sale_doc_product")]
-[Index("OwnerId", Name = "ix_sale_doc_product_owner_id")]
-[Index("ProductId", Name = "ix_sale_doc_product_product_id")]
 public partial class SaleDocProduct
 {
     [Key]

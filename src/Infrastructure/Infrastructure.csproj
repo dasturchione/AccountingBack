@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,7 +19,6 @@
   <ItemGroup>
     <Compile Include="Persistence\Generated\Entities\AccAccountingPeriod.cs" />
     <Compile Include="Persistence\Generated\Entities\AccAccountingPolicy.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccAccountResolveRule.cs" />
     <Compile Include="Persistence\Generated\Entities\AccAccountType.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccount.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccountPreset.cs" />
@@ -28,20 +27,13 @@
     <Compile Include="Persistence\Generated\Entities\AccChartAccountPresetAccountTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccountPresetTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccountSubkonto.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPaymentPurpose.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPaymentPurposeTranslation.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPostingAlias.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPostingAliasTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccPostingBatch.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPostingRule.cs" />
-    <Compile Include="Persistence\Generated\Entities\AccPostingRuleLine.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntry.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntrySubkonto.cs" />
     <Compile Include="Persistence\Generated\Entities\AccSubkontoType.cs" />
     <Compile Include="Persistence\Generated\Entities\AccSubkontoTypeTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AppDbContext.cs" />
     <Compile Include="Persistence\Generated\Entities\BankOperation.cs" />
-    <Compile Include="Persistence\Generated\Entities\BankOperationLine.cs" />
     <Compile Include="Persistence\Generated\Entities\CashBox.cs" />
     <Compile Include="Persistence\Generated\Entities\CashOperation.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnBank.cs" />
@@ -79,7 +71,6 @@
     <Compile Include="Persistence\Generated\Entities\CmnTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnUnit.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnVatRate.cs" />
-    <Compile Include="Persistence\Generated\Entities\CounterpartyAccountPaymentPurposeHint.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyBankAccount.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyCard.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyContact.cs" />

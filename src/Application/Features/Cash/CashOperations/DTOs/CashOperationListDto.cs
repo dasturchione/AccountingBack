@@ -9,8 +9,6 @@ public class CashOperationListDto
     public string CashBoxName { get; set; } = null!;
     public int? DestinationCashBoxId { get; set; }
     public string? DestinationCashBoxName { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public short OperationTypeId { get; set; }
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }

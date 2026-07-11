@@ -15,8 +15,6 @@ public class BankOperationListDto
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public int? BankChartAccountId { get; set; }
     public string? BankChartAccountNumber { get; set; }
     public string? BankChartAccountName { get; set; }

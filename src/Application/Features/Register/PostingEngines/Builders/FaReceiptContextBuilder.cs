@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Application.Features.Register;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -51,19 +51,12 @@ namespace Application.Features.Register.PostingEngines
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
                         AccountingPolicyId = accountingPolicyId,
-                        RuleId = PostingRuleIdConst.FA_RECEIPT,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
                         SourceLineId = line.Id,
                         FixedAssetId = asset.FaAssetId is { } faAssetId ? (int)faAssetId : null,
-                        // Только Base: строку НДС (VAT) для контекста актива пропускаем.
-                        SkippedAmountSources = new[] { AmountSourceConst.VAT },
-                        Amounts = new Dictionary<string, decimal>
-                        {
-                            [AmountSourceConst.Base] = asset.InitialCost
-                        },
                         Subkontos = new List<SubkontoValue>
                         {
                             new()
@@ -98,19 +91,11 @@ namespace Application.Features.Register.PostingEngines
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
                         AccountingPolicyId = accountingPolicyId,
-                        RuleId = PostingRuleIdConst.FA_RECEIPT,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
                         SourceLineId = line.Id,
-                        VatKind = RegisterDefaultsConst.VatKindFixedAsset,
-                        // Только VAT: строки капитализации/ввода (Base) для контекста НДС пропускаем.
-                        SkippedAmountSources = new[] { AmountSourceConst.Base },
-                        Amounts = new Dictionary<string, decimal>
-                        {
-                            [AmountSourceConst.VAT] = line.VatAmount
-                        },
                         Subkontos = new List<SubkontoValue>()
                     };
 
@@ -140,3 +125,4 @@ namespace Application.Features.Register.PostingEngines
         }
     }
 }
+

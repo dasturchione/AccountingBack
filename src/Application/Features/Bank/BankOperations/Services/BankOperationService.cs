@@ -143,7 +143,6 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.Amount = dto.Amount;
             entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             entity.Comment = dto.Comment;
-            entity.PaymentPurposeId = dto.PaymentPurposeId;
             entity.StateId = StateIdConst.ACTIVE;
 
             await _command.UpdateAsync(entity, ct);
@@ -220,7 +219,6 @@ public class BankOperationService : BaseService, IBankOperationService
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
             PaymentTypeId = dto.PaymentTypeId,
-            PaymentPurposeId = dto.PaymentPurposeId,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             BankChartAccountId = dto.BankChartAccountId,

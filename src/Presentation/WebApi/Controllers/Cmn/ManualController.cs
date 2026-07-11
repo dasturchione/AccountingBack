@@ -117,22 +117,6 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetPostingAliases)]
-    [HttpGet("posting-aliases")]
-    public async Task<IActionResult> GetPostingAliases(CancellationToken ct)
-    {
-        var result = await _manualService.GetPostingAliasesAsync(ct);
-        return Ok(result);
-    }
-
-    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentPurposes)]
-    [HttpGet("payment-purposes")]
-    public async Task<IActionResult> GetPaymentPurposes([FromQuery] short? operationTypeId, CancellationToken ct)
-    {
-        var result = await _manualService.GetPaymentPurposesAsync(operationTypeId, ct);
-        return Ok(result);
-    }
-
     [ModuleAuthorize(PermissionCodeConst.ManualGetPriceRoundingMethods)]
     [HttpGet("price-rounding-methods")]
     public async Task<IActionResult> GetPriceRoundingMethods(CancellationToken ct)

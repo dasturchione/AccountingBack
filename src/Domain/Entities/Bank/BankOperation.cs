@@ -32,9 +32,6 @@ public partial class BankOperation
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
 
-    [Column("payment_purpose_id")]
-    public short PaymentPurposeId { get; set; }
-
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
 
@@ -132,10 +129,6 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual PaymentType? PaymentType { get; set; }
 
-    [ForeignKey("PaymentPurposeId")]
-    [InverseProperty("BankOperations")]
-    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
-
     [ForeignKey("StateId")]
     [InverseProperty("BankOperations")]
     public virtual State State { get; set; } = null!;
@@ -143,7 +136,4 @@ public partial class BankOperation
     [ForeignKey("StatusId")]
     [InverseProperty("BankOperations")]
     public virtual DocumentStatus Status { get; set; } = null!;
-
-    [InverseProperty(nameof(BankOperationLine.BankOperation))]
-    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 }

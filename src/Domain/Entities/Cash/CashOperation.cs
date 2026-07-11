@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("cash_operation")]
-[Index("CashBoxId", Name = "idx_cash_operation_cash_box_id")]
-[Index("CounterpartyId", Name = "idx_cash_operation_counterparty_id")]
-[Index("DocDate", Name = "idx_cash_operation_doc_date")]
-[Index("OperationTypeId", Name = "idx_cash_operation_operation_type_id")]
-[Index("OrganizationId", Name = "idx_cash_operation_organization_id")]
-[Index("StateId", Name = "idx_cash_operation_state_id")]
-[Index("StatusId", Name = "idx_cash_operation_status_id")]
-[Index("CancelledByUserId", Name = "idx_cash_operation_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_cash_operation_posted_by_user_id")]
 public partial class CashOperation
 {
     [Key]
@@ -34,9 +25,6 @@ public partial class CashOperation
 
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
-
-    [Column("payment_purpose_id")]
-    public short PaymentPurposeId { get; set; }
 
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
@@ -124,10 +112,6 @@ public partial class CashOperation
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
     public virtual PaymentType? PaymentType { get; set; }
-
-    [ForeignKey("PaymentPurposeId")]
-    [InverseProperty(nameof(PaymentPurpose.CashOperations))]
-    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("CashOperations")]

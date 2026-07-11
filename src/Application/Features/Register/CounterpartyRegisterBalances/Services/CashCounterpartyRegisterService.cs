@@ -31,30 +31,7 @@ public class CashCounterpartyRegisterService : ICashCounterpartyRegisterService
         if (cashOperation.Amount <= 0m || cashOperation.CounterpartyId is null)
             return Result.Success(new List<CounterpartyRegisterBalance>());
 
-        var aliasCode = cashOperation.PaymentPurpose?.Alias?.Code;
-        if (!CounterpartySettlementOperationTypeResolver.IsCounterpartySettlementAlias(aliasCode))
-            return Result.Success(new List<CounterpartyRegisterBalance>());
-
-        var operationType = CounterpartySettlementOperationTypeResolver.Resolve(
-            aliasCode!,
-            cashOperation.OperationTypeId);
-
-        var entry = new CounterpartyRegisterBalance
-        {
-            OrganizationId = cashOperation.OrganizationId,
-            DocumentTypeId = DocumentTypeIdConst.CASHOPERATION,
-            DocumentId = cashOperation.Id,
-            CounterpartyId = cashOperation.CounterpartyId.Value,
-            OperationTypeId = operationType,
-            CurrencyId = cashOperation.CurrencyId,
-            Amount = cashOperation.Amount,
-            DocDate = cashOperation.DocDate,
-            CreatedDate = DateTime.Now,
-            PostingBatchId = postingBatchId
-        };
-
-        await _command.CreateAsync(entry, ct);
-        return Result.Success(new List<CounterpartyRegisterBalance> { entry });
+        return Result.Success(new List<CounterpartyRegisterBalance>());
     }
 
     public async Task<Result<List<CounterpartyRegisterBalance>>> ReverseAsync(
@@ -67,8 +44,7 @@ public class CashCounterpartyRegisterService : ICashCounterpartyRegisterService
 
         var originals = await GetOriginalEntriesAsync(cashOperation.Id, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<CounterpartyRegisterBalance>>(
-                CashOperationErrors.MissingCounterpartyRegisterEntries(cashOperation.Id, null));
+            return Result.Success(new List<CounterpartyRegisterBalance>());
 
         var now = DateTime.Now;
         var reversals = originals.Select(entry => new CounterpartyRegisterBalance

@@ -17,22 +17,19 @@ public partial class BankStatementParserService : IBankStatementParserService
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
-    private readonly IQueryRepository<CounterpartyAccountPaymentPurposeHint> _paymentPurposeHintQuery;
 
     public BankStatementParserService(
         IUserContext userContext,
         IQueryRepository<Bank> bankQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
-        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
-        IQueryRepository<CounterpartyAccountPaymentPurposeHint> paymentPurposeHintQuery)
+        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery)
     {
         _userContext = userContext;
         _bankQuery = bankQuery;
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
-        _paymentPurposeHintQuery = paymentPurposeHintQuery;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(Stream stream, CancellationToken ct = default)
@@ -78,7 +75,6 @@ public partial class BankStatementParserService : IBankStatementParserService
         await SetBankAccountIdsAsync(export, ct);
         await SetCounterpartyIdsAsync(export, ct);
         await SetCounterpartyBankAccountIdsAsync(export, ct);
-        await SetPaymentPurposeIdsAsync(export, ct);
     }
 
     private async Task SetBankIdsAsync(BankExportDto export, CancellationToken ct)
@@ -238,52 +234,6 @@ public partial class BankStatementParserService : IBankStatementParserService
             {
                 transaction.CounterpartyBankAccountId = match.Id;
                 transaction.CounterpartyId ??= match.CounterpartyId;
-            }
-        }
-    }
-
-    private async Task SetPaymentPurposeIdsAsync(BankExportDto export, CancellationToken ct)
-    {
-        var counterpartyBankAccountIds = export.Accounts
-            .SelectMany(x => x.Transactions)
-            .Select(x => x.CounterpartyBankAccountId)
-            .Where(x => x.HasValue)
-            .Select(x => x!.Value)
-            .Distinct()
-            .ToList();
-
-        if (counterpartyBankAccountIds.Count == 0)
-            return;
-
-        var specification = new QuerySpecification<CounterpartyAccountPaymentPurposeHint, PaymentPurposeHintMatch>
-        {
-            Criteria = x => counterpartyBankAccountIds.Contains(x.CounterpartyBankAccountId),
-            Selector = x => new PaymentPurposeHintMatch
-            {
-                CounterpartyBankAccountId = x.CounterpartyBankAccountId,
-                PaymentPurposeId = x.PaymentPurposeId,
-                UsageCount = x.UsageCount,
-                LastUsedDate = x.LastUsedDate
-            }
-        };
-
-        var hintMatches = await _paymentPurposeHintQuery.GetAllAsync(specification, ct);
-        var idsByAccountId = hintMatches
-            .GroupBy(x => x.CounterpartyBankAccountId)
-            .ToDictionary(
-                x => x.Key,
-                x => x.OrderByDescending(h => h.UsageCount)
-                      .ThenByDescending(h => h.LastUsedDate)
-                      .Select(h => (int)h.PaymentPurposeId)
-                      .Distinct()
-                      .ToList());
-
-        foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
-        {
-            if (transaction.CounterpartyBankAccountId.HasValue &&
-                idsByAccountId.TryGetValue(transaction.CounterpartyBankAccountId.Value, out var paymentPurposeIds))
-            {
-                transaction.PaymentPurposeIds = paymentPurposeIds;
             }
         }
     }
@@ -497,13 +447,4 @@ public partial class BankStatementParserService : IBankStatementParserService
         public int Id { get; set; }
         public int CounterpartyId { get; set; }
         public string AccountNumber { get; set; } = "";
-    }
-
-    private sealed class PaymentPurposeHintMatch
-    {
-        public int CounterpartyBankAccountId { get; set; }
-        public short PaymentPurposeId { get; set; }
-        public int UsageCount { get; set; }
-        public DateTime LastUsedDate { get; set; }
-    }
-}
+    }}

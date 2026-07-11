@@ -74,14 +74,6 @@ public static class CashOperationErrors
             LanguageIdConst.RU => $"Operation {id} has invalid cash box configuration.",
             _ => $"Cash operation {id} has invalid cash box configuration."
         });
-
-    public static Error InvalidPaymentPurpose(long id, short? languageId = null) =>
-        Error.Business("CashOperation.InvalidPaymentPurpose", languageId switch
-        {
-            LanguageIdConst.RU => $"Operation {id} has invalid payment purpose configuration.",
-            _ => $"Cash operation {id} has invalid payment purpose configuration."
-        });
-
     public static Error OrganizationMismatch(long id, short? languageId = null) =>
         Error.Conflict("CashOperation.OrganizationMismatch", languageId switch
         {

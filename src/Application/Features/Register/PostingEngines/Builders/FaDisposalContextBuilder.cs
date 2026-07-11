@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -25,19 +25,12 @@ public class FaDisposalContextBuilder : IPostingContextBuilder<FaDisposalDoc>
                 OrganizationId = document.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.FADISPOSAL,
                 AccountingPolicyId = accountingPolicyId,
-                RuleId = PostingRuleIdConst.FA_DISPOSAL,
                 DocumentId = document.Id,
                 DocDate = document.DisposalDate,
                 CurrencyId = CurrencyIdConst.UZS,
                 JournalNumber = document.DocNumber,
                 SourceLineId = line.Id,
                 FixedAssetId = (int)line.FaAssetId,
-                Amounts = new Dictionary<string, decimal>
-                {
-                    ["Accumulated"] = Math.Max(0m, line.FaAsset.InitialCost - line.BookValue),
-                    ["Sale"] = line.SaleAmount,
-                    ["Loss"] = Math.Max(0m, line.BookValue - line.SaleAmount)
-                },
                 Subkontos = new List<SubkontoValue>
                 {
                     new()
@@ -56,3 +49,4 @@ public class FaDisposalContextBuilder : IPostingContextBuilder<FaDisposalDoc>
         return result;
     }
 }
+

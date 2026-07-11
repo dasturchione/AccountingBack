@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -87,10 +87,6 @@ public partial class BankOperation
 
     [Column("contract_id")]
     public long? ContractId { get; set; }
-
-    [Column("payment_purpose_id")]
-    public short PaymentPurposeId { get; set; }
-
     [Column("bank_chart_account_id")]
     public int? BankChartAccountId { get; set; }
 
@@ -108,10 +104,6 @@ public partial class BankOperation
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]
     public virtual OrgBankAccount BankAccount { get; set; } = null!;
-
-    [InverseProperty("BankOperation")]
-    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
-
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual CmnContract? Contract { get; set; }
@@ -135,11 +127,6 @@ public partial class BankOperation
     [ForeignKey("OrganizationId")]
     [InverseProperty("BankOperations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
-
-    [ForeignKey("PaymentPurposeId")]
-    [InverseProperty("BankOperations")]
-    public virtual AccPaymentPurpose PaymentPurpose { get; set; } = null!;
-
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }

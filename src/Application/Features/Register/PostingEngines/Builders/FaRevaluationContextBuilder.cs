@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -29,20 +29,12 @@ public class FaRevaluationContextBuilder : IPostingContextBuilder<FaRevaluationD
                 OrganizationId = document.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.FAREVALUATION,
                 AccountingPolicyId = accountingPolicyId,
-                RuleId = line.RevaluationAmount >= 0m
-                    ? PostingRuleIdConst.FA_REVALUATION_INCREASE
-                    : PostingRuleIdConst.FA_REVALUATION_DECREASE,
                 DocumentId = document.Id,
                 DocDate = document.RevaluationDate,
                 CurrencyId = CurrencyIdConst.UZS,
                 JournalNumber = document.DocNumber,
                 SourceLineId = line.Id,
                 FixedAssetId = (int)line.FaAssetId,
-                Amounts = new Dictionary<string, decimal>
-                {
-                    ["Increase"] = line.RevaluationAmount > 0m ? amount : 0m,
-                    ["Decrease"] = line.RevaluationAmount < 0m ? amount : 0m
-                },
                 Subkontos = new List<SubkontoValue>
                 {
                     new()
@@ -59,3 +51,4 @@ public class FaRevaluationContextBuilder : IPostingContextBuilder<FaRevaluationD
         return result;
     }
 }
+

@@ -17,8 +17,6 @@ public class BankOperationDto
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public int? BankChartAccountId { get; set; }
     public string? BankChartAccountNumber { get; set; }
     public string? BankChartAccountName { get; set; }
@@ -48,17 +46,4 @@ public class BankOperationDto
     public DateTime CreatedDate { get; set; }
     public long? ContractId { get; set; }
     public string? ContractNumber { get; set; }
-    public List<BankOperationLineDto> Lines { get; set; } = new();
-}
-
-public class BankOperationLineDto
-{
-    public long Id { get; set; }
-    public short OrderNumber { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public int? CounterpartyId { get; set; }
-    public decimal Amount { get; set; }
-    public string? Comment { get; set; }
-    public string PaymentPurposeCode { get; set; } = null!;
-    public string PaymentPurposeName { get; set; } = null!;
 }

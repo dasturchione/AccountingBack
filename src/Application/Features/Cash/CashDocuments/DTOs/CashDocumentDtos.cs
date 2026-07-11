@@ -7,8 +7,8 @@ namespace Application.Features.CashDocuments;
 public class CashDocumentBaseDto
 {
     public int CashBoxId { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public short? PaymentTypeId { get; set; }
+    public short? PaymentTypeId { get; set; }    public int? CashChartAccountId { get; set; }
+    public int? OffsetAccountId { get; set; }
     public int? CounterpartyId { get; set; }
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
@@ -66,8 +66,6 @@ public sealed class CashBookEntryDto
     public DateTime DocDate { get; set; }
     public string DocNumber { get; set; } = null!;
     public string DocumentKind { get; set; } = null!;
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
     public string? Comment { get; set; }

@@ -107,6 +107,5 @@ public class TransactionDto
     [JsonPropertyName("amount")]
     public decimal Amount { get; set; }
 
-    [JsonPropertyName("paymentPurposeHints")]
-    public List<int> PaymentPurposeIds { get; set; } = new(); // [CounterpartyAccountPaymentPurposeHint.PaymentPurposeId]
+    //[JsonPropertyName("paymentPurposeHints")]
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Generated.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +11,6 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
-
-    public virtual DbSet<AccAccountResolveRule> AccAccountResolveRules { get; set; }
 
     public virtual DbSet<AccAccountType> AccAccountTypes { get; set; }
 
@@ -34,19 +32,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; }
 
-    public virtual DbSet<AccPaymentPurpose> AccPaymentPurposes { get; set; }
-
-    public virtual DbSet<AccPaymentPurposeTranslation> AccPaymentPurposeTranslations { get; set; }
-
-    public virtual DbSet<AccPostingAlias> AccPostingAliases { get; set; }
-
-    public virtual DbSet<AccPostingAliasTranslation> AccPostingAliasTranslations { get; set; }
-
     public virtual DbSet<AccPostingBatch> AccPostingBatches { get; set; }
-
-    public virtual DbSet<AccPostingRule> AccPostingRules { get; set; }
-
-    public virtual DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
 
     public virtual DbSet<AccRegEntry> AccRegEntries { get; set; }
 
@@ -57,8 +43,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; }
 
     public virtual DbSet<BankOperation> BankOperations { get; set; }
-
-    public virtual DbSet<BankOperationLine> BankOperationLines { get; set; }
 
     public virtual DbSet<CashBox> CashBoxes { get; set; }
 
@@ -133,8 +117,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CmnUnit> CmnUnits { get; set; }
 
     public virtual DbSet<CmnVatRate> CmnVatRates { get; set; }
-
-    public virtual DbSet<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; }
 
     public virtual DbSet<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; }
 
@@ -270,18 +252,6 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AccAccountResolveRule>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_account_resolve_rule_pkey");
-
-            entity.HasOne(d => d.Account).WithMany(p => p.AccAccountResolveRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_account_resolve_rule_account_id_fkey");
-
-            entity.HasOne(d => d.Policy).WithMany(p => p.AccAccountResolveRules)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_account_resolve_rule_policy_id_fkey");
-        });
 
         modelBuilder.Entity<AccAccountType>(entity =>
         {
@@ -424,54 +394,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("acc_chart_account_subkonto_subkonto_type_id_fkey");
         });
 
-        modelBuilder.Entity<AccPaymentPurpose>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_payment_purpose_pkey");
-
-            entity.Property(e => e.RequiresCounterparty).HasDefaultValue(true);
-
-            entity.HasOne(d => d.Alias).WithMany(p => p.AccPaymentPurposes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_payment_purpose_alias_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.AccPaymentPurposes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_payment_purpose_operation_type_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPaymentPurposeTranslation>(entity =>
-        {
-            entity.HasKey(e => new { e.PaymentPurposeId, e.LanguageId }).HasName("acc_payment_purpose_translation_pkey");
-
-            entity.HasOne(d => d.Language).WithMany(p => p.AccPaymentPurposeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_payment_purpose_translation_language_id_fkey");
-
-            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.AccPaymentPurposeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_payment_purpose_translation_payment_purpose_id_fkey");
-        });
-
-        modelBuilder.Entity<AccPostingAlias>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_alias_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-        });
-
-        modelBuilder.Entity<AccPostingAliasTranslation>(entity =>
-        {
-            entity.HasKey(e => new { e.PostingAliasId, e.LanguageId }).HasName("acc_posting_alias_translation_pkey");
-
-            entity.HasOne(d => d.Language).WithMany(p => p.AccPostingAliasTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_alias_translation_language_id_fkey");
-
-            entity.HasOne(d => d.PostingAlias).WithMany(p => p.AccPostingAliasTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_alias_translation_posting_alias_id_fkey");
-        });
-
         modelBuilder.Entity<AccPostingBatch>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_posting_batch_pkey");
@@ -487,32 +409,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
             entity.Property(e => e.PostedAt).HasDefaultValueSql("now()");
             entity.Property(e => e.Status).HasDefaultValueSql("'posted'::character varying");
-        });
-
-        modelBuilder.Entity<AccPostingRule>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_rule_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-        });
-
-        modelBuilder.Entity<AccPostingRuleLine>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("acc_posting_rule_line_pkey");
-
-            entity.Property(e => e.IsOptional).HasDefaultValue(true);
-
-            entity.HasOne(d => d.CreditAlias).WithMany(p => p.AccPostingRuleLineCreditAliases)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_acc_posting_rule_line_credit_alias");
-
-            entity.HasOne(d => d.DebitAlias).WithMany(p => p.AccPostingRuleLineDebitAliases)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_acc_posting_rule_line_debit_alias");
-
-            entity.HasOne(d => d.Template).WithMany(p => p.AccPostingRuleLines)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_posting_rule_line_template_id_fkey");
         });
 
         modelBuilder.Entity<AccRegEntry>(entity =>
@@ -586,7 +482,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
-            entity.Property(e => e.PaymentPurposeId).HasDefaultValue((short)1);
 
             entity.HasOne(d => d.BankAccount).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -614,10 +509,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_organization_id_fkey");
 
-            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.BankOperations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_bank_operation_payment_purpose");
-
             entity.HasOne(d => d.PaymentType).WithMany(p => p.BankOperations).HasConstraintName("bank_operation_payment_type_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.BankOperations)
@@ -627,19 +518,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Status).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_status_id_fkey");
-        });
-
-        modelBuilder.Entity<BankOperationLine>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("bank_operation_line_pkey");
-
-            entity.HasOne(d => d.BankOperation).WithMany(p => p.BankOperationLines).HasConstraintName("bank_operation_line_bank_operation_id_fkey");
-
-            entity.HasOne(d => d.Counterparty).WithMany(p => p.BankOperationLines).HasConstraintName("bank_operation_line_counterparty_id_fkey");
-
-            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.BankOperationLines)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("bank_operation_line_payment_purpose_id_fkey");
         });
 
         modelBuilder.Entity<CashBox>(entity =>
@@ -693,10 +571,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.CashOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cash_operation_organization_id_fkey");
-
-            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.CashOperations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_cash_operation_payment_purpose");
 
             entity.HasOne(d => d.PaymentType).WithMany(p => p.CashOperations).HasConstraintName("cash_operation_payment_type_id_fkey");
 
@@ -1127,22 +1001,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnVatRates)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_vat_rate_state_id_fkey");
-        });
-
-        modelBuilder.Entity<CounterpartyAccountPaymentPurposeHint>(entity =>
-        {
-            entity.HasKey(e => new { e.CounterpartyBankAccountId, e.PaymentPurposeId }).HasName("counterparty_account_payment_purpose_hint_pkey");
-
-            entity.Property(e => e.LastUsedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.UsageCount).HasDefaultValue(1);
-
-            entity.HasOne(d => d.CounterpartyBankAccount).WithMany(p => p.CounterpartyAccountPaymentPurposeHints)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_account_payment__counterparty_bank_account_id_fkey");
-
-            entity.HasOne(d => d.PaymentPurpose).WithMany(p => p.CounterpartyAccountPaymentPurposeHints)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_account_payment_purpose_hi_payment_purpose_id_fkey");
         });
 
         modelBuilder.Entity<CounterpartyBankAccount>(entity =>

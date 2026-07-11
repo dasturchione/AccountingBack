@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("org_organization")]
-[Index("DefaultLanguageId", Name = "idx_org_organization_default_language_id")]
-[Index("DistrictId", Name = "idx_org_organization_district_id")]
-[Index("FullName", Name = "idx_org_organization_full_name")]
-[Index("Inn", Name = "idx_org_organization_inn")]
-[Index("RegionId", Name = "idx_org_organization_region_id")]
-[Index("ShortName", Name = "idx_org_organization_short_name")]
-[Index("StateId", Name = "idx_org_organization_state_id")]
-[Index("SetupStatus", Name = "idx_org_organization_setup_status")]
-[Index("TenantId", Name = "idx_org_organization_tenant_id")]
 public partial class Organization
 {
     [Key]

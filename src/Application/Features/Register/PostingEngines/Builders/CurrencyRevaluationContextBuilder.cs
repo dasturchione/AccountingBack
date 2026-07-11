@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -31,21 +31,15 @@ public sealed class CurrencyRevaluationContextBuilder : IPostingContextBuilder<C
                 OrganizationId = document.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.CURRENCYREVALUATION,
                 AccountingPolicyId = accountingPolicyId,
-                RuleId = isGain
-                    ? PostingRuleIdConst.CURRENCY_REVALUATION_GAIN
-                    : PostingRuleIdConst.CURRENCY_REVALUATION_LOSS,
                 DocumentId = document.Id,
                 DocDate = document.RevaluationDate,
                 CurrencyId = CurrencyIdConst.UZS,
                 JournalNumber = document.Id.ToString(),
-                SourceLineId = line.Id,
-                Amounts = new Dictionary<string, decimal>
-                {
-                    [AmountSourceConst.Total] = amount
-                }
+                SourceLineId = line.Id
             });
         }
 
         return result;
     }
 }
+

@@ -140,12 +140,12 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
         }
 
         var debit = await query
-            .Where(x => x.DebitAccount != null && x.DebitAccount.Code.StartsWith(CashPrefix))
+            .Where(x => x.DebitAccount != null && x.DebitAccount.Code!.StartsWith(CashPrefix))
             .Select(x => (decimal?)x.Amount)
             .SumAsync(ct) ?? 0m;
 
         var credit = await query
-            .Where(x => x.CreditAccount != null && x.CreditAccount.Code.StartsWith(CashPrefix))
+            .Where(x => x.CreditAccount != null && x.CreditAccount.Code!.StartsWith(CashPrefix))
             .Select(x => (decimal?)x.Amount)
             .SumAsync(ct) ?? 0m;
 
@@ -154,7 +154,7 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
 
     private IQueryable<CashMovementRow> BuildCashInflowQuery(CashFlowReadRequest request) =>
         ApplyCashFilters(_context.AccountingRegisterEntries.AsNoTracking(), request)
-            .Where(x => x.DebitAccount != null && x.DebitAccount.Code.StartsWith(CashPrefix))
+            .Where(x => x.DebitAccount != null && x.DebitAccount.Code!.StartsWith(CashPrefix))
             .Select(x => new CashMovementRow
             {
                 CounterpartAccountCode = x.CreditAccount != null ? x.CreditAccount.Code : null,
@@ -164,7 +164,7 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
 
     private IQueryable<CashMovementRow> BuildCashOutflowQuery(CashFlowReadRequest request) =>
         ApplyCashFilters(_context.AccountingRegisterEntries.AsNoTracking(), request)
-            .Where(x => x.CreditAccount != null && x.CreditAccount.Code.StartsWith(CashPrefix))
+            .Where(x => x.CreditAccount != null && x.CreditAccount.Code!.StartsWith(CashPrefix))
             .Select(x => new CashMovementRow
             {
                 CounterpartAccountCode = x.DebitAccount != null ? x.DebitAccount.Code : null,

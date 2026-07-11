@@ -829,6 +829,7 @@ public sealed class SuperAdminSafetyNetOrganizationAndAuditIntegrationTests
         {
             Id = id,
             Code = code,
+            Number = code,
             Name = code,
             IsGroup = false,
             StateId = StateIdConst.ACTIVE,

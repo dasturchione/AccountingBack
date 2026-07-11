@@ -39,6 +39,7 @@ public class AccountingCoreSecurityIntegrationTests
             request.Content = JsonContent.Create(new
             {
                 code = "5111",
+                number = "5111",
                 name = "Test account",
                 isGroup = false,
                 parentId = (int?)null,
@@ -70,6 +71,7 @@ public class AccountingCoreSecurityIntegrationTests
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-UserId", "900");
         client.DefaultRequestHeaders.Add("X-Test-RoleId", "1");
+        client.DefaultRequestHeaders.Add("X-Test-OrgId", "1");
         client.DefaultRequestHeaders.Add("X-Test-GlobalAccess", "true");
 
         using var request = new HttpRequestMessage(new HttpMethod(method), url);
@@ -79,6 +81,7 @@ public class AccountingCoreSecurityIntegrationTests
             request.Content = JsonContent.Create(new
             {
                 code = "5111",
+                number = "5111",
                 name = "Test account",
                 isGroup = false,
                 parentId = (int?)null,
@@ -106,11 +109,13 @@ public class AccountingCoreSecurityIntegrationTests
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Test-UserId", "900");
         client.DefaultRequestHeaders.Add("X-Test-RoleId", "1");
+        client.DefaultRequestHeaders.Add("X-Test-OrgId", "1");
         client.DefaultRequestHeaders.Add("X-Test-GlobalAccess", "true");
 
         var response = await client.PostAsJsonAsync("/api/chart-accounts", new
         {
             code = "5111",
+            number = "5111",
             name = "Test account",
             isGroup = false,
             parentId = (int?)null

@@ -1,5 +1,5 @@
-using Application.Abstractions;
 using Application.Features.Cmn.AslBelgi.Abstractions;
+using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Integration.AslBelgi.Services;
@@ -7,9 +7,9 @@ namespace Integration.AslBelgi.Services;
 /// <summary>EF-backed read port for the marking flow (see <see cref="IAslBelgiMarkingRepository"/>).</summary>
 public sealed class AslBelgiMarkingReadRepository : IAslBelgiMarkingRepository
 {
-    private readonly IInventoryReadDbContext _readDbContext;
+    private readonly AppDbContext _readDbContext;
 
-    public AslBelgiMarkingReadRepository(IInventoryReadDbContext readDbContext)
+    public AslBelgiMarkingReadRepository(AppDbContext readDbContext)
     {
         _readDbContext = readDbContext;
     }

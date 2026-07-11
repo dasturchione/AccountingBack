@@ -47,7 +47,7 @@ public class FaRevaluationContextBuilder : IPostingContextBuilder<FaRevaluationD
                 {
                     new()
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.FIXED_ASSET,
+                        SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
                         DisplayValue = line.FaAsset.Name,
                         EntityId = line.FaAssetId,
                         SortOrder = 1

@@ -27,6 +27,9 @@ public partial class ChartAccountPresetAccount
     [Column("account_type_id")]
     public short AccountTypeId { get; set; }
 
+    [Column("is_group")]
+    public bool IsGroup { get; set; }
+
     [Column("is_currency")]
     public bool IsCurrency { get; set; }
 

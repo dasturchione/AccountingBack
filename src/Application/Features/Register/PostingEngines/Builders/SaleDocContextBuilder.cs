@@ -142,14 +142,14 @@ namespace Application.Features.Register.PostingEngines
                         {
                             new()
                             {
-                                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                                SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                                 DisplayValue = counterpartyName,
                                 EntityId = document.CounterpartyId,
                                 SortOrder = 1
                             },
                             new()
                             {
-                                SubkontoTypeId = SubkontoTypeIdConst.SALE,
+                                SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
                                 DisplayValue = JsonSerializer.Serialize(new
                                 {
                                     number = document.DocNumber,
@@ -191,21 +191,21 @@ namespace Application.Features.Register.PostingEngines
                 {
                     new()
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                        SubkontoTypeId = SubkontoTypeIdConst.InventoryItems,
                         DisplayValue = first.ProductName,
                         EntityId = first.ProductId,
                         SortOrder = 1
                     },
                     new()
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
+                        SubkontoTypeId = SubkontoTypeIdConst.Warehouses,
                         DisplayValue = first.WarehouseName,
                         EntityId = first.WarehouseId,
                         SortOrder = 2
                     },
                     new()
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.PURCHASE,
+                        SubkontoTypeId = SubkontoTypeIdConst.Batches,
                         DisplayValue = JsonSerializer.Serialize(new
                         {
                             number = first.PurchaseDocNumber,
@@ -216,7 +216,7 @@ namespace Application.Features.Register.PostingEngines
                     },
                     new()
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.SALE,
+                        SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
                         DisplayValue = JsonSerializer.Serialize(new
                         {
                             number = document.DocNumber,
@@ -262,14 +262,14 @@ namespace Application.Features.Register.PostingEngines
                         {
                             new()
                             {
-                                SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                                SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                                 DisplayValue = counterpartyName,
                                 EntityId = document.CounterpartyId,
                                 SortOrder = 1
                             },
                             new()
                             {
-                                SubkontoTypeId = SubkontoTypeIdConst.SALE,
+                                SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
                                 DisplayValue = JsonSerializer.Serialize(new
                                 {
                                     number = document.DocNumber,

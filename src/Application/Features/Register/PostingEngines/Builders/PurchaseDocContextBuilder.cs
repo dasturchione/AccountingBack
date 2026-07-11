@@ -67,21 +67,21 @@ namespace Application.Features.Register.PostingEngines
                     {
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.PRODUCT,
+                            SubkontoTypeId = SubkontoTypeIdConst.InventoryItems,
                             DisplayValue = productData.ProductName,
                             EntityId = productData.ProductId,
                             SortOrder = 1,
                         },
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.WAREHOUSE,
+                            SubkontoTypeId = SubkontoTypeIdConst.Warehouses,
                             DisplayValue = wareHouseName,
                             EntityId = document.WarehouseId,
                             SortOrder = 2,
                         },
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.PURCHASE,
+                            SubkontoTypeId = SubkontoTypeIdConst.Batches,
                             DisplayValue = JsonSerializer.Serialize(new
                             {
                                 number = document.DocNumber,
@@ -92,7 +92,7 @@ namespace Application.Features.Register.PostingEngines
                         },
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                             DisplayValue = counterpartyName,
                             EntityId = document.CounterpartyId,
                             SortOrder = 4,
@@ -104,7 +104,7 @@ namespace Application.Features.Register.PostingEngines
                 {
                     context.Subkontos.Add(new SubkontoValue
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
+                        SubkontoTypeId = SubkontoTypeIdConst.Contracts,
                         DisplayValue = JsonSerializer.Serialize(new
                         {
                             number = contractData.Value.ContractNumber,
@@ -144,7 +144,7 @@ namespace Application.Features.Register.PostingEngines
                     {
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.PURCHASE,
+                            SubkontoTypeId = SubkontoTypeIdConst.Batches,
                             DisplayValue = JsonSerializer.Serialize(new
                             {
                                 number = document.DocNumber,
@@ -155,7 +155,7 @@ namespace Application.Features.Register.PostingEngines
                         },
                         new()
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                             DisplayValue = counterpartyName,
                             EntityId = document.CounterpartyId,
                             SortOrder = 2,
@@ -167,7 +167,7 @@ namespace Application.Features.Register.PostingEngines
                 {
                     context.Subkontos.Add(new SubkontoValue
                     {
-                        SubkontoTypeId = SubkontoTypeIdConst.CONTRACT,
+                        SubkontoTypeId = SubkontoTypeIdConst.Contracts,
                         DisplayValue = JsonSerializer.Serialize(new
                         {
                             number = contractData.Value.ContractNumber,

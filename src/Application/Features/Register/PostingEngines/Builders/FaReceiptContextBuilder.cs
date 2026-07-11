@@ -68,7 +68,7 @@ namespace Application.Features.Register.PostingEngines
                         {
                             new()
                             {
-                                SubkontoTypeId = SubkontoTypeIdConst.FIXED_ASSET,
+                                SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
                                 DisplayValue = asset.Name,
                                 EntityId = asset.FaAssetId,
                                 SortOrder = 1,
@@ -80,7 +80,7 @@ namespace Application.Features.Register.PostingEngines
                     {
                         baseContext.Subkontos.Add(new SubkontoValue
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                             DisplayValue = counterpartyName,
                             EntityId = document.CounterpartyId,
                             SortOrder = 2,
@@ -118,7 +118,7 @@ namespace Application.Features.Register.PostingEngines
                     {
                         vatContext.Subkontos.Add(new SubkontoValue
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.COUNTER_PARTY,
+                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
                             DisplayValue = counterpartyName,
                             EntityId = document.CounterpartyId,
                             SortOrder = 1,

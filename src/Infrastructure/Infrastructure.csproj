@@ -38,6 +38,7 @@
     <Compile Include="Persistence\Generated\Entities\AccRegEntry.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntrySubkonto.cs" />
     <Compile Include="Persistence\Generated\Entities\AccSubkontoType.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccSubkontoTypeTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AppDbContext.cs" />
     <Compile Include="Persistence\Generated\Entities\BankOperation.cs" />
     <Compile Include="Persistence\Generated\Entities\BankOperationLine.cs" />

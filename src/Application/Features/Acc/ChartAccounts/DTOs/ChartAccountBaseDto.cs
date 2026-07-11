@@ -13,4 +13,5 @@ public class ChartAccountBaseDto
     public bool IsDepartment { get; set; }
     public bool IsTaxAccounting { get; set; }
     public bool IsOffBalance { get; set; }
+    public List<ChartAccountSubkontoUpsertDto>? Subkontos { get; set; }
 }

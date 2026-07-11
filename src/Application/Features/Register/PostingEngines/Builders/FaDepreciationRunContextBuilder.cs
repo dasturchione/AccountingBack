@@ -37,7 +37,7 @@ public class FaDepreciationRunContextBuilder : IPostingContextBuilder<FaDeprecia
             {
                 new()
                 {
-                    SubkontoTypeId = SubkontoTypeIdConst.FIXED_ASSET,
+                    SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
                     DisplayValue = line.FaAsset.Name,
                     EntityId = line.FaAssetId,
                     SortOrder = 1

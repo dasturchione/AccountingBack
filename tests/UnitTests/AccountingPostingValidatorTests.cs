@@ -51,13 +51,13 @@ public class AccountingPostingValidatorTests
         entry.RegisterEntrySubkontos.Add(new RegisterEntrySubkonto
         {
             Side = SubkontoSideConst.DEBIT,
-            SubkontoTypeId = SubkontoTypeIdConst.CASH_BOX,
+            SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
             EntityId = 1
         });
         entry.RegisterEntrySubkontos.Add(new RegisterEntrySubkonto
         {
             Side = SubkontoSideConst.CREDIT,
-            SubkontoTypeId = SubkontoTypeIdConst.CASH_BOX,
+            SubkontoTypeId = SubkontoTypeIdConst.OrganizationCashDesks,
             EntityId = 2
         });
 

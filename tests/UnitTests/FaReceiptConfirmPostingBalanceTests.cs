@@ -113,7 +113,7 @@ public class FaReceiptConfirmPostingBalanceTests
         // Субконто fixed_asset прикреплено к счетам ОС/капвложений.
         var assetSubkontos = entries
             .SelectMany(x => x.RegisterEntrySubkontos)
-            .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET)
+            .Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets)
             .ToList();
         Assert.NotEmpty(assetSubkontos);
         Assert.All(assetSubkontos, x => Assert.Equal(777, x.EntityId));

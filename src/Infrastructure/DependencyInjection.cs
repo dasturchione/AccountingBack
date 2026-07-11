@@ -26,6 +26,7 @@ using Application.Features.CashBoxes;
 using Application.Features.CashOperations;
 using Application.Features.CashDocuments;
 using Application.Features.ChartAccounts;
+using Application.Features.ChartAccountPresetAccounts;
 using Application.Features.Contracts;
 using Application.Features.CounterpartyBankAccounts;
 using Application.Features.CounterpartyCards;
@@ -212,6 +213,7 @@ namespace Infrastructure
             services.AddScoped<ISaleLifecycleService, SaleLifecycleService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
             services.AddScoped<IChartAccountService, ChartAccountService>();
+            services.AddScoped<IChartAccountPresetAccountService, ChartAccountPresetAccountService>();
             services.AddScoped<IAccountingPeriodService, AccountingPeriodService>();
             services.AddScoped<IAccountingPeriodReadRepository, AccountingPeriodReadRepository>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();

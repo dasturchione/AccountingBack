@@ -1,0 +1,225 @@
+using Application.Abstractions;
+using Application.Abstractions.Authentication;
+using Application.Common.Pagination;
+using Domain.Entities;
+using SharedKernel.Constants;
+using SharedKernel.Query;
+using SharedKernel.Query.Specifications;
+using SharedKernel.QueryResults;
+using SharedKernel.Results;
+
+namespace Application.Features.ChartAccountPresetAccounts;
+
+public class ChartAccountPresetAccountService : IChartAccountPresetAccountService
+{
+    private readonly IUserContext _userContext;
+    private readonly IQueryBuilder _queryBuilder;
+    private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
+    private readonly IQueryRepository<ChartAccountPresetAccount> _presetAccountQuery;
+
+    public ChartAccountPresetAccountService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IQueryRepository<ChartAccount> chartAccountQuery,
+        IQueryRepository<ChartAccountPresetAccount> presetAccountQuery)
+    {
+        _userContext = userContext;
+        _queryBuilder = queryBuilder;
+        _chartAccountQuery = chartAccountQuery;
+        _presetAccountQuery = presetAccountQuery;
+    }
+
+    public async Task<Result<PagedResponse<ChartAccountPresetAccountListDto>>> GetAllAsync(
+        ChartAccountPresetAccountListFilter filter,
+        CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<PagedResponse<ChartAccountPresetAccountListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.BuildPaged<ChartAccountPresetAccount, ChartAccountPresetAccountListDto, ChartAccountPresetAccountListFilter>(filter);
+        var pagedList = await _presetAccountQuery.GetPagedAsync(query, ct);
+
+        foreach (var item in pagedList.Items) 
+            item.HasChartAccount = await _chartAccountQuery.AnyAsync(x => x.OrganizationId == _userContext.OrganizationId && x.Number == item.Number, ct);
+
+        return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
+    }
+
+    public async Task<Result<PagedResponse<ChartAccountPresetAccountGroupedListDto>>> GetGroupedListAsync(
+        ChartAccountPresetAccountListFilter filter,
+        CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<PagedResponse<ChartAccountPresetAccountGroupedListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var snapshots = await GetPresetAccountSnapshotsAsync(filter, ct);
+        var existingNumbers = await GetExistingChartAccountNumbersAsync(snapshots.Select(x => x.Number).Distinct().ToList(), ct);
+        var childrenByParentId = snapshots
+            .Where(x => x.ParentPresetAccountId.HasValue)
+            .GroupBy(x => x.ParentPresetAccountId!.Value)
+            .ToDictionary(x => x.Key, x => x.OrderBy(y => y.DisplayOrder).ThenBy(y => y.Number).ToList());
+
+        var roots = snapshots
+            .Where(x => MatchesSearch(x, filter.Search))
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Number)
+            .ToList();
+
+        var totalCount = roots.Count;
+        var pageSize = filter.PageSize ?? 50;
+        var skip = Math.Max(filter.Page - 1, 0) * pageSize;
+        var items = roots
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => MapGroupedDto(x, childrenByParentId, existingNumbers))
+            .ToList();
+
+        return Result.Success(PagedResponseFactory.Create(
+            new PagedList<ChartAccountPresetAccountGroupedListDto>(items, totalCount),
+            filter.Page,
+            filter.PageSize));
+    }
+
+    private async Task<List<PresetAccountSnapshot>> GetPresetAccountSnapshotsAsync(
+        ChartAccountPresetAccountListFilter filter,
+        CancellationToken ct)
+    {
+        var languageId = _userContext.LanguageId;
+        var presetQuery = new QuerySpecification<ChartAccountPresetAccount, PresetAccountSnapshot>
+        {
+            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
+                            (!filter.PresetId.HasValue || x.PresetId == filter.PresetId.Value),
+            Selector = x => new PresetAccountSnapshot
+            {
+                Id = x.Id,
+                PresetId = x.PresetId,
+                Code = x.Code,
+                Number = x.Number,
+                Name = x.ChartAccountPresetAccountTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Number,
+                ParentPresetAccountId = x.ParentPresetAccountId,
+                ParentNumber = x.ChartAccountPresetAccountNavigation != null ? x.ChartAccountPresetAccountNavigation.Number : null,
+                AccountTypeId = x.AccountTypeId,
+                AccountTypeCode = x.AccountType.Code,
+                AccountTypeName = x.AccountType.Name,
+                IsQuantity = x.IsQuantity,
+                IsCurrency = x.IsCurrency,
+                IsDepartment = x.IsDepartment,
+                IsTaxAccounting = x.IsTaxAccounting,
+                IsOffBalance = x.IsOffBalance,
+                IsGroup = x.IsGroup,
+                DisplayOrder = x.DisplayOrder,
+                StateId = x.StateId,
+                StateName = x.State.FullName
+            },
+            OrderBy = q => q.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Number)
+        };
+
+        return await _presetAccountQuery.GetAllAsync(presetQuery, ct);
+    }
+
+    private async Task<HashSet<string>> GetExistingChartAccountNumbersAsync(List<string> accountNumbers, CancellationToken ct)
+    {
+        if (accountNumbers.Count == 0 || _userContext.OrganizationId is null)
+            return new HashSet<string>();
+
+        var organizationId = _userContext.OrganizationId.Value;
+        var query = new QuerySpecification<ChartAccount, string>
+        {
+            Criteria = x => x.OrganizationId == organizationId && accountNumbers.Contains(x.Number),
+            Selector = x => x.Number
+        };
+
+        var numbers = await _chartAccountQuery.GetAllAsync(query, ct);
+        return numbers.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static ChartAccountPresetAccountListDto MapFlatDto(
+        PresetAccountSnapshot snapshot,
+        HashSet<string> existingNumbers)
+    {
+        return MapBaseDto<ChartAccountPresetAccountListDto>(snapshot, existingNumbers);
+    }
+
+    private static ChartAccountPresetAccountGroupedListDto MapGroupedDto(
+        PresetAccountSnapshot snapshot,
+        Dictionary<int, List<PresetAccountSnapshot>> childrenByParentId,
+        HashSet<string> existingNumbers)
+    {
+        childrenByParentId.TryGetValue(snapshot.Id, out var children);
+
+        var dto = MapBaseDto<ChartAccountPresetAccountGroupedListDto>(snapshot, existingNumbers);
+        dto.Lines = children is null
+            ? new List<ChartAccountPresetAccountListDto>()
+            : children.Select(child => MapGroupedDto(child, childrenByParentId, existingNumbers))
+                .Cast<ChartAccountPresetAccountListDto>()
+                .ToList();
+
+        return dto;
+    }
+
+    private static TDto MapBaseDto<TDto>(PresetAccountSnapshot snapshot, HashSet<string> existingNumbers)
+        where TDto : ChartAccountPresetAccountListDto, new()
+    {
+        return new TDto
+        {
+            Id = snapshot.Id,
+            PresetId = snapshot.PresetId,
+            Code = snapshot.Code,
+            Number = snapshot.Number,
+            Name = snapshot.Name,
+            ParentPresetAccountId = snapshot.ParentPresetAccountId,
+            ParentNumber = snapshot.ParentNumber,
+            AccountTypeId = snapshot.AccountTypeId,
+            AccountTypeCode = snapshot.AccountTypeCode,
+            AccountTypeName = snapshot.AccountTypeName,
+            IsGroup = snapshot.IsGroup,
+            IsQuantity = snapshot.IsQuantity,
+            IsCurrency = snapshot.IsCurrency,
+            IsDepartment = snapshot.IsDepartment,
+            IsTaxAccounting = snapshot.IsTaxAccounting,
+            IsOffBalance = snapshot.IsOffBalance,
+            DisplayOrder = snapshot.DisplayOrder,
+            StateId = snapshot.StateId,
+            StateName = snapshot.StateName,
+            HasChartAccount = existingNumbers.Contains(snapshot.Number)
+        };
+    }
+
+    private static bool MatchesSearch(PresetAccountSnapshot snapshot, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return true;
+
+        var value = search.Trim();
+        return snapshot.Number.StartsWith(value, StringComparison.OrdinalIgnoreCase) ||
+               snapshot.Name.StartsWith(value, StringComparison.OrdinalIgnoreCase) ||
+               (!string.IsNullOrWhiteSpace(snapshot.Code) &&
+                snapshot.Code.StartsWith(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private sealed class PresetAccountSnapshot
+    {
+        public int Id { get; set; }
+        public short PresetId { get; set; }
+        public string? Code { get; set; }
+        public string Number { get; set; } = null!;
+        public string Name { get; set; } = null!;
+        public int? ParentPresetAccountId { get; set; }
+        public string? ParentNumber { get; set; }
+        public short AccountTypeId { get; set; }
+        public string AccountTypeCode { get; set; } = null!;
+        public string AccountTypeName { get; set; } = null!;
+        public bool IsGroup { get; set; }
+        public bool IsQuantity { get; set; }
+        public bool IsCurrency { get; set; }
+        public bool IsDepartment { get; set; }
+        public bool IsTaxAccounting { get; set; }
+        public bool IsOffBalance { get; set; }
+        public int DisplayOrder { get; set; }
+        public short StateId { get; set; }
+        public string StateName { get; set; } = null!;
+    }
+}

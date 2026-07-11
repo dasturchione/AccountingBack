@@ -43,6 +43,9 @@ public partial class Language
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
 
+    [InverseProperty(nameof(SubkontoTypeTranslation.Language))]
+    public virtual ICollection<SubkontoTypeTranslation> SubkontoTypeTranslations { get; set; } = new List<SubkontoTypeTranslation>();
+
     [InverseProperty("Language")]
     public virtual ICollection<PostingAliasTranslation> PostingAliasTranslations { get; set; } = new List<PostingAliasTranslation>();
 

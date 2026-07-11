@@ -11,6 +11,11 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountType> AccountTypes { get; set; }
     public virtual DbSet<ChartAccount> ChartAccounts { get; set; }
     public virtual DbSet<ChartAccountSubkonto> ChartAccountSubkontos { get; set; }
+    public virtual DbSet<ChartAccountPreset> ChartAccountPresets { get; set; }
+    public virtual DbSet<ChartAccountPresetAccount> ChartAccountPresetAccounts { get; set; }
+    public virtual DbSet<ChartAccountPresetAccountSubkonto> ChartAccountPresetAccountSubkontos { get; set; }
+    public virtual DbSet<ChartAccountPresetAccountTranslation> ChartAccountPresetAccountTranslations { get; set; }
+    public virtual DbSet<ChartAccountPresetTranslation> ChartAccountPresetTranslations { get; set; }
     public virtual DbSet<AccountingPolicy> AccountingPolicies { get; set; }
     public virtual DbSet<AccountingPeriod> AccountingPeriods { get; set; }
     public virtual DbSet<PaymentPurpose> PaymentPurposes { get; set; }

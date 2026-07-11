@@ -38,16 +38,25 @@ public class ChartAccountController : ControllerBase
 
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> CreateAsync([FromBody] ChartAccountCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("from-preset")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
+    //[GlobalAccessAuthorize]
+    public async Task<IResult> ImportFromPresetAsync([FromBody] List<ChartAccountImportFromPresetRequestDto> dto, CancellationToken ct = default)
+    {
+        var result = await _service.ImportFromPresetAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountUpdate)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> UpdateAsync([FromRoute] int id, [FromBody] ChartAccountUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
@@ -56,10 +65,19 @@ public class ChartAccountController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ModuleAuthorize(PermissionCodeConst.ChartAccountDelete)]
-    [GlobalAccessAuthorize]
+    //[GlobalAccessAuthorize]
     public async Task<IResult> DeleteAsync([FromRoute] int id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpGet("grouped")]
+    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    //[GlobalAccessAuthorize]
+    public async Task<IResult> GetGroupedAsync([FromQuery] ChartAccountListFilter filter, CancellationToken ct = default)
+    {
+        var result = await _service.GetGroupedListAsync(filter, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 }

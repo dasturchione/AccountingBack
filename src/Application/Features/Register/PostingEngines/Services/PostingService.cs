@@ -222,9 +222,9 @@ namespace Application.Features.Register.PostingEngines
             {
                 case AliasConst.VATIn:
                 case AliasConst.VATOut:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.Batches ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SalesDocumentsTurnover ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
                              .ToList();
                     break;
 
@@ -232,33 +232,33 @@ namespace Application.Features.Register.PostingEngines
                 case AliasConst.Customer:
                 case AliasConst.SupplierAdvance:
                 case AliasConst.CustomerAdvance:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CONTRACT ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.Contracts ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
                              .ToList();
                     break;
 
                 case AliasConst.Inventory:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.PRODUCT ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.SALE)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.InventoryItems ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.Warehouses ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.Batches ||
+                                         x.SubkontoTypeId == SubkontoTypeIdConst.SalesDocumentsTurnover)
                              .ToList();
                     break;
                 case AliasConst.CashBoxSource:
                 case AliasConst.CashBoxDestination:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
                              .ToList();
                     break;
                 case AliasConst.PaymentAccount:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BANK_ACCOUNT ||
-                                                  x.SubkontoTypeId == SubkontoTypeIdConst.CASH_BOX)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BankAccounts ||
+                                                  x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
                              .ToList();
                     break;
 
                 case AliasConst.FixedAsset:
                 case AliasConst.FixedAssetInProgress:
                 case AliasConst.FixedAssetDepreciation:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FIXED_ASSET)
+                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets)
                              .ToList();
                     break;
             };

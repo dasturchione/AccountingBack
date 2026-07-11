@@ -81,9 +81,9 @@ public class LedgerReadRepository : ILedgerReadRepository
                 DocumentTypeId = x.DocumentTypeId,
                 DocumentType = x.DocumentType.Name,
                 Reference = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.PURCHASE ||
-                                s.SubkontoTypeId == SubkontoTypeIdConst.SALE ||
-                                s.SubkontoTypeId == SubkontoTypeIdConst.BANK_OPERATION)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Batches ||
+                                s.SubkontoTypeId == SubkontoTypeIdConst.SalesDocumentsTurnover ||
+                                s.SubkontoTypeId == SubkontoTypeIdConst.CounterpartySettlementDocuments)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.DisplayValue)
                     .FirstOrDefault(),
@@ -93,22 +93,22 @@ public class LedgerReadRepository : ILedgerReadRepository
                 OrganizationId = x.OrganizationId,
                 Organization = x.Organization.ShortName,
                 CounterpartyId = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.EntityId.HasValue ? (int?)s.EntityId.Value : null)
                     .FirstOrDefault(),
                 Counterparty = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.DisplayValue)
                     .FirstOrDefault(),
                 WarehouseId = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Warehouses)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.EntityId.HasValue ? (int?)s.EntityId.Value : null)
                     .FirstOrDefault(),
                 Warehouse = x.RegisterEntrySubkontos
-                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE)
+                    .Where(s => s.SubkontoTypeId == SubkontoTypeIdConst.Warehouses)
                     .OrderBy(s => s.SortOrder)
                     .Select(s => s.DisplayValue)
                     .FirstOrDefault()
@@ -283,14 +283,14 @@ public class LedgerReadRepository : ILedgerReadRepository
         if (request.CounterpartyId.HasValue)
         {
             query = query.Where(x => x.RegisterEntrySubkontos.Any(s =>
-                s.SubkontoTypeId == SubkontoTypeIdConst.COUNTER_PARTY &&
+                s.SubkontoTypeId == SubkontoTypeIdConst.Counterparties &&
                 s.EntityId == request.CounterpartyId.Value));
         }
 
         if (request.WarehouseId.HasValue)
         {
             query = query.Where(x => x.RegisterEntrySubkontos.Any(s =>
-                s.SubkontoTypeId == SubkontoTypeIdConst.WAREHOUSE &&
+                s.SubkontoTypeId == SubkontoTypeIdConst.Warehouses &&
                 s.EntityId == request.WarehouseId.Value));
         }
 

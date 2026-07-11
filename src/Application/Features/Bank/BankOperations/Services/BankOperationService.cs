@@ -135,6 +135,8 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.PaymentTypeId = PaymentTypeIdConst.BANK;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
+            entity.BankChartAccountId = dto.BankChartAccountId;
+            entity.OffsetAccountId = dto.OffsetAccountId;
             entity.ContractId = dto.ContractId;
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;
@@ -221,6 +223,8 @@ public class BankOperationService : BaseService, IBankOperationService
             PaymentPurposeId = dto.PaymentPurposeId,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
+            BankChartAccountId = dto.BankChartAccountId,
+            OffsetAccountId = dto.OffsetAccountId,
             ContractId = dto.ContractId,
             DocNumber = docNumber,
             DocDate = dto.DocDate,

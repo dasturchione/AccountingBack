@@ -7,6 +7,8 @@ public class PurchaseDocLineDto
     public short UnitId { get; set; }
     public decimal UnitPrice { get; set; }
     public short? VatRateId { get; set; }
+    public int? DebitAccountId { get; set; }
+    public int? VatAccountId { get; set; }
     public List<PurchaseDocLineItemDto> Items { get; set; } = new();
 }
 

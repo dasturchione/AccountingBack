@@ -139,6 +139,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 WarehouseId = dto.WarehouseId,
                 CounterpartyId = dto.CounterpartyId,
                 ContractId = dto.ContractId,
+                SupplierAccountId = dto.SupplierAccountId,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -206,6 +207,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             doc.CurrencyId = dto.CurrencyId;
             doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             doc.ContractId = dto.ContractId;
+            doc.SupplierAccountId = dto.SupplierAccountId;
             doc.TotalAmount = newLines.Sum(l => l.Amount);
             doc.VatAmount = newLines.Sum(l => l.VatAmount);
             doc.FinalAmount = newLines.Sum(l => l.TotalAmount);
@@ -445,6 +447,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                 UnitPrice = dto.UnitPrice,
                 Amount = amount,
                 VatRateId = vatRateId,
+                DebitAccountId = dto.DebitAccountId,
+                VatAccountId = dto.VatAccountId,
                 VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
                 PurchaseDocTables = product.IsService

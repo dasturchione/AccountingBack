@@ -19,6 +19,12 @@ public class BankOperationDto
     public string? PaymentTypeName { get; set; }
     public short PaymentPurposeId { get; set; }
     public string PaymentPurposeName { get; set; } = null!;
+    public int? BankChartAccountId { get; set; }
+    public string? BankChartAccountNumber { get; set; }
+    public string? BankChartAccountName { get; set; }
+    public int? OffsetAccountId { get; set; }
+    public string? OffsetAccountNumber { get; set; }
+    public string? OffsetAccountName { get; set; }
     public int? CounterpartyId { get; set; }
     public int? CounterpartyBankAccountId { get; set; }
     public string? CounterpartyBankAccountNumber { get; set; }

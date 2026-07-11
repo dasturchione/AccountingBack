@@ -56,6 +56,8 @@ public class CashOperationService : BaseService, ICashOperationService
                 PaymentPurposeId = dto.PaymentPurposeId,
                 OperationTypeId = dto.OperationTypeId,
                 PaymentTypeId = dto.PaymentTypeId,
+                CashChartAccountId = dto.CashChartAccountId,
+                OffsetAccountId = dto.OffsetAccountId,
                 CounterpartyId = dto.CounterpartyId,
                 DocNumber = docNumber,
                 DocDate = dto.DocDate,
@@ -164,6 +166,8 @@ public class CashOperationService : BaseService, ICashOperationService
             entity.PaymentPurposeId = dto.PaymentPurposeId;
             entity.OperationTypeId = dto.OperationTypeId;
             entity.PaymentTypeId = dto.PaymentTypeId;
+            entity.CashChartAccountId = dto.CashChartAccountId;
+            entity.OffsetAccountId = dto.OffsetAccountId;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;

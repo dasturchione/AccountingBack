@@ -8,5 +8,7 @@ public class SaleDocBaseDto
     public short CurrencyId { get; set; }
     public decimal ExchangeRate { get; set; } = 1m;
     public long? ContractId { get; set; }
+    public int? CustomerAccountId { get; set; }
+    public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
 }

@@ -11,14 +11,16 @@ namespace Application.Features.Register.AccountingRegisterEntries
         public short CurrencyId { get; set; }
         public decimal Amount { get; set; }
         public DateTime DocDate { get; set; }
-    public long? PostingBatchId { get; set; }
-    public long? SourceLineId { get; set; }
-    public long? ReversalEntryId { get; set; }
+        public long? PostingBatchId { get; set; }
+        public long? SourceLineId { get; set; }
+        public long? ReversalEntryId { get; set; }
         public DateTime CreatedDate { get; set; }
         public string? DebitAccountName { get; set; }
         public string? CreditAccountName { get; set; }
         public string? DebitAccountCode { get; set; }
+        public string? DebitAccountNumber { get; set; }
         public string? CreditAccountCode { get; set; }
+        public string? CreditAccountNumber { get; set; }
         public string CurrencyName { get; set; } = null!;
         public string CurrencyCode { get; set; } = null!;
         public decimal? DebitQuantity { get; set; }

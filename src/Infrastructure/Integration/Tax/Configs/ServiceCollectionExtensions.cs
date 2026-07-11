@@ -15,7 +15,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITaxProvider, MxikTaxProvider>();
         services.AddScoped<ITaxProvider, SoliqApiTaxProvider>();
         services.AddScoped<ITaxProvider, EFakturaTaxProvider>();
-        services.AddScoped<ITaxProvider, DidoxTaxProvider>();
+        services.AddScoped<DidoxTaxProvider>();
+        services.AddScoped<ITaxProvider>(sp => sp.GetRequiredService<DidoxTaxProvider>());
+        services.AddScoped<IDidoxDocumentClient>(sp => sp.GetRequiredService<DidoxTaxProvider>());
+        services.AddScoped<IDidoxAuthClient, DidoxAuthClient>();
         return services;
     }
 }

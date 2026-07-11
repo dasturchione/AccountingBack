@@ -399,6 +399,7 @@ public class FaReceiptPostingIntegrationTests
             Id = id,
             ParentId = parentId,
             Code = code,
+            Number = code,
             Name = name,
             IsGroup = isGroup,
             StateId = StateIdConst.ACTIVE,

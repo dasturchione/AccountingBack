@@ -45,6 +45,9 @@
     <Compile Include="Persistence\Generated\Entities\CmnCurrencyRate.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnCurrencyRevaluation.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnCurrencyRevaluationLine.cs" />
+    <Compile Include="Persistence\Generated\Entities\CmnDidoxMxikCatalog.cs" />
+    <Compile Include="Persistence\Generated\Entities\CmnDidoxOrigin.cs" />
+    <Compile Include="Persistence\Generated\Entities\CmnDidoxVatRegStatus.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnDistrict.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnDocumentSequence.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnDocumentStatus.cs" />
@@ -70,9 +73,11 @@
     <Compile Include="Persistence\Generated\Entities\CmnTaxType.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnUnit.cs" />
+    <Compile Include="Persistence\Generated\Entities\CmnUnitDidoxPackage.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnVatRate.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyBankAccount.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyCard.cs" />
+    <Compile Include="Persistence\Generated\Entities\CounterpartyDidoxProfile.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyContact.cs" />
     <Compile Include="Persistence\Generated\Entities\CounterpartyRegBalance.cs" />
     <Compile Include="Persistence\Generated\Entities\FaAsset.cs" />
@@ -94,9 +99,11 @@
     <Compile Include="Persistence\Generated\Entities\InvInventoryCountDocTable.cs" />
     <Compile Include="Persistence\Generated\Entities\InvInventoryCountLine.cs" />
     <Compile Include="Persistence\Generated\Entities\InvProduct.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvProductDidoxProfile.cs" />
     <Compile Include="Persistence\Generated\Entities\InvProductGroup.cs" />
     <Compile Include="Persistence\Generated\Entities\InvProductPrice.cs" />
     <Compile Include="Persistence\Generated\Entities\InvProductTable.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvProductTableDidoxOrigin.cs" />
     <Compile Include="Persistence\Generated\Entities\InvRegBalance.cs" />
     <Compile Include="Persistence\Generated\Entities\InvTransferDoc.cs" />
     <Compile Include="Persistence\Generated\Entities\InvTransferDocTable.cs" />
@@ -146,6 +153,7 @@
     <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.8" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.8" />

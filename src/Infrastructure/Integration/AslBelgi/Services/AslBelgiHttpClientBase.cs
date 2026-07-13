@@ -63,9 +63,10 @@ public abstract class AslBelgiHttpClientBase
         Func<Task<HttpResponseMessage>> send,
         int initialDelayMs,
         string context,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool retrySafe = false)
     {
-        var attempts = Math.Max(1, Settings.RetryCount);
+        var attempts = retrySafe ? Math.Clamp(Settings.RetryCount, 1, 3) : 1;
         var delay = TimeSpan.FromMilliseconds(initialDelayMs);
         Exception? last = null;
 
@@ -76,12 +77,13 @@ public abstract class AslBelgiHttpClientBase
             try
             {
                 var response = await send();
-                if (IsTransient(response.StatusCode) && attempt < attempts)
+                if (retrySafe && IsTransient(response.StatusCode) && attempt < attempts)
                 {
                     Logger.LogWarning("AslBelgi {Context} returned transient status {StatusCode} on attempt {Attempt}/{Attempts}", context, (int)response.StatusCode, attempt, attempts);
+                    var retryDelay = GetRetryDelay(response, delay);
                     response.Dispose();
-                    await Task.Delay(delay, ct);
-                    delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+                    await Task.Delay(retryDelay, ct);
+                    delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, MaxRetryDelayMs));
                     continue;
                 }
 
@@ -94,12 +96,17 @@ public abstract class AslBelgiHttpClientBase
             catch (Exception ex)
             {
                 last = ex;
-                if (attempt >= attempts)
+                if (!retrySafe || attempt >= attempts)
                     break;
 
-                Logger.LogWarning(ex, "AslBelgi {Context} attempt {Attempt}/{Attempts} failed", context, attempt, attempts);
+                Logger.LogWarning(
+                    "AslBelgi {Context} attempt {Attempt}/{Attempts} failed ({ExceptionType})",
+                    context,
+                    attempt,
+                    attempts,
+                    ex.GetType().Name);
                 await Task.Delay(delay, ct);
-                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, MaxRetryDelayMs));
             }
         }
 
@@ -112,6 +119,24 @@ public abstract class AslBelgiHttpClientBase
             or HttpStatusCode.BadGateway
             or HttpStatusCode.ServiceUnavailable
             or HttpStatusCode.GatewayTimeout;
+
+    private const double MaxRetryDelayMs = 2000;
+
+    private static TimeSpan GetRetryDelay(HttpResponseMessage response, TimeSpan fallback)
+    {
+        if (response.Headers.RetryAfter is { } retryAfter)
+        {
+            var retryAfterMs = retryAfter.Delta?.TotalMilliseconds
+                ?? (retryAfter.Date is { } date
+                    ? (date - DateTimeOffset.UtcNow).TotalMilliseconds
+                    : fallback.TotalMilliseconds);
+
+            if (retryAfterMs >= 0)
+                return TimeSpan.FromMilliseconds(Math.Min(retryAfterMs, MaxRetryDelayMs));
+        }
+
+        return TimeSpan.FromMilliseconds(Math.Min(fallback.TotalMilliseconds, MaxRetryDelayMs));
+    }
 
     protected static async Task<string> ReadBodySafelyAsync(HttpResponseMessage response, CancellationToken ct)
     {

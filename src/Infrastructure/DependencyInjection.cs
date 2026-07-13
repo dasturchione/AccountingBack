@@ -35,6 +35,9 @@ using Application.Features.Cmn.Currencies.Extensions;
 using Application.Features.Cmn.CurrencyRates.Extensions;
 using Application.Features.Cmn.CurrencyRevaluations.Extensions;
 using Application.Features.Cmn.Taxes.Extensions;
+using Application.Features.Didox.Extensions;
+using Application.Features.Integration;
+using Application.Abstractions.Integration;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
@@ -97,9 +100,11 @@ using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
 using Integration.Tax.Configs;
 using Integration.Email.Configs;
+using Integration.Edocs;
 using Integration.GoogleDrive.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharedKernel.Query;
 using Scrutor;
 
@@ -111,12 +116,25 @@ namespace Infrastructure
         {
             services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
             services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
+            services.AddScoped(typeof(ITrackingRepository<>), typeof(TrackingRepository<>));
+            services.AddScoped<IOrganizationSourceReader, OrganizationSourceReader>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IDocumentPostingLock, DocumentPostingLock>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
+            services.AddScoped<IOrganizationScopeResolver, OrganizationScopeResolver>();
+            services.AddScoped<IProviderCredentialStore, ProviderCredentialStore>();
+            services.AddScoped<IProviderSessionStore, ProviderSessionStore>();
+            services.AddScoped<IProviderOperationStore, ProviderOperationStore>();
+            services.AddScoped<IProviderOperationGate, ProviderOperationGate>();
+            services.AddScoped<IProviderPreflightService, ProviderPreflightService>();
+            services.Configure<SecretProtectorOptions>(config.GetSection("SecretProtector"));
+            services.AddSingleton(sp =>
+                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SecretProtectorOptions>>().Value);
+            services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
+            services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
 
@@ -133,6 +151,7 @@ namespace Infrastructure
             services.AddFaktura(config);
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
+            services.AddEdocsIntegration(config);
             services.AddAslBelgiIntegration(config);
             services.AddEmailIntegration(config);
             services.AddGoogleDriveIntegration(config);
@@ -223,6 +242,7 @@ namespace Infrastructure
             services.AddCurrencyRateModule();
             services.AddCurrencyRevaluationModule();
             services.AddTaxModule();
+            services.AddDidoxPersistenceModule();
             services.AddSettingsModule();
             services.AddNotificationsModule();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();

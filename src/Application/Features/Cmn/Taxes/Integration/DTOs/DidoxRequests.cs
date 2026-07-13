@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Application.Features.Cmn.Taxes.Integration.DTOs;
 
-// Submit now uses the typed Didox ЭСФ model (see DidoxInvoiceRequest / DidoxDocumentEnvelope).
+// Submit uses the typed Didox ЭСФ model directly as the create request body (see DidoxInvoiceRequest).
 // Status and cancel keep their lightweight request shapes below.
 
 /// <summary>Sign request body: { "signature": "&lt;pkcs7 timestamp b64&gt;" } (signature from frontend E-IMZO).</summary>

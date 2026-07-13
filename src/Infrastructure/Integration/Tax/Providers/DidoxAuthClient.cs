@@ -71,9 +71,7 @@ public sealed class DidoxAuthClient : IDidoxAuthClient
             return new DidoxTokenResultDto
             {
                 IsSuccessful = false,
-                Message = string.IsNullOrWhiteSpace(responseText)
-                    ? $"Didox authentication failed with status {(int)response.StatusCode}."
-                    : responseText
+                Message = $"Didox authentication failed with status {(int)response.StatusCode}."
             };
         }
 

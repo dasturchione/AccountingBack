@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Integration.AslBelgi.DTOs;
 
@@ -12,7 +13,20 @@ public abstract class AslBelgiResponseResult
 
 public sealed class AslBelgiCheckApiKeyResponse : AslBelgiResponseResult
 {
-    public bool IsValid { get; set; }
+    [JsonPropertyName("isTinCorrect")]
+    public bool IsTinCorrect { get; set; }
+
+    // Compatibility alias for existing internal callers; wire JSON uses isTinCorrect.
+    [JsonIgnore]
+    public bool IsValid
+    {
+        get => IsTinCorrect;
+        set => IsTinCorrect = value;
+    }
+
+    [JsonPropertyName("expiresOn")]
+    public DateTimeOffset? ExpiresOn { get; set; }
+
     public string? ApiKey { get; set; }
 }
 

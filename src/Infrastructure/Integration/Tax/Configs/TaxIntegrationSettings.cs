@@ -37,7 +37,7 @@ public sealed class TaxIntegrationSettings
         public string AuthTokenPath { get; set; } = "/v1/auth/{taxId}/token/{locale}";
         public string AuthPasswordPath { get; set; } = "/v1/auth/{taxId}/password/{locale}";
 
-        // Create-document endpoint (ЭСФ submit). Body is wrapped as { "document_json": {...} }.
+        // Create-document endpoint (ЭСФ submit). The doc type is in the route; body is the raw document JSON.
         public string CreateDocumentPath { get; set; } = "/v1/documents/{docType}/create/{locale}";
 
         // Sign endpoint. Body is { "signature": "<pkcs7 timestamp b64>" } — the signature is produced

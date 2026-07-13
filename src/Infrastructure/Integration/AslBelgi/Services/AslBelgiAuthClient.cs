@@ -34,35 +34,41 @@ public sealed class AslBelgiAuthClient : AslBelgiHttpClientBase, IAslBelgiAuthCl
     {
         // Per the Asl Belgisi doc, refresh is application/x-www-form-urlencoded with refreshToken={...},
         // not JSON like authenticate.
-        var form = new FormUrlEncodedContent(
-        [
-            new KeyValuePair<string, string>("refreshToken", request.RefreshToken)
-        ]);
-
-        return await PostContentAsync<AslBelgiAuthResponse>(Settings.RefreshPath, form, ct);
+        return await PostContentAsync<AslBelgiAuthResponse>(
+            Settings.RefreshPath,
+            () => new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("refreshToken", request.RefreshToken)
+            ]),
+            ct);
     }
 
     private Task<TResponse> PostAsync<TRequest, TResponse>(string path, TRequest body, CancellationToken ct)
     {
-        var content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json");
-        return PostContentAsync<TResponse>(path, content, ct);
+        return PostContentAsync<TResponse>(
+            path,
+            () => new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json"),
+            ct);
     }
 
-    private async Task<TResponse> PostContentAsync<TResponse>(string path, HttpContent content, CancellationToken ct)
+    private async Task<TResponse> PostContentAsync<TResponse>(string path, Func<HttpContent> createContent, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(Settings.ServerBaseUrl))
             throw new InvalidOperationException("AslBelgi server URL is not configured.");
 
         var client = CreateClient(ClientName);
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUri(path)) { Content = content };
-
-        ApplyCorrelationId(request);
+        async Task<HttpResponseMessage> SendRequestAsync()
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, BuildUri(path)) { Content = createContent() };
+            ApplyCorrelationId(request);
+            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
 
         using var response = await SendWithRetryAsync(
-            () => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct),
+            SendRequestAsync,
             InitialRetryDelayMs,
             "auth request",
-            ct);
+            ct,
+            retrySafe: false);
 
         if (response.IsSuccessStatusCode)
         {
@@ -71,17 +77,16 @@ public sealed class AslBelgiAuthClient : AslBelgiHttpClientBase, IAslBelgiAuthCl
             return token ?? throw new InvalidOperationException("AslBelgi auth response body is empty.");
         }
 
-        var detail = await ReadBodySafelyAsync(response, ct);
-        throw CreateHttpException(response.StatusCode, detail);
+        throw CreateHttpException(response.StatusCode);
     }
 
-    private static Exception CreateHttpException(HttpStatusCode statusCode, string detail)
+    private static Exception CreateHttpException(HttpStatusCode statusCode)
     {
         return statusCode switch
         {
-            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException("AslBelgi authentication rejected." + detail),
-            HttpStatusCode.Forbidden => new IntegrationForbiddenException("AslBelgi access forbidden." + detail),
-            _ => new IntegrationHttpException($"AslBelgi request failed with status {(int)statusCode}. {detail}", (int)statusCode)
+            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException("AslBelgi authentication rejected."),
+            HttpStatusCode.Forbidden => new IntegrationForbiddenException("AslBelgi access forbidden."),
+            _ => new IntegrationHttpException($"AslBelgi request failed with HTTP status {(int)statusCode}.", (int)statusCode)
         };
     }
 }

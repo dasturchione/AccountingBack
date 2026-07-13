@@ -52,8 +52,11 @@ internal sealed class RsaSigner : ICertificateSigner
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "RSA PKCS#7 signing failed for algorithm {SignatureAlgorithm}", certificateContext.CertificateInfo.SignatureAlgorithm);
-            return Result.Failure<byte[]>(Error.Problem("EImzo.RsaSigningFailed", ex.Message));
+            _logger.LogWarning(
+                "RSA PKCS#7 signing failed for algorithm {SignatureAlgorithm}; exception type {ExceptionType}",
+                certificateContext.CertificateInfo.SignatureAlgorithm,
+                ex.GetType().Name);
+            return Result.Failure<byte[]>(Error.Problem("EImzo.RsaSigningFailed", "RSA PKCS#7 signing failed."));
         }
     }
 

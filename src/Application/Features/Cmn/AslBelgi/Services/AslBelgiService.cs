@@ -3,8 +3,10 @@ using System.Text.Json.Nodes;
 using Application.Features.Cmn.AslBelgi.Abstractions;
 using Application.Features.Cmn.AslBelgi.DTOs;
 using Application.Features.Cmn.AslBelgi.Errors;
+using Application.Abstractions.Integration;
+using Domain.Entities;
 using SharedKernel.Results;
- 
+using SharedKernel.Exceptions;
 
 namespace Application.Features.Cmn.AslBelgi.Services;
 
@@ -12,34 +14,55 @@ public sealed class AslBelgiService : IAslBelgiService
 {
     private readonly IAslBelgiClient _client;
     private readonly IAslBelgiTokenProvider _tokenProvider;
+    private readonly IOrganizationScopeResolver _scopeResolver;
+    private readonly IAslBelgiOrganizationCapabilityResolver _capabilityResolver;
 
-    public AslBelgiService(IAslBelgiClient client, IAslBelgiTokenProvider tokenProvider)
+    public AslBelgiService(
+        IAslBelgiClient client,
+        IAslBelgiTokenProvider tokenProvider,
+        IOrganizationScopeResolver scopeResolver,
+        IAslBelgiOrganizationCapabilityResolver capabilityResolver)
     {
         _client = client;
         _tokenProvider = tokenProvider;
+        _scopeResolver = scopeResolver;
+        _capabilityResolver = capabilityResolver;
     }
 
     public async Task<Result<AslBelgiCheckApiKeyResponseDto>> CheckApiKeyAsync(string tin, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(tin))
-            return Result.Failure<AslBelgiCheckApiKeyResponseDto>(AslBelgiErrors.MissingTin());
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiCheckApiKeyResponseDto>(scope.Error);
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiCheckApiKeyResponseDto>(tokenResult.Error);
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiCheckApiKeyResponseDto>(tokenResult.Error);
 
-        var response = await _client.CheckApiKeyAsync(tin, tokenResult.Value, ct);
-        return MapIntegrationResult(
-            response,
-            response => new AslBelgiCheckApiKeyResponseDto
+            var response = await _client.CheckApiKeyAsync(scope.Value.ExternalTin, tokenResult.Value, ct);
+            return MapIntegrationResult(response, response => new AslBelgiCheckApiKeyResponseDto
             {
                 IsValid = response.IsValid,
-                ApiKey = response.ApiKey
+                ExpiresOn = response.ExpiresOn
             });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiCheckApiKeyResponseDto>(SafeProviderError);
+        }
     }
 
     public async Task<Result<AslBelgiOrderResponse>> RegisterOrderAsync(AslBelgiOrderRequest request, CancellationToken ct = default)
     {
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiOrderResponse>(scope.Error);
+
+        if (!IsEmitter(scope.Value))
+            return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.EmitterRequired());
+
         if (request is null)
             return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.MissingOrderPayload());
 
@@ -49,38 +72,69 @@ public sealed class AslBelgiService : IAslBelgiService
         if (request.Products.Any(p => string.IsNullOrWhiteSpace(p.Gtin)))
             return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.MissingGtin());
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiOrderResponse>(tokenResult.Error);
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiOrderResponse>(tokenResult.Error);
 
-        var response = await _client.RegisterOrderAsync(request, tokenResult.Value, ct);
-        if (string.IsNullOrWhiteSpace(response.OrderId))
-            return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.IntegrationReturnedNoOrderId());
+            var response = await _client.RegisterOrderAsync(request, tokenResult.Value, ct);
+            if (string.IsNullOrWhiteSpace(response.OrderId))
+                return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.IntegrationReturnedNoOrderId());
 
-        return Result.Success(response);
+            return Result.Success(response);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiOrderResponse>(SafeProviderError);
+        }
     }
 
     public async Task<Result<IReadOnlyList<AslBelgiOrderInfo>>> GetOrdersAsync(AslBelgiOrdersFilter filter, CancellationToken ct = default)
     {
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<IReadOnlyList<AslBelgiOrderInfo>>(tokenResult.Error);
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<IReadOnlyList<AslBelgiOrderInfo>>(scope.Error);
 
-        var response = await _client.GetOrdersAsync(filter ?? new AslBelgiOrdersFilter(), tokenResult.Value, ct);
-        return Result.Success(response);
+        if (!IsEmitter(scope.Value))
+            return Result.Failure<IReadOnlyList<AslBelgiOrderInfo>>(AslBelgiErrors.EmitterRequired());
+
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<IReadOnlyList<AslBelgiOrderInfo>>(tokenResult.Error);
+            return Result.Success(await _client.GetOrdersAsync(filter ?? new AslBelgiOrdersFilter(), tokenResult.Value, ct));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<IReadOnlyList<AslBelgiOrderInfo>>(SafeProviderError);
+        }
     }
 
     public async Task<Result<AslBelgiCodesResponse>> GetCodesAsync(string orderId, string? gtin, int? quantity, string? lastPackId, CancellationToken ct = default)
     {
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiCodesResponse>(scope.Error);
+
+        if (!IsEmitter(scope.Value))
+            return Result.Failure<AslBelgiCodesResponse>(AslBelgiErrors.EmitterRequired());
+
         if (string.IsNullOrWhiteSpace(orderId))
             return Result.Failure<AslBelgiCodesResponse>(AslBelgiErrors.MissingOrderId());
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiCodesResponse>(tokenResult.Error);
-
-        var response = await _client.GetCodesAsync(orderId, gtin, quantity, lastPackId, tokenResult.Value, ct);
-        return Result.Success(response);
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiCodesResponse>(tokenResult.Error);
+            return Result.Success(await _client.GetCodesAsync(orderId, gtin, quantity, lastPackId, tokenResult.Value, ct));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiCodesResponse>(SafeProviderError);
+        }
     }
 
     public async Task<Result<AslBelgiDocumentResponseDto>> GetDocumentAsync(string documentId, CancellationToken ct = default)
@@ -88,18 +142,22 @@ public sealed class AslBelgiService : IAslBelgiService
         if (string.IsNullOrWhiteSpace(documentId))
             return Result.Failure<AslBelgiDocumentResponseDto>(AslBelgiErrors.MissingTin());
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiDocumentResponseDto>(tokenResult.Error);
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiDocumentResponseDto>(scope.Error);
 
-        var response = await _client.GetDocumentAsync(documentId, tokenResult.Value, ct);
-        return MapIntegrationResult(
-            response,
-            response => new AslBelgiDocumentResponseDto
-            {
-                DocumentId = response.DocumentId,
-                Content = response.Content
-            });
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiDocumentResponseDto>(tokenResult.Error);
+            var response = await _client.GetDocumentAsync(documentId, tokenResult.Value, ct);
+            return MapIntegrationResult(response, response => new AslBelgiDocumentResponseDto { DocumentId = response.DocumentId, Content = response.Content });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiDocumentResponseDto>(SafeProviderError);
+        }
     }
 
     public async Task<Result<AslBelgiStatusResponseDto>> GetStatusAsync(string identifier, CancellationToken ct = default)
@@ -107,54 +165,64 @@ public sealed class AslBelgiService : IAslBelgiService
         if (string.IsNullOrWhiteSpace(identifier))
             return Result.Failure<AslBelgiStatusResponseDto>(AslBelgiErrors.MissingTin());
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiStatusResponseDto>(tokenResult.Error);
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiStatusResponseDto>(scope.Error);
 
-        var response = await _client.GetStatusAsync(identifier, tokenResult.Value, ct);
-        return MapIntegrationResult(
-            response,
-            response => new AslBelgiStatusResponseDto
-            {
-                Id = response.Id,
-                Details = response.Details
-            });
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiStatusResponseDto>(tokenResult.Error);
+            var response = await _client.GetStatusAsync(identifier, tokenResult.Value, ct);
+            return MapIntegrationResult(response, response => new AslBelgiStatusResponseDto { Id = response.Id, Details = response.Details });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiStatusResponseDto>(SafeProviderError);
+        }
     }
 
     public async Task<Result<AslBelgiRefreshApiKeyResponseDto>> RefreshApiKeyAsync(
         AslBelgiRefreshApiKeyRequestDto request,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request?.Tin))
-            return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(AslBelgiErrors.MissingTin());
+        var scope = await ResolveScopeAsync(ct);
+        if (!scope.IsSuccess)
+            return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(scope.Error);
 
-        if (string.IsNullOrWhiteSpace(request.ApiKey) && string.IsNullOrWhiteSpace(request.Id))
+        if (string.IsNullOrWhiteSpace(request?.Id))
             return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(AslBelgiErrors.MissingRefreshIdentifier());
 
-        var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
-        if (!tokenResult.IsSuccess)
-            return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(tokenResult.Error);
+        try
+        {
+            var tokenResult = await _tokenProvider.GetAccessTokenAsync(ct);
+            if (!tokenResult.IsSuccess)
+                return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(tokenResult.Error);
 
-        var response = await _client.RefreshApiKeyAsync(
-            request.Tin!,
-            tokenResult.Value,
-            new AslBelgiRefreshApiKeyRequestDto
-            {
-                Tin = request.Tin,
-                ApiKey = request.ApiKey,
-                Id = request.Id
-            },
-            ct);
+            var response = await _client.RefreshApiKeyAsync(
+                scope.Value.ExternalTin,
+                tokenResult.Value,
+                new AslBelgiRefreshApiKeyRequestDto
+                {
+                    Tin = scope.Value.ExternalTin,
+                    ApiKey = null,
+                    Id = request.Id
+                },
+                ct);
 
-        return MapIntegrationResult(
-            response,
-            response => new AslBelgiRefreshApiKeyResponseDto
+            return MapIntegrationResult(response, response => new AslBelgiRefreshApiKeyResponseDto
             {
-                ApiKey = response.ApiKey,
+                ApiKey = null,
                 Id = response.Id,
                 ExpiresOn = response.ExpiresOn,
                 Label = response.Label
             });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(SafeProviderError);
+        }
     }
 
     private static Result<TResponseDto> MapIntegrationResult<TResponse, TResponseDto>(
@@ -167,24 +235,15 @@ public sealed class AslBelgiService : IAslBelgiService
         var failure = CheckForIntegrationFailure(mapped);
 
         if (failure is not null)
-        {
-            return Result.Failure<TResponseDto>(failure);
-        }
+            return Result.Failure<TResponseDto>(SafeProviderError);
 
         var dto = mapPayload(response);
         dto.Status = mapped.Status;
-        dto.Message = mapped.Message;
-        dto.Errors = mapped.Errors;
-        dto.Data = mapped.Data;
-        dto.Items = mapped.Items;
-        dto.Envelope = new AslBelgiEnvelopeDto
-        {
-            Status = mapped.Status,
-            Message = mapped.Message,
-            Errors = mapped.Errors,
-            Data = mapped.Data,
-            Items = mapped.Items
-        };
+        dto.Message = null;
+        dto.Errors = null;
+        dto.Data = null;
+        dto.Items = null;
+        dto.Envelope = null;
 
         return Result.Success(dto);
     }
@@ -192,7 +251,7 @@ public sealed class AslBelgiService : IAslBelgiService
     private static Error? CheckForIntegrationFailure(EnvelopeSummary envelope)
     {
         if (envelope.Errors is not null && envelope.Errors.Length > 0)
-            return AslBelgiErrors.IntegrationReturnedError("Asl Belgisi returned business errors.", envelope.Message);
+            return SafeProviderError;
 
         if (string.IsNullOrWhiteSpace(envelope.Status))
             return null;
@@ -203,7 +262,7 @@ public sealed class AslBelgiService : IAslBelgiService
         if (string.Equals(envelope.Status, "error", StringComparison.OrdinalIgnoreCase)
             || string.Equals(envelope.Status, "failed", StringComparison.OrdinalIgnoreCase)
             || string.Equals(envelope.Status, "fail", StringComparison.OrdinalIgnoreCase))
-            return AslBelgiErrors.IntegrationReturnedError("Asl Belgisi returned business status.", envelope.Message);
+            return SafeProviderError;
 
         return null;
     }
@@ -243,4 +302,16 @@ public sealed class AslBelgiService : IAslBelgiService
         public JsonNode? Data { get; set; }
         public JsonArray? Items { get; set; }
     }
+
+    private async Task<Result<OrganizationScope>> ResolveScopeAsync(CancellationToken ct)
+    {
+        var scope = await _scopeResolver.ResolveAsync(Provider.AslBelgi, ct: ct);
+        return scope.IsSuccess ? scope : Result.Failure<OrganizationScope>(scope.Error);
+    }
+
+    private bool IsEmitter(OrganizationScope scope) =>
+        _capabilityResolver.Resolve(scope.OrganizationId) == AslBelgiOrganizationCapability.Emitter;
+
+    private static readonly Error SafeProviderError = Error.Problem(
+        "AslBelgi.ProviderError", "Asl Belgisi request failed.");
 }

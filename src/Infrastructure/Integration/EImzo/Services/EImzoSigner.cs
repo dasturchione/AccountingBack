@@ -44,14 +44,13 @@ internal sealed class EImzoSigner : IEImzoSigner
             return bouncyCastleResult;
 
         _logger.LogError(
-            "E-IMZO certificate could not be read from {CertificatePath}. Native reader failed with {X509Code}; BouncyCastle failed with {BouncyCode}",
-            _settings.CertificatePath,
+            "E-IMZO certificate could not be read. Native reader failed with {X509Code}; BouncyCastle failed with {BouncyCode}",
             x509Result.Error.Code,
             bouncyCastleResult.Error.Code);
 
         return Result.Failure<CertificateInfo>(Error.Problem(
             "EImzo.CertificateReadFailed",
-            $"EImzo certificate could not be read. Native reader: {x509Result.Error.Description} BouncyCastle: {bouncyCastleResult.Error.Description}"));
+            "E-IMZO certificate could not be read."));
     }
 
     public Result<byte[]> SignPkcs7(byte[] data, Pkcs7SignMode mode = Pkcs7SignMode.Attached, CancellationToken ct = default)
@@ -107,13 +106,13 @@ internal sealed class EImzoSigner : IEImzoSigner
         }
         catch (CryptographicException ex)
         {
-            _logger.LogWarning(ex, "Native X509 reader could not open E-IMZO certificate at {CertificatePath}", _settings.CertificatePath);
-            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.X509ReadFailed", ex.Message));
+            _logger.LogWarning("Native X509 reader could not open E-IMZO certificate; exception type {ExceptionType}", ex.GetType().Name);
+            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.X509ReadFailed", "E-IMZO certificate could not be read."));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Native X509 reader failed unexpectedly for E-IMZO certificate at {CertificatePath}", _settings.CertificatePath);
-            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.X509ReadFailed", ex.Message));
+            _logger.LogWarning("Native X509 reader failed unexpectedly for E-IMZO certificate; exception type {ExceptionType}", ex.GetType().Name);
+            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.X509ReadFailed", "E-IMZO certificate could not be read."));
         }
     }
 
@@ -159,8 +158,8 @@ internal sealed class EImzoSigner : IEImzoSigner
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "BouncyCastle reader could not open E-IMZO certificate at {CertificatePath}", _settings.CertificatePath);
-            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.BouncyCastleReadFailed", ex.Message));
+            _logger.LogWarning("BouncyCastle reader could not open E-IMZO certificate; exception type {ExceptionType}", ex.GetType().Name);
+            return Result.Failure<CertificateInfo>(Error.Problem("EImzo.BouncyCastleReadFailed", "E-IMZO certificate could not be read."));
         }
     }
 
@@ -244,8 +243,8 @@ internal sealed class EImzoSigner : IEImzoSigner
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "BouncyCastle signer material could not be loaded from {CertificatePath}", _settings.CertificatePath);
-            return Result.Failure<EImzoCertificateContext>(Error.Problem("EImzo.SigningMaterialReadFailed", ex.Message));
+            _logger.LogWarning("BouncyCastle signer material could not be loaded; exception type {ExceptionType}", ex.GetType().Name);
+            return Result.Failure<EImzoCertificateContext>(Error.Problem("EImzo.SigningMaterialReadFailed", "E-IMZO signing material could not be loaded."));
         }
     }
 
@@ -272,7 +271,7 @@ internal sealed class EImzoSigner : IEImzoSigner
             return Result.Failure(Error.Problem("EImzo.CertificatePasswordMissing", "EImzo certificate password is not configured."));
 
         if (!File.Exists(_settings.CertificatePath))
-            return Result.Failure(Error.NotFound("EImzo.CertificateFileNotFound", $"EImzo certificate file was not found: {_settings.CertificatePath}"));
+            return Result.Failure(Error.NotFound("EImzo.CertificateFileNotFound", "E-IMZO certificate file was not found."));
 
         return Result.Success();
     }

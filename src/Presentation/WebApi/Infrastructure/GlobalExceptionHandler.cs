@@ -9,8 +9,20 @@ namespace WebApi.Infrastructure
     {
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
         {
-            logger.LogError(exception, "Unhandled exception occurred");
             var correlationId = httpContext.TraceIdentifier;
+
+            if (exception is IntegrationHttpException integrationException)
+            {
+                logger.LogError(
+                    "Unhandled integration exception {ExceptionType} with status {StatusCode} for correlation {CorrelationId}",
+                    integrationException.GetType().Name,
+                    integrationException.StatusCode,
+                    correlationId);
+            }
+            else
+            {
+                logger.LogError(exception, "Unhandled exception occurred for correlation {CorrelationId}", correlationId);
+            }
 
             var problemDetails = exception switch
             {

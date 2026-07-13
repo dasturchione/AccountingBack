@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAslBelgiTokenProvider, AslBelgiTokenProvider>();
         services.AddScoped<IAslBelgiClient, AslBelgiClient>();
         services.AddScoped<IAslBelgiMarkingRepository, AslBelgiMarkingReadRepository>();
+        services.AddSingleton<IAslBelgiOrganizationCapabilityResolver, OptionsAslBelgiOrganizationCapabilityResolver>();
 
         return services;
     }

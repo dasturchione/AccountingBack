@@ -1,0 +1,18 @@
+-- Test database only. This is a psql execution manifest, not an application startup script.
+-- Run once against a test database whose base schema has already been created.
+-- Required client behavior: psql -v ON_ERROR_STOP=1 -1 -f <this-file>
+-- No data is inserted by this manifest.
+--
+-- Dependency order:
+--   cmn_state, cmn_unit, org_organization, counterparty_card, inv_product,
+--   and inv_product_table must already exist.
+--   0135 creates cmn_didox_origin before 0416 and 0417.
+--   0136 creates cmn_didox_vat_reg_status before 0305.
+
+\ir ../../Scripts/01_cmn/0134_create_cmn_mxik_catalog.sql
+\ir ../../Scripts/01_cmn/0135_create_cmn_didox_origin.sql
+\ir ../../Scripts/01_cmn/0136_create_cmn_didox_vat_reg_status.sql
+\ir ../../Scripts/01_cmn/0137_create_cmn_unit_didox_package.sql
+\ir ../../Scripts/03_counterparty/0305_create_counterparty_didox_profile.sql
+\ir ../../Scripts/04_inv/0416_create_inv_product_didox_profile.sql
+\ir ../../Scripts/04_inv/0417_create_inv_product_table_didox_origin.sql

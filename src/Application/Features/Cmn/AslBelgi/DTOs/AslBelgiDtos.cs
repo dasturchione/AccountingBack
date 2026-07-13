@@ -28,7 +28,7 @@ public class AslBelgiResultDto : AslBelgiEnvelopeDto
 public sealed class AslBelgiCheckApiKeyResponseDto : AslBelgiResultDto
 {
     public bool IsValid { get; set; }
-    public string? ApiKey { get; set; }
+    public DateTimeOffset? ExpiresOn { get; set; }
 }
 
 public sealed class AslBelgiRefreshApiKeyRequestDto

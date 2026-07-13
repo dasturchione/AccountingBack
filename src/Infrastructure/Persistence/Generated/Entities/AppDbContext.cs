@@ -53,6 +53,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLines { get; set; }
 
+    public virtual DbSet<CmnDidoxMxikCatalog> CmnDidoxMxikCatalogs { get; set; }
+
+    public virtual DbSet<CmnDidoxOrigin> CmnDidoxOrigins { get; set; }
+
+    public virtual DbSet<CmnDidoxVatRegStatus> CmnDidoxVatRegStatuses { get; set; }
+
     public virtual DbSet<CmnDistrict> CmnDistricts { get; set; }
 
     public virtual DbSet<CmnDocumentSequence> CmnDocumentSequences { get; set; }
@@ -101,11 +107,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnUnit> CmnUnits { get; set; }
 
+    public virtual DbSet<CmnUnitDidoxPackage> CmnUnitDidoxPackages { get; set; }
+
     public virtual DbSet<CmnVatRate> CmnVatRates { get; set; }
 
     public virtual DbSet<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; }
 
     public virtual DbSet<CounterpartyCard> CounterpartyCards { get; set; }
+
+    public virtual DbSet<CounterpartyDidoxProfile> CounterpartyDidoxProfiles { get; set; }
 
     public virtual DbSet<CounterpartyContact> CounterpartyContacts { get; set; }
 
@@ -133,11 +143,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
+    public virtual DbSet<InvProductDidoxProfile> InvProductDidoxProfiles { get; set; }
+
     public virtual DbSet<InvProductGroup> InvProductGroups { get; set; }
 
     public virtual DbSet<InvProductPrice> InvProductPrices { get; set; }
 
     public virtual DbSet<InvProductTable> InvProductTables { get; set; }
+
+    public virtual DbSet<InvProductTableDidoxOrigin> InvProductTableDidoxOrigins { get; set; }
 
     public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
 
@@ -1981,6 +1995,65 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
         });
+        modelBuilder.Entity<CmnDidoxMxikCatalog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_mxik_catalog_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("cmn_mxik_catalog_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnDidoxOrigin>(entity =>
+        {
+            entity.HasKey(e => e.Code).HasName("cmn_didox_origin_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("cmn_didox_origin_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnDidoxVatRegStatus>(entity =>
+        {
+            entity.HasKey(e => e.Code).HasName("cmn_didox_vat_reg_status_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("cmn_didox_vat_reg_status_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnUnitDidoxPackage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_unit_didox_package_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("cmn_unit_didox_package_state_id_fkey");
+            entity.HasOne(d => d.Unit).WithMany().HasConstraintName("cmn_unit_didox_package_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<CounterpartyDidoxProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("counterparty_didox_profile_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.Counterparty).WithMany().HasConstraintName("counterparty_didox_profile_counterparty_id_fkey");
+            entity.HasOne(d => d.Organization).WithMany().HasConstraintName("counterparty_didox_profile_organization_id_fkey");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("counterparty_didox_profile_state_id_fkey");
+            entity.HasOne(d => d.VatRegStatus).WithMany().HasConstraintName("counterparty_didox_profile_vat_reg_status_code_fkey");
+        });
+
+        modelBuilder.Entity<InvProductDidoxProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_product_didox_profile_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.DefaultOrigin).WithMany().HasConstraintName("inv_product_didox_profile_default_origin_code_fkey");
+            entity.HasOne(d => d.Organization).WithMany().HasConstraintName("inv_product_didox_profile_organization_id_fkey");
+            entity.HasOne(d => d.Product).WithMany().HasConstraintName("inv_product_didox_profile_product_id_fkey");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("inv_product_didox_profile_state_id_fkey");
+        });
+
+        modelBuilder.Entity<InvProductTableDidoxOrigin>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_product_table_didox_origin_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne(d => d.Organization).WithMany().HasConstraintName("inv_product_table_didox_origin_organization_id_fkey");
+            entity.HasOne(d => d.Origin).WithMany().HasConstraintName("inv_product_table_didox_origin_origin_code_fkey");
+            entity.HasOne(d => d.ProductTable).WithMany().HasConstraintName("inv_product_table_didox_origin_product_table_id_fkey");
+            entity.HasOne(d => d.State).WithMany().HasConstraintName("inv_product_table_didox_origin_state_id_fkey");
+        });
+
         modelBuilder.HasSequence("contract_number_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);
         modelBuilder.HasSequence("doc_number_cash_operation_seq").StartsAt(100000001L);

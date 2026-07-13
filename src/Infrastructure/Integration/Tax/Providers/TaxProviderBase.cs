@@ -82,7 +82,7 @@ public abstract class TaxProviderBase : ITaxProvider
             var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(path, query));
             ApplyCorrelationId(request);
             return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        }, ct);
+        }, ct, retrySafe: true);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
@@ -99,15 +99,18 @@ public abstract class TaxProviderBase : ITaxProvider
             };
             ApplyCorrelationId(request);
             return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        }, ct);
+        }, ct, retrySafe: false);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonSerializer.DeserializeAsync<TResponse>(stream, JsonOptions, ct);
     }
 
-    protected async Task<HttpResponseMessage> SendWithRetryAsync(Func<Task<HttpResponseMessage>> action, CancellationToken ct)
+    protected async Task<HttpResponseMessage> SendWithRetryAsync(
+        Func<Task<HttpResponseMessage>> action,
+        CancellationToken ct,
+        bool retrySafe = false)
     {
-        var attempts = Math.Max(1, ResolveRetryCount());
+        var attempts = retrySafe ? Math.Clamp(ResolveRetryCount(), 1, 3) : 1;
         var delay = TimeSpan.FromMilliseconds(200);
         Exception? lastException = null;
 
@@ -118,12 +121,13 @@ public abstract class TaxProviderBase : ITaxProvider
             try
             {
                 var response = await action();
-                if (IsTransient(response.StatusCode) && attempt < attempts)
+                if (retrySafe && IsTransient(response.StatusCode) && attempt < attempts)
                 {
                     Logger.LogWarning("Tax provider {Provider} returned transient status {StatusCode} on attempt {Attempt}/{Attempts}", Code, (int)response.StatusCode, attempt, attempts);
+                    var retryDelay = GetRetryDelay(response, delay);
                     response.Dispose();
-                    await Task.Delay(delay, ct);
-                    delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+                    await Task.Delay(retryDelay, ct);
+                    delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, MaxRetryDelayMs));
                     continue;
                 }
 
@@ -136,12 +140,17 @@ public abstract class TaxProviderBase : ITaxProvider
             catch (Exception ex)
             {
                 lastException = ex;
-                if (attempt >= attempts)
+                if (!retrySafe || attempt >= attempts)
                     break;
 
-                Logger.LogWarning(ex, "Tax provider {Provider} request attempt {Attempt}/{Attempts} failed", Code, attempt, attempts);
+                Logger.LogWarning(
+                    "Tax provider {Provider} request attempt {Attempt}/{Attempts} failed ({ExceptionType})",
+                    Code,
+                    attempt,
+                    attempts,
+                    ex.GetType().Name);
                 await Task.Delay(delay, ct);
-                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, MaxRetryDelayMs));
             }
         }
 
@@ -159,24 +168,11 @@ public abstract class TaxProviderBase : ITaxProvider
         if (response.IsSuccessStatusCode)
             return;
 
-        var responseBody = await ReadResponseBodySafelyAsync(response);
-        var detail = string.IsNullOrWhiteSpace(responseBody)
-            ? response.ReasonPhrase ?? "Integration request failed."
-            : responseBody;
-
-        throw new IntegrationHttpException(detail, (int)response.StatusCode);
-    }
-
-    private static async Task<string> ReadResponseBodySafelyAsync(HttpResponseMessage response)
-    {
-        try
-        {
-            return await response.Content.ReadAsStringAsync();
-        }
-        catch
-        {
-            return string.Empty;
-        }
+        // External bodies can contain tokens, credentials or provider PII. Keep the exception
+        // deliberately status-only; callers can map it to their safe provider error.
+        throw new IntegrationHttpException(
+            $"Integration request failed with HTTP status {(int)response.StatusCode}.",
+            (int)response.StatusCode);
     }
 
     private void ApplyCorrelationId(HttpRequestMessage request)
@@ -195,4 +191,22 @@ public abstract class TaxProviderBase : ITaxProvider
             or System.Net.HttpStatusCode.BadGateway
             or System.Net.HttpStatusCode.ServiceUnavailable
             or System.Net.HttpStatusCode.GatewayTimeout;
+
+    private const double MaxRetryDelayMs = 2000;
+
+    private static TimeSpan GetRetryDelay(HttpResponseMessage response, TimeSpan fallback)
+    {
+        if (response.Headers.RetryAfter is { } retryAfter)
+        {
+            var retryAfterMs = retryAfter.Delta?.TotalMilliseconds
+                ?? (retryAfter.Date is { } date
+                    ? (date - DateTimeOffset.UtcNow).TotalMilliseconds
+                    : fallback.TotalMilliseconds);
+
+            if (retryAfterMs >= 0)
+                return TimeSpan.FromMilliseconds(Math.Min(retryAfterMs, MaxRetryDelayMs));
+        }
+
+        return TimeSpan.FromMilliseconds(Math.Min(fallback.TotalMilliseconds, MaxRetryDelayMs));
+    }
 }

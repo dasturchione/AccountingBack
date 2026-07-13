@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using System.Security.Cryptography.X509Certificates;
 using WebApi.Infrastructure;
 using WebApi.Middlewares;
 using Microsoft.AspNetCore.Routing;
@@ -86,6 +87,8 @@ namespace WebApi.Configuration
 
             builder.Services.AddValidatorsFromAssemblyContaining<ApplicationAssemblyMarker>(includeInternalTypes: true);
             builder.Services.AddScoped<FluentValidationFilter>();
+
+            AddCorsPolicies(builder);
 
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
@@ -169,6 +172,39 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddDataProtectionKeys(this WebApplicationBuilder builder, IWebHostEnvironment environment)
         {
+            var isProduction = environment.IsProduction();
+            if (isProduction)
+            {
+                var productionKeyPath = RequiredExternalSetting(builder.Configuration, "DataProtection:KeysPath");
+                var certificatePath = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePath");
+                var certificatePassword = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePassword");
+
+                if (!Path.IsPathRooted(productionKeyPath))
+                    throw new InvalidOperationException("DataProtection:KeysPath must be an absolute production path.");
+
+                try
+                {
+                    Directory.CreateDirectory(productionKeyPath);
+                    var certificate = X509CertificateLoader.LoadPkcs12FromFile(
+                        certificatePath,
+                        certificatePassword,
+                        X509KeyStorageFlags.EphemeralKeySet);
+
+                    builder.Services.AddDataProtection()
+                        .PersistKeysToFileSystem(new DirectoryInfo(productionKeyPath))
+                        .ProtectKeysWithCertificate(certificate)
+                        .SetApplicationName("accounting-back");
+                }
+                catch (Exception)
+                {
+                    // Production must fail closed. Do not log paths, certificate details or
+                    // exception text because they can disclose deployment secrets.
+                    throw new InvalidOperationException("Production DataProtection key-ring initialization failed.");
+                }
+
+                return builder;
+            }
+
             var rootPath = Environment.GetEnvironmentVariable("APPDATA")
                 ?? Environment.GetEnvironmentVariable("HOME")
                 ?? environment.ContentRootPath;
@@ -199,7 +235,7 @@ namespace WebApi.Configuration
                 var directoryInfo = new DirectoryInfo(keyDirectory);
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(directoryInfo)
-                    .SetApplicationName("accounting-back");
+                .SetApplicationName("accounting-back");
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
             {
@@ -207,6 +243,53 @@ namespace WebApi.Configuration
             }
 
             return builder;
+        }
+
+        private static void AddCorsPolicies(WebApplicationBuilder builder)
+        {
+            var configuredOrigins = builder.Configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>() ?? [];
+            var origins = configuredOrigins
+                .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                .Select(origin => origin.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (origins.Any(origin => origin == "*"))
+                throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
+
+            if (!builder.Environment.IsDevelopment()
+                && !builder.Environment.IsEnvironment("Testing")
+                && origins.Length == 0)
+                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
+
+            foreach (var origin in origins)
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                    || uri.Scheme is not ("http" or "https")
+                    || string.IsNullOrWhiteSpace(uri.Host)
+                    || uri.Host.Contains('*', StringComparison.Ordinal)
+                    || uri.AbsolutePath != "/"
+                    || !string.IsNullOrEmpty(uri.Query)
+                    || !string.IsNullOrEmpty(uri.Fragment))
+                    throw new InvalidOperationException("Cors:AllowedOrigins contains an invalid origin.");
+            }
+
+            builder.Services.AddCors(options => options.AddPolicy("ApiCors", policy =>
+            {
+                if (origins.Length == 0)
+                {
+                    // Development/test-only fallback. It intentionally does not enable credentials.
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                    return;
+                }
+
+                policy.WithOrigins(origins)
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
+            }));
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
@@ -397,7 +480,39 @@ namespace WebApi.Configuration
             var didoxPartnerToken = configuration["TaxIntegration:Didox:PartnerToken"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
                 throw new InvalidOperationException("TaxIntegration:Didox:PartnerToken is not configured with a real secret value.");
+
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var key in ProductionExternalSecretKeys)
+                    _ = RequiredExternalSetting(configuration, key);
+
+                foreach (var key in ForbiddenGlobalProviderSecretKeys)
+                {
+                    if (!IsPlaceholderValue(configuration[key]))
+                        throw new InvalidOperationException($"{key} must not be configured globally in production; use the scoped credential store.");
+                }
+            }
         }
+
+        private static readonly string[] ProductionExternalSecretKeys =
+        [
+            "ConnectionStrings:Default",
+            "Jwt:Key",
+            "BackupJob:Database:Password",
+            "FakturaAuthSettings:ClientSecret",
+            "FakturaAuthSettings:Password",
+            "Email:Password",
+            "EImzo:CertificatePassword",
+            "EImzo:CertificatePath",
+            "TaxIntegration:Didox:PartnerToken"
+        ];
+
+        private static readonly string[] ForbiddenGlobalProviderSecretKeys =
+        [
+            "AslBelgi:Login",
+            "AslBelgi:Password",
+            "AslBelgi:ApiKey"
+        ];
 
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
         {
@@ -419,7 +534,42 @@ namespace WebApi.Configuration
             if (string.IsNullOrWhiteSpace(value))
                 return true;
 
-            return value.Contains("SET_VIA_ENVIRONMENT", StringComparison.OrdinalIgnoreCase);
+            return value.Contains("SET_VIA_ENVIRONMENT", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("YOUR-", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("EXAMPLE", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string RequiredExternalSetting(ConfigurationManager configuration, string key)
+        {
+            var value = configuration[key];
+            if (IsPlaceholderValue(value) || !IsExternalConfigurationValue(configuration, key))
+                throw new InvalidOperationException($"{key} must be supplied by the production environment or secret store.");
+
+            return value!.Trim();
+        }
+
+        private static bool IsExternalConfigurationValue(ConfigurationManager configuration, string key)
+        {
+            if (configuration is not IConfigurationRoot root)
+                return false;
+
+            foreach (var provider in root.Providers.Reverse())
+            {
+                if (!provider.TryGet(key, out var value) || string.IsNullOrWhiteSpace(value))
+                    continue;
+
+                var providerName = provider.GetType().FullName ?? provider.GetType().Name;
+                return providerName.Contains("EnvironmentVariables", StringComparison.OrdinalIgnoreCase)
+                    || providerName.Contains("UserSecrets", StringComparison.OrdinalIgnoreCase)
+                    || providerName.Contains("KeyVault", StringComparison.OrdinalIgnoreCase)
+                    || providerName.Contains("Vault", StringComparison.OrdinalIgnoreCase)
+                    || providerName.Contains("KeyPerFile", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
         }
 
         private static WebApplicationBuilder AddJwtToken(this WebApplicationBuilder builder)
@@ -514,12 +664,7 @@ namespace WebApi.Configuration
 
             app.UseSerilogRequestLogging();
 
-            app.UseCors(policy =>
-            {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
-            });
+            app.UseCors("ApiCors");
 
             app.UseAuthentication();
             app.UseRateLimiter();
@@ -530,6 +675,3 @@ namespace WebApi.Configuration
         }
     }
 }
-
-
-

@@ -61,7 +61,6 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<SaleCondition>(modelBuilder);
             ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
             ApplyScopedFilter<Product>(modelBuilder);
-            ApplyScopedFilter<ProductDidoxProfile>(modelBuilder);
             ApplyScopedFilter<InventoryAdjustmentDoc>(modelBuilder);
             ApplyScopedFilter<InventoryCountDoc>(modelBuilder);
             ApplyScopedFilter<SaleDoc>(modelBuilder);
@@ -70,7 +69,6 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<Department>(modelBuilder);
             ApplyScopedFilter<PurchaseDoc>(modelBuilder);
             ApplyScopedFilter<CounterpartyCard>(modelBuilder);
-            ApplyScopedFilter<CounterpartyDidoxProfile>(modelBuilder);
             ApplyScopedFilter<CounterpartyBankAccount>(modelBuilder);
             ApplyScopedFilter<CounterpartyContact>(modelBuilder);
             ApplyScopedFilter<AccountingRegisterEntry>(modelBuilder);
@@ -82,12 +80,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<Position>(modelBuilder);
             ApplyScopedFilter<CashBox>(modelBuilder);
             ApplyScopedFilter<UserOrganization>(modelBuilder);
-            ApplyScopedFilter<ProviderCredential>(modelBuilder);
-            ApplyScopedFilter<ProviderSession>(modelBuilder);
-            ApplyScopedFilter<ProviderOperation>(modelBuilder);
-            ApplyScopedFilter<EImzoChallenge>(modelBuilder);
             ApplyScopedFilter<ProductTable>(modelBuilder);
-            ApplyScopedFilter<ProductTableDidoxOrigin>(modelBuilder);
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
             ApplyScopedFilter<FaMovementDoc>(modelBuilder);
@@ -217,7 +210,6 @@ namespace Infrastructure.Persistence
         // Boshqa tashkilot nomidan yozish/o'zgartirish/o'chirishni taqiqlaydi
         private void EnforceOrganizationScope()
         {
-            EnforceProductTableDidoxOriginOrganization();
 
             if (!HasAuthenticatedUser) return;
 
@@ -262,26 +254,6 @@ namespace Infrastructure.Persistence
                         throw new InvalidOperationException(
                             $"'{entry.Metadata.ClrType.Name}': bu tashkilot ma'lumotini o'chirish taqiqlangan.");
                 }
-            }
-        }
-
-        private void EnforceProductTableDidoxOriginOrganization()
-        {
-            foreach (var entry in ChangeTracker.Entries<ProductTableDidoxOrigin>()
-                         .Where(x => x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
-            {
-                var productTable = entry.Reference(x => x.ProductTable).TargetEntry?.Entity as ProductTable;
-                var productTableOrganizationId = productTable?.OrganizationId
-                    ?? ProductTables
-                        .IgnoreQueryFilters()
-                        .AsNoTracking()
-                        .Where(x => x.Id == entry.Entity.ProductTableId)
-                        .Select(x => (int?)x.OrganizationId)
-                        .SingleOrDefault();
-
-                if (productTableOrganizationId is null || productTableOrganizationId.Value != entry.Entity.OrganizationId)
-                    throw new InvalidOperationException(
-                        "ProductTableDidoxOrigin.OrganizationId must match ProductTable.OrganizationId.");
             }
         }
     }

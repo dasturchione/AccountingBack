@@ -70,6 +70,4 @@ public partial class ProductTable
     [InverseProperty("ProductTables")]
     public virtual ProductTableStatus Status { get; set; } = null!;
 
-    [InverseProperty(nameof(ProductTableDidoxOrigin.ProductTable))]
-    public virtual ProductTableDidoxOrigin? DidoxOrigin { get; set; }
 }

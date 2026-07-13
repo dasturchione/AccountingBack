@@ -25,9 +25,6 @@ public sealed class TaxProviderOperationRequestDto
     public string? Payload { get; init; }
     public string? ExternalDocumentId { get; init; }
 
-    // Didox user-key: company token obtained via the frontend E-IMZO auth flow (360 min TTL).
-    // Request-scoped — supplied per call, never stored in configuration.
-    public string? CompanyToken { get; init; }
 }
 
 public sealed class TaxProviderOperationResultDto

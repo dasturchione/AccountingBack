@@ -200,9 +200,6 @@ public static class PermissionCodeConst
     public const string TaxSubmitEFaktura    = "TAX_SUBMIT_E_FAKTURA";
     public const string TaxGetEFakturaStatus = "TAX_GET_E_FAKTURA_STATUS";
     public const string TaxCancelEFaktura    = "TAX_CANCEL_E_FAKTURA";
-    public const string TaxSubmitDidox       = "TAX_SUBMIT_DIDOX";
-    public const string TaxGetDidoxStatus    = "TAX_GET_DIDOX_STATUS";
-    public const string TaxCancelDidox       = "TAX_CANCEL_DIDOX";
     #endregion
 
     #region CounterpartyBankAccount

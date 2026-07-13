@@ -31,9 +31,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
     public virtual DbSet<CurrencyRevaluation> CurrencyRevaluations { get; set; }
     public virtual DbSet<CurrencyRevaluationLine> CurrencyRevaluationLines { get; set; }
-    public virtual DbSet<DidoxMxikCatalog> DidoxMxikCatalogs { get; set; }
-    public virtual DbSet<DidoxOrigin> DidoxOrigins { get; set; }
-    public virtual DbSet<DidoxVatRegStatus> DidoxVatRegStatuses { get; set; }
     public virtual DbSet<FaAssetStatus> FaAssetStatuses { get; set; }
     public virtual DbSet<FaDepreciationMethod> FaDepreciationMethods { get; set; }
     public virtual DbSet<FaAsset> FaAssets { get; set; }
@@ -68,19 +65,15 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<TaxType> TaxTypes { get; set; }
     public virtual DbSet<Translation> Translations { get; set; }
     public virtual DbSet<Unit> Units { get; set; }
-    public virtual DbSet<UnitDidoxPackage> UnitDidoxPackages { get; set; }
     public virtual DbSet<VatRate> VatRates { get; set; }
     public virtual DbSet<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; }
     public virtual DbSet<CounterpartyCard> CounterpartyCards { get; set; }
-    public virtual DbSet<CounterpartyDidoxProfile> CounterpartyDidoxProfiles { get; set; }
     public virtual DbSet<CounterpartyContact> CounterpartyContacts { get; set; }
     public virtual DbSet<Product> Products { get; set; }
-    public virtual DbSet<ProductDidoxProfile> ProductDidoxProfiles { get; set; }
     public virtual DbSet<ProductGroup> ProductGroups { get; set; }
     public virtual DbSet<ProductPrice> ProductPrices { get; set; }
     public virtual DbSet<ProductPriceType> ProductPriceTypes { get; set; }
     public virtual DbSet<ProductTable> ProductTables { get; set; }
-    public virtual DbSet<ProductTableDidoxOrigin> ProductTableDidoxOrigins { get; set; }
     public virtual DbSet<ProductTableStatus> ProductTableStatuses { get; set; }
     public virtual DbSet<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; }
     public virtual DbSet<InventoryAdjustmentLine> InventoryAdjustmentLines { get; set; }
@@ -129,10 +122,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ContractType> ContractTypes { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<OrganizationConfig> OrganizationConfigs { get; set; }
-    public virtual DbSet<ProviderCredential> ProviderCredentials { get; set; }
-    public virtual DbSet<ProviderSession> ProviderSessions { get; set; }
-    public virtual DbSet<ProviderOperation> ProviderOperations { get; set; }
-    public virtual DbSet<EImzoChallenge> EImzoChallenges { get; set; }
     public virtual DbSet<NotificationType> NotificationTypes { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<NotificationRead> NotificationReads { get; set; }
@@ -156,116 +145,6 @@ public partial class AppDbContext : DbContext
             .Property<uint>("xmin")
             .HasColumnName("xmin")
             .IsRowVersion();
-
-        modelBuilder.Entity<ProviderCredential>(entity =>
-        {
-            // Enums are persisted as their names to match the SQL check constraints
-            // (int_provider_credential_provider_check / _kind_check / _status_check).
-            entity.Property(x => x.Provider)
-                .HasConversion<string>()
-                .HasMaxLength(32);
-
-            entity.Property(x => x.CredentialKind)
-                .HasConversion<string>()
-                .HasMaxLength(32);
-
-            entity.Property(x => x.Status)
-                .HasConversion<string>()
-                .HasMaxLength(16);
-
-            // PostgreSQL system column "xmin" gives optimistic concurrency with no schema change.
-            entity.Property<uint>("xmin")
-                .HasColumnName("xmin")
-                .IsRowVersion();
-
-            // FKs mirror the SQL script: restrict on delete (no cascade in the DB script).
-            entity.HasOne(x => x.Organization)
-                .WithMany()
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_provider_credential_organization_id_fkey");
-
-            entity.HasOne(x => x.CreatedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_provider_credential_created_by_user_id_fkey");
-        });
-
-        modelBuilder.Entity<ProviderSession>(entity =>
-        {
-            // Enums persisted as names to match int_provider_session_provider_check / _status_check.
-            entity.Property(x => x.Provider)
-                .HasConversion<string>()
-                .HasMaxLength(32);
-
-            entity.Property(x => x.Status)
-                .HasConversion<string>()
-                .HasMaxLength(16);
-
-            // PostgreSQL system column "xmin" gives optimistic concurrency with no schema change.
-            entity.Property<uint>("xmin")
-                .HasColumnName("xmin")
-                .IsRowVersion();
-
-            // FKs mirror the SQL script: restrict on delete (no cascade in the DB script).
-            entity.HasOne(x => x.Credential)
-                .WithMany()
-                .HasForeignKey(x => x.ProviderCredentialId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_provider_session_provider_credential_id_fkey");
-
-            entity.HasOne(x => x.Organization)
-                .WithMany()
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_provider_session_organization_id_fkey");
-        });
-
-        modelBuilder.Entity<ProviderOperation>(entity =>
-        {
-            // Enums persisted as names to match int_provider_operation_provider_check / _state_check.
-            entity.Property(x => x.Provider)
-                .HasConversion<string>()
-                .HasMaxLength(32);
-
-            entity.Property(x => x.State)
-                .HasConversion<string>()
-                .HasMaxLength(20);
-
-            // PostgreSQL system column "xmin" gives optimistic concurrency with no schema change.
-            entity.Property<uint>("xmin")
-                .HasColumnName("xmin")
-                .IsRowVersion();
-
-            // FK mirrors the SQL script: restrict on delete (no cascade in the DB script).
-            entity.HasOne(x => x.Organization)
-                .WithMany()
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_provider_operation_organization_id_fkey");
-        });
-
-        modelBuilder.Entity<EImzoChallenge>(entity =>
-        {
-            entity.Property(x => x.Provider)
-                .HasConversion<string>()
-                .HasMaxLength(32);
-
-            entity.Property(x => x.State)
-                .HasConversion<string>()
-                .HasMaxLength(16);
-
-            entity.Property<uint>("xmin")
-                .HasColumnName("xmin")
-                .IsRowVersion();
-
-            entity.HasOne(x => x.Organization)
-                .WithMany()
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("int_eimzo_challenge_organization_id_fkey");
-        });
 
         // Optimistic concurrency for mutable Accounting Core entities via PostgreSQL's
         // system "xmin" column (same pattern as ProductTable — no schema change required).
@@ -493,121 +372,6 @@ public partial class AppDbContext : DbContext
                 .WithMany(x => x.SaleConditions)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_condition_vat_rate_id_fkey");
-        });
-
-        modelBuilder.Entity<DidoxMxikCatalog>(entity =>
-        {
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_mxik_catalog_state_id_fkey");
-        });
-
-        modelBuilder.Entity<DidoxOrigin>(entity =>
-        {
-            entity.HasKey(x => x.Code).HasName("cmn_didox_origin_pkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_didox_origin_state_id_fkey");
-        });
-
-        modelBuilder.Entity<DidoxVatRegStatus>(entity =>
-        {
-            entity.HasKey(x => x.Code).HasName("cmn_didox_vat_reg_status_pkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_didox_vat_reg_status_state_id_fkey");
-        });
-
-        modelBuilder.Entity<UnitDidoxPackage>(entity =>
-        {
-            entity.HasOne(x => x.Unit)
-                .WithMany(x => x.DidoxPackages)
-                .HasForeignKey(x => x.UnitId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_unit_didox_package_unit_id_fkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_unit_didox_package_state_id_fkey");
-        });
-
-        modelBuilder.Entity<CounterpartyDidoxProfile>(entity =>
-        {
-            entity.HasOne(x => x.Counterparty)
-                .WithMany(x => x.DidoxProfiles)
-                .HasForeignKey(x => x.CounterpartyId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_didox_profile_counterparty_id_fkey");
-            entity.HasOne(x => x.Organization)
-                .WithMany(x => x.CounterpartyDidoxProfiles)
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_didox_profile_organization_id_fkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_didox_profile_state_id_fkey");
-            entity.HasOne(x => x.VatRegStatus)
-                .WithMany()
-                .HasForeignKey(x => x.VatRegStatusCode)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_didox_profile_vat_reg_status_code_fkey");
-        });
-
-        modelBuilder.Entity<ProductDidoxProfile>(entity =>
-        {
-            entity.HasOne(x => x.DefaultOrigin)
-                .WithMany()
-                .HasForeignKey(x => x.DefaultOriginCode)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_didox_profile_default_origin_code_fkey");
-            entity.HasOne(x => x.Organization)
-                .WithMany(x => x.ProductDidoxProfiles)
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_didox_profile_organization_id_fkey");
-            entity.HasOne(x => x.Product)
-                .WithMany(x => x.DidoxProfiles)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_didox_profile_product_id_fkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_didox_profile_state_id_fkey");
-        });
-
-        modelBuilder.Entity<ProductTableDidoxOrigin>(entity =>
-        {
-            entity.HasOne(x => x.Organization)
-                .WithMany(x => x.ProductTableDidoxOrigins)
-                .HasForeignKey(x => x.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_didox_origin_organization_id_fkey");
-            entity.HasOne(x => x.Origin)
-                .WithMany()
-                .HasForeignKey(x => x.OriginCode)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_didox_origin_origin_code_fkey");
-            entity.HasOne(x => x.ProductTable)
-                .WithOne(x => x.DidoxOrigin)
-                .HasForeignKey<ProductTableDidoxOrigin>(x => x.ProductTableId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_didox_origin_product_table_id_fkey");
-            entity.HasOne(x => x.State)
-                .WithMany()
-                .HasForeignKey(x => x.StateId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_didox_origin_state_id_fkey");
         });
 
         ConfigureIdentityPrimaryKeys(modelBuilder);

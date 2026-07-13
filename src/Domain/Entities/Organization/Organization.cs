@@ -100,9 +100,6 @@ public partial class Organization
     [InverseProperty("Organization")]
     public virtual ICollection<CounterpartyCard> CounterpartyCards { get; set; } = new List<CounterpartyCard>();
 
-    [InverseProperty(nameof(CounterpartyDidoxProfile.Organization))]
-    public virtual ICollection<CounterpartyDidoxProfile> CounterpartyDidoxProfiles { get; set; } = new List<CounterpartyDidoxProfile>();
-
     [InverseProperty("Organization")]
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
 
@@ -128,12 +125,6 @@ public partial class Organization
 
     [InverseProperty("Organization")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
-
-    [InverseProperty(nameof(ProductDidoxProfile.Organization))]
-    public virtual ICollection<ProductDidoxProfile> ProductDidoxProfiles { get; set; } = new List<ProductDidoxProfile>();
-
-    [InverseProperty(nameof(ProductTableDidoxOrigin.Organization))]
-    public virtual ICollection<ProductTableDidoxOrigin> ProductTableDidoxOrigins { get; set; } = new List<ProductTableDidoxOrigin>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();

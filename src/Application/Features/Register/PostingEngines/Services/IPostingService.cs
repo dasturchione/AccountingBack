@@ -1,9 +1,10 @@
 ﻿using Domain.Entities;
+using SharedKernel.Results;
 
 namespace Application.Features.Register.PostingEngines
 {
     public interface IPostingService
     {
-        Task<List<AccountingRegisterEntry>> BuildEntriesAsync(List<PostingContext> contexts);
+        Task<Result<List<AccountingRegisterEntry>>> BuildEntriesAsync(List<PostingContext> contexts);
     }
 }

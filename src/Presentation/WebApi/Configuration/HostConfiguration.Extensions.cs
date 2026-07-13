@@ -78,7 +78,7 @@ namespace WebApi.Configuration
                 {
                     options.Filters.AddService<FluentValidationFilter>(order: -3000);
                 })
-                .AddJsonOptions(options => 
+                .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -166,7 +166,7 @@ namespace WebApi.Configuration
             builder.AddDataProtectionKeys(builder.Environment);
 
             builder.Services.AddInfrastructure(builder.Configuration);
-            
+
             return builder;
         }
 
@@ -239,7 +239,7 @@ namespace WebApi.Configuration
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
             {
-                Log.Warning("Could not initialize file system DataProtection key persistence. Key persistence will fall back to system defaults. ExceptionType={ExceptionType}", ex.GetType().Name);
+                Log.Warning(ex, "Could not initialize file system DataProtection key persistence. Key persistence will fall back to system defaults.");
             }
 
             return builder;
@@ -247,35 +247,15 @@ namespace WebApi.Configuration
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
         {
-            var configuredOrigins = builder.Configuration
-                .GetSection("Cors:AllowedOrigins")
-                .Get<string[]>() ?? [];
-            var origins = configuredOrigins
-                .Where(origin => !string.IsNullOrWhiteSpace(origin))
-                .Select(origin => origin.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (origins.Any(origin => origin == "*"))
-                throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
-
-            if (!builder.Environment.IsDevelopment()
-                && !builder.Environment.IsEnvironment("Testing")
-                && origins.Length == 0)
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
-
-            builder.Services.AddCors(options =>
             {
-                foreach (var origin in origins)
+                builder.Services.AddCors(options =>
                 {
                     options.AddPolicy("ApiCors", policy =>
                     {
-                        // Development/test-only fallback. It intentionally does not enable credentials.
                         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                        return;
-                    });
-                }
-            });
+                    }
+                });
+            }
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
@@ -357,9 +337,11 @@ namespace WebApi.Configuration
                 var builder = new NpgsqlConnectionStringBuilder(connectionString);
                 return builder.ConnectionString;
             }
-            catch (ArgumentException)
+            catch (ArgumentException ex)
             {
-                throw new InvalidOperationException("ConnectionStrings:Default is malformed.");
+                throw new InvalidOperationException(
+                    "ConnectionStrings:Default is malformed. If the password contains ';' or '=', wrap the password value in double quotes.",
+                    ex);
             }
         }
 
@@ -416,6 +398,27 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(backupPassword))
                 throw new InvalidOperationException("BackupJob:Database:Password is not configured with a real secret value.");
 
+            var aslBelgiServerBaseUrl = configuration["AslBelgi:ServerBaseUrl"];
+            var aslBelgiAuthPath = configuration["AslBelgi:AuthenticatePath"];
+            var aslBelgiRefreshPath = configuration["AslBelgi:RefreshPath"];
+
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            {
+                if (IsPlaceholderValue(aslBelgiServerBaseUrl))
+                    throw new InvalidOperationException("AslBelgi:ServerBaseUrl is not configured with a real value.");
+
+                if (string.IsNullOrWhiteSpace(aslBelgiAuthPath))
+                    throw new InvalidOperationException("AslBelgi:AuthenticatePath is required in production.");
+
+                if (string.IsNullOrWhiteSpace(aslBelgiRefreshPath))
+                    throw new InvalidOperationException("AslBelgi:RefreshPath is required in production.");
+            }
+            else
+            {
+                if (IsPlaceholderValue(aslBelgiServerBaseUrl) || IsPlaceholderValue(aslBelgiAuthPath) || IsPlaceholderValue(aslBelgiRefreshPath))
+                    Log.Warning("AslBelgi development config still uses placeholder values. Set real values or override via environment variables before production.");
+            }
+
             var fakturaClientSecret = configuration["FakturaAuthSettings:ClientSecret"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaClientSecret))
                 throw new InvalidOperationException("FakturaAuthSettings:ClientSecret is not configured with a real secret value.");
@@ -432,9 +435,17 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailUsername))
                 throw new InvalidOperationException("Email:Username is not configured with a real value.");
 
+            var eImzoCertificatePassword = configuration["EImzo:CertificatePassword"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(eImzoCertificatePassword))
+                throw new InvalidOperationException("EImzo:CertificatePassword is not configured with a real secret value.");
+
             var emailPassword = configuration["Email:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))
                 throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
+
+            var didoxPartnerToken = configuration["TaxIntegration:Didox:PartnerToken"];
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
+                throw new InvalidOperationException("TaxIntegration:Didox:PartnerToken is not configured with a real secret value.");
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
@@ -456,11 +467,18 @@ namespace WebApi.Configuration
             "BackupJob:Database:Password",
             "FakturaAuthSettings:ClientSecret",
             "FakturaAuthSettings:Password",
-            "Email:Password"
+            "Email:Password",
+            "EImzo:CertificatePassword",
+            "EImzo:CertificatePath",
+            "TaxIntegration:Didox:PartnerToken"
         ];
 
         private static readonly string[] ForbiddenGlobalProviderSecretKeys =
-        [];
+        [
+            "AslBelgi:Login",
+            "AslBelgi:Password",
+            "AslBelgi:ApiKey"
+        ];
 
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
         {
@@ -510,10 +528,6 @@ namespace WebApi.Configuration
                     continue;
 
                 var providerName = provider.GetType().FullName ?? provider.GetType().Name;
-                if (providerName.Contains("JsonConfigurationProvider", StringComparison.OrdinalIgnoreCase)
-                    && provider.ToString()?.Contains("appsettings.Production.json", StringComparison.OrdinalIgnoreCase) == true)
-                    return true;
-
                 return providerName.Contains("EnvironmentVariables", StringComparison.OrdinalIgnoreCase)
                     || providerName.Contains("UserSecrets", StringComparison.OrdinalIgnoreCase)
                     || providerName.Contains("KeyVault", StringComparison.OrdinalIgnoreCase)

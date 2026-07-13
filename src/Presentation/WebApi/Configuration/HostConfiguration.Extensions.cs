@@ -259,11 +259,6 @@ namespace WebApi.Configuration
             if (origins.Any(origin => origin == "*"))
                 throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
 
-            if (!builder.Environment.IsDevelopment()
-                && !builder.Environment.IsEnvironment("Testing")
-                && origins.Length == 0)
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
-
             foreach (var origin in origins)
             {
                 if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
@@ -280,7 +275,7 @@ namespace WebApi.Configuration
             {
                 if (origins.Length == 0)
                 {
-                    // Development/test-only fallback. It intentionally does not enable credentials.
+                    // Fallback for deployments without configured origins. It intentionally does not enable credentials.
                     policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                     return;
                 }

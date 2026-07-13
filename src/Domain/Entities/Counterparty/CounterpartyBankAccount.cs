@@ -1,15 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("counterparty_bank_account")]
-[Index("BankId", Name = "idx_counterparty_bank_account_bank_id")]
-[Index("CounterpartyId", Name = "idx_counterparty_bank_account_counterparty_id")]
-[Index("CurrencyId", Name = "idx_counterparty_bank_account_currency_id")]
-[Index("OrganizationId", Name = "idx_counterparty_bank_account_organization_id")]
-[Index("StateId", Name = "idx_counterparty_bank_account_state_id")]
 public partial class CounterpartyBankAccount
 {
     [Key]
@@ -63,7 +57,4 @@ public partial class CounterpartyBankAccount
 
     [InverseProperty(nameof(BankOperation.CounterpartyBankAccount))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
-
-    [InverseProperty(nameof(CounterpartyAccountPaymentPurposeHint.CounterpartyBankAccount))]
-    public virtual ICollection<CounterpartyAccountPaymentPurposeHint> CounterpartyAccountPaymentPurposeHints { get; set; } = new List<CounterpartyAccountPaymentPurposeHint>();
 }

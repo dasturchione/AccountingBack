@@ -9,11 +9,13 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("sale_doc")]
 [Index("CancelledByUserId", Name = "idx_sale_doc_cancelled_by_user_id")]
 [Index("CounterpartyId", Name = "idx_sale_doc_counterparty_id")]
+[Index("CustomerAccountId", Name = "idx_sale_doc_customer_account_id")]
 [Index("DocDate", Name = "idx_sale_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_sale_doc_organization_id")]
 [Index("PostedByUserId", Name = "idx_sale_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_sale_doc_state_id")]
 [Index("StatusId", Name = "idx_sale_doc_status_id")]
+[Index("VatAccountId", Name = "idx_sale_doc_vat_account_id")]
 [Index("WarehouseId", Name = "idx_sale_doc_warehouse_id")]
 public partial class SaleDoc
 {
@@ -84,6 +86,12 @@ public partial class SaleDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("customer_account_id")]
+    public int? CustomerAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
     [ForeignKey("ContractId")]
     [InverseProperty("SaleDocs")]
     public virtual CmnContract? Contract { get; set; }
@@ -95,6 +103,10 @@ public partial class SaleDoc
     [ForeignKey("CurrencyId")]
     [InverseProperty("SaleDocs")]
     public virtual CmnCurrency Currency { get; set; } = null!;
+
+    [ForeignKey("CustomerAccountId")]
+    [InverseProperty("SaleDocCustomerAccounts")]
+    public virtual AccChartAccount? CustomerAccount { get; set; }
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("SaleDocs")]
@@ -110,6 +122,10 @@ public partial class SaleDoc
     [ForeignKey("StatusId")]
     [InverseProperty("SaleDocs")]
     public virtual CmnDocumentStatus Status { get; set; } = null!;
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty("SaleDocVatAccounts")]
+    public virtual AccChartAccount? VatAccount { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("SaleDocs")]

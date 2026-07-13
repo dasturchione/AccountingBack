@@ -18,17 +18,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ChartAccountPresetTranslation> ChartAccountPresetTranslations { get; set; }
     public virtual DbSet<AccountingPolicy> AccountingPolicies { get; set; }
     public virtual DbSet<AccountingPeriod> AccountingPeriods { get; set; }
-    public virtual DbSet<PaymentPurpose> PaymentPurposes { get; set; }
-    public virtual DbSet<PaymentPurposeTranslation> PaymentPurposeTranslations { get; set; }
-    public virtual DbSet<PostingAlias> PostingAliases { get; set; }
-    public virtual DbSet<PostingAliasTranslation> PostingAliasTranslations { get; set; }
     public virtual DbSet<PostingBatch> PostingBatches { get; set; }
-    public virtual DbSet<PostingRule> PostingRules { get; set; }
-    public virtual DbSet<PostingRuleLine> PostingRuleLines { get; set; }
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
-    public virtual DbSet<BankOperationLine> BankOperationLines { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
     public virtual DbSet<CashOperation> CashOperations { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
@@ -646,3 +639,4 @@ public partial class AppDbContext : DbContext
         }
     }
 }
+

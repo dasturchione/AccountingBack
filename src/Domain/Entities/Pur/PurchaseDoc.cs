@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pur_doc")]
-[Index("ContractId", Name = "idx_pur_doc_contract_id")]
-[Index("CounterpartyId", Name = "idx_pur_doc_counterparty_id")]
-[Index("DocDate", Name = "idx_pur_doc_doc_date")]
-[Index("OrganizationId", Name = "idx_pur_doc_organization_id")]
-[Index("StateId", Name = "idx_pur_doc_state_id")]
-[Index("StatusId", Name = "idx_pur_doc_status_id")]
-[Index("WarehouseId", Name = "idx_pur_doc_warehouse_id")]
-[Index("CancelledByUserId", Name = "idx_pur_doc_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_pur_doc_posted_by_user_id")]
 public partial class PurchaseDoc
 {
     [Key]
@@ -67,7 +58,6 @@ public partial class PurchaseDoc
     [Column("contract_id")]
     public long? ContractId { get; set; }
 
-
     [Column("exchange_rate")]
     [Precision(18, 6)]
     public decimal ExchangeRate { get; set; }
@@ -81,8 +71,12 @@ public partial class PurchaseDoc
     [Column("cancelled_at", TypeName = "timestamp without time zone")]
     public DateTime? CancelledAt { get; set; }
 
+    [Column("supplier_account_id")]
+    public int? SupplierAccountId { get; set; }
+
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+    
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]
     public virtual Contract? Contract { get; set; }
@@ -105,6 +99,10 @@ public partial class PurchaseDoc
     [ForeignKey("StateId")]
     [InverseProperty("PurDocs")]
     public virtual State State { get; set; } = null!;
+
+    [ForeignKey("SupplierAccountId")]
+    [InverseProperty(nameof(ChartAccount.PurchaseDocSupplierAccounts))]
+    public virtual ChartAccount? SupplierAccount { get; set; }
 
     [ForeignKey("StatusId")]
     [InverseProperty("PurchaseDocs")]

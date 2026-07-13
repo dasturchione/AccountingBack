@@ -60,6 +60,9 @@ public partial class AccChartAccountPresetAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("is_group")]
+    public bool IsGroup { get; set; }
+
     [ForeignKey("PresetId, ParentPresetAccountId")]
     [InverseProperty("InverseAccChartAccountPresetAccountNavigation")]
     public virtual AccChartAccountPresetAccount? AccChartAccountPresetAccountNavigation { get; set; }

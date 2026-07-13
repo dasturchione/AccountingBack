@@ -5,14 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("sale_doc")]
-[Index("CounterpartyId", Name = "idx_sale_doc_counterparty_id")]
-[Index("DocDate", Name = "idx_sale_doc_doc_date")]
-[Index("OrganizationId", Name = "idx_sale_doc_organization_id")]
-[Index("StateId", Name = "idx_sale_doc_state_id")]
-[Index("StatusId", Name = "idx_sale_doc_status_id")]
-[Index("WarehouseId", Name = "idx_sale_doc_warehouse_id")]
-[Index("CancelledByUserId", Name = "idx_sale_doc_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_sale_doc_posted_by_user_id")]
 public partial class SaleDoc
 {
     [Key]
@@ -50,6 +42,12 @@ public partial class SaleDoc
     [Precision(24, 8)]
     public decimal FinalAmount { get; set; }
 
+    [Column("customer_account_id")]
+    public int? CustomerAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
     [Column("status_id")]
     public short StatusId { get; set; }
 
@@ -65,7 +63,6 @@ public partial class SaleDoc
 
     [Column("contract_id")]
     public long? ContractId { get; set; }
-
 
     [Column("exchange_rate")]
     [Precision(18, 6)]
@@ -100,6 +97,14 @@ public partial class SaleDoc
 
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
+
+    [ForeignKey("CustomerAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocCustomerAccounts))]
+    public virtual ChartAccount? CustomerAccount { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty(nameof(ChartAccount.SaleDocVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("SaleDocs")]

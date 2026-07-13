@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("counterparty_card")]
-[Index("DistrictId", Name = "idx_counterparty_card_district_id")]
-[Index("Inn", Name = "idx_counterparty_card_inn")]
-[Index("OrganizationId", Name = "idx_counterparty_card_organization_id")]
-[Index("RegionId", Name = "idx_counterparty_card_region_id")]
-[Index("ShortName", Name = "idx_counterparty_card_short_name")]
-[Index("StateId", Name = "idx_counterparty_card_state_id")]
-[Index("CounterpartyTypeId", Name = "idx_counterparty_card_type_id")]
-[Index("Code", Name = "idx_counterparty_card_code")]
-[Index("ExternalId", Name = "idx_counterparty_card_external_id")]
 public partial class CounterpartyCard
 {
     [Key]
@@ -62,7 +53,6 @@ public partial class CounterpartyCard
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -85,9 +75,6 @@ public partial class CounterpartyCard
     public string? ExternalId { get; set; }
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
-
-    [InverseProperty("Counterparty")]
-    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();

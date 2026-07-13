@@ -15,4 +15,7 @@ public class SaleDocUpdateProductDto
     public decimal CostPrice { get; set; }
     public decimal UnitPrice { get; set; }
     public short? VatRateId { get; set; }
+    public int? InventoryAccountId { get; set; }
+    public int? IncomeAccountId { get; set; }
+    public int? CostAccountId { get; set; }
 }

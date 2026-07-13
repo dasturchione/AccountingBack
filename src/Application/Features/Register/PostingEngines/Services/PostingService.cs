@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 
@@ -8,75 +9,40 @@ namespace Application.Features.Register.PostingEngines
     public class PostingService : IPostingService
     {
         private readonly IQueryBuilder _queryBuilder;
-        private readonly IQueryRepository<PostingRule> _ruleQuery;
-        private readonly IQueryRepository<AccountResolveRule> _accountResolveRuleQuery;
         private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
-        public PostingService(IQueryBuilder queryBuilder,
-                              IQueryRepository<PostingRule> ruleQuery,
-                              IQueryRepository<AccountResolveRule> accountResolveRuleQuery,
-                              IQueryRepository<ChartAccount> chartAccountQuery)
+
+        public PostingService(
+            IQueryBuilder queryBuilder,
+            IQueryRepository<ChartAccount> chartAccountQuery)
         {
-            _ruleQuery = ruleQuery;
             _queryBuilder = queryBuilder;
-            _accountResolveRuleQuery = accountResolveRuleQuery;
             _chartAccountQuery = chartAccountQuery;
         }
 
         public async Task<List<AccountingRegisterEntry>> BuildEntriesAsync(List<PostingContext> contexts)
         {
-            var postingRuleIds = contexts.Select(s => s.RuleId);
-
-            var postingRuleQuery = _queryBuilder.For<PostingRule>().Where(x => postingRuleIds.Contains(x.Id)).Build();
-            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.DebitAlias));
-            postingRuleQuery.AddIncludes(x => x.Include(i => i.PostingRuleLines).ThenInclude(l => l.CreditAlias));
-
-            var postingRules = await _ruleQuery.GetAllAsync(postingRuleQuery);
-
-            var resolveRules = await GetResolveRulesAsync(postingRules);
-            var quantityAccountIds = await GetQuantityAccountIdsAsync(resolveRules);
-
+            var quantityAccountIds = await GetQuantityAccountIdsAsync(contexts);
+            var accountSubkontoMap = await GetAccountSubkontoMapAsync(contexts);
             var result = new List<AccountingRegisterEntry>();
 
             foreach (var context in contexts)
             {
-                var postingRule = postingRules.FirstOrDefault(f => f.Id == context.RuleId);
-                if (postingRule == null)
-                    throw new ArgumentException($"Шаблон проводки не найден в acc_posting_template.");
+                if (context.Entries.Count == 0)
+                    throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не созданы прямые строки проводок.");
 
-                var entriesCountBeforeContext = result.Count;
-
-                foreach (var line in postingRule.PostingRuleLines)
+                foreach (var line in context.Entries)
                 {
-                    if (ShouldSkipOptionalLine(context, line))
+                    if (line.Amount == 0m)
                         continue;
 
-                    if (string.IsNullOrWhiteSpace(line.AmountSource))
-                    {
-                        if (line.IsOptional)
-                            continue;
+                    if (!line.DebitAccountId.HasValue || line.DebitAccountId.Value <= 0)
+                        throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан debit_account_id.");
 
-                        throw new ArgumentException("Для шаблона не указан источник суммы.");
-                    }
+                    if (!line.CreditAccountId.HasValue || line.CreditAccountId.Value <= 0)
+                        throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан credit_account_id.");
 
-                    if (IsSkippedAmountSource(context, line.AmountSource))
-                        continue;
-
-                    if (!context.Amounts.TryGetValue(line.AmountSource, out var amount))
-                    {
-                        if (line.IsOptional)
-                            continue;
-
-                        throw new ArgumentException($"Для шаблона не передана сумма источника {line.AmountSource}.");
-                    }
-
-                    if (amount == 0m)
-                        continue;
-
-                    var debitAlias = line.DebitAlias.Code;
-                    var creditAlias = line.CreditAlias.Code;
-
-                    var debitAccountId = GetAccountId(debitAlias, context, resolveRules);
-                    var creditAccountId = GetAccountId(creditAlias, context, resolveRules);
+                    var debitAccountId = line.DebitAccountId.Value;
+                    var creditAccountId = line.CreditAccountId.Value;
 
                     var entry = new AccountingRegisterEntry
                     {
@@ -86,52 +52,32 @@ namespace Application.Features.Register.PostingEngines
                         DebitAccountId = debitAccountId,
                         CreditAccountId = creditAccountId,
                         CurrencyId = context.CurrencyId,
-                        Amount = amount,
+                        Amount = line.Amount,
                         DocDate = context.DocDate,
                         CreatedDate = DateTime.Now,
-                        DebitQuantity = quantityAccountIds.Contains(debitAccountId) ? context.DebitQuantity : null,
-                        CreditQuantity = quantityAccountIds.Contains(creditAccountId) ? context.CreditQuantity : null,
-                        Content = postingRule.Name,
+                        DebitQuantity = quantityAccountIds.Contains(debitAccountId) ? line.DebitQuantity : null,
+                        CreditQuantity = quantityAccountIds.Contains(creditAccountId) ? line.CreditQuantity : null,
+                        Content = line.Content,
                         JournalNumber = context.JournalNumber,
-                        SourceLineId = context.SourceLineId,
+                        SourceLineId = line.SourceLineId ?? context.SourceLineId,
                     };
 
-                    // Субконто: применяем те, что относятся к DT, к дебетовой стороне,
-                    // те, что к CT — к кредитовой, а без AppliesTo — к обеим сторонам.
-
-                    var ctSubkontos = GetSubkontos(creditAlias, SubkontoSideConst.CREDIT, context.Subkontos);
-                    var dtSubkontos = GetSubkontos(debitAlias, SubkontoSideConst.DEBIT, context.Subkontos);
-
-                    foreach (var subkonto in ctSubkontos)
-                    {
+                    foreach (var subkonto in GetSubkontos(creditAccountId, SubkontoSideConst.CREDIT, context.Subkontos, accountSubkontoMap))
                         entry.RegisterEntrySubkontos.Add(subkonto);
-                    }
 
-                    foreach (var subkonto in dtSubkontos)
-                    {
+                    foreach (var subkonto in GetSubkontos(debitAccountId, SubkontoSideConst.DEBIT, context.Subkontos, accountSubkontoMap))
                         entry.RegisterEntrySubkontos.Add(subkonto);
-                    }
 
                     result.Add(entry);
-                }
-
-                if (HasRequiredAliases(context) && result.Count == entriesCountBeforeContext)
-                {
-                    throw new ArgumentException(
-                        $"В шаблоне проводки не найдена строка для DebitAlias='{context.RequiredDebitAlias}' и CreditAlias='{context.RequiredCreditAlias}'.");
                 }
             }
 
             return result;
         }
 
-        private async Task<HashSet<int>> GetQuantityAccountIdsAsync(List<AccountResolveRule> resolveRules)
+        private async Task<HashSet<int>> GetQuantityAccountIdsAsync(List<PostingContext> contexts)
         {
-            var accountIds = resolveRules
-                .Select(x => x.AccountId)
-                .Distinct()
-                .ToList();
-
+            var accountIds = GetContextAccountIds(contexts);
             if (accountIds.Count == 0)
                 return [];
 
@@ -144,151 +90,122 @@ namespace Application.Features.Register.PostingEngines
             return ids.ToHashSet();
         }
 
-        private async Task<List<AccountResolveRule>> GetResolveRulesAsync(List<PostingRule> postingRules)
+        private async Task<Dictionary<int, List<AccountSubkontoConfig>>> GetAccountSubkontoMapAsync(List<PostingContext> contexts)
         {
-            var aliases = postingRules
-                            .SelectMany(t => t.PostingRuleLines.Select(l => l.CreditAlias.Code))
-                            .Concat(postingRules.SelectMany(t => t.PostingRuleLines.Select(l => l.DebitAlias.Code)))
-                            .Distinct()
-                            .ToList();
+            var accountIds = GetContextAccountIds(contexts);
+            if (accountIds.Count == 0)
+                return new Dictionary<int, List<AccountSubkontoConfig>>();
 
-            var query = _queryBuilder.For<AccountResolveRule>().Where(x => aliases.Contains(x.Alias)).Build();
-            var rules = await _accountResolveRuleQuery.GetAllAsync(query);
+            var query = _queryBuilder.For<ChartAccount>()
+                .Where(x => accountIds.Contains(x.Id))
+                .Build();
+            query.AddIncludes(x => x.Include(i => i.ChartAccountSubkontos));
 
-            return rules;
+            var accounts = await _chartAccountQuery.GetAllAsync(query);
+
+            return accounts.ToDictionary(
+                account => account.Id,
+                account => account.ChartAccountSubkontos
+                    .Where(subkonto => subkonto.StateId == StateIdConst.ACTIVE)
+                    .OrderBy(subkonto => subkonto.SortOrder)
+                    .Select(subkonto => new AccountSubkontoConfig(
+                        subkonto.SubkontoTypeId,
+                        subkonto.SortOrder,
+                        subkonto.IsRequired))
+                    .ToList());
         }
 
-        private int GetAccountId(string alias, PostingContext context, List<AccountResolveRule> rules)
-        {
-            var rule = GetRule(alias, context, rules);
-            return rule.AccountId;
-        }
+        private static List<int> GetContextAccountIds(List<PostingContext> contexts) =>
+            contexts
+                .SelectMany(context => context.Entries)
+                .SelectMany(entry => new[] { entry.DebitAccountId, entry.CreditAccountId })
+                .Where(accountId => accountId.HasValue && accountId.Value > 0)
+                .Select(accountId => accountId!.Value)
+                .Distinct()
+                .ToList();
 
-        private AccountResolveRule GetRule(string alias, PostingContext context, List<AccountResolveRule> rules)
+        private static List<RegisterEntrySubkonto> GetSubkontos(
+            int accountId,
+            string side,
+            List<SubkontoValue> subkontos,
+            Dictionary<int, List<AccountSubkontoConfig>> accountSubkontoMap)
         {
-            var dimensionValue = alias switch
+            if (!accountSubkontoMap.TryGetValue(accountId, out var requiredSubkontos) || requiredSubkontos.Count == 0)
+                return [];
+
+            var availableSubkontos = subkontos
+                .Where(subkonto => !subkonto.AppliesToAccountId.HasValue || subkonto.AppliesToAccountId.Value == accountId)
+                .ToList();
+
+            var result = new List<RegisterEntrySubkonto>();
+
+            foreach (var requiredSubkonto in requiredSubkontos)
             {
-                AliasConst.Inventory or AliasConst.CostOfGoods or AliasConst.SalesRevenue =>
-                    context.ProductCategory ?? RegisterDefaultsConst.DefaultDimensionValue,
-                AliasConst.Expense or AliasConst.CostOfService or AliasConst.ServiceRevenue =>
-                    context.ServiceType ?? RegisterDefaultsConst.DefaultDimensionValue,
-                AliasConst.AssetWriteOff => context.AssetType ?? RegisterDefaultsConst.DefaultDimensionValue,
-                AliasConst.PaymentAccount => context.PaymentMethod ?? RegisterDefaultsConst.DefaultDimensionValue,
-                AliasConst.VATIn => context.VatKind ?? RegisterDefaultsConst.DefaultDimensionValue,
-                _ => RegisterDefaultsConst.DefaultDimensionValue
-            };
+                var value = FindSubkontoValue(requiredSubkonto.SubkontoTypeId, availableSubkontos);
 
-            var aliasRules = rules.Where(x => x.Alias == alias).ToList();
+                if (value == null)
+                {
+                    if (requiredSubkonto.IsRequired)
+                    {
+                        throw new ArgumentException(
+                            $"Для счёта {accountId} не передано обязательное субконто типа {requiredSubkonto.SubkontoTypeId}.");
+                    }
 
-            // Policy-aware resolution: prefer rules configured for the document's accounting
-            // policy; if none exist for that policy, fall back to any rule for the alias
-            // (backward compatible with data that predates policy-scoped resolve rules).
-            var policyRules = aliasRules.Where(x => x.PolicyId == context.AccountingPolicyId).ToList();
-            var datas = policyRules.Count > 0 ? policyRules : aliasRules;
+                    continue;
+                }
 
-            if (datas.Count == 0)
-                throw new ArgumentException(
-                    $"Для alias '{alias}' не найдено правило разрешения счёта (acc_account_resolve_rule).");
-
-            if (datas.Any(a => a.DimensionValue == dimensionValue))
-                return datas.First(f => f.DimensionValue == dimensionValue);
-
-            return datas.FirstOrDefault(f => f.DimensionValue == RegisterDefaultsConst.DefaultDimensionValue)
-                ?? datas.OrderBy(o => o.Priority).First();
-        }
-
-        private List<RegisterEntrySubkonto> GetSubkontos(string alias, string side, List<SubkontoValue> subkontos)
-        {
-            var items = GetSubkontoValues(alias, subkontos);
-
-            var result = items.Select(s => new RegisterEntrySubkonto()
-            {
-                EntityId = s.EntityId,
-                DisplayValue = s.DisplayValue,
-                Side = side,
-                SortOrder = s.SortOrder,
-                SubkontoTypeId = s.SubkontoTypeId,
-                CreatedDate = DateTime.Now
-            }).ToList();
+                result.Add(new RegisterEntrySubkonto
+                {
+                    EntityId = value.EntityId,
+                    DisplayValue = value.DisplayValue,
+                    Side = side,
+                    SortOrder = requiredSubkonto.SortOrder,
+                    SubkontoTypeId = requiredSubkonto.SubkontoTypeId,
+                    CreatedDate = DateTime.Now
+                });
+            }
 
             return result;
         }
 
-        private List<SubkontoValue> GetSubkontoValues(string alias, List<SubkontoValue> subkontos)
+        private static SubkontoValue? FindSubkontoValue(short requiredSubkontoTypeId, List<SubkontoValue> subkontos)
         {
-            var result = new List<SubkontoValue>();
+            var exactValue = subkontos
+                .Where(subkonto => subkonto.SubkontoTypeId == requiredSubkontoTypeId)
+                .OrderBy(subkonto => subkonto.SortOrder)
+                .FirstOrDefault();
 
-            switch (alias)
+            if (exactValue is not null)
+                return exactValue;
+
+            foreach (var fallbackTypeId in GetFallbackSubkontoTypeIds(requiredSubkontoTypeId))
             {
-                case AliasConst.VATIn:
-                case AliasConst.VATOut:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.Batches ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.SalesDocumentsTurnover ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
-                             .ToList();
-                    break;
+                var fallbackValue = subkontos
+                    .Where(subkonto => subkonto.SubkontoTypeId == fallbackTypeId)
+                    .OrderBy(subkonto => subkonto.SortOrder)
+                    .FirstOrDefault();
 
-                case AliasConst.Supplier:
-                case AliasConst.Customer:
-                case AliasConst.SupplierAdvance:
-                case AliasConst.CustomerAdvance:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.Contracts ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.Counterparties)
-                             .ToList();
-                    break;
+                if (fallbackValue is not null)
+                    return fallbackValue;
+            }
 
-                case AliasConst.Inventory:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.InventoryItems ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.Warehouses ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.Batches ||
-                                         x.SubkontoTypeId == SubkontoTypeIdConst.SalesDocumentsTurnover)
-                             .ToList();
-                    break;
-                case AliasConst.CashBoxSource:
-                case AliasConst.CashBoxDestination:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
-                             .ToList();
-                    break;
-                case AliasConst.PaymentAccount:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.BankAccounts ||
-                                                  x.SubkontoTypeId == SubkontoTypeIdConst.OrganizationCashDesks)
-                             .ToList();
-                    break;
+            return null;
+        }
 
-                case AliasConst.FixedAsset:
-                case AliasConst.FixedAssetInProgress:
-                case AliasConst.FixedAssetDepreciation:
-                    result = subkontos.Where(x => x.SubkontoTypeId == SubkontoTypeIdConst.FixedAssets)
-                             .ToList();
-                    break;
+        private static short[] GetFallbackSubkontoTypeIds(short requiredSubkontoTypeId) =>
+            requiredSubkontoTypeId switch
+            {
+                SubkontoTypeIdConst.CounterpartiesTurnover => [SubkontoTypeIdConst.Counterparties],
+                SubkontoTypeIdConst.InventoryItemsTurnover => [SubkontoTypeIdConst.InventoryItems],
+                SubkontoTypeIdConst.ProductsTurnover => [SubkontoTypeIdConst.InventoryItems],
+                SubkontoTypeIdConst.BatchesTurnover => [SubkontoTypeIdConst.Batches],
+                SubkontoTypeIdConst.ProductGroupsTurnover => [SubkontoTypeIdConst.ProductGroups],
+                SubkontoTypeIdConst.VatRatesTurnover => [SubkontoTypeIdConst.VatRates],
+                SubkontoTypeIdConst.FixedAssetsTurnover => [SubkontoTypeIdConst.FixedAssets],
+                SubkontoTypeIdConst.ReceivedInvoicesTurnover => [SubkontoTypeIdConst.CounterpartySettlementDocuments],
+                _ => []
             };
 
-            return result;
-        }
-
-        private static bool ShouldSkipOptionalLine(PostingContext context, PostingRuleLine line)
-        {
-            if (!line.IsOptional || context.AllowedAliases.Length == 0)
-                return false;
-
-            if (string.Equals(line.DebitAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
-                return !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
-
-            if (string.Equals(line.CreditAlias.Code, AliasConst.PaymentAccount, StringComparison.OrdinalIgnoreCase))
-                return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase);
-
-            return !context.AllowedAliases.Contains(line.DebitAlias.Code, StringComparer.OrdinalIgnoreCase) &&
-                   !context.AllowedAliases.Contains(line.CreditAlias.Code, StringComparer.OrdinalIgnoreCase);
-        }
-
-        private static bool IsSkippedAmountSource(PostingContext context, string amountSource)
-        {
-            return context.SkippedAmountSources is { Length: > 0 } &&
-                   context.SkippedAmountSources.Any(source => string.Equals(source, amountSource, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static bool HasRequiredAliases(PostingContext context) =>
-            !string.IsNullOrWhiteSpace(context.RequiredDebitAlias) ||
-            !string.IsNullOrWhiteSpace(context.RequiredCreditAlias);
+        private sealed record AccountSubkontoConfig(short SubkontoTypeId, int SortOrder, bool IsRequired);
     }
 }

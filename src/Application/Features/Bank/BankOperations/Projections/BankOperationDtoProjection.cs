@@ -24,8 +24,12 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             OperationTypeName = x.OperationType.Name,
             PaymentTypeId = x.PaymentTypeId,
             PaymentTypeName = x.PaymentType != null ? x.PaymentType.Name : null,
-            PaymentPurposeId = x.PaymentPurposeId,
-            PaymentPurposeName = x.PaymentPurpose.Name,
+            BankChartAccountId = x.BankChartAccountId,
+            BankChartAccountNumber = x.BankChartAccount == null ? null : x.BankChartAccount.Number,
+            BankChartAccountName = x.BankChartAccount == null ? null : x.BankChartAccount.Name,
+            OffsetAccountId = x.OffsetAccountId,
+            OffsetAccountNumber = x.OffsetAccount == null ? null : x.OffsetAccount.Number,
+            OffsetAccountName = x.OffsetAccount == null ? null : x.OffsetAccount.Name,
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty != null ? x.Counterparty.ShortName : null,
             CounterpartyInn = x.Counterparty != null ? x.Counterparty.Inn : null,
@@ -48,17 +52,6 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,
             ContractId = x.ContractId,
-            ContractNumber = x.Contract != null ? x.Contract.ContractNumber : null,
-            Lines = x.BankOperationLines.Select(s => new BankOperationLineDto
-            {
-                Id = s.Id,
-                Amount = s.Amount,
-                Comment = s.Comment,
-                CounterpartyId = s.CounterpartyId,
-                OrderNumber = s.OrderNumber,
-                PaymentPurposeId = s.PaymentPurposeId,
-                PaymentPurposeName = s.PaymentPurpose.Name,
-                PaymentPurposeCode = s.PaymentPurpose.Code,
-            }).ToList()
+            ContractNumber = x.Contract != null ? x.Contract.ContractNumber : null
         };
 }

@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -22,17 +22,12 @@ public class FaDepreciationRunContextBuilder : IPostingContextBuilder<FaDeprecia
             OrganizationId = document.OrganizationId,
             DocumentTypeId = DocumentTypeIdConst.FADEPRECIATION,
             AccountingPolicyId = accountingPolicyId,
-            RuleId = PostingRuleIdConst.FA_DEPRECIATION,
             DocumentId = document.Id,
             DocDate = document.PeriodMonth,
             CurrencyId = CurrencyIdConst.UZS,
             JournalNumber = document.DocNumber,
             SourceLineId = line.Id,
             FixedAssetId = (int)line.FaAssetId,
-            Amounts = new Dictionary<string, decimal>
-            {
-                [AmountSourceConst.Base] = line.Amount
-            },
             Subkontos = new List<SubkontoValue>
             {
                 new()
@@ -46,3 +41,4 @@ public class FaDepreciationRunContextBuilder : IPostingContextBuilder<FaDeprecia
         }).ToList();
     }
 }
+

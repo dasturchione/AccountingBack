@@ -8,6 +8,8 @@ public class SaleDocCreateDto
     public short CurrencyId { get; set; }
     public decimal ExchangeRate { get; set; } = 1m;
     public long? ContractId { get; set; }
+    public int? CustomerAccountId { get; set; }
+    public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
     public List<SaleDocCreateProductDto> Lines { get; set; } = new();
 }
@@ -20,4 +22,7 @@ public class SaleDocCreateProductDto
     public short UnitId { get; set; }
     public decimal UnitPrice { get; set; }
     public short? VatRateId { get; set; }
+    public int? InventoryAccountId { get; set; }
+    public int? IncomeAccountId { get; set; }
+    public int? CostAccountId { get; set; }
 }

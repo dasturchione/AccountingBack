@@ -15,6 +15,9 @@ public class PurchaseDocListDto
     public decimal TotalAmount { get; set; }
     public decimal FinalAmount { get; set; }
     public decimal ExchangeRate { get; set; }
+    public int? SupplierAccountId { get; set; }
+    public string? SupplierAccountNumber { get; set; }
+    public string? SupplierAccountName { get; set; }
     public DateTime? PostedAt { get; set; }
     public int? PostedByUserId { get; set; }
     public DateTime? CancelledAt { get; set; }

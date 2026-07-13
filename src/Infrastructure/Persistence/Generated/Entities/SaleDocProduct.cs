@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("sale_doc_product")]
+[Index("CostAccountId", Name = "idx_sale_doc_product_cost_account_id")]
+[Index("IncomeAccountId", Name = "idx_sale_doc_product_income_account_id")]
+[Index("InventoryAccountId", Name = "idx_sale_doc_product_inventory_account_id")]
 [Index("OwnerId", Name = "ix_sale_doc_product_owner_id")]
 [Index("ProductId", Name = "ix_sale_doc_product_product_id")]
 public partial class SaleDocProduct
@@ -50,6 +53,27 @@ public partial class SaleDocProduct
 
     [Column("unit_id")]
     public short UnitId { get; set; }
+
+    [Column("inventory_account_id")]
+    public int? InventoryAccountId { get; set; }
+
+    [Column("income_account_id")]
+    public int? IncomeAccountId { get; set; }
+
+    [Column("cost_account_id")]
+    public int? CostAccountId { get; set; }
+
+    [ForeignKey("CostAccountId")]
+    [InverseProperty("SaleDocProductCostAccounts")]
+    public virtual AccChartAccount? CostAccount { get; set; }
+
+    [ForeignKey("IncomeAccountId")]
+    [InverseProperty("SaleDocProductIncomeAccounts")]
+    public virtual AccChartAccount? IncomeAccount { get; set; }
+
+    [ForeignKey("InventoryAccountId")]
+    [InverseProperty("SaleDocProductInventoryAccounts")]
+    public virtual AccChartAccount? InventoryAccount { get; set; }
 
     [ForeignKey("OwnerId")]
     [InverseProperty("SaleDocProducts")]

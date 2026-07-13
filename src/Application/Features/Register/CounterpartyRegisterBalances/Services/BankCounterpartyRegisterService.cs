@@ -28,30 +28,7 @@ public class BankCounterpartyRegisterService : IBankCounterpartyRegisterService
         if (bankOperation.CounterpartyId is null || bankOperation.Amount <= 0m)
             return Result.Success(new List<CounterpartyRegisterBalance>());
 
-        var aliasCode = bankOperation.PaymentPurpose?.Alias?.Code;
-        if (!CounterpartySettlementOperationTypeResolver.IsCounterpartySettlementAlias(aliasCode))
-            return Result.Success(new List<CounterpartyRegisterBalance>());
-
-        var operationType = CounterpartySettlementOperationTypeResolver.Resolve(
-            aliasCode!,
-            bankOperation.OperationTypeId);
-
-        var entry = new CounterpartyRegisterBalance
-        {
-            OrganizationId = bankOperation.OrganizationId,
-            DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
-            DocumentId = bankOperation.Id,
-            CounterpartyId = bankOperation.CounterpartyId.Value,
-            OperationTypeId = operationType,
-            CurrencyId = bankOperation.CurrencyId,
-            Amount = bankOperation.Amount,
-            DocDate = bankOperation.DocDate,
-            CreatedDate = DateTime.Now,
-            PostingBatchId = postingBatchId
-        };
-
-        await _command.CreateAsync(entry, ct);
-        return Result.Success(new List<CounterpartyRegisterBalance> { entry });
+        return Result.Success(new List<CounterpartyRegisterBalance>());
     }
 
     public async Task<Result<List<CounterpartyRegisterBalance>>> ReverseAsync(BankOperation bankOperation, long postingBatchId, CancellationToken ct = default)
@@ -61,7 +38,7 @@ public class BankCounterpartyRegisterService : IBankCounterpartyRegisterService
 
         var originals = await GetOriginalEntriesAsync(bankOperation.Id, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<CounterpartyRegisterBalance>>(BankOperationErrors.MissingCounterpartyRegisterEntries(bankOperation.Id, null));
+            return Result.Success(new List<CounterpartyRegisterBalance>());
 
         var now = DateTime.Now;
         var reversals = originals.Select(entry => new CounterpartyRegisterBalance

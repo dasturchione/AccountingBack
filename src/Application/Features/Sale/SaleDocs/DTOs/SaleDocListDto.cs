@@ -16,6 +16,12 @@ public class SaleDocListDto
     public decimal TotalAmount { get; set; }
     public decimal FinalAmount { get; set; }
     public decimal ExchangeRate { get; set; }
+    public int? CustomerAccountId { get; set; }
+    public string? CustomerAccountNumber { get; set; }
+    public string? CustomerAccountName { get; set; }
+    public int? VatAccountId { get; set; }
+    public string? VatAccountNumber { get; set; }
+    public string? VatAccountName { get; set; }
     public DateTime? PostedAt { get; set; }
     public int? PostedByUserId { get; set; }
     public DateTime? CancelledAt { get; set; }

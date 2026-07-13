@@ -21,9 +21,6 @@ public partial class AccountingPolicy
     [Column("state_id")]
     public short StateId { get; set; }
 
-    [InverseProperty("Policy")]
-    public virtual ICollection<AccountResolveRule> AccountResolveRules { get; set; } = new List<AccountResolveRule>();
-
     [ForeignKey("StateId")]
     [InverseProperty("AccountingPolicies")]
     public virtual State State { get; set; } = null!;

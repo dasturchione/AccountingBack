@@ -15,15 +15,6 @@ namespace Application.Features.CashOperations;
 
 public class CashLifecycleService : BaseService, ICashLifecycleService
 {
-    private static readonly HashSet<string> SupportedPostingAliases =
-    [
-        AliasConst.Supplier,
-        AliasConst.SupplierAdvance,
-        AliasConst.Customer,
-        AliasConst.CustomerAdvance,
-        AliasConst.CashInTransit
-    ];
-
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IDocumentPostingLock _postingLock;
@@ -207,9 +198,6 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
                 if (!counterpartyReverse.IsSuccess)
                     return counterpartyReverse;
 
-                if (cashOperation.CounterpartyId is not null && counterpartyReverse.Value.Count == 0)
-                    return Result.Failure(CashOperationErrors.MissingCounterpartyRegisterEntries(id, _userContext.LanguageId));
-
                 if (moneyReverse.Value.Count == 0)
                     return Result.Failure(CashOperationErrors.MissingMoneyRegisterEntries(id, _userContext.LanguageId));
 
@@ -258,8 +246,6 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
         query.AddIncludes(x => x.Include(d => d.CashBox));
         query.AddIncludes(x => x.Include(d => d.DestinationCashBox));
         query.AddIncludes(x => x.Include(d => d.Counterparty));
-        query.AddIncludes(x => x.Include(d => d.PaymentPurpose)
-            .ThenInclude(purpose => purpose.Alias));
         return await _query.GetAsync(query, ct);
     }
 
@@ -271,8 +257,8 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
         if (cashOperation.OperationTypeId is not (OperationTypeIdConst.IN or OperationTypeIdConst.OUT or OperationTypeIdConst.TRANSFER))
             return Result.Failure(CashOperationErrors.InvalidOperationType(cashOperation.OperationTypeId, _userContext.LanguageId));
 
-        if (cashOperation.PaymentPurposeId <= 0 || cashOperation.PaymentPurpose == null)
-            return Result.Failure(CashOperationErrors.InvalidPaymentPurpose(cashOperation.Id, _userContext.LanguageId));
+        if (cashOperation.CashChartAccountId is null || cashOperation.OffsetAccountId is null)
+            return Result.Failure(Error.Business("CashOperation.ChartAccountRequired", "Cash and offset chart accounts are required for posting."));
 
         if (cashOperation.CashBox.OrganizationId != cashOperation.OrganizationId ||
             cashOperation.CashBox.StateId != StateIdConst.ACTIVE)
@@ -295,18 +281,6 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
              cashOperation.Counterparty.StateId != StateIdConst.ACTIVE))
         {
             return Result.Failure(CashOperationErrors.OrganizationMismatch(cashOperation.Id, _userContext.LanguageId));
-        }
-
-        if (cashOperation.PaymentPurpose.OperationTypeId != cashOperation.OperationTypeId)
-            return Result.Failure(CashOperationErrors.InvalidPaymentPurpose(cashOperation.Id, _userContext.LanguageId));
-
-        if (cashOperation.PaymentPurpose.RequiresCounterparty && !cashOperation.CounterpartyId.HasValue)
-            return Result.Failure(Error.Business("CashOperation.CounterpartyRequired", "Selected payment purpose requires a counterparty."));
-
-        if (cashOperation.OperationTypeId != OperationTypeIdConst.TRANSFER &&
-            !SupportedPostingAliases.Contains(cashOperation.PaymentPurpose.Alias.Code))
-        {
-            return Result.Failure(Error.Business("CashOperation.UnsupportedPaymentPurpose", $"Payment purpose alias '{cashOperation.PaymentPurpose.Alias.Code}' is not supported by current posting configuration."));
         }
 
         if (cashOperation.OperationTypeId == OperationTypeIdConst.OUT || cashOperation.OperationTypeId == OperationTypeIdConst.TRANSFER)

@@ -83,8 +83,6 @@ public class CashBookReadRepository : ICashBookReadRepository
                 CashOperationId = document.Id,
                 DocDate = entry.DocDate,
                 DocNumber = document.DocNumber,
-                PaymentPurposeId = document.PaymentPurposeId,
-                PaymentPurposeName = document.PaymentPurpose.Name,
                 CounterpartyId = document.CounterpartyId,
                 CounterpartyName = document.Counterparty != null ? document.Counterparty.ShortName : null,
                 Comment = document.Comment,
@@ -118,8 +116,6 @@ public class CashBookReadRepository : ICashBookReadRepository
             DocDate = row.DocDate,
             DocNumber = row.DocNumber,
             DocumentKind = row.OperationTypeId == OperationTypeIdConst.IN ? "PKO" : "RKO",
-            PaymentPurposeId = row.PaymentPurposeId,
-            PaymentPurposeName = row.PaymentPurposeName,
             CounterpartyId = row.CounterpartyId,
             CounterpartyName = row.CounterpartyName,
             Comment = row.Comment,
@@ -141,8 +137,6 @@ public class CashBookReadRepository : ICashBookReadRepository
         public long CashOperationId { get; set; }
         public DateTime DocDate { get; set; }
         public string DocNumber { get; set; } = null!;
-        public short PaymentPurposeId { get; set; }
-        public string PaymentPurposeName { get; set; } = null!;
         public int? CounterpartyId { get; set; }
         public string? CounterpartyName { get; set; }
         public string? Comment { get; set; }

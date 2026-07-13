@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -43,6 +43,7 @@ namespace Application.Features.Register.PostingEngines
             var serviceLines = productLines
                 .Where(x => serviceProductIds.Contains(x.ProductId))
                 .ToList();
+            var productLineMap = productLines.ToDictionary(x => x.Id);
 
             var counterpartyName = await GetCounterpartyNameAsync(document.CounterpartyId);
             var productTableIds = saleTables.Select(x => x.ProductTableId).Distinct().ToList();
@@ -50,8 +51,8 @@ namespace Application.Features.Register.PostingEngines
             var lastPurchases = await GetLastPurchasesAsync(document, productTableIds);
             var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
 
-            result.AddRange(BuildCostContexts(document, saleTables, productTableMap, lastPurchases, accountingPolicyId));
-            result.AddRange(BuildSaleContexts(document, saleTables, counterpartyName, accountingPolicyId));
+            result.AddRange(BuildCostContexts(document, saleTables, productLineMap, productTableMap, lastPurchases, accountingPolicyId));
+            result.AddRange(BuildSaleContexts(document, saleTables, productLineMap, counterpartyName, accountingPolicyId));
             result.AddRange(BuildServiceContexts(document, serviceLines, serviceProductMap, counterpartyName, accountingPolicyId));
 
             return result;
@@ -60,6 +61,7 @@ namespace Application.Features.Register.PostingEngines
         private List<PostingContext> BuildCostContexts(
             SaleDoc document,
             List<SaleDocTable> saleTables,
+            Dictionary<long, SaleDocProduct> productLineMap,
             Dictionary<int, ProductTableTempDto> productTableMap,
             Dictionary<int, PurchaseBatchDto> lastPurchases,
             short accountingPolicyId)
@@ -73,18 +75,24 @@ namespace Application.Features.Register.PostingEngines
                     if (!lastPurchases.TryGetValue(table.ProductTableId, out var lastPurchase))
                         return null;
 
+                    if (!productLineMap.TryGetValue(table.OwnerId, out var saleLine))
+                        return null;
+
                     return new SalePurchaseSourceDto
                     {
                         ProductTableId = table.ProductTableId,
                         ProductId = productTable.ProductId,
                         ProductName = productTable.ProductName,
-                        ProductCategory = ProductTypeDimensionValueResolver.Resolve(productTable.ProductTypeId),
+                        ProductGroupId = productTable.ProductGroupId,
+                        ProductGroupName = productTable.ProductGroupName,
                         PurchaseId = lastPurchase.PurchaseId,
                         PurchaseDocNumber = lastPurchase.DocNumber,
                         PurchaseDate = lastPurchase.Date,
                         WarehouseId = lastPurchase.WarehouseId,
                         WarehouseName = lastPurchase.WarehouseName,
-                        CostPrice = table.CostPrice > 0 ? table.CostPrice : lastPurchase.CostAmount
+                        CostPrice = table.CostPrice > 0 ? table.CostPrice : lastPurchase.CostAmount,
+                        InventoryAccountId = saleLine.InventoryAccountId,
+                        CostAccountId = saleLine.CostAccountId
                     };
                 })
                 .Where(x => x is not null)
@@ -92,7 +100,7 @@ namespace Application.Features.Register.PostingEngines
                 .ToList();
 
             return salePurchaseSources
-                .GroupBy(x => new { x.ProductId, x.PurchaseId })
+                .GroupBy(x => new { x.ProductId, x.PurchaseId, x.InventoryAccountId, x.CostAccountId })
                 .Select(group => BuildCostContext(document, group.ToList(), accountingPolicyId))
                 .ToList();
         }
@@ -108,59 +116,53 @@ namespace Application.Features.Register.PostingEngines
                 .GroupBy(x => new
                 {
                     x.VatRateId,
-                    ServiceType = serviceProductMap.TryGetValue(x.ProductId, out var product)
-                        ? ProductTypeDimensionValueResolver.Resolve(product.ProductTypeId)
-                        : RegisterDefaultsConst.DefaultDimensionValue
+                    document.CustomerAccountId,
+                    document.VatAccountId,
+                    x.InventoryAccountId,
+                    x.IncomeAccountId,
+                    x.CostAccountId,
+                    ProductGroupId = serviceProductMap.TryGetValue(x.ProductId, out var groupProduct)
+                        ? groupProduct.ProductGroupId
+                        : null,
+                    ProductGroupName = serviceProductMap.TryGetValue(x.ProductId, out var groupProductName)
+                        ? groupProductName.ProductGroupName
+                        : null
                 })
                 .Select(group =>
                 {
                     var baseAmount = group.Sum(x => x.Amount);
                     var vatAmount = group.Sum(x => x.VatAmount);
                     var costAmount = group.Sum(x => x.CostPrice);
-                    var amounts = new Dictionary<string, decimal>
-                    {
-                        [AmountSourceConst.Base] = baseAmount,
-                        [AmountSourceConst.VAT] = vatAmount
-                    };
 
-                    if (costAmount > 0m)
-                        amounts[AmountSourceConst.Cost] = costAmount;
-
-                    return new PostingContext
+                    var context = new PostingContext
                     {
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.SALE,
                         AccountingPolicyId = accountingPolicyId,
-                        RuleId = PostingRuleIdConst.SALE_SERVICE,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
-                        ServiceType = group.Key.ServiceType,
-                        Amounts = amounts,
-                        Subkontos = new List<SubkontoValue>
-                        {
-                            new()
-                            {
-                                SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
-                                DisplayValue = counterpartyName,
-                                EntityId = document.CounterpartyId,
-                                SortOrder = 1
-                            },
-                            new()
-                            {
-                                SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
-                                DisplayValue = JsonSerializer.Serialize(new
-                                {
-                                    number = document.DocNumber,
-                                    date = document.DocDate,
-                                    vatRateId = group.Key.VatRateId
-                                }),
-                                EntityId = document.Id,
-                                SortOrder = 2
-                            }
-                        }
+                        Entries = BuildSaleEntries(
+                            customerAccountId: group.Key.CustomerAccountId,
+                            incomeAccountId: group.Key.IncomeAccountId,
+                            vatAccountId: group.Key.VatAccountId,
+                            costAccountId: group.Key.CostAccountId,
+                            inventoryAccountId: group.Key.InventoryAccountId,
+                            baseAmount: baseAmount,
+                            vatAmount: vatAmount,
+                            costAmount: costAmount,
+                            costQuantity: null,
+                            contentPrefix: "Sale service"),
+                        Subkontos = BuildSaleDocumentSubkontos(document, counterpartyName, group.Key.VatRateId)
                     };
+
+                    if (document.ContractId.HasValue)
+                        AddContractSubkonto(context, document.ContractId.Value, 5);
+
+                    AddProductGroupSubkonto(context, group.Key.ProductGroupId, group.Key.ProductGroupName, 6);
+
+                    return context;
                 })
                 .ToList();
         }
@@ -170,23 +172,26 @@ namespace Application.Features.Register.PostingEngines
             var first = group.First();
             var costAmount = group.Sum(x => x.CostPrice);
 
-            return new PostingContext
+            var context = new PostingContext
             {
                 OrganizationId = document.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.SALE,
                 AccountingPolicyId = accountingPolicyId,
-                RuleId = PostingRuleIdConst.SALE_GOODS,
                 DocumentId = document.Id,
                 DocDate = document.DocDate,
                 CurrencyId = document.CurrencyId,
                 JournalNumber = document.DocNumber,
-                ProductCategory = first.ProductCategory,
-                CreditQuantity = group.Count,
-                Amounts = new Dictionary<string, decimal>
+                Entries = new List<PostingEntryContext>
                 {
-                    [AmountSourceConst.Cost] = costAmount
+                    new()
+                    {
+                        DebitAccountId = first.CostAccountId,
+                        CreditAccountId = first.InventoryAccountId,
+                        Amount = costAmount,
+                        CreditQuantity = group.Count,
+                        Content = "Sale cost"
+                    }
                 },
-                SkippedAmountSources = new[] { AmountSourceConst.Base, AmountSourceConst.VAT },
                 Subkontos = new List<SubkontoValue>
                 {
                     new()
@@ -227,62 +232,171 @@ namespace Application.Features.Register.PostingEngines
                     }
                 }
             };
+
+            AddProductGroupSubkonto(context, first.ProductGroupId, first.ProductGroupName, 2);
+
+            return context;
         }
 
         private List<PostingContext> BuildSaleContexts(
             SaleDoc document,
             List<SaleDocTable> saleTables,
+            Dictionary<long, SaleDocProduct> productLineMap,
             string counterpartyName,
             short accountingPolicyId)
         {
             return saleTables
-                .GroupBy(x => x.VatRateId)
+                .Select(table =>
+                {
+                    if (!productLineMap.TryGetValue(table.OwnerId, out var saleLine))
+                        return null;
+
+                    return new SaleRevenueSourceDto
+                    {
+                        VatRateId = table.VatRateId,
+                        Amount = table.Amount,
+                        VatAmount = table.VatAmount,
+                        IncomeAccountId = saleLine.IncomeAccountId
+                    };
+                })
+                .Where(x => x is not null)
+                .Select(x => x!)
+                .GroupBy(x => new { x.VatRateId, document.CustomerAccountId, document.VatAccountId, x.IncomeAccountId })
                 .Select(group =>
                 {
                     var baseAmount = group.Sum(x => x.Amount);
                     var vatAmount = group.Sum(x => x.VatAmount);
 
-                    return new PostingContext
+                    var context = new PostingContext
                     {
                         OrganizationId = document.OrganizationId,
                         DocumentTypeId = DocumentTypeIdConst.SALE,
                         AccountingPolicyId = accountingPolicyId,
-                        RuleId = PostingRuleIdConst.SALE_GOODS,
                         DocumentId = document.Id,
                         DocDate = document.DocDate,
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
-                        Amounts = new Dictionary<string, decimal>
-                        {
-                            [AmountSourceConst.Base] = baseAmount,
-                            [AmountSourceConst.VAT] = vatAmount
-                        },
-                        SkippedAmountSources = new[] { AmountSourceConst.Cost },
-                        Subkontos = new List<SubkontoValue>
-                        {
-                            new()
-                            {
-                                SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
-                                DisplayValue = counterpartyName,
-                                EntityId = document.CounterpartyId,
-                                SortOrder = 1
-                            },
-                            new()
-                            {
-                                SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
-                                DisplayValue = JsonSerializer.Serialize(new
-                                {
-                                    number = document.DocNumber,
-                                    date = document.DocDate,
-                                    vatRateId = group.Key
-                                }),
-                                EntityId = document.Id,
-                                SortOrder = 2
-                            }
-                        }
+                        Entries = BuildSaleEntries(
+                            customerAccountId: group.Key.CustomerAccountId,
+                            incomeAccountId: group.Key.IncomeAccountId,
+                            vatAccountId: group.Key.VatAccountId,
+                            costAccountId: null,
+                            inventoryAccountId: null,
+                            baseAmount: baseAmount,
+                            vatAmount: vatAmount,
+                            costAmount: 0m,
+                            costQuantity: null,
+                            contentPrefix: "Sale goods"),
+                        Subkontos = BuildSaleDocumentSubkontos(document, counterpartyName, group.Key.VatRateId)
                     };
+
+                    if (document.ContractId.HasValue)
+                        AddContractSubkonto(context, document.ContractId.Value, 5);
+
+                    return context;
                 })
                 .ToList();
+        }
+
+        private static List<PostingEntryContext> BuildSaleEntries(
+            int? customerAccountId,
+            int? incomeAccountId,
+            int? vatAccountId,
+            int? costAccountId,
+            int? inventoryAccountId,
+            decimal baseAmount,
+            decimal vatAmount,
+            decimal costAmount,
+            decimal? costQuantity,
+            string contentPrefix)
+        {
+            var entries = new List<PostingEntryContext>();
+
+            if (baseAmount != 0m)
+            {
+                entries.Add(new PostingEntryContext
+                {
+                    DebitAccountId = customerAccountId,
+                    CreditAccountId = incomeAccountId,
+                    Amount = baseAmount,
+                    Content = contentPrefix
+                });
+            }
+
+            if (vatAmount != 0m)
+            {
+                entries.Add(new PostingEntryContext
+                {
+                    DebitAccountId = customerAccountId,
+                    CreditAccountId = vatAccountId,
+                    Amount = vatAmount,
+                    Content = $"{contentPrefix} VAT"
+                });
+            }
+
+            if (costAmount != 0m)
+            {
+                entries.Add(new PostingEntryContext
+                {
+                    DebitAccountId = costAccountId,
+                    CreditAccountId = inventoryAccountId,
+                    Amount = costAmount,
+                    CreditQuantity = costQuantity,
+                    Content = $"{contentPrefix} cost"
+                });
+            }
+
+            return entries;
+        }
+
+        private static List<SubkontoValue> BuildSaleDocumentSubkontos(SaleDoc document, string counterpartyName, short? vatRateId)
+        {
+            var subkontos = new List<SubkontoValue>
+            {
+                new()
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
+                    DisplayValue = counterpartyName,
+                    EntityId = document.CounterpartyId,
+                    SortOrder = 1
+                },
+                new()
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.SalesDocumentsTurnover,
+                    DisplayValue = JsonSerializer.Serialize(new
+                    {
+                        number = document.DocNumber,
+                        date = document.DocDate,
+                        vatRateId
+                    }),
+                    EntityId = document.Id,
+                    SortOrder = 2
+                },
+                new()
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.CounterpartySettlementDocuments,
+                    DisplayValue = JsonSerializer.Serialize(new
+                    {
+                        number = document.DocNumber,
+                        date = document.DocDate
+                    }),
+                    EntityId = document.Id,
+                    SortOrder = 3
+                }
+            };
+
+            if (vatRateId.HasValue)
+            {
+                subkontos.Add(new SubkontoValue
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.VatRates,
+                    DisplayValue = vatRateId.Value.ToString(),
+                    EntityId = vatRateId.Value,
+                    SortOrder = 4
+                });
+            }
+
+            return subkontos;
         }
 
         private async Task<Dictionary<int, ProductTableTempDto>> GetProductTableMapAsync(List<int> productTableIds)
@@ -297,7 +411,9 @@ namespace Application.Features.Register.PostingEngines
                     TableId = x.Id,
                     ProductId = x.ProductId,
                     ProductName = x.Product.Name,
-                    ProductTypeId = x.Product.ProductTypeId
+                    ProductTypeId = x.Product.ProductTypeId,
+                    ProductGroupId = x.Product.ProductGroupId,
+                    ProductGroupName = x.Product.ProductGroup != null ? x.Product.ProductGroup.Name : null
                 })
                 .Build();
 
@@ -315,7 +431,9 @@ namespace Application.Features.Register.PostingEngines
                 .As(x => new ServiceProductTempDto
                 {
                     ProductId = x.Id,
-                    ProductTypeId = x.ProductTypeId
+                    ProductTypeId = x.ProductTypeId,
+                    ProductGroupId = x.ProductGroupId,
+                    ProductGroupName = x.ProductGroup != null ? x.ProductGroup.Name : null
                 })
                 .Build();
 
@@ -359,12 +477,34 @@ namespace Application.Features.Register.PostingEngines
                 .GroupBy(x => x.ProductTableId)
                 .ToDictionary(
                     g => g.Key,
-                    g =>
-                    {
-                        return g.OrderByDescending(x => x.Date)
-                                .ThenByDescending(x => x.PurchaseId)
-                                .First();
-                    });
+                    g => g.OrderByDescending(x => x.Date)
+                          .ThenByDescending(x => x.PurchaseId)
+                          .First());
+        }
+
+        private static void AddProductGroupSubkonto(PostingContext context, int? productGroupId, string? productGroupName, int sortOrder)
+        {
+            if (!productGroupId.HasValue)
+                return;
+
+            context.Subkontos.Add(new SubkontoValue
+            {
+                SubkontoTypeId = SubkontoTypeIdConst.ProductGroups,
+                DisplayValue = productGroupName ?? productGroupId.Value.ToString(),
+                EntityId = productGroupId.Value,
+                SortOrder = sortOrder
+            });
+        }
+
+        private static void AddContractSubkonto(PostingContext context, long contractId, int sortOrder)
+        {
+            context.Subkontos.Add(new SubkontoValue
+            {
+                SubkontoTypeId = SubkontoTypeIdConst.Contracts,
+                DisplayValue = contractId.ToString(),
+                EntityId = contractId,
+                SortOrder = sortOrder
+            });
         }
 
         private sealed class ProductTableTempDto
@@ -373,12 +513,16 @@ namespace Application.Features.Register.PostingEngines
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
             public short ProductTypeId { get; set; }
+            public int? ProductGroupId { get; set; }
+            public string? ProductGroupName { get; set; }
         }
 
         private sealed class ServiceProductTempDto
         {
             public int ProductId { get; set; }
             public short ProductTypeId { get; set; }
+            public int? ProductGroupId { get; set; }
+            public string? ProductGroupName { get; set; }
         }
 
         private sealed class PurchaseBatchDto
@@ -397,13 +541,24 @@ namespace Application.Features.Register.PostingEngines
             public int ProductTableId { get; set; }
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
-            public string ProductCategory { get; set; } = RegisterDefaultsConst.DefaultDimensionValue;
+            public int? ProductGroupId { get; set; }
+            public string? ProductGroupName { get; set; }
             public long PurchaseId { get; set; }
             public string PurchaseDocNumber { get; set; } = null!;
             public DateTime PurchaseDate { get; set; }
             public int WarehouseId { get; set; }
             public string WarehouseName { get; set; } = null!;
             public decimal CostPrice { get; set; }
+            public int? InventoryAccountId { get; set; }
+            public int? CostAccountId { get; set; }
+        }
+
+        private sealed class SaleRevenueSourceDto
+        {
+            public short? VatRateId { get; set; }
+            public decimal Amount { get; set; }
+            public decimal VatAmount { get; set; }
+            public int? IncomeAccountId { get; set; }
         }
     }
 }

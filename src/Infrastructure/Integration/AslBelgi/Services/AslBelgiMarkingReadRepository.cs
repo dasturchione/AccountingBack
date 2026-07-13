@@ -19,7 +19,7 @@ public sealed class AslBelgiMarkingReadRepository : IAslBelgiMarkingRepository
         return await _readDbContext.Products
             .AsNoTracking()
             .Where(p => p.Id == productId && p.OrganizationId == organizationId)
-            .Select(p => new AslBelgiProductMarkingInfo(p.Id, p.Gtin))
+            .Select(p => new AslBelgiProductMarkingInfo(p.Id, p.Mxik))
             .FirstOrDefaultAsync(ct);
     }
 

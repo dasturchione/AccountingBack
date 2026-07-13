@@ -16,19 +16,6 @@ public static class AccountingRegisterEntryErrors
             LanguageIdConst.RU => $"Бухгалтерская проводка с id {id} не найдена.",
             _ => $"Accounting register entry with id {id} was not found."
         };
-
-    public static Error PostingRuleNotFound(short? languageId = null) =>
-        Error.Business("PostingRule.Business", GetPostingRuleNotFoundDescription(languageId));
-
-    private static string GetPostingRuleNotFoundDescription(short? languageId) =>
-        languageId switch
-        {
-            LanguageIdConst.UZ => $"Buxgalteriya yozuvini to'ldirish qoidasi topilmadi.",
-            LanguageIdConst.UZ_CYRL => $"Бухгалтерия ёзувини тўлдириш қоидаси топилмади.",
-            LanguageIdConst.RU => $"Правило для заполнения проводки не найдено",
-            _ => $"Posting rule not found"
-        };
-
     public static Error GroupAccountNotPostable(IReadOnlyCollection<int> accountIds, short? languageId = null) =>
         Error.Business("AccountingPosting.GroupAccountNotPostable", GetGroupAccountNotPostableDescription(accountIds, languageId));
 

@@ -32,9 +32,6 @@ public partial class BankOperation
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
 
-    [Column("payment_purpose_id")]
-    public short PaymentPurposeId { get; set; }
-
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
 
@@ -70,6 +67,20 @@ public partial class BankOperation
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [Column("bank_chart_account_id")]
+    public int? BankChartAccountId { get; set; }
+
+    [Column("offset_account_id")]
+    public int? OffsetAccountId { get; set; }
+
+    [ForeignKey("BankChartAccountId")]
+    [InverseProperty(nameof(ChartAccount.BankOperationBankChartAccounts))]
+    public virtual ChartAccount? BankChartAccount { get; set; }
+
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty(nameof(ChartAccount.BankOperationOffsetAccounts))]
+    public virtual ChartAccount? OffsetAccount { get; set; }
 
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
@@ -118,10 +129,6 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual PaymentType? PaymentType { get; set; }
 
-    [ForeignKey("PaymentPurposeId")]
-    [InverseProperty("BankOperations")]
-    public virtual PaymentPurpose PaymentPurpose { get; set; } = null!;
-
     [ForeignKey("StateId")]
     [InverseProperty("BankOperations")]
     public virtual State State { get; set; } = null!;
@@ -129,7 +136,4 @@ public partial class BankOperation
     [ForeignKey("StatusId")]
     [InverseProperty("BankOperations")]
     public virtual DocumentStatus Status { get; set; } = null!;
-
-    [InverseProperty(nameof(BankOperationLine.BankOperation))]
-    public virtual ICollection<BankOperationLine> BankOperationLines { get; set; } = new List<BankOperationLine>();
 }

@@ -27,8 +27,6 @@ public sealed class CashBookReadEntry
     public DateTime DocDate { get; set; }
     public string DocNumber { get; set; } = null!;
     public string DocumentKind { get; set; } = null!;
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
     public string? Comment { get; set; }

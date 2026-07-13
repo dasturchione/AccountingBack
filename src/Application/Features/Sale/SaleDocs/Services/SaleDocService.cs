@@ -160,6 +160,8 @@ public class SaleDocService : BaseService, ISaleDocService
                 WarehouseId = dto.WarehouseId,
                 CounterpartyId = dto.CounterpartyId,
                 ContractId = dto.ContractId,
+                CustomerAccountId = dto.CustomerAccountId,
+                VatAccountId = dto.VatAccountId,
             };
 
             await _command.CreateAsync(doc, ct);
@@ -359,6 +361,8 @@ public class SaleDocService : BaseService, ISaleDocService
             doc.CurrencyId = dto.CurrencyId;
             doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             doc.ContractId = dto.ContractId;
+            doc.CustomerAccountId = dto.CustomerAccountId;
+            doc.VatAccountId = dto.VatAccountId;
             doc.Comment = dto.Comment;
             doc.StateId = dto.StateId;
 
@@ -543,6 +547,9 @@ public class SaleDocService : BaseService, ISaleDocService
                 CostPrice = product.IsService ? p.CostPrice : 0m,
                 Amount = amount,
                 VatRateId = p.VatRateId,
+                InventoryAccountId = p.InventoryAccountId,
+                IncomeAccountId = p.IncomeAccountId,
+                CostAccountId = p.CostAccountId,
                 VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
             });
@@ -606,6 +613,9 @@ public class SaleDocService : BaseService, ISaleDocService
                 CostPrice = product.IsService ? p.CostPrice : 0m,
                 Amount = amount,
                 VatRateId = p.VatRateId,
+                InventoryAccountId = p.InventoryAccountId,
+                IncomeAccountId = p.IncomeAccountId,
+                CostAccountId = p.CostAccountId,
                 VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
             });

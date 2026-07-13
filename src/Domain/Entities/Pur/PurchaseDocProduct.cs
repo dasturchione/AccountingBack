@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pur_doc_product")]
-[Index("OwnerId", Name = "ix_pur_doc_product_owner_id")]
 public partial class PurchaseDocProduct
 {
     [Key]
@@ -43,6 +42,20 @@ public partial class PurchaseDocProduct
     [Column("unit_price")]
     [Precision(24, 8)]
     public decimal UnitPrice { get; set; }
+
+    [Column("debit_account_id")]
+    public int? DebitAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [ForeignKey("DebitAccountId")]
+    [InverseProperty(nameof(ChartAccount.PurchaseDocProductDebitAccounts))]
+    public virtual ChartAccount? DebitAccount { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty(nameof(ChartAccount.PurchaseDocProductVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
 
     [ForeignKey("OwnerId")]
     [InverseProperty("PurchaseDocProducts")]

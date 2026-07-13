@@ -18,6 +18,12 @@ public class SaleDocDto
     public decimal VatAmount { get; set; }
     public decimal FinalAmount { get; set; }
     public decimal ExchangeRate { get; set; }
+    public int? CustomerAccountId { get; set; }
+    public string? CustomerAccountNumber { get; set; }
+    public string? CustomerAccountName { get; set; }
+    public int? VatAccountId { get; set; }
+    public string? VatAccountNumber { get; set; }
+    public string? VatAccountName { get; set; }
     public DateTime? PostedAt { get; set; }
     public int? PostedByUserId { get; set; }
     public DateTime? CancelledAt { get; set; }
@@ -49,6 +55,15 @@ public class SaleDocProductDto
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }
     public string? VatRateName { get; set; }
+    public int? InventoryAccountId { get; set; }
+    public string? InventoryAccountNumber { get; set; }
+    public string? InventoryAccountName { get; set; }
+    public int? IncomeAccountId { get; set; }
+    public string? IncomeAccountNumber { get; set; }
+    public string? IncomeAccountName { get; set; }
+    public int? CostAccountId { get; set; }
+    public string? CostAccountNumber { get; set; }
+    public string? CostAccountName { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public List<SaleDocProductTableDto> Items { get; set; } = new();

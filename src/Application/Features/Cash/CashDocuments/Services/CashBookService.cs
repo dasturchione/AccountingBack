@@ -74,8 +74,6 @@ public class CashBookService : ICashBookService
                 DocDate = entry.DocDate,
                 DocNumber = entry.DocNumber,
                 DocumentKind = entry.DocumentKind,
-                PaymentPurposeId = entry.PaymentPurposeId,
-                PaymentPurposeName = entry.PaymentPurposeName,
                 CounterpartyId = entry.CounterpartyId,
                 CounterpartyName = entry.CounterpartyName,
                 Comment = entry.Comment,

@@ -15,15 +15,6 @@ namespace Application.Features.BankOperations;
 
 public class BankLifecycleService : BaseService, IBankLifecycleService
 {
-    private static readonly HashSet<string> SupportedPostingAliases =
-    [
-        AliasConst.Supplier,
-        AliasConst.SupplierAdvance,
-        AliasConst.Customer,
-        AliasConst.CustomerAdvance,
-        AliasConst.CashInTransit
-    ];
-
     private readonly IUserContext _userContext;
     private readonly IPermissionChecker _permissionChecker;
     private readonly IQueryBuilder _queryBuilder;
@@ -221,9 +212,6 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 if (!counterpartyReverse.IsSuccess)
                     return counterpartyReverse;
 
-                if (bankOperation.CounterpartyId is not null && counterpartyReverse.Value.Count == 0)
-                    return Result.Failure(BankOperationErrors.MissingCounterpartyRegisterEntries(id, _userContext.LanguageId));
-
                 activePostingBatch.Status = PostingBatchStatusConst.REVERSED;
                 activePostingBatch.ReversedAt = DateTime.Now;
                 activePostingBatch.ReversedByUserId = _userContext.Id;
@@ -283,8 +271,6 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         query.AddIncludes(x => x.Include(d => d.Counterparty));
         query.AddIncludes(x => x.Include(d => d.CounterpartyBankAccount));
         query.AddIncludes(x => x.Include(d => d.Contract));
-        query.AddIncludes(x => x.Include(d => d.PaymentPurpose)
-            .ThenInclude(purpose => purpose.Alias));
 
         return await _query.GetAsync(query, ct);
     }
@@ -297,8 +283,8 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         if (bankOperation.OperationTypeId is not (OperationTypeIdConst.IN or OperationTypeIdConst.OUT))
             return Result.Failure(BankOperationErrors.InvalidOperationType(bankOperation.OperationTypeId, _userContext.LanguageId));
 
-        if (bankOperation.PaymentPurposeId <= 0 || bankOperation.PaymentPurpose == null)
-            return Result.Failure(BankOperationErrors.InvalidLineConfiguration(bankOperation.Id, _userContext.LanguageId));
+        if (bankOperation.BankChartAccountId is null || bankOperation.OffsetAccountId is null)
+            return Result.Failure(Error.Business("BankOperation.ChartAccountRequired", "Bank and offset chart accounts are required for posting."));
 
         if (bankOperation.BankAccount.OrganizationId != bankOperation.OrganizationId ||
             bankOperation.BankAccount.StateId != StateIdConst.ACTIVE)
@@ -338,15 +324,6 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 bankOperation.Contract.CounterpartyId != bankOperation.CounterpartyId.Value)
                 return Result.Failure(BankOperationErrors.InvalidOrganizationReference("Contract", _userContext.LanguageId));
         }
-
-        if (bankOperation.PaymentPurpose.OperationTypeId != bankOperation.OperationTypeId)
-            return Result.Failure(BankOperationErrors.InvalidLineConfiguration(bankOperation.Id, _userContext.LanguageId));
-
-        if (bankOperation.PaymentPurpose.RequiresCounterparty && !bankOperation.CounterpartyId.HasValue)
-            return Result.Failure(Error.Business("BankOperation.CounterpartyRequired", "Selected payment purpose requires a counterparty."));
-
-        if (!SupportedPostingAliases.Contains(bankOperation.PaymentPurpose.Alias.Code))
-            return Result.Failure(Error.Business("BankOperation.UnsupportedPaymentPurpose", $"Payment purpose alias '{bankOperation.PaymentPurpose.Alias.Code}' is not supported by current posting configuration."));
 
         if (bankOperation.OperationTypeId == OperationTypeIdConst.OUT)
         {

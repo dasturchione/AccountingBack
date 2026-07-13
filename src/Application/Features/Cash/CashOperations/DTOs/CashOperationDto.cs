@@ -9,12 +9,16 @@ public class CashOperationDto
     public string CashBoxName { get; set; } = null!;
     public int? DestinationCashBoxId { get; set; }
     public string? DestinationCashBoxName { get; set; }
-    public short PaymentPurposeId { get; set; }
-    public string PaymentPurposeName { get; set; } = null!;
     public short OperationTypeId { get; set; }
     public string OperationTypeName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
+    public int? CashChartAccountId { get; set; }
+    public string? CashChartAccountNumber { get; set; }
+    public string? CashChartAccountName { get; set; }
+    public int? OffsetAccountId { get; set; }
+    public string? OffsetAccountNumber { get; set; }
+    public string? OffsetAccountName { get; set; }
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
     public string DocNumber { get; set; } = null!;

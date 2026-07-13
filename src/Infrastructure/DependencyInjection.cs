@@ -3,7 +3,6 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Markers;
 using Application.Features.AuditLogs;
-using Application.Features.Acc.PostingTemplateViews;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.AccountingReports;
@@ -138,7 +137,6 @@ namespace Infrastructure
             services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
-            services.AddScoped<IPostingTemplateViewService, PostingTemplateViewService>();
 
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();

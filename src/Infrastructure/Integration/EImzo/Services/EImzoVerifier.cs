@@ -99,9 +99,8 @@ public sealed class EImzoVerifier : IEImzoVerifier
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "e-imzo-server verify request failed with status {StatusCode}. Response: {Response}",
-                    (int)response.StatusCode,
-                    body);
+                    "e-imzo-server verify request failed with status {StatusCode}; response body omitted.",
+                    (int)response.StatusCode);
 
                 return Result.Failure<Pkcs7VerifyResult>(Error.Problem(
                     "EImzo.VerifyHttpFailed",
@@ -133,8 +132,11 @@ public sealed class EImzoVerifier : IEImzoVerifier
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "e-imzo-server verification request failed for path {Path}", path);
-            return Result.Failure<Pkcs7VerifyResult>(Error.Problem("EImzo.VerifyRequestFailed", ex.Message));
+            _logger.LogWarning(
+                "e-imzo-server verification request failed for {Path}; exception type {ExceptionType}",
+                path,
+                ex.GetType().Name);
+            return Result.Failure<Pkcs7VerifyResult>(Error.Problem("EImzo.VerifyRequestFailed", "E-IMZO verification request failed."));
         }
     }
 
@@ -185,7 +187,11 @@ public sealed class EImzoVerifier : IEImzoVerifier
                 if (attempt >= attempts)
                     break;
 
-                _logger.LogWarning(ex, "e-imzo-server request attempt {Attempt}/{Attempts} failed", attempt, attempts);
+                _logger.LogWarning(
+                    "e-imzo-server request attempt {Attempt}/{Attempts} failed ({ExceptionType})",
+                    attempt,
+                    attempts,
+                    ex.GetType().Name);
                 await Task.Delay(delay, ct);
                 delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
             }

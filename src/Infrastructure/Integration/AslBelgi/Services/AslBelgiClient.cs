@@ -18,6 +18,7 @@ namespace Integration.AslBelgi.Services;
 public sealed class AslBelgiClient : AslBelgiHttpClientBase, IAslBelgiClient
 {
     private readonly IMemoryCache _cache;
+    private readonly IAslBelgiTokenProvider _tokenProvider;
     private const string ClientName = "AslBelgi";
     private const string CheckApiKeyCachePrefix = "AslBelgi:ApiKeyCheck:";
     private const int InitialRetryDelayMs = 250;
@@ -28,10 +29,12 @@ public sealed class AslBelgiClient : AslBelgiHttpClientBase, IAslBelgiClient
         IHttpContextAccessor httpContextAccessor,
         IOptions<AslBelgiSettings> settings,
         IMemoryCache cache,
+        IAslBelgiTokenProvider tokenProvider,
         ILogger<AslBelgiClient> logger)
         : base(httpClientFactory, httpContextAccessor, settings, logger)
     {
         _cache = cache;
+        _tokenProvider = tokenProvider;
     }
 
     public async Task<AslBelgiCheckApiKeyResponseDto> CheckApiKeyAsync(string tin, string accessToken, CancellationToken ct = default)
@@ -67,8 +70,35 @@ public sealed class AslBelgiClient : AslBelgiHttpClientBase, IAslBelgiClient
             new("limit", filter.Limit?.ToString())
         ]);
 
-        var response = await SendJsonAsync<List<AslBelgiOrderInfo>>(HttpMethod.Get, path, null, accessToken, ct);
-        return response ?? [];
+        var responseText = await SendRawAsync(HttpMethod.Get, path, null, accessToken, ct);
+        return DeserializeOrders(responseText);
+    }
+
+    private static IReadOnlyList<AslBelgiOrderInfo> DeserializeOrders(string responseText)
+    {
+        if (string.IsNullOrWhiteSpace(responseText))
+            return [];
+
+        var trimmed = responseText.TrimStart();
+        if (trimmed.StartsWith("{", StringComparison.Ordinal))
+        {
+            var wrapped = JsonSerializer.Deserialize<AslBelgiOrdersResponse>(responseText, JsonOptions);
+            return NormalizeStatuses(wrapped?.OrderInfos ?? []);
+        }
+
+        // Backward compatibility for the previous top-level array response.
+        return NormalizeStatuses(JsonSerializer.Deserialize<List<AslBelgiOrderInfo>>(responseText, JsonOptions) ?? []);
+    }
+
+    private static IReadOnlyList<AslBelgiOrderInfo> NormalizeStatuses(IReadOnlyList<AslBelgiOrderInfo> orders)
+    {
+        foreach (var order in orders)
+        {
+            if (string.IsNullOrWhiteSpace(order.Status) && !string.IsNullOrWhiteSpace(order.LegacyStatus))
+                order.Status = order.LegacyStatus;
+        }
+
+        return orders;
     }
 
     public async Task<AslBelgiCodesResponse> GetCodesAsync(string orderId, string? gtin, int? quantity, string? lastPackId, string accessToken, CancellationToken ct = default)
@@ -152,33 +182,57 @@ public sealed class AslBelgiClient : AslBelgiHttpClientBase, IAslBelgiClient
     {
         var client = CreateClient(ClientName);
 
-        using var request = new HttpRequestMessage(method, BuildUri(path))
+        HttpRequestMessage CreateRequest(string token)
         {
-            Content = body is null
-                ? null
-                : new StringContent(
-                    JsonSerializer.Serialize(body, JsonOptions),
-                    Encoding.UTF8,
-                    "application/json;charset=UTF-8")
-        };
+            var request = new HttpRequestMessage(method, BuildUri(path))
+            {
+                Content = body is null
+                    ? null
+                    : new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            // Charset belongs to Content-Type; Accept media types do not include it in this form.
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            ApplyCorrelationId(request);
+            return request;
+        }
 
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        request.Headers.Accept.Clear();
-        request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json;charset=UTF-8"));
-        ApplyCorrelationId(request);
+        async Task<HttpResponseMessage> SendRequestAsync(string token)
+        {
+            using var request = CreateRequest(token);
+            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
 
+        var retrySafe = method == HttpMethod.Get;
         using var response = await SendWithRetryAsync(
-            () => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct),
-            InitialRetryDelayMs,
-            "request",
-            ct);
-        var responseText = await ReadBodySafelyAsync(response, ct);
+            () => SendRequestAsync(accessToken),
+            InitialRetryDelayMs, "request", ct, retrySafe);
+        var responseText = response.IsSuccessStatusCode
+            ? await ReadBodySafelyAsync(response, ct)
+            : string.Empty;
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized && retrySafe)
+        {
+            var refreshed = await _tokenProvider.RefreshAfterUnauthorizedAsync(accessToken, ct);
+            if (!refreshed.IsSuccess)
+                throw new IntegrationUnauthorizedException(refreshed.Error.Description);
+
+            using var retryResponse = await SendWithRetryAsync(
+                () => SendRequestAsync(refreshed.Value),
+                InitialRetryDelayMs, "401 retry", ct, retrySafe: true);
+            var retryText = retryResponse.IsSuccessStatusCode
+                ? await ReadBodySafelyAsync(retryResponse, ct)
+                : string.Empty;
+            if (retryResponse.IsSuccessStatusCode)
+                return retryText;
+
+            throw CreateHttpException(retryResponse.StatusCode);
+        }
 
         if (response.IsSuccessStatusCode)
             return responseText;
 
-        var detail = BuildErrorMessage(responseText);
-        throw CreateHttpException(response.StatusCode, detail);
+        throw CreateHttpException(response.StatusCode);
     }
 
     private static string AppendQuery(string path, IReadOnlyList<KeyValuePair<string, string?>> query)
@@ -304,85 +358,43 @@ public sealed class AslBelgiClient : AslBelgiHttpClientBase, IAslBelgiClient
         }
     }
 
-    private static Exception CreateHttpException(HttpStatusCode statusCode, string detail)
+    private static Exception CreateHttpException(HttpStatusCode statusCode)
     {
         return statusCode switch
         {
-            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException("AslBelgi request rejected. " + detail),
-            HttpStatusCode.Forbidden => new IntegrationForbiddenException("AslBelgi request forbidden. " + detail),
-            _ => new IntegrationHttpException($"AslBelgi request failed with status {(int)statusCode}. {detail}", (int)statusCode)
+            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException("AslBelgi request rejected."),
+            HttpStatusCode.Forbidden => new IntegrationForbiddenException("AslBelgi request forbidden."),
+            _ => new IntegrationHttpException($"AslBelgi request failed with HTTP status {(int)statusCode}.", (int)statusCode)
         };
     }
 
     private static string ResolvePath(string template, string token, string value)
         => template.Replace(token, Uri.EscapeDataString(value));
 
-    private static string BuildErrorMessage(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body))
-            return "No response body from Asl Belgisi.";
-
-        try
-        {
-            using var document = JsonDocument.Parse(body);
-            var root = document.RootElement;
-            if (TryGetString(root, "message", out var message))
-                return message!;
-
-            if (TryGetString(root, "error", out var error))
-                return error!;
-
-            if (TryGetString(root, "detail", out var detail))
-                return detail!;
-
-            if (TryGetString(root, "title", out var title))
-                return title!;
-
-            if (root.ValueKind == JsonValueKind.Array && root.EnumerateArray().MoveNext())
-                return "Asl Belgisi returned a structured error response.";
-        }
-        catch
-        {
-            // fall through
-        }
-
-        return body.Length <= 300 ? body : "Asl Belgisi returned an unexpected error response.";
-    }
-
-    private static bool TryGetString(JsonElement root, string propertyName, out string? value)
-    {
-        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(propertyName, out var property)
-            && property.ValueKind == JsonValueKind.String)
-        {
-            value = property.GetString();
-            return true;
-        }
-
-        value = null;
-        return false;
-    }
 
     private static AslBelgiCheckApiKeyResponseDto MapCheck(AslBelgiCheckApiKeyResponse response)
     {
         return new AslBelgiCheckApiKeyResponseDto
         {
-            Status = response.Status,
-            Message = response.Message,
-            Errors = response.Errors is null ? null : response.Errors.Select(item => item?.ToString()).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item!).ToArray(),
-            Data = response.Envelope?.Data,
-            Items = response.Envelope?.Items,
+            Status = SanitizeStatus(response.Status),
             Envelope = new AslBelgiEnvelopeDto
             {
-                Status = response.Status,
-                Message = response.Message,
-                Errors = response.Errors is null ? null : response.Errors.Select(item => item?.ToString()).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item!).ToArray(),
-                Data = response.Envelope?.Data,
-                Items = response.Envelope?.Items
+                Status = SanitizeStatus(response.Status)
             },
-            IsValid = response.IsValid,
-            ApiKey = response.ApiKey
+            IsValid = response.IsTinCorrect,
+            ExpiresOn = response.ExpiresOn
         };
     }
+
+    private static string? SanitizeStatus(string? status)
+        => status?.ToLowerInvariant() switch
+        {
+            "success" => "success",
+            "ok" => "ok",
+            "error" => "error",
+            "failed" or "fail" => "failed",
+            _ => string.IsNullOrWhiteSpace(status) ? null : "other"
+        };
 
     private static AslBelgiDocumentResponseDto MapDocument(AslBelgiDocumentResponse response)
     {

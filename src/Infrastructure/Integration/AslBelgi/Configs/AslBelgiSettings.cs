@@ -2,6 +2,8 @@ namespace Integration.AslBelgi.Configs;
 
 public sealed class AslBelgiSettings
 {
+    public Dictionary<int, string> OrganizationCapabilities { get; set; } = [];
+
     public string ServerBaseUrl { get; set; } = string.Empty;
     public string AuthenticatePath { get; set; } = "/api/users/authenticate";
     public string RefreshPath { get; set; } = "/api/users/tokens/refresh";

@@ -11,4 +11,6 @@ namespace Application.Features.Cmn.AslBelgi.Abstractions;
 public interface IAslBelgiTokenProvider
 {
     Task<Result<string>> GetAccessTokenAsync(CancellationToken ct = default);
+
+    Task<Result<string>> RefreshAfterUnauthorizedAsync(string failedAccessToken, CancellationToken ct = default);
 }

@@ -110,6 +110,9 @@ public partial class Product
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
+    [InverseProperty(nameof(ProductDidoxProfile.Product))]
+    public virtual ICollection<ProductDidoxProfile> DidoxProfiles { get; set; } = new List<ProductDidoxProfile>();
+
     [ForeignKey("StateId")]
     [InverseProperty("Products")]
     public virtual State State { get; set; } = null!;

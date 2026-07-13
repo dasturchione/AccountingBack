@@ -16,12 +16,14 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
     private readonly IAslBelgiMarkingRepository _markingRepository;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IAslBelgiService _aslBelgiService;
+    private readonly IAslBelgiOrganizationCapabilityResolver _capabilityResolver;
 
     public AslBelgiMarkingService(
         IUserContext userContext,
         IAslBelgiMarkingRepository markingRepository,
         ICommandRepository<ProductTable> productTableCommand,
         IAslBelgiService aslBelgiService,
+        IAslBelgiOrganizationCapabilityResolver capabilityResolver,
         ILogger<AslBelgiMarkingService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -30,6 +32,7 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
         _markingRepository = markingRepository;
         _productTableCommand = productTableCommand;
         _aslBelgiService = aslBelgiService;
+        _capabilityResolver = capabilityResolver;
     }
 
     public Task<Result<AslBelgiOrderResponse>> RequestMarkingAsync(AslBelgiMarkingRequestDto request, CancellationToken ct = default)
@@ -37,6 +40,9 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
         {
             if (_userContext.OrganizationId is not { } organizationId)
                 return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.UserHasNoOrganization());
+
+            if (!IsEmitter(organizationId))
+                return Result.Failure<AslBelgiOrderResponse>(AslBelgiErrors.EmitterRequired());
 
             var product = await _markingRepository.GetProductForMarkingAsync(request.ProductId, organizationId, ct);
             if (product is null)
@@ -72,6 +78,9 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
         {
             if (_userContext.OrganizationId is not { } organizationId)
                 return Result.Failure<AslBelgiBindResultDto>(AslBelgiErrors.UserHasNoOrganization());
+
+            if (!IsEmitter(organizationId))
+                return Result.Failure<AslBelgiBindResultDto>(AslBelgiErrors.EmitterRequired());
 
             if (string.IsNullOrWhiteSpace(request.OrderId))
                 return Result.Failure<AslBelgiBindResultDto>(AslBelgiErrors.MissingOrderId());
@@ -126,4 +135,7 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
         BoundCount = bound,
         SkippedExisting = total - bound
     };
+
+    private bool IsEmitter(int organizationId) =>
+        _capabilityResolver.Resolve(organizationId) == AslBelgiOrganizationCapability.Emitter;
 }

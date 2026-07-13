@@ -73,6 +73,13 @@ public sealed class AslBelgiOrderResponse
     public string? OrderId { get; init; }
 }
 
+/// <summary>Official GET /api/orders response wrapper.</summary>
+public sealed class AslBelgiOrdersResponse
+{
+    [JsonPropertyName("orderInfos")]
+    public IReadOnlyList<AslBelgiOrderInfo> OrderInfos { get; init; } = [];
+}
+
 /// <summary>GET /api/codes — codes pulled from a sub-order.</summary>
 public sealed class AslBelgiCodesResponse
 {
@@ -94,19 +101,30 @@ public sealed class AslBelgiOrdersFilter
     public int? Limit { get; set; }
 }
 
-// TODO(Asl Belgisi doc): the full order-list item schema is not specified in the available facts;
-// these are the documented/filterable fields. Confirm and extend against the real response.
 public sealed class AslBelgiOrderInfo
 {
     [JsonPropertyName("orderId")]
     public string? OrderId { get; init; }
 
+    [JsonPropertyName("orderStatus")]
+    public string? Status { get; set; }
+
+    // Compatibility with the previous top-level array contract.
     [JsonPropertyName("status")]
-    public string? Status { get; init; }
+    public string? LegacyStatus { get; init; }
 
     [JsonPropertyName("productGroup")]
     public string? ProductGroup { get; init; }
 
     [JsonPropertyName("businessPlaceId")]
     public int? BusinessPlaceId { get; init; }
+
+    [JsonPropertyName("releaseMethodType")]
+    public string? ReleaseMethodType { get; init; }
+
+    [JsonPropertyName("poNumber")]
+    public string? PoNumber { get; init; }
+
+    [JsonPropertyName("createDate")]
+    public DateTimeOffset? CreateDate { get; init; }
 }

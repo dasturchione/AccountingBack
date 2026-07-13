@@ -33,19 +33,26 @@ public sealed class DidoxTaxProvider : TaxProviderBase, ITaxDocumentProvider, ID
     {
         var providerSettings = ResolveProviderSettings();
 
-        var invoice = ParseInvoicePayload(request.Payload);
-        if (invoice is null)
-            return Task.FromResult(Failure("submit", "Didox invoice payload (document_json) is missing or invalid."));
-
         if (string.IsNullOrWhiteSpace(providerSettings.FacturaDocType))
             return Task.FromResult(Failure("submit", "Didox FacturaDocType is not configured (confirm the ЭСФ docType code from the Didox documentation)."));
+        if (string.IsNullOrWhiteSpace(request.CompanyToken))
+            return Task.FromResult(Failure("submit", "Didox company token (user-key) is missing. Authenticate via /api/taxes/didox/auth first."));
+        if (IsMissingSecret(providerSettings.PartnerToken))
+            return Task.FromResult(Failure("submit", "Didox Partner-Authorization token is not configured (set TaxIntegration:Didox:PartnerToken via environment)."));
+
+        var invoice = ParseInvoicePayload(request.Payload);
+        if (invoice is null)
+            return Task.FromResult(Failure("submit", "Didox invoice payload is missing or invalid."));
+
+        var validationMessage = ValidateInvoice(invoice);
+        if (validationMessage is not null)
+            return Task.FromResult(Failure("submit", validationMessage));
 
         var path = providerSettings.CreateDocumentPath
             .Replace("{docType}", Uri.EscapeDataString(providerSettings.FacturaDocType))
             .Replace("{locale}", Uri.EscapeDataString(providerSettings.Locale));
 
-        var envelope = new DidoxDocumentEnvelope<DidoxInvoiceRequest> { DocumentJson = invoice };
-        return ExecuteAsync<DidoxDocumentEnvelope<DidoxInvoiceRequest>, SubmitDidoxResponse>(path, envelope, request.CompanyToken, ct, "submit");
+        return ExecuteAsync<DidoxInvoiceRequest, SubmitDidoxResponse>(path, invoice, request.CompanyToken, ct, "submit");
     }
 
     public Task<TaxProviderOperationResultDto> GetDocumentStatusAsync(TaxProviderOperationRequestDto request, CancellationToken ct = default)
@@ -127,6 +134,45 @@ public sealed class DidoxTaxProvider : TaxProviderBase, ITaxDocumentProvider, ID
         {
             return null;
         }
+    }
+
+    private static string? ValidateInvoice(DidoxInvoiceRequest invoice)
+    {
+        var missing = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(invoice.SellerTin))
+            missing.Add("SellerTin");
+        if (string.IsNullOrWhiteSpace(invoice.BuyerTin))
+            missing.Add("BuyerTin");
+        if (invoice.Seller.VatRegStatus is null || string.IsNullOrWhiteSpace(invoice.Seller.VatRegCode))
+            missing.Add("Seller.VatRegCode and Seller.VatRegStatus");
+        if (string.IsNullOrWhiteSpace(invoice.Seller.Account) || string.IsNullOrWhiteSpace(invoice.Seller.BankId))
+            missing.Add("Seller.Account and Seller.BankId");
+        if (invoice.Buyer.VatRegStatus is null || string.IsNullOrWhiteSpace(invoice.Buyer.VatRegCode))
+            missing.Add("Buyer.VatRegCode and Buyer.VatRegStatus");
+        if (string.IsNullOrWhiteSpace(invoice.Buyer.Address))
+            missing.Add("Buyer.Address");
+        if (string.IsNullOrWhiteSpace(invoice.Buyer.Account) || string.IsNullOrWhiteSpace(invoice.Buyer.BankId))
+            missing.Add("Buyer.Account and Buyer.BankId");
+        if (invoice.ProductList.Products.Count == 0)
+            missing.Add("ProductList.Products must contain at least one product");
+
+        for (var index = 0; index < invoice.ProductList.Products.Count; index++)
+        {
+            var product = invoice.ProductList.Products[index];
+            var path = $"ProductList.Products[{index}]";
+
+            if (string.IsNullOrWhiteSpace(product.CatalogName))
+                missing.Add($"{path}.CatalogName");
+            if (string.IsNullOrWhiteSpace(product.PackageCode))
+                missing.Add($"{path}.PackageCode");
+            if (product.Origin is null)
+                missing.Add($"{path}.Origin");
+        }
+
+        return missing.Count == 0
+            ? null
+            : $"Didox preflight failed. Required fields: {string.Join("; ", missing)}.";
     }
 
     private StatusDidoxRequest BuildStatusRequest(TaxProviderOperationRequestDto request)
@@ -266,7 +312,7 @@ public sealed class DidoxTaxProvider : TaxProviderBase, ITaxDocumentProvider, ID
                 providerSettings.PartnerAuthHeaderName);
 
             return client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        }, ct);
+        }, ct, retrySafe: false);
 
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);

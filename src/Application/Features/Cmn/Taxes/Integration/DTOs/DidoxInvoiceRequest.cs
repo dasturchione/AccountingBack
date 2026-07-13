@@ -37,7 +37,7 @@ public sealed class DidoxInvoiceRequest
     public IReadOnlyList<long> WaybillLocalIds { get; init; } = [];
 
     [JsonPropertyName("HasMarking")]
-    public bool HasMarking { get; init; }
+    public bool? HasMarking { get; init; }
 
     [JsonPropertyName("HasRent")]
     public bool HasRent { get; init; }
@@ -178,7 +178,7 @@ public sealed class DidoxParty
 
     // TODO(domain): VAT registration status code — not present in the domain model.
     [JsonPropertyName("VatRegStatus")]
-    public int VatRegStatus { get; init; }
+    public int? VatRegStatus { get; init; }
 }
 
 public sealed class DidoxInvoiceProduct
@@ -210,7 +210,7 @@ public sealed class DidoxInvoiceProduct
 
     // TODO(domain): MXIK catalog name — not stored on Product (only the code). Resolve via MXIK lookup.
     [JsonPropertyName("CatalogName")]
-    public string CatalogName { get; init; } = string.Empty;
+    public string? CatalogName { get; init; }
 
     [JsonPropertyName("Marks")]
     public string Marks { get; init; } = string.Empty;
@@ -224,7 +224,7 @@ public sealed class DidoxInvoiceProduct
 
     // TODO(domain): Didox package code from /v1/measures/all — our Unit has no Didox measure code.
     [JsonPropertyName("PackageCode")]
-    public string PackageCode { get; init; } = string.Empty;
+    public string? PackageCode { get; init; }
 
     [JsonPropertyName("PackageName")]
     public string PackageName { get; init; } = string.Empty;
@@ -273,12 +273,5 @@ public sealed class DidoxInvoiceProduct
 
     // TODO(domain): product origin code (справочник) — not stored on Product.
     [JsonPropertyName("Origin")]
-    public int Origin { get; init; }
-}
-
-/// <summary>Didox create-document envelope: { "document_json": &lt;payload&gt; }.</summary>
-public sealed class DidoxDocumentEnvelope<T>
-{
-    [JsonPropertyName("document_json")]
-    public T DocumentJson { get; init; } = default!;
+    public int? Origin { get; init; }
 }

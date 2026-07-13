@@ -69,4 +69,7 @@ public partial class ProductTable
     [ForeignKey("StatusId")]
     [InverseProperty("ProductTables")]
     public virtual ProductTableStatus Status { get; set; } = null!;
+
+    [InverseProperty(nameof(ProductTableDidoxOrigin.ProductTable))]
+    public virtual ProductTableDidoxOrigin? DidoxOrigin { get; set; }
 }

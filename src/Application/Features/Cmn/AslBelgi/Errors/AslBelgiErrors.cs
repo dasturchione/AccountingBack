@@ -4,6 +4,14 @@ namespace Application.Features.Cmn.AslBelgi.Errors;
 
 public static class AslBelgiErrors
 {
+    public static Error EmitterRequired() =>
+        Error.Forbidden(
+            "AslBelgi.EmitterRequired",
+            "Bu Asl Belgisi amali faqat Emitent tashkilot uchun mavjud.");
+
+    public static Error InvalidAuthMode(string? mode) =>
+        new Error("AslBelgi.InvalidAuthMode", "Asl Belgisi AuthMode faqat technical yoki business bo‘lishi mumkin.", ErrorType.Validation);
+
     public static Error MissingTin() =>
         new Error("AslBelgi.MissingTin", "ИНН (TIN) kiritilishi shart.", ErrorType.Validation);
 
@@ -51,8 +59,6 @@ public static class AslBelgiErrors
     public static Error IntegrationReturnedError(string? message, string? details = null) =>
         new Error(
             "AslBelgi.IntegrationReturnedError",
-            string.IsNullOrWhiteSpace(details)
-                ? (message ?? "Asl Belgisi returned an error.")
-                : $"{message}: {details}",
+            message ?? "Asl Belgisi returned an error.",
             ErrorType.Problem);
 }

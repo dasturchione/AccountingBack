@@ -10,7 +10,6 @@ public sealed class TaxIntegrationSettings
     public ProviderSettings Mxik { get; set; } = new();
     public ProviderSettings SoliqApi { get; set; } = new();
     public ProviderSettings EFaktura { get; set; } = new();
-    public ProviderSettings Didox { get; set; } = new();
     public string? ClientName { get; set; } = "TaxIntegration";
 
     public sealed class ProviderSettings
@@ -26,26 +25,5 @@ public sealed class TaxIntegrationSettings
         public int? TimeoutSeconds { get; set; }
         public int? RetryCount { get; set; }
 
-        // Didox 2-header auth (official partner API).
-        // PartnerToken is a secret: keep placeholder in appsettings, override via environment.
-        public string PartnerToken { get; set; } = string.Empty;
-        public string UserKeyHeaderName { get; set; } = "user-key";
-        public string PartnerAuthHeaderName { get; set; } = "Partner-Authorization";
-
-        // Locale + auth endpoints for company-token exchange (E-IMZO signature flow runs on the frontend).
-        public string Locale { get; set; } = "ru";
-        public string AuthTokenPath { get; set; } = "/v1/auth/{taxId}/token/{locale}";
-        public string AuthPasswordPath { get; set; } = "/v1/auth/{taxId}/password/{locale}";
-
-        // Create-document endpoint (ЭСФ submit). The doc type is in the route; body is the raw document JSON.
-        public string CreateDocumentPath { get; set; } = "/v1/documents/{docType}/create/{locale}";
-
-        // Sign endpoint. Body is { "signature": "<pkcs7 timestamp b64>" } — the signature is produced
-        // by the frontend E-IMZO; the backend only forwards it (never signs server-side).
-        public string SignDocumentPath { get; set; } = "/v1/documents/{docId}/sign";
-
-        // TODO(Didox doc): confirm the exact docType code for ЭСФ (счёт-фактура). Left empty so a
-        // real submit fails fast with a clear message instead of guessing a wrong document type.
-        public string FacturaDocType { get; set; } = string.Empty;
     }
 }

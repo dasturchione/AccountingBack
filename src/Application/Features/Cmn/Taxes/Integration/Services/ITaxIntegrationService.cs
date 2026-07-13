@@ -16,10 +16,4 @@ public interface ITaxIntegrationService
     Task<Result<TaxDocumentResultDto>> SubmitEFakturaAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
     Task<Result<TaxDocumentResultDto>> GetEFakturaStatusAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
     Task<Result<TaxDocumentResultDto>> CancelEFakturaAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
-    Task<Result<TaxDocumentResultDto>> SubmitDidoxAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
-    Task<Result<TaxDocumentResultDto>> GetDidoxStatusAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
-    Task<Result<TaxDocumentResultDto>> CancelDidoxAsync(TaxDocumentRequestDto request, CancellationToken ct = default);
-    Task<Result<DidoxTokenResultDto>> GetDidoxTokenBySignatureAsync(DidoxAuthSignatureRequestDto request, CancellationToken ct = default);
-    Task<Result<DidoxTokenResultDto>> GetDidoxTokenByPasswordAsync(DidoxAuthPasswordRequestDto request, CancellationToken ct = default);
-    Task<Result<TaxDocumentResultDto>> SignDidoxAsync(DidoxSignRequestDto request, CancellationToken ct = default);
 }

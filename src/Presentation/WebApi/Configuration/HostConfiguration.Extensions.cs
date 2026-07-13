@@ -264,13 +264,16 @@ namespace WebApi.Configuration
                 && origins.Length == 0)
                 throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
 
-            foreach (var origin in origins)
+            builder.Services.AddCors(options =>
             {
-                options.AddPolicy("ApiCors", policy =>
+                foreach (var origin in origins)
                 {
-                    // Development/test-only fallback. It intentionally does not enable credentials.
-                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                    return;
+                    options.AddPolicy("ApiCors", policy =>
+                    {
+                        // Development/test-only fallback. It intentionally does not enable credentials.
+                        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                        return;
+                    });
                 }
             });
         }
@@ -413,27 +416,6 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(backupPassword))
                 throw new InvalidOperationException("BackupJob:Database:Password is not configured with a real secret value.");
 
-            var aslBelgiServerBaseUrl = configuration["AslBelgi:ServerBaseUrl"];
-            var aslBelgiAuthPath = configuration["AslBelgi:AuthenticatePath"];
-            var aslBelgiRefreshPath = configuration["AslBelgi:RefreshPath"];
-
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
-            {
-                if (IsPlaceholderValue(aslBelgiServerBaseUrl))
-                    throw new InvalidOperationException("AslBelgi:ServerBaseUrl is not configured with a real value.");
-
-                if (string.IsNullOrWhiteSpace(aslBelgiAuthPath))
-                    throw new InvalidOperationException("AslBelgi:AuthenticatePath is required in production.");
-
-                if (string.IsNullOrWhiteSpace(aslBelgiRefreshPath))
-                    throw new InvalidOperationException("AslBelgi:RefreshPath is required in production.");
-            }
-            else
-            {
-                if (IsPlaceholderValue(aslBelgiServerBaseUrl) || IsPlaceholderValue(aslBelgiAuthPath) || IsPlaceholderValue(aslBelgiRefreshPath))
-                    Log.Warning("AslBelgi development config still uses placeholder values. Set real values or override via environment variables before production.");
-            }
-
             var fakturaClientSecret = configuration["FakturaAuthSettings:ClientSecret"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(fakturaClientSecret))
                 throw new InvalidOperationException("FakturaAuthSettings:ClientSecret is not configured with a real secret value.");
@@ -450,17 +432,9 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailUsername))
                 throw new InvalidOperationException("Email:Username is not configured with a real value.");
 
-            var eImzoCertificatePassword = configuration["EImzo:CertificatePassword"];
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(eImzoCertificatePassword))
-                throw new InvalidOperationException("EImzo:CertificatePassword is not configured with a real secret value.");
-
             var emailPassword = configuration["Email:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))
                 throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
-
-            var didoxPartnerToken = configuration["TaxIntegration:Didox:PartnerToken"];
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
-                throw new InvalidOperationException("TaxIntegration:Didox:PartnerToken is not configured with a real secret value.");
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
@@ -482,18 +456,11 @@ namespace WebApi.Configuration
             "BackupJob:Database:Password",
             "FakturaAuthSettings:ClientSecret",
             "FakturaAuthSettings:Password",
-            "Email:Password",
-            "EImzo:CertificatePassword",
-            "EImzo:CertificatePath",
-            "TaxIntegration:Didox:PartnerToken"
+            "Email:Password"
         ];
 
         private static readonly string[] ForbiddenGlobalProviderSecretKeys =
-        [
-            "AslBelgi:Login",
-            "AslBelgi:Password",
-            "AslBelgi:ApiKey"
-        ];
+        [];
 
         private static void ValidateJwtOption(IConfigurationSection jwtSection, string env)
         {

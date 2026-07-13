@@ -35,8 +35,6 @@ using Application.Features.Cmn.Currencies.Extensions;
 using Application.Features.Cmn.CurrencyRates.Extensions;
 using Application.Features.Cmn.CurrencyRevaluations.Extensions;
 using Application.Features.Cmn.Taxes.Extensions;
-using Application.Features.Didox.Extensions;
-using Application.Features.Integration;
 using Application.Abstractions.Integration;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
@@ -91,16 +89,11 @@ using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Infrastructure.Services.Barcode;
 using Infrastructure.Security;
-using Application.Features.Cmn.AslBelgi.Abstractions;
-using Application.Features.Cmn.AslBelgi.Services;
-using Integration.AslBelgi.Configs;
-using Integration.EImzo.Configs;
 using Integration.Faktura.Configs;
 using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
 using Integration.Tax.Configs;
 using Integration.Email.Configs;
-using Integration.Edocs;
 using Integration.GoogleDrive.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -124,16 +117,6 @@ namespace Infrastructure
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
             services.AddScoped<IUserContext, UserContext>();
-            services.AddScoped<IOrganizationScopeResolver, OrganizationScopeResolver>();
-            services.AddScoped<IProviderCredentialStore, ProviderCredentialStore>();
-            services.AddScoped<IProviderSessionStore, ProviderSessionStore>();
-            services.AddScoped<IProviderOperationStore, ProviderOperationStore>();
-            services.AddScoped<IProviderOperationGate, ProviderOperationGate>();
-            services.AddScoped<IProviderPreflightService, ProviderPreflightService>();
-            services.Configure<SecretProtectorOptions>(config.GetSection("SecretProtector"));
-            services.AddSingleton(sp =>
-                sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SecretProtectorOptions>>().Value);
-            services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
             services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
@@ -147,18 +130,13 @@ namespace Infrastructure
 
             services.AddMemoryCache();
 
-            services.AddEImzoIntegration(config);
             services.AddFaktura(config);
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
-            services.AddEdocsIntegration(config);
-            services.AddAslBelgiIntegration(config);
             services.AddEmailIntegration(config);
             services.AddGoogleDriveIntegration(config);
             services.AddBarcodeGenerator();
             services.AddScoped<ICurrencyRateImportService, CurrencyRateImportService>();
-            services.AddScoped<IAslBelgiService, AslBelgiService>();
-            services.AddScoped<IAslBelgiMarkingService, AslBelgiMarkingService>();
 
             services.AddScoped<IUserManagementCore, UserManagementCore>();
             services.AddScoped<IOrganizationManagementCore, OrganizationManagementCore>();
@@ -242,7 +220,6 @@ namespace Infrastructure
             services.AddCurrencyRateModule();
             services.AddCurrencyRevaluationModule();
             services.AddTaxModule();
-            services.AddDidoxPersistenceModule();
             services.AddSettingsModule();
             services.AddNotificationsModule();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();

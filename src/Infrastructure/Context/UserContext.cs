@@ -1,7 +1,6 @@
 using Application.Abstractions.Authentication;
 using Microsoft.AspNetCore.Http;
 using SharedKernel.Constants;
-,
 namespace Infrastructure.Context;
 
 public class UserContext : IUserContext

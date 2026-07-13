@@ -247,31 +247,15 @@ namespace WebApi.Configuration
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
         {
-            var configuredOrigins = builder.Configuration
-                .GetSection("Cors:AllowedOrigins")
-                .Get<string[]>() ?? [];
-            var origins = configuredOrigins
-                .Where(origin => !string.IsNullOrWhiteSpace(origin))
-                .Select(origin => origin.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (origins.Any(origin => origin == "*"))
-                throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
-
-            if (!builder.Environment.IsDevelopment()
-                && !builder.Environment.IsEnvironment("Testing")
-                && origins.Length == 0)
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
-
-            foreach (var origin in origins)
+            builder.Services.AddCors(options =>
             {
                 options.AddPolicy("ApiCors", policy =>
                 {
-                    // Development/test-only fallback. It intentionally does not enable credentials.
-                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                    return;
-                }
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
             });
         }
 

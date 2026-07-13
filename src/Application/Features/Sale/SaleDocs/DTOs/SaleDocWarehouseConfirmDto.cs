@@ -1,11 +1,13 @@
 namespace Application.Features.SaleDocs;
 
-public class SaleDocWarehouseConfirmDto
+public class SaleDocProductAssemblyDto
 {
-    public List<SaleDocWarehouseConfirmItemDto> Items { get; set; } = new();
+    public long Id { get; set; }
+    public bool Assembled { get; set; } = false;
+    public List<SaleDocAssemblyItemDto> Items { get; set; } = new();
 }
 
-public class SaleDocWarehouseConfirmItemDto
+public class SaleDocAssemblyItemDto
 {
     public int ProductTableId { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -133,6 +133,12 @@ namespace Application.Features.Register.PostingEngines
                     var baseAmount = group.Sum(x => x.Amount);
                     var vatAmount = group.Sum(x => x.VatAmount);
                     var costAmount = group.Sum(x => x.CostPrice);
+                    var nonPieceTrackedQuantity = group
+                        .Where(x => serviceProductMap.TryGetValue(x.ProductId, out var product) &&
+                                    !product.IsService &&
+                                    !product.IsPieceTracked)
+                        .Sum(x => x.Quantity);
+                    var hasNonPieceTrackedGoods = nonPieceTrackedQuantity > 0m;
 
                     var context = new PostingContext
                     {
@@ -152,8 +158,8 @@ namespace Application.Features.Register.PostingEngines
                             baseAmount: baseAmount,
                             vatAmount: vatAmount,
                             costAmount: costAmount,
-                            costQuantity: null,
-                            contentPrefix: "Sale service"),
+                            costQuantity: hasNonPieceTrackedGoods ? nonPieceTrackedQuantity : null,
+                            contentPrefix: hasNonPieceTrackedGoods ? "Sale goods" : "Sale service"),
                         Subkontos = BuildSaleDocumentSubkontos(document, counterpartyName, group.Key.VatRateId)
                     };
 
@@ -427,11 +433,13 @@ namespace Application.Features.Register.PostingEngines
                 return new Dictionary<int, ServiceProductTempDto>();
 
             var query = _queryBuilder.For<Product>()
-                .Where(x => productIds.Contains(x.Id) && x.IsService)
+                .Where(x => productIds.Contains(x.Id) && (x.IsService || !x.IsPieceTracked))
                 .As(x => new ServiceProductTempDto
                 {
                     ProductId = x.Id,
                     ProductTypeId = x.ProductTypeId,
+                    IsService = x.IsService,
+                    IsPieceTracked = x.IsPieceTracked,
                     ProductGroupId = x.ProductGroupId,
                     ProductGroupName = x.ProductGroup != null ? x.ProductGroup.Name : null
                 })
@@ -521,6 +529,8 @@ namespace Application.Features.Register.PostingEngines
         {
             public int ProductId { get; set; }
             public short ProductTypeId { get; set; }
+            public bool IsService { get; set; }
+            public bool IsPieceTracked { get; set; }
             public int? ProductGroupId { get; set; }
             public string? ProductGroupName { get; set; }
         }

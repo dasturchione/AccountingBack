@@ -577,7 +577,7 @@ public static class PermissionCodeConst
     public const string SaleDocViewDetail       = "SALE_DOC_VIEW_DETAIL";
     public const string SaleDocCreate           = "SALE_DOC_CREATE";
     public const string SaleDocUpdate           = "SALE_DOC_UPDATE";
-    public const string SaleDocWarehouseConfirm = "SALE_DOC_WAREHOUSE_CONFIRM";
+    public const string SaleDocAssembly         = "SALE_DOC_WAREHOUSE_CONFIRM";
     public const string ConfirmSale             = "CONFIRM_SALE";
     public const string CancelSale              = "CANCEL_SALE";
     public const string SaleDocDelete           = "SALE_DOC_DELETE";

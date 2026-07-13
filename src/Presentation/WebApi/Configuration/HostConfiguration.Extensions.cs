@@ -259,31 +259,20 @@ namespace WebApi.Configuration
             if (origins.Any(origin => origin == "*"))
                 throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
 
+            if (!builder.Environment.IsDevelopment()
+                && !builder.Environment.IsEnvironment("Testing")
+                && origins.Length == 0)
+                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
+
             foreach (var origin in origins)
             {
-                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                    || uri.Scheme is not ("http" or "https")
-                    || string.IsNullOrWhiteSpace(uri.Host)
-                    || uri.Host.Contains('*', StringComparison.Ordinal)
-                    || uri.AbsolutePath != "/"
-                    || !string.IsNullOrEmpty(uri.Query)
-                    || !string.IsNullOrEmpty(uri.Fragment))
-                    throw new InvalidOperationException("Cors:AllowedOrigins contains an invalid origin.");
-            }
-
-            builder.Services.AddCors(options => options.AddPolicy("ApiCors", policy =>
-            {
-                if (origins.Length == 0)
+                options.AddPolicy("ApiCors", policy =>
                 {
-                    // Same-origin mode: do not emit CORS permissions or allow credentials implicitly.
+                    // Development/test-only fallback. It intentionally does not enable credentials.
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                     return;
                 }
-
-                policy.WithOrigins(origins)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            }));
+            });
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)

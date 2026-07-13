@@ -52,11 +52,11 @@ public class SaleDocController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPut("{id:long}/warehouse-confirm")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocWarehouseConfirm)]
-    public async Task<IResult> WarehouseConfirmAsync([FromRoute] long id, [FromBody] SaleDocWarehouseConfirmDto dto, CancellationToken ct = default)
+    [HttpPut("{id:long}/assembly")]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocAssembly)]
+    public async Task<IResult> AssemblyAsync([FromRoute] long id, [FromBody] List<SaleDocProductAssemblyDto> dtos, CancellationToken ct = default)
     {
-        var result = await _service.WarehouseConfirmAsync(id, dto, ct);
+        var result = await _service.AssemblyAsync(id, dtos, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 

@@ -11,6 +11,7 @@ public class SaleDocCreateDto
     public int? CustomerAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
+    public SaleProcessingMode ProcessingMode { get; set; } = SaleProcessingMode.StepByStep;
     public List<SaleDocCreateProductDto> Lines { get; set; } = new();
 }
 
@@ -25,4 +26,18 @@ public class SaleDocCreateProductDto
     public int? InventoryAccountId { get; set; }
     public int? IncomeAccountId { get; set; }
     public int? CostAccountId { get; set; }
+
+    public bool Assembled { get; set; } = false;
+    public List<SaleDocCreateProductTableDto> Items { get; set; } = new();
+}
+
+public class SaleDocCreateProductTableDto
+{
+    public int ProductTableId { get; set; }
+}
+
+public enum SaleProcessingMode
+{
+    StepByStep = 1,
+    Immediate = 2
 }

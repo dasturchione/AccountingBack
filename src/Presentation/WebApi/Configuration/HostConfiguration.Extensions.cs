@@ -253,7 +253,7 @@ namespace WebApi.Configuration
                     options.AddPolicy("ApiCors", policy =>
                     {
                         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                    }
+                    });
                 });
             }
         }

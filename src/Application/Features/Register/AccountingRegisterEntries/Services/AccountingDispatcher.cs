@@ -59,9 +59,9 @@ namespace Application.Features.Register.AccountingRegisterEntries
                 if (!validation.IsSuccess)
                     return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
 
-                var groupAccountValidation = await EnsureNoGroupAccountsAsync(accountingEntries, ct);
-                if (!groupAccountValidation.IsSuccess)
-                    return Result.Failure<List<AccountingRegisterEntry>>(groupAccountValidation.Error);
+                //var groupAccountValidation = await EnsureNoGroupAccountsAsync(accountingEntries, ct);
+                //if (!groupAccountValidation.IsSuccess)
+                //    return Result.Failure<List<AccountingRegisterEntry>>(groupAccountValidation.Error);
 
                 if (accountingEntries.Count > 0)
                     await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);

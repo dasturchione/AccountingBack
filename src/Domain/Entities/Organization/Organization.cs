@@ -75,8 +75,6 @@ public partial class Organization
     [Column("oked")]
     [StringLength(20)]
     public string? Oked { get; set; }
-    [InverseProperty("Organization")]
-    public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();

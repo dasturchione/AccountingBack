@@ -114,11 +114,24 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         foreach (var productLine in productLines)
         {
-            if (productLine.Quantity <= 0 || productLine.Quantity != decimal.Truncate(productLine.Quantity))
+            if (productLine.Quantity <= 0 ||
+                (productLine.IsPieceTracked && productLine.Quantity != decimal.Truncate(productLine.Quantity)))
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidProductQuantity(productLine.LineId, productLine.Quantity, _userContext.LanguageId));
         }
 
-        var productIds = productLines.Select(x => x.ProductId).Distinct().ToList();
+        var pieceTrackedLines = productLines
+            .Where(x => x.IsPieceTracked)
+            .ToList();
+
+        if (pieceTrackedLines.Count == 0)
+        {
+            if (selectedProductTableIds.Count > 0)
+                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+
+            return Result.Success(new List<ProductTableSelectionDto>());
+        }
+
+        var productIds = pieceTrackedLines.Select(x => x.ProductId).Distinct().ToList();
         var candidates = await GetInventoryCandidatesAsync(organizationId, warehouseId, productIds, ct);
 
         var candidateByTableId = candidates.ToDictionary(x => x.ProductTableId);
@@ -138,7 +151,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var result = new List<ProductTableSelectionDto>(selectedProductTableIds.Count);
 
-        foreach (var productGroup in productLines.GroupBy(x => x.ProductId))
+        foreach (var productGroup in pieceTrackedLines.GroupBy(x => x.ProductId))
         {
             var productId = productGroup.Key;
             var lines = productGroup.ToList();

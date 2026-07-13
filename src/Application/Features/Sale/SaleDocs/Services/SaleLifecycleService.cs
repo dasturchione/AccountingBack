@@ -356,7 +356,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (lineDto.CostPrice < 0)
                 return Result.Failure(SaleDocErrors.InvalidProductCostPrice(productLine.Id, lineDto.CostPrice, _userContext.LanguageId));
 
-            if (productLine.Product.IsService)
+            if (productLine.Product.IsService || !productLine.Product.IsPieceTracked)
             {
                 var amount = productLine.Quantity * lineDto.UnitPrice;
                 var vatAmountResult = await CalculateVatAsync(amount, productLine.VatRateId, ct);
@@ -426,7 +426,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (line.Quantity <= 0)
                 return Result.Failure(SaleDocErrors.InvalidProductQuantity(line.Id, line.Quantity, _userContext.LanguageId));
 
-            if (line.Product.IsService)
+            if (line.Product.IsService || !line.Product.IsPieceTracked)
             {
                 if (line.SaleDocTables.Count > 0)
                     return Result.Failure(SaleDocErrors.ServiceItemsNotAllowed(line.ProductId, _userContext.LanguageId));
@@ -651,8 +651,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     {
         var expectedRows = doc.SaleDocProducts
             .Where(x => !x.Product.IsService)
-            .SelectMany(x => x.SaleDocTables)
-            .Count();
+            .Sum(x => x.Product.IsPieceTracked ? x.SaleDocTables.Count : 1);
 
         var query = _queryBuilder.For<RegisterBalance>()
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.SALE &&
@@ -717,7 +716,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Select(x => new WarehouseProductBalanceItem(
                 x.ProductId,
                 x.UnitId,
-                x.SaleDocTables.Count))
+                x.Product.IsPieceTracked ? x.SaleDocTables.Count : x.Quantity))
             .Where(x => x.Quantity > 0m)
             .GroupBy(x => new { x.ProductId, x.UnitId })
             .Select(x => new WarehouseProductBalanceItem(

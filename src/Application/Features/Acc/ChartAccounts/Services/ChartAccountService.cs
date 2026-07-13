@@ -79,10 +79,8 @@ public class ChartAccountService : IChartAccountService
         {
             entity.ChartAccountSubkontos.Add(new ChartAccountSubkonto
             {
-                OrganizationId = organizationId,
                 SubkontoTypeId = subkonto.SubkontoTypeId,
                 SortOrder = subkonto.SortOrder,
-                IsRequired = subkonto.IsRequired,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             });
@@ -295,7 +293,6 @@ public class ChartAccountService : IChartAccountService
                     .Select(t => t.Name)
                     .FirstOrDefault() ?? x.SubkontoType.Name,
                 SortOrder = x.SortOrder,
-                IsRequired = x.IsRequired,
                 StateId = x.StateId,
                 StateName = x.State.FullName,
                 CreatedDate = x.CreatedDate
@@ -312,12 +309,9 @@ public class ChartAccountService : IChartAccountService
         int organizationId,
         CancellationToken ct)
     {
-        var existingQuery = new QuerySpecification<ChartAccountSubkonto>
-        {
-            Criteria = x => x.OrganizationId == organizationId && x.AccountId == accountId
-        };
-
+        var existingQuery = _queryBuilder.For<ChartAccountSubkonto>().Where(x => x.AccountId == accountId).Build();
         var existing = await _chartAccountSubkontoQuery.GetAllAsync(existingQuery, ct);
+
         var existingByTypeId = existing.ToDictionary(x => x.SubkontoTypeId);
         var requestedTypeIds = subkontos.Select(x => x.SubkontoTypeId).ToHashSet();
 
@@ -336,7 +330,6 @@ public class ChartAccountService : IChartAccountService
             if (existingByTypeId.TryGetValue(subkonto.SubkontoTypeId, out var entity))
             {
                 entity.SortOrder = subkonto.SortOrder;
-                entity.IsRequired = subkonto.IsRequired;
                 entity.StateId = StateIdConst.ACTIVE;
                 toUpdate.Add(entity);
                 continue;
@@ -344,11 +337,9 @@ public class ChartAccountService : IChartAccountService
 
             toCreate.Add(new ChartAccountSubkonto
             {
-                OrganizationId = organizationId,
                 AccountId = accountId,
                 SubkontoTypeId = subkonto.SubkontoTypeId,
                 SortOrder = subkonto.SortOrder,
-                IsRequired = subkonto.IsRequired,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             });
@@ -496,24 +487,20 @@ public class ChartAccountService : IChartAccountService
             return;
 
         var subkontoTypeIds = presetSubkontos.Select(x => x.SubkontoTypeId).Distinct().ToList();
-        var existingQuery = new QuerySpecification<ChartAccountSubkonto, short>
-        {
-            Criteria = x => x.OrganizationId == organizationId &&
-                            x.AccountId == chartAccount.Id &&
-                            subkontoTypeIds.Contains(x.SubkontoTypeId),
-            Selector = x => x.SubkontoTypeId
-        };
+        var existingQuery = _queryBuilder.For<ChartAccountSubkonto>()
+                                .Where(x => x.AccountId == chartAccount.Id && 
+                                            subkontoTypeIds.Contains(x.SubkontoTypeId))
+                                .As(s => s.SubkontoTypeId)
+                                .Build();
 
         var existingTypeIds = (await _chartAccountSubkontoQuery.GetAllAsync(existingQuery, ct)).ToHashSet();
         var missing = presetSubkontos
             .Where(x => !existingTypeIds.Contains(x.SubkontoTypeId))
             .Select(x => new ChartAccountSubkonto
             {
-                OrganizationId = organizationId,
                 AccountId = chartAccount.Id,
                 SubkontoTypeId = x.SubkontoTypeId,
                 SortOrder = x.SortOrder,
-                IsRequired = true,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             })

@@ -232,6 +232,13 @@ public class SaleDocService : BaseService, ISaleDocService
             if (goodsProductLines.Count == 0)
                 return Result.Success();
 
+            var pieceTrackedProductLines = goodsProductLines
+                .Where(x => x.Product.IsPieceTracked)
+                .ToList();
+
+            if (pieceTrackedProductLines.Count == 0 && dto.Items.Count > 0)
+                return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+
             if (productLines.Any(x => x.SaleDocTables.Count > 0))
                 return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(id, _userContext.LanguageId));
 
@@ -240,7 +247,8 @@ public class SaleDocService : BaseService, ISaleDocService
                 {
                     LineId = x.Id,
                     ProductId = x.ProductId,
-                    Quantity = x.Quantity
+                    Quantity = x.Quantity,
+                    IsPieceTracked = x.Product.IsPieceTracked
                 })
                 .ToList();
 
@@ -263,9 +271,12 @@ public class SaleDocService : BaseService, ISaleDocService
             if (!warehouseReserve.IsSuccess)
                 return Result.Failure(warehouseReserve.Error);
 
-            var reserved = await _reservationService.TryReserveAsync(doc.WarehouseId, selectedProductTableIds, ct);
-            if (!reserved)
-                return Result.Failure(SaleDocErrors.InventoryReservationConflict(_userContext.LanguageId));
+            if (selectedProductTableIds.Count > 0)
+            {
+                var reserved = await _reservationService.TryReserveAsync(doc.WarehouseId, selectedProductTableIds, ct);
+                if (!reserved)
+                    return Result.Failure(SaleDocErrors.InventoryReservationConflict(_userContext.LanguageId));
+            }
 
             var selectedByLineId = selectedItems
                 .GroupBy(x => x.LineId)
@@ -273,7 +284,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
             var allNewLines = new List<SaleDocTable>();
 
-            foreach (var productLine in goodsProductLines)
+            foreach (var productLine in pieceTrackedProductLines)
             {
                 var matchedPts = selectedByLineId.GetValueOrDefault(productLine.Id) ?? new List<ProductTableSelectionDto>();
 
@@ -462,7 +473,7 @@ public class SaleDocService : BaseService, ISaleDocService
     {
         foreach (var line in productLines)
         {
-            if (line.Product.IsService)
+            if (line.Product.IsService || !line.Product.IsPieceTracked)
             {
                 if (line.SaleDocTables.Count > 0)
                     return Result.Failure(SaleDocErrors.ServiceItemsNotAllowed(line.ProductId, _userContext.LanguageId));
@@ -517,7 +528,7 @@ public class SaleDocService : BaseService, ISaleDocService
             if (!productById.TryGetValue(p.ProductId, out var product))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.ProductNotFound(p.ProductId, _userContext.LanguageId));
 
-            if (p.Quantity <= 0 || (!product.IsService && p.Quantity != decimal.Truncate(p.Quantity)))
+            if (p.Quantity <= 0 || (product.IsPieceTracked && p.Quantity != decimal.Truncate(p.Quantity)))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.InvalidProductQuantity(p.ProductId, p.Quantity, _userContext.LanguageId));
 
             if (p.UnitPrice < 0)
@@ -544,7 +555,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = p.Quantity,
                 UnitId = unitId,
                 UnitPrice = p.UnitPrice,
-                CostPrice = product.IsService ? p.CostPrice : 0m,
+                CostPrice = product.IsService || !product.IsPieceTracked ? p.CostPrice : 0m,
                 Amount = amount,
                 VatRateId = p.VatRateId,
                 InventoryAccountId = p.InventoryAccountId,
@@ -583,7 +594,7 @@ public class SaleDocService : BaseService, ISaleDocService
             if (!productById.TryGetValue(p.ProductId, out var product))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.ProductNotFound(p.ProductId, _userContext.LanguageId));
 
-            if (p.Quantity <= 0 || (!product.IsService && p.Quantity != decimal.Truncate(p.Quantity)))
+            if (p.Quantity <= 0 || (product.IsPieceTracked && p.Quantity != decimal.Truncate(p.Quantity)))
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.InvalidProductQuantity(p.Id ?? p.ProductId, p.Quantity, _userContext.LanguageId));
 
             if (p.UnitPrice < 0)
@@ -610,7 +621,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = p.Quantity,
                 UnitId = unitId,
                 UnitPrice = p.UnitPrice,
-                CostPrice = product.IsService ? p.CostPrice : 0m,
+                CostPrice = product.IsService || !product.IsPieceTracked ? p.CostPrice : 0m,
                 Amount = amount,
                 VatRateId = p.VatRateId,
                 InventoryAccountId = p.InventoryAccountId,
@@ -632,12 +643,30 @@ public class SaleDocService : BaseService, ISaleDocService
             .GroupBy(x => x.ProductId)
             .ToDictionary(x => x.Key, x => x.First().UnitId);
 
-        return selectedItems
+        var pieceTrackedItems = selectedItems
             .GroupBy(x => x.ProductId)
             .Select(x => new WarehouseProductBalanceItem(
                 x.Key,
                 unitIdByProductId[x.Key],
                 x.Count()))
+            .ToList();
+
+        var nonPieceTrackedItems = productLines
+            .Where(x => !x.Product.IsService && !x.Product.IsPieceTracked)
+            .Select(x => new WarehouseProductBalanceItem(
+                x.ProductId,
+                x.UnitId,
+                x.Quantity))
+            .ToList();
+
+        return pieceTrackedItems
+            .Concat(nonPieceTrackedItems)
+            .Where(x => x.Quantity > 0m)
+            .GroupBy(x => new { x.ProductId, x.UnitId })
+            .Select(x => new WarehouseProductBalanceItem(
+                x.Key.ProductId,
+                x.Key.UnitId,
+                x.Sum(i => i.Quantity)))
             .ToList();
     }
 

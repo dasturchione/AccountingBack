@@ -1,6 +1,5 @@
 ﻿using Application.Abstractions;
 using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 
@@ -110,8 +109,7 @@ namespace Application.Features.Register.PostingEngines
                     .OrderBy(subkonto => subkonto.SortOrder)
                     .Select(subkonto => new AccountSubkontoConfig(
                         subkonto.SubkontoTypeId,
-                        subkonto.SortOrder,
-                        subkonto.IsRequired))
+                        subkonto.SortOrder))
                     .ToList());
         }
 
@@ -145,12 +143,6 @@ namespace Application.Features.Register.PostingEngines
 
                 if (value == null)
                 {
-                    if (requiredSubkonto.IsRequired)
-                    {
-                        throw new ArgumentException(
-                            $"Для счёта {accountId} не передано обязательное субконто типа {requiredSubkonto.SubkontoTypeId}.");
-                    }
-
                     continue;
                 }
 
@@ -206,6 +198,6 @@ namespace Application.Features.Register.PostingEngines
                 _ => []
             };
 
-        private sealed record AccountSubkontoConfig(short SubkontoTypeId, int SortOrder, bool IsRequired);
+        private sealed record AccountSubkontoConfig(short SubkontoTypeId, int SortOrder);
     }
 }

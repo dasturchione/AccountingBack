@@ -144,6 +144,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
 
             await _command.CreateAsync(doc, ct);
 
+            if (dto.ProcessingMode == PurchaseProcessingMode.Immediate)
+            {
+                var confirmResult = await _purchaseLifecycleService.ConfirmAsync(doc.Id, ct);
+                if (!confirmResult.IsSuccess)
+                    return Result.Failure<long>(confirmResult.Error);
+            }
+
             var docDto = await GetByIdInternalAsync(doc.Id, ct);
             if (docDto != null)
             {

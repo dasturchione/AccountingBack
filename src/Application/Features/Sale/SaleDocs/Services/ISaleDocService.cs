@@ -9,7 +9,7 @@ public interface ISaleDocService
     Task<Result<SaleDocDto>> GetByIdAsync(long id, CancellationToken ct = default);
     Task<Result<long>> CreateAsync(SaleDocCreateDto dto, CancellationToken ct = default);
     Task<Result> UpdateAsync(long id, SaleDocUpdateDto dto, CancellationToken ct = default);
-    Task<Result> WarehouseConfirmAsync(long id, SaleDocWarehouseConfirmDto dto, CancellationToken ct = default);
+    Task<Result> AssemblyAsync(long id, List<SaleDocProductAssemblyDto> dtos, CancellationToken ct = default);
     Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default);
     Task<Result> CancelAsync(long id, CancellationToken ct = default);
     Task<Result> DeleteAsync(long id, CancellationToken ct = default);

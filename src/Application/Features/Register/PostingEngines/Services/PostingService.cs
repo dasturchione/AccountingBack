@@ -2,6 +2,7 @@
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
+using SharedKernel.Results;
 
 namespace Application.Features.Register.PostingEngines
 {
@@ -18,7 +19,7 @@ namespace Application.Features.Register.PostingEngines
             _chartAccountQuery = chartAccountQuery;
         }
 
-        public async Task<List<AccountingRegisterEntry>> BuildEntriesAsync(List<PostingContext> contexts)
+        public async Task<Result<List<AccountingRegisterEntry>>> BuildEntriesAsync(List<PostingContext> contexts)
         {
             var quantityAccountIds = await GetQuantityAccountIdsAsync(contexts);
             var accountSubkontoMap = await GetAccountSubkontoMapAsync(contexts);
@@ -27,7 +28,7 @@ namespace Application.Features.Register.PostingEngines
             foreach (var context in contexts)
             {
                 if (context.Entries.Count == 0)
-                    throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не созданы прямые строки проводок.");
+                    return Result.Failure<List<AccountingRegisterEntry>>(Error.Business("PostingEngine.EmptyEntries", $"Для документа {context.DocumentTypeId}/{context.DocumentId} не созданы прямые строки проводок."));
 
                 foreach (var line in context.Entries)
                 {
@@ -35,10 +36,10 @@ namespace Application.Features.Register.PostingEngines
                         continue;
 
                     if (!line.DebitAccountId.HasValue || line.DebitAccountId.Value <= 0)
-                        throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан debit_account_id.");
+                        return Result.Failure<List<AccountingRegisterEntry>>(Error.Business("PostingEngine.DebitAccountMissing", $"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан debit_account_id."));
 
                     if (!line.CreditAccountId.HasValue || line.CreditAccountId.Value <= 0)
-                        throw new ArgumentException($"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан credit_account_id.");
+                        return Result.Failure<List<AccountingRegisterEntry>>(Error.Business("PostingEngine.CreditAccountMissing", $"Для документа {context.DocumentTypeId}/{context.DocumentId} не указан credit_account_id."));
 
                     var debitAccountId = line.DebitAccountId.Value;
                     var creditAccountId = line.CreditAccountId.Value;
@@ -71,7 +72,7 @@ namespace Application.Features.Register.PostingEngines
                 }
             }
 
-            return result;
+            return Result.Success(result);
         }
 
         private async Task<HashSet<int>> GetQuantityAccountIdsAsync(List<PostingContext> contexts)

@@ -59,7 +59,6 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<FaGroup>(modelBuilder);
             ApplyScopedFilter<PricingCondition>(modelBuilder);
             ApplyScopedFilter<SaleCondition>(modelBuilder);
-            ApplyScopedFilter<ChartAccountSubkonto>(modelBuilder);
             ApplyScopedFilter<Product>(modelBuilder);
             ApplyScopedFilter<InventoryAdjustmentDoc>(modelBuilder);
             ApplyScopedFilter<InventoryCountDoc>(modelBuilder);

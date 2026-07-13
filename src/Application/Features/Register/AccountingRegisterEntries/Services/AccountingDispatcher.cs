@@ -48,7 +48,11 @@ namespace Application.Features.Register.AccountingRegisterEntries
 
             try
             {
-                var accountingEntries = await _postingService.BuildEntriesAsync(contextsResult.Value);
+                var entriesResult = await _postingService.BuildEntriesAsync(contextsResult.Value);
+                if (!entriesResult.IsSuccess)
+                    return Result.Failure<List<AccountingRegisterEntry>>(entriesResult.Error);
+
+                var accountingEntries = entriesResult.Value;
                 if (postingBatchId.HasValue)
                 {
                     foreach (var entry in accountingEntries)

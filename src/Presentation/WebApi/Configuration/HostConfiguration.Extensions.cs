@@ -247,44 +247,13 @@ namespace WebApi.Configuration
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
         {
-            var configuredOrigins = builder.Configuration
-                .GetSection("Cors:AllowedOrigins")
-                .Get<string[]>() ?? [];
-            var origins = configuredOrigins
-                .Where(origin => !string.IsNullOrWhiteSpace(origin))
-                .Select(origin => origin.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (origins.Any(origin => origin == "*"))
-                throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
-
-            foreach (var origin in origins)
+            builder.Services.AddCors(options =>
             {
-                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                    || uri.Scheme is not ("http" or "https")
-                    || string.IsNullOrWhiteSpace(uri.Host)
-                    || uri.Host.Contains('*', StringComparison.Ordinal)
-                    || uri.AbsolutePath != "/"
-                    || !string.IsNullOrEmpty(uri.Query)
-                    || !string.IsNullOrEmpty(uri.Fragment))
-                    throw new InvalidOperationException("Cors:AllowedOrigins contains an invalid origin.");
-            }
-
-            builder.Services.AddCors(options => options.AddPolicy("ApiCors", policy =>
-            {
-                if (origins.Length == 0)
+                options.AddPolicy("ApiCors", policy =>
                 {
-                    // Fallback for deployments without configured origins. It intentionally does not enable credentials.
                     policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                    return;
                 }
-
-                policy.WithOrigins(origins)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            }));
+            });
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)

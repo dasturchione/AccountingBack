@@ -21,7 +21,10 @@ namespace WebApi.Infrastructure
             }
             else
             {
-                logger.LogError(exception, "Unhandled exception occurred for correlation {CorrelationId}", correlationId);
+                logger.LogError(
+                    "Unhandled exception {ExceptionType} for correlation {CorrelationId}",
+                    exception.GetType().Name,
+                    correlationId);
             }
 
             var problemDetails = exception switch
@@ -31,28 +34,28 @@ namespace WebApi.Infrastructure
                     Status = StatusCodes.Status409Conflict,
                     Type = "https://tools.ietf.org/html/rfc9110#section-15.5.10",
                     Title = "OptimisticConcurrencyConflict",
-                    Detail = concurrencyException.Message
+                    Detail = "The request could not be completed because of a concurrency conflict."
                 },
                 UniqueConstraintViolationException uniqueConstraintException => new ProblemDetails
                 {
                     Status = StatusCodes.Status409Conflict,
                     Type = "https://tools.ietf.org/html/rfc9110#section-15.5.10",
                     Title = "UniqueConstraintViolation",
-                    Detail = uniqueConstraintException.Message
+                    Detail = "The request could not be completed because it conflicts with existing data."
                 },
                 IntegrationUnauthorizedException unauthorizedException => new ProblemDetails
                 {
                     Status = StatusCodes.Status401Unauthorized,
                     Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2",
                     Title = "IntegrationUnauthorized",
-                    Detail = unauthorizedException.Message
+                    Detail = "The integration provider rejected the credentials."
                 },
                 IntegrationForbiddenException forbiddenException => new ProblemDetails
                 {
                     Status = StatusCodes.Status403Forbidden,
                     Type = "https://tools.ietf.org/html/rfc9110#section-15.5.4",
                     Title = "IntegrationForbidden",
-                    Detail = forbiddenException.Message
+                    Detail = "The integration provider denied the request."
                 },
                 IntegrationHttpException integrationHttpException => new ProblemDetails
                 {
@@ -67,9 +70,7 @@ namespace WebApi.Infrastructure
                         >= 500 and <= 599 => "IntegrationServerError",
                         _ => "IntegrationError"
                     },
-                    Detail = string.IsNullOrWhiteSpace(integrationHttpException.Message)
-                        ? "Integration call failed with an empty error message."
-                        : integrationHttpException.Message
+                    Detail = "The integration provider could not complete the request."
                 },
                 _ => new ProblemDetails
                 {

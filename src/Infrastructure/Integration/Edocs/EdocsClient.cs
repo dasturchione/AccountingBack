@@ -13,22 +13,30 @@ namespace Integration.Edocs;
 public sealed class EdocsClient : IEdocsClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(2);
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly EdocsOptions _options;
     private readonly EdocsResponseSanitizer _sanitizer;
     private readonly ILogger<EdocsClient> _logger;
+    private readonly Func<TimeSpan, CancellationToken, Task> _retryDelay;
 
-    public EdocsClient(IHttpClientFactory httpClientFactory, IOptions<EdocsOptions> options, EdocsResponseSanitizer sanitizer, ILogger<EdocsClient> logger)
+    public EdocsClient(
+        IHttpClientFactory httpClientFactory,
+        IOptions<EdocsOptions> options,
+        EdocsResponseSanitizer sanitizer,
+        ILogger<EdocsClient> logger,
+        Func<TimeSpan, CancellationToken, Task>? retryDelay = null)
     {
         _httpClientFactory = httpClientFactory;
         _options = options.Value;
         _sanitizer = sanitizer;
         _logger = logger;
+        _retryDelay = retryDelay ?? Task.Delay;
     }
 
     public async Task<Result<string>> GetAuthIdAsync(string serialNumber, CancellationToken ct = default)
     {
-        var response = await SendGetAsync($"authId/{Uri.EscapeDataString(serialNumber)}", null, "auth challenge", ct);
+        var response = await SendGetAsync($"authId/{Uri.EscapeDataString(serialNumber)}", null, "auth challenge", ct, allowRetry: false);
         if (!response.IsSuccess)
             return Result.Failure<string>(response.Error);
 
@@ -81,13 +89,20 @@ public sealed class EdocsClient : IEdocsClient
         return Result.Success(new EdocsExternalDocumentPage(items, GetInt(root, "total") ?? GetInt(document.RootElement, "total")));
     }
 
-    private async Task<Result<JsonDocument>> SendGetAsync(string path, string? bearerToken, string operation, CancellationToken ct)
+    private async Task<Result<JsonDocument>> SendGetAsync(
+        string path,
+        string? bearerToken,
+        string operation,
+        CancellationToken ct,
+        bool allowRetry = true)
     {
+        ct.ThrowIfCancellationRequested();
+
         var uri = TryBuildUri(path);
         if (!uri.IsSuccess)
             return Result.Failure<JsonDocument>(uri.Error);
 
-        var attempts = Math.Clamp(_options.GetRetryCount, 1, 3);
+        var attempts = allowRetry ? Math.Clamp(_options.GetRetryCount, 1, 3) : 1;
         for (var attempt = 1; attempt <= attempts; attempt++)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, uri.Value);
@@ -106,7 +121,9 @@ public sealed class EdocsClient : IEdocsClient
                 if (IsTransient(response.StatusCode) && attempt < attempts)
                 {
                     _logger.LogWarning("E-DOCS {Operation} returned transient status {StatusCode}; retrying GET attempt {Attempt}/{Attempts}.", operation, (int)response.StatusCode, attempt, attempts);
-                    await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt), ct);
+                    // Honors a provider Retry-After (e.g. on 429) but never sleeps past the fixed cap.
+                    var delay = GetRetryDelay(response, TimeSpan.FromMilliseconds(100 * attempt));
+                    await _retryDelay(delay, ct);
                     continue;
                 }
 
@@ -116,11 +133,19 @@ public sealed class EdocsClient : IEdocsClient
             catch (HttpRequestException) when (attempt < attempts)
             {
                 _logger.LogWarning("E-DOCS {Operation} transport failure; retrying GET attempt {Attempt}/{Attempts}.", operation, attempt, attempts);
-                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt), ct);
+                await _retryDelay(TimeSpan.FromMilliseconds(100 * attempt), ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Caller cancellation propagates; it is never converted into a provider error.
+                throw;
             }
             catch (OperationCanceledException)
             {
-                throw;
+                // HttpClient timeout. Fail closed with a safe error and never retry a timed-out
+                // request — the provider may already have received it.
+                _logger.LogWarning("E-DOCS {Operation} timed out at the configured HttpClient timeout.", operation);
+                return Result.Failure<JsonDocument>(Error.Problem("Edocs.Timeout", _sanitizer.SafeClientMessage()));
             }
             catch (HttpRequestException)
             {
@@ -133,6 +158,8 @@ public sealed class EdocsClient : IEdocsClient
 
     private async Task<Result<T>> SendAndParseAsync<T>(HttpRequestMessage request, string operation, Func<JsonElement, Result<T>> parser, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         try
         {
             using var response = await CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -146,9 +173,16 @@ public sealed class EdocsClient : IEdocsClient
             using var document = JsonDocument.Parse(content);
             return parser(document.RootElement);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Caller cancellation propagates; it is never converted into a provider error.
+            throw;
+        }
         catch (OperationCanceledException)
         {
-            throw;
+            // HttpClient timeout. Fail closed with a safe error; login/challenge is never retried.
+            _logger.LogWarning("E-DOCS {Operation} timed out at the configured HttpClient timeout.", operation);
+            return Result.Failure<T>(Error.Problem("Edocs.Timeout", _sanitizer.SafeClientMessage()));
         }
         catch (HttpRequestException)
         {
@@ -229,5 +263,19 @@ public sealed class EdocsClient : IEdocsClient
     private static DateTimeOffset? GetDate(JsonElement element, string property) => DateTimeOffset.TryParse(GetString(element, property), out var result) ? result : null;
     private static void AddIfPresent(List<string> values, JsonElement element, string property) { var value = GetString(element, property); if (!string.IsNullOrWhiteSpace(value)) values.Add(value); }
     private static bool IsTransient(HttpStatusCode statusCode) => statusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests or HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
+
+    private static TimeSpan GetRetryDelay(HttpResponseMessage response, TimeSpan fallback)
+    {
+        var delay = fallback;
+        if (response.Headers.RetryAfter is { } retryAfter)
+        {
+            var fromHeader = retryAfter.Delta
+                ?? (retryAfter.Date is { } date ? date - DateTimeOffset.UtcNow : (TimeSpan?)null);
+            if (fromHeader is { } value && value >= TimeSpan.Zero)
+                delay = value;
+        }
+
+        return delay <= MaxRetryDelay ? delay : MaxRetryDelay;
+    }
     private static Error ToError(HttpStatusCode statusCode) => statusCode switch { HttpStatusCode.Unauthorized => Error.Unauthorized("Edocs.Unauthorized", "E-DOCS authorization is no longer valid."), HttpStatusCode.Forbidden => Error.Forbidden("Edocs.Forbidden", "E-DOCS denied the request."), _ => Error.Problem("Edocs.ExternalFailure", "E-DOCS request failed.") };
 }

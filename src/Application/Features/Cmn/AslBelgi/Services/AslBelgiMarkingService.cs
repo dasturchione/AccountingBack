@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Cmn.AslBelgi.Abstractions;
 using Application.Features.Cmn.AslBelgi.DTOs;
 using Application.Features.Cmn.AslBelgi.Errors;
+using Application.Features.Integration;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -74,7 +75,15 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
         });
 
     public Task<Result<AslBelgiBindResultDto>> FetchAndBindCodesAsync(AslBelgiBindCodesRequestDto request, CancellationToken ct = default)
-        => ExecuteInTransactionAsync("FetchAndBindCodes", async () =>
+    {
+        // Fail closed before the transaction begins: while the Asl Belgisi contract (including the
+        // codes fetch/consume semantics) is unverified, no provider call and no database write may
+        // happen from this flow.
+        var writeGate = ProviderWriteGate.RequireContract(Provider.AslBelgi);
+        if (!writeGate.IsSuccess)
+            return Task.FromResult(Result.Failure<AslBelgiBindResultDto>(writeGate.Error));
+
+        return ExecuteInTransactionAsync("FetchAndBindCodes", async () =>
         {
             if (_userContext.OrganizationId is not { } organizationId)
                 return Result.Failure<AslBelgiBindResultDto>(AslBelgiErrors.UserHasNoOrganization());
@@ -118,7 +127,7 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
                     MarkingNumber = code,
                     StatusId = ProductTableStatusIdConst.IN_STOCK,
                     StateId = StateIdConst.ACTIVE,
-                    CreatedDate = DateTime.Now
+                    CreatedDate = DateTime.UtcNow
                 }).ToList();
 
                 await _productTableCommand.CreateAsync(rows, ct);
@@ -126,6 +135,7 @@ public sealed class AslBelgiMarkingService : BaseService, IAslBelgiMarkingServic
 
             return Result.Success(BuildResult(request.OrderId, packId, total: codes.Count, bound: newCodes.Count));
         }, ct);
+    }
 
     private static AslBelgiBindResultDto BuildResult(string orderId, string? packId, int total, int bound) => new()
     {

@@ -2,6 +2,7 @@ using Application.Abstractions.Integration;
 using Application.Abstractions;
 using Application.Features.Cmn.Taxes.Integration.DTOs;
 using Application.Features.Cmn.Taxes.Integration.Mappers;
+using Application.Features.Integration;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Query;
@@ -119,6 +120,10 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
 
     public async Task<Result<TaxDocumentResultDto>> SubmitDidoxAsync(TaxDocumentRequestDto request, CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.Didox);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<TaxDocumentResultDto>(writeGate.Error);
+
         if (!string.IsNullOrWhiteSpace(request.Payload))
             return await ExecuteDocumentAsync("DIDOX", "submit", request, ct);
 
@@ -140,10 +145,19 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
         => await ExecuteDocumentAsync("DIDOX", "status", request, ct);
 
     public async Task<Result<TaxDocumentResultDto>> CancelDidoxAsync(TaxDocumentRequestDto request, CancellationToken ct = default)
-        => await ExecuteDocumentAsync("DIDOX", "cancel", request, ct);
+    {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.Didox);
+        return writeGate.IsSuccess
+            ? await ExecuteDocumentAsync("DIDOX", "cancel", request, ct)
+            : Result.Failure<TaxDocumentResultDto>(writeGate.Error);
+    }
 
     public async Task<Result<DidoxTokenResultDto>> GetDidoxTokenBySignatureAsync(DidoxAuthSignatureRequestDto request, CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.Didox);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<DidoxTokenResultDto>(writeGate.Error);
+
         if (string.IsNullOrWhiteSpace(request.Signature))
             return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.SignatureRequired", "E-IMZO signature is required."));
 
@@ -157,6 +171,10 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
 
     public async Task<Result<DidoxTokenResultDto>> GetDidoxTokenByPasswordAsync(DidoxAuthPasswordRequestDto request, CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.Didox);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<DidoxTokenResultDto>(writeGate.Error);
+
         if (string.IsNullOrWhiteSpace(request.Password))
             return Result.Failure<DidoxTokenResultDto>(Error.Problem("Didox.PasswordRequired", "Password is required."));
 
@@ -170,6 +188,10 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
 
     public async Task<Result<TaxDocumentResultDto>> SignDidoxAsync(DidoxSignRequestDto request, CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.Didox);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<TaxDocumentResultDto>(writeGate.Error);
+
         if (string.IsNullOrWhiteSpace(request.DocumentId))
             return Result.Failure<TaxDocumentResultDto>(Error.Problem("Didox.DocumentIdRequired", "Document id is required."));
 
@@ -523,6 +545,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
             return Result.Failure<DidoxTokenResultDto>(DidoxAuthFailed);
 
         var token = result.Token;
+        var expiresAtUtc = DidoxSessionPolicy.GetAccessExpiresAtUtc(DateTime.UtcNow);
         var tokenReference = _secretProtector.Protect(scope, token);
         if (!tokenReference.IsSuccess)
             return Result.Failure<DidoxTokenResultDto>(DidoxCredentialRequired);
@@ -540,7 +563,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
                 tokenReference.Value,
                 keyVersion: 1,
                 validFromUtc: DateTime.UtcNow,
-                expiresAtUtc: null,
+                expiresAtUtc: expiresAtUtc,
                 createdByUserId: null,
                 ct);
             if (!added.IsSuccess)
@@ -565,7 +588,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
                 tokenReference.Value,
                 RefreshTokenReference: null,
                 TokenFingerprint: Fingerprint(token),
-                AccessExpiresAtUtc: null,
+                AccessExpiresAtUtc: expiresAtUtc,
                 RefreshExpiresAtUtc: null,
                 Credential: credentialEntity),
             credentialEntity.KeyVersion,

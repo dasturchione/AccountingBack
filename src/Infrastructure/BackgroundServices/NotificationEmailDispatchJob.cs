@@ -32,7 +32,7 @@ public sealed class NotificationEmailDispatchJob : IJob
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "NotificationEmailDispatchJob failed: {Message}", ex.Message);
+            _logger.LogError("NotificationEmailDispatchJob failed; ExceptionType={ExceptionType}", ex.GetType().Name);
         }
     }
 }

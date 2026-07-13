@@ -82,7 +82,7 @@ namespace Application.Features
             catch (Exception ex)
             {
                 await TryRollbackAsync(fullName, ct);
-                _logger.LogError(ex, "Exception in {Operation}", fullName);
+                _logger.LogError("Exception in {Operation}; ExceptionType={ExceptionType}", fullName, ex.GetType().Name);
                 throw;
             }
         }
@@ -105,7 +105,7 @@ namespace Application.Features
             }
             catch (Exception rollbackEx)
             {
-                _logger.LogError(rollbackEx, "Rollback failed in {Operation}", fullName);
+                _logger.LogError("Rollback failed in {Operation}; ExceptionType={ExceptionType}", fullName, rollbackEx.GetType().Name);
             }
         }
     }

@@ -12,12 +12,9 @@ public enum ProviderContractState
 
 /// <summary>Safe local-only provider readiness result. It deliberately contains no TIN or secret material.</summary>
 public sealed record ProviderPreflightResult(
-    string Provider,
     bool Ready,
     bool CredentialPresent,
     bool SessionPresent,
-    DateTime? SessionExpiresAtUtc,
-    bool NeedsReauthentication,
     string ContractState,
     string? SafeErrorCode);
 

@@ -29,7 +29,7 @@ public class AdjustBalanceJob : IJob
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AdjustBalanceJob xatosi: {Message}", ex.Message);
+            _logger.LogError("AdjustBalanceJob xatosi; ExceptionType={ExceptionType}", ex.GetType().Name);
         }
     }
 }

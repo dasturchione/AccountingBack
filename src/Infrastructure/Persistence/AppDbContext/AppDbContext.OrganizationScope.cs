@@ -36,6 +36,13 @@ namespace Infrastructure.Persistence
 
         private void ApplyOrganizationFilters(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Organization>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Id == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Id))));
+
             // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
             ApplyScopedFilter<BankAccount>(modelBuilder);
             ApplyScopedFilter<AccountingPeriod>(modelBuilder);

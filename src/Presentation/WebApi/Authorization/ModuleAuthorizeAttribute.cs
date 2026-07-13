@@ -17,6 +17,8 @@ public sealed class ModuleAuthorizeAttribute : Attribute, IAsyncAuthorizationFil
         _permissionCodes = permissionCodes ?? Array.Empty<string>();
     }
 
+    public IReadOnlyList<string> PermissionCodes => _permissionCodes;
+
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         if (!AuthorizationGuard.EnsureAuthenticated(context))

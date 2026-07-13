@@ -50,6 +50,7 @@ public sealed class EImzoChallengeStore(
             return;
 
         var boundedExpiry = expires < now.Add(ttl) ? expires : now.Add(ttl);
+
         db.EImzoChallenges.Add(new EImzoChallenge
         {
             ChallengeId = challenge.ChallengeId.Trim(),
@@ -91,6 +92,8 @@ public sealed class EImzoChallengeStore(
         if (!IsValidScope(scope) || !IsHash(challenge.PayloadHash))
             return;
 
+        var boundedExpiry = expires < now.Add(ChallengeTtl) ? expires : now.Add(ChallengeTtl);
+
         db.EImzoChallenges.Add(new EImzoChallenge
         {
             ChallengeId = challenge.ChallengeId.Trim(),
@@ -101,7 +104,7 @@ public sealed class EImzoChallengeStore(
             AuthIdHash = null,
             PayloadHash = challenge.PayloadHash.Trim(),
             SignMode = challenge.Mode.ToString(),
-            ExpiresAtUtc = expires,
+            ExpiresAtUtc = boundedExpiry,
             ConsumedAtUtc = null,
             State = EImzoChallengeState.Pending,
             CreatedAtUtc = now

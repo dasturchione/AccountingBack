@@ -24,7 +24,8 @@ public sealed class EdocsIntegrationService(
     IProviderSessionStore sessionStore,
     IEdocsClient edocsClient,
     IEdocsChallengeStore challengeStore,
-    IUnitOfWork unitOfWork) : IEdocsIntegrationService
+    IUnitOfWork unitOfWork,
+    EdocsSessionOptions sessionOptions) : IEdocsIntegrationService
 {
     private const string EImzoCertificateKind = "edocs-eimzo-cert";
 
@@ -114,7 +115,9 @@ public sealed class EdocsIntegrationService(
             tokenReference.Value,
             RefreshTokenReference: null,
             TokenFingerprint: Fingerprint(login.Value.Token),
-            AccessExpiresAtUtc: null,
+            // Enforced locally from Edocs:TokenTtlMinutes; an expired session fails closed as
+            // "reconnect required" without ever calling the provider. No refresh flow exists.
+            AccessExpiresAtUtc: DateTime.UtcNow.Add(sessionOptions.AccessTokenTtl),
             RefreshExpiresAtUtc: null,
             Credential: credential.Value.Entity);
 
@@ -173,6 +176,20 @@ public sealed class EdocsIntegrationService(
     {
         if (query.Page < 1 || query.Limit is < 1 or > 100)
             return Result.Failure<EdocsDocumentListResponse>(Error.Problem("Edocs.DocumentPagingInvalid", "Page must be positive and limit must be between 1 and 100."));
+
+        // Only page/limit are contract-safe today. The remaining query fields have no verified
+        // provider contract, so they are rejected instead of being passed through. The error is
+        // deliberately value-free.
+        if (!string.IsNullOrWhiteSpace(query.Sort)
+            || query.Order is not null
+            || !string.IsNullOrWhiteSpace(query.Filter)
+            || !string.IsNullOrWhiteSpace(query.Fields)
+            || !string.IsNullOrWhiteSpace(query.Io)
+            || !string.IsNullOrWhiteSpace(query.Status)
+            || !string.IsNullOrWhiteSpace(query.Type))
+            return Result.Failure<EdocsDocumentListResponse>(Error.Problem(
+                "Edocs.DocumentFilterUnverified",
+                "Only page and limit are supported until the E-DOCS document filter contract is verified."));
 
         var scope = await ResolveEdocsSessionScopeAsync(ct);
         if (!scope.IsSuccess)
@@ -283,6 +300,11 @@ public sealed class EdocsIntegrationService(
             return Result.Failure<UsableSession>(session.Error);
 
         if (session.Value is null)
+            return Result.Failure<UsableSession>(ConnectionRequired);
+
+        // Defense in depth on top of the store's own expiry filter: an expired session is
+        // rejected here without unprotecting the token or calling the provider.
+        if (session.Value.AccessExpiresAtUtc is { } expiresAt && expiresAt <= DateTime.UtcNow)
             return Result.Failure<UsableSession>(ConnectionRequired);
 
         var reference = EncryptedSecretReference.Create(session.Value.EncryptedAccessTokenReference);

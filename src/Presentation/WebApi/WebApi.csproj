@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseAppHost>false</UseAppHost>
     <UserSecretsId>accounting-back-webapi</UserSecretsId>
+    <!-- Exclude nested build snapshots; they can exceed Windows MAX_PATH during SDK enumeration. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts-cleanup\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

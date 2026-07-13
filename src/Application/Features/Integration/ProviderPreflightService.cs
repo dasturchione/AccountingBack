@@ -22,7 +22,6 @@ public sealed class ProviderPreflightService(
         var contractState = ContractState(provider);
         var credentialPresent = false;
         var sessionPresent = false;
-        DateTime? sessionExpiresAtUtc = null;
         var safeErrorCode = (string?)null;
         OrganizationScope? sessionScope = scope.Value;
 
@@ -70,7 +69,6 @@ public sealed class ProviderPreflightService(
             if (session.IsSuccess && session.Value is not null)
             {
                 sessionPresent = true;
-                sessionExpiresAtUtc = session.Value.AccessExpiresAtUtc;
             }
         }
 
@@ -81,19 +79,15 @@ public sealed class ProviderPreflightService(
         else if (!sessionPresent)
             safeErrorCode ??= "SessionMissingOrExpired";
 
-        var needsReauthentication = credentialPresent && !sessionPresent;
         var ready = contractState != ProviderContractState.Blocked
             && credentialPresent
             && sessionPresent
             && safeErrorCode is null;
 
         return Result.Success(new ProviderPreflightResult(
-            provider.ToString(),
             ready,
             credentialPresent,
             sessionPresent,
-            sessionExpiresAtUtc,
-            needsReauthentication,
             contractState.ToString(),
             safeErrorCode));
     }

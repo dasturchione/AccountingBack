@@ -98,8 +98,7 @@ internal sealed class EImzoSigner : IEImzoSigner
                 return Result.Failure<CertificateInfo>(Error.Problem("EImzo.CertificateChainInvalid", chainError));
 
             _logger.LogInformation(
-                "E-IMZO certificate metadata was read with native X509 loader. Subject: {Subject}, SignatureAlgorithm: {SignatureAlgorithm}",
-                certificate.Subject,
+                "E-IMZO certificate metadata was read with native X509 loader. SignatureAlgorithm: {SignatureAlgorithm}",
                 BuildSignatureAlgorithm(certificate.SignatureAlgorithm?.FriendlyName, certificate.SignatureAlgorithm?.Value));
 
             return Result.Success(MapFromX509(certificate));
@@ -140,8 +139,7 @@ internal sealed class EImzoSigner : IEImzoSigner
             var certificate = certificateEntry.Certificate;
 
             _logger.LogInformation(
-                "E-IMZO certificate metadata was read with BouncyCastle. Subject: {Subject}, SignatureAlgorithm: {SignatureAlgorithm}",
-                certificate.SubjectDN,
+                "E-IMZO certificate metadata was read with BouncyCastle. SignatureAlgorithm: {SignatureAlgorithm}",
                 BuildSignatureAlgorithm(certificate.SigAlgName, certificate.SigAlgOid));
 
             return Result.Success(new CertificateInfo
@@ -288,15 +286,7 @@ internal sealed class EImzoSigner : IEImzoSigner
             return true;
         }
 
-        var details = string.Join(
-            "; ",
-            chain.ChainStatus
-                .Select(status => status.StatusInformation?.Trim())
-                .Where(message => !string.IsNullOrWhiteSpace(message)));
-
-        error = string.IsNullOrWhiteSpace(details)
-            ? "Certificate chain validation failed."
-            : $"Certificate chain validation failed: {details}";
+        error = "Certificate chain validation failed.";
 
         return false;
     }

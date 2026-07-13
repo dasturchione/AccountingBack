@@ -4,6 +4,7 @@ using Application.Features.Cmn.AslBelgi.Abstractions;
 using Application.Features.Cmn.AslBelgi.DTOs;
 using Application.Features.Cmn.AslBelgi.Errors;
 using Application.Abstractions.Integration;
+using Application.Features.Integration;
 using Domain.Entities;
 using SharedKernel.Results;
 using SharedKernel.Exceptions;
@@ -56,6 +57,10 @@ public sealed class AslBelgiService : IAslBelgiService
 
     public async Task<Result<AslBelgiOrderResponse>> RegisterOrderAsync(AslBelgiOrderRequest request, CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.AslBelgi);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<AslBelgiOrderResponse>(writeGate.Error);
+
         var scope = await ResolveScopeAsync(ct);
         if (!scope.IsSuccess)
             return Result.Failure<AslBelgiOrderResponse>(scope.Error);
@@ -114,6 +119,13 @@ public sealed class AslBelgiService : IAslBelgiService
 
     public async Task<Result<AslBelgiCodesResponse>> GetCodesAsync(string orderId, string? gtin, int? quantity, string? lastPackId, CancellationToken ct = default)
     {
+        // Although this maps to a provider GET, quantity/lastPackId suggest sequential code
+        // issuance (possible provider-side consume). Gated like a write until the contract
+        // confirms the call is side-effect free.
+        var writeGate = ProviderWriteGate.RequireContract(Provider.AslBelgi);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<AslBelgiCodesResponse>(writeGate.Error);
+
         var scope = await ResolveScopeAsync(ct);
         if (!scope.IsSuccess)
             return Result.Failure<AslBelgiCodesResponse>(scope.Error);
@@ -187,6 +199,10 @@ public sealed class AslBelgiService : IAslBelgiService
         AslBelgiRefreshApiKeyRequestDto request,
         CancellationToken ct = default)
     {
+        var writeGate = ProviderWriteGate.RequireContract(Provider.AslBelgi);
+        if (!writeGate.IsSuccess)
+            return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(writeGate.Error);
+
         var scope = await ResolveScopeAsync(ct);
         if (!scope.IsSuccess)
             return Result.Failure<AslBelgiRefreshApiKeyResponseDto>(scope.Error);

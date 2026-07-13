@@ -10,4 +10,7 @@ public sealed class EdocsOptions
     public int ChallengeTtlSeconds { get; set; } = 120;
     public int TokenTtlMinutes { get; set; } = 1380;
     public int GetRetryCount { get; set; } = 2;
+
+    // Explicit HttpClient timeout; the 100-second HttpClient default is never relied upon.
+    public int TimeoutSeconds { get; set; } = 30;
 }

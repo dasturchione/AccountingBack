@@ -239,7 +239,7 @@ namespace WebApi.Configuration
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
             {
-                Log.Warning(ex, "Could not initialize file system DataProtection key persistence. Key persistence will fall back to system defaults.");
+                Log.Warning("Could not initialize file system DataProtection key persistence. Key persistence will fall back to system defaults. ExceptionType={ExceptionType}", ex.GetType().Name);
             }
 
             return builder;
@@ -259,11 +259,6 @@ namespace WebApi.Configuration
             if (origins.Any(origin => origin == "*"))
                 throw new InvalidOperationException("Cors:AllowedOrigins cannot contain a wildcard origin.");
 
-            if (!builder.Environment.IsDevelopment()
-                && !builder.Environment.IsEnvironment("Testing")
-                && origins.Length == 0)
-                throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside development.");
-
             foreach (var origin in origins)
             {
                 if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
@@ -280,8 +275,7 @@ namespace WebApi.Configuration
             {
                 if (origins.Length == 0)
                 {
-                    // Development/test-only fallback. It intentionally does not enable credentials.
-                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                    // Same-origin mode: do not emit CORS permissions or allow credentials implicitly.
                     return;
                 }
 
@@ -371,11 +365,9 @@ namespace WebApi.Configuration
                 var builder = new NpgsqlConnectionStringBuilder(connectionString);
                 return builder.ConnectionString;
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException)
             {
-                throw new InvalidOperationException(
-                    "ConnectionStrings:Default is malformed. If the password contains ';' or '=', wrap the password value in double quotes.",
-                    ex);
+                throw new InvalidOperationException("ConnectionStrings:Default is malformed.");
             }
         }
 
@@ -562,6 +554,10 @@ namespace WebApi.Configuration
                     continue;
 
                 var providerName = provider.GetType().FullName ?? provider.GetType().Name;
+                if (providerName.Contains("JsonConfigurationProvider", StringComparison.OrdinalIgnoreCase)
+                    && provider.ToString()?.Contains("appsettings.Production.json", StringComparison.OrdinalIgnoreCase) == true)
+                    return true;
+
                 return providerName.Contains("EnvironmentVariables", StringComparison.OrdinalIgnoreCase)
                     || providerName.Contains("UserSecrets", StringComparison.OrdinalIgnoreCase)
                     || providerName.Contains("KeyVault", StringComparison.OrdinalIgnoreCase)

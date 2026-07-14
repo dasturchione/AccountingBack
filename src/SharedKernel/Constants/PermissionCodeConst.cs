@@ -17,6 +17,7 @@ public static class PermissionCodeConst
     public const string ChartAccountUpdate     = "CHART_ACCOUNT_UPDATE";
     public const string ChartAccountDelete     = "CHART_ACCOUNT_DELETE";
     #endregion
+
     #region BankOperation
     public const string BankOperationView       = "BANK_OPERATION_VIEW";
     public const string BankOperationViewDetail = "BANK_OPERATION_VIEW_DETAIL";
@@ -74,6 +75,12 @@ public static class PermissionCodeConst
     public const string CancelCashOperation     = "CANCEL_CASH_OPERATION";
     public const string CashOperationUpdate     = "CASH_OPERATION_UPDATE";
     public const string CashOperationDelete     = "CASH_OPERATION_DELETE";
+    #endregion
+
+    #region DocumentAccountSetting
+    public const string DocumentAccountSettingView = "DOCUMENT_ACCOUNT_SETTING_VIEW";
+    public const string DocumentAccountSettingViewDetail = "DOCUMENT_ACCOUNT_SETTING_VIEW_DETAIL";
+    public const string DocumentAccountSettingSave = "DOCUMENT_ACCOUNT_SETTING_SAVE";
     #endregion
 
     #region Bank

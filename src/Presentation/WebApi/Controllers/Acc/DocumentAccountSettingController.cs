@@ -21,7 +21,7 @@ public class DocumentAccountSettingController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    [ModuleAuthorize(PermissionCodeConst.DocumentAccountSettingView)]
     public async Task<IResult> GetAllAsync([FromQuery] DocumentAccountSettingListFilter filter, CancellationToken ct = default)
     {
         var result = await _service.GetAllAsync(filter, ct);
@@ -29,7 +29,7 @@ public class DocumentAccountSettingController : ControllerBase
     }
 
     [HttpGet("{documentTypeId:short}/chart-accounts")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountView)]
+    [ModuleAuthorize(PermissionCodeConst.DocumentAccountSettingView)]
     public async Task<IResult> GetSelectListAsync([FromRoute] short documentTypeId, [FromQuery] short? documentRoleId, [FromQuery] string? documentRoleCode, CancellationToken ct = default)
     {
         var result = await _service.GetSelectListAsync(documentTypeId, documentRoleId, documentRoleCode, ct);
@@ -37,7 +37,7 @@ public class DocumentAccountSettingController : ControllerBase
     }
 
     [HttpGet("{documentTypeId:short}")]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.DocumentAccountSettingViewDetail)]
     public async Task<IResult> GetByDocumentTypeIdAsync([FromRoute] short documentTypeId, CancellationToken ct = default)
     {
         var result = await _service.GetByDocumentTypeIdAsync(documentTypeId, ct);
@@ -45,7 +45,7 @@ public class DocumentAccountSettingController : ControllerBase
     }
 
     [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.ChartAccountCreate)]
+    [ModuleAuthorize(PermissionCodeConst.DocumentAccountSettingSave)]
     public async Task<IResult> SaveAsync([FromBody] DocumentAccountRuleSettingSaveDto dto, CancellationToken ct = default)
     {
         var result = await _service.SaveAsync(dto, ct);

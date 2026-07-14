@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -87,23 +87,21 @@ public partial class BankOperation
 
     [Column("contract_id")]
     public long? ContractId { get; set; }
+
     [Column("bank_chart_account_id")]
     public int? BankChartAccountId { get; set; }
 
     [Column("offset_account_id")]
     public int? OffsetAccountId { get; set; }
 
+    [ForeignKey("BankAccountId")]
+    [InverseProperty("BankOperations")]
+    public virtual OrgBankAccount BankAccount { get; set; } = null!;
+
     [ForeignKey("BankChartAccountId")]
     [InverseProperty("BankOperationBankChartAccounts")]
     public virtual AccChartAccount? BankChartAccount { get; set; }
 
-    [ForeignKey("OffsetAccountId")]
-    [InverseProperty("BankOperationOffsetAccounts")]
-    public virtual AccChartAccount? OffsetAccount { get; set; }
-
-    [ForeignKey("BankAccountId")]
-    [InverseProperty("BankOperations")]
-    public virtual OrgBankAccount BankAccount { get; set; } = null!;
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual CmnContract? Contract { get; set; }
@@ -120,6 +118,10 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty("BankOperationOffsetAccounts")]
+    public virtual AccChartAccount? OffsetAccount { get; set; }
+
     [ForeignKey("OperationTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnOperationType OperationType { get; set; } = null!;
@@ -127,6 +129,7 @@ public partial class BankOperation
     [ForeignKey("OrganizationId")]
     [InverseProperty("BankOperations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }

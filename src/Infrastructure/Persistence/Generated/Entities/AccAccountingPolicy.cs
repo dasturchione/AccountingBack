@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -24,6 +24,7 @@ public partial class AccAccountingPolicy
 
     [Column("state_id")]
     public short StateId { get; set; }
+
     [ForeignKey("StateId")]
     [InverseProperty("AccAccountingPolicies")]
     public virtual CmnState State { get; set; } = null!;

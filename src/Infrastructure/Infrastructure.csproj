@@ -27,6 +27,12 @@
     <Compile Include="Persistence\Generated\Entities\AccChartAccountPresetAccountTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccountPresetTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccChartAccountSubkonto.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountRole.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountRoleTranslation.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountSetting.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountType.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountTypeRole.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccDocumentAccountTypeTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\AccPostingBatch.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntry.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntrySubkonto.cs" />

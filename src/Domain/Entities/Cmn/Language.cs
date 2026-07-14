@@ -40,6 +40,12 @@ public partial class Language
     [InverseProperty("Language")]
     public virtual ICollection<Translation> Translations { get; set; } = new List<Translation>();
 
+    [InverseProperty(nameof(DocumentAccountRoleTranslation.Language))]
+    public virtual ICollection<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; } = new List<DocumentAccountRoleTranslation>();
+
+    [InverseProperty(nameof(DocumentAccountTypeTranslation.Language))]
+    public virtual ICollection<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; } = new List<DocumentAccountTypeTranslation>();
+
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
 

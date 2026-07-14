@@ -43,6 +43,15 @@ public partial class CmnState
     public virtual ICollection<AccChartAccount> AccChartAccounts { get; set; } = new List<AccChartAccount>();
 
     [InverseProperty("State")]
+    public virtual ICollection<AccDocumentAccountRole> AccDocumentAccountRoles { get; set; } = new List<AccDocumentAccountRole>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<AccDocumentAccountSetting> AccDocumentAccountSettings { get; set; } = new List<AccDocumentAccountSetting>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<AccDocumentAccountType> AccDocumentAccountTypes { get; set; } = new List<AccDocumentAccountType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<AccSubkontoType> AccSubkontoTypes { get; set; } = new List<AccSubkontoType>();
 
     [InverseProperty("State")]
@@ -101,6 +110,9 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<CmnLanguage> CmnLanguages { get; set; } = new List<CmnLanguage>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<CmnMxikCatalog> CmnMxikCatalogs { get; set; } = new List<CmnMxikCatalog>();
 
     [InverseProperty("State")]
     public virtual ICollection<CmnOperationType> CmnOperationTypes { get; set; } = new List<CmnOperationType>();

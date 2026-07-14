@@ -53,7 +53,6 @@ public partial class Organization
     [Column("default_language_id")]
     public short? DefaultLanguageId { get; set; }
 
-
     [Column("tenant_id")]
     public int? TenantId { get; set; }
 
@@ -78,6 +77,9 @@ public partial class Organization
 
     [InverseProperty("Organization")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
+
+    [InverseProperty(nameof(DocumentAccountSetting.Organization))]
+    public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();

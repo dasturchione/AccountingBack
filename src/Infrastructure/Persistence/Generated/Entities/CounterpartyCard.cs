@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -84,6 +84,7 @@ public partial class CounterpartyCard
     [Column("external_id")]
     [StringLength(100)]
     public string? ExternalId { get; set; }
+
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Generated.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +31,18 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccChartAccountPresetTranslation> AccChartAccountPresetTranslations { get; set; }
 
     public virtual DbSet<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; }
+
+    public virtual DbSet<AccDocumentAccountRole> AccDocumentAccountRoles { get; set; }
+
+    public virtual DbSet<AccDocumentAccountRoleTranslation> AccDocumentAccountRoleTranslations { get; set; }
+
+    public virtual DbSet<AccDocumentAccountSetting> AccDocumentAccountSettings { get; set; }
+
+    public virtual DbSet<AccDocumentAccountType> AccDocumentAccountTypes { get; set; }
+
+    public virtual DbSet<AccDocumentAccountTypeRole> AccDocumentAccountTypeRoles { get; set; }
+
+    public virtual DbSet<AccDocumentAccountTypeTranslation> AccDocumentAccountTypeTranslations { get; set; }
 
     public virtual DbSet<AccPostingBatch> AccPostingBatches { get; set; }
 
@@ -85,6 +97,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CmnInventoryAdjustmentType> CmnInventoryAdjustmentTypes { get; set; }
 
     public virtual DbSet<CmnLanguage> CmnLanguages { get; set; }
+
+    public virtual DbSet<CmnMxikCatalog> CmnMxikCatalogs { get; set; }
 
     public virtual DbSet<CmnNotificationType> CmnNotificationTypes { get; set; }
 
@@ -252,7 +266,6 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
         modelBuilder.Entity<AccAccountType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_account_type_pkey");
@@ -377,13 +390,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("acc_chart_account_subkonto_pkey");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.IsRequired).HasDefaultValue(true);
 
             entity.HasOne(d => d.Account).WithMany(p => p.AccChartAccountSubkontos).HasConstraintName("acc_chart_account_subkonto_account_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccountSubkontos)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_chart_account_subkonto_organization_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.AccChartAccountSubkontos)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -392,6 +400,95 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.SubkontoType).WithMany(p => p.AccChartAccountSubkontos)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_chart_account_subkonto_subkonto_type_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountRole>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_document_account_role_pkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccDocumentAccountRoles)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_role_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountRoleTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.DocumentAccountRoleId, e.LanguageId }).HasName("acc_document_account_role_translation_pkey");
+
+            entity.HasOne(d => d.DocumentAccountRole).WithMany(p => p.AccDocumentAccountRoleTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_role_transla_document_account_role_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccDocumentAccountRoleTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_role_translation_language_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_document_account_setting_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.DocumentAccountTypeRoleId }, "ux_acc_document_account_setting_default")
+                .IsUnique()
+                .HasFilter("((is_default = true) AND (state_id = 1))");
+
+            entity.Property(e => e.CanChange).HasDefaultValue(true);
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
+
+            entity.HasOne(d => d.ChartAccount).WithMany(p => p.AccDocumentAccountSettings)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_setting_chart_account_id_fkey");
+
+            entity.HasOne(d => d.DocumentAccountTypeRole).WithMany(p => p.AccDocumentAccountSettings)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_setting_document_account_type_role_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.AccDocumentAccountSettings)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_setting_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccDocumentAccountSettings)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_setting_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_document_account_type_pkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccDocumentAccountTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountTypeRole>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_document_account_type_role_pkey");
+
+            entity.Property(e => e.IsRequired).HasDefaultValue(true);
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
+
+            entity.HasOne(d => d.DocumentAccountRole).WithMany(p => p.AccDocumentAccountTypeRoles)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_type_role_document_account_role_id_fkey");
+
+            entity.HasOne(d => d.DocumentAccountType).WithMany(p => p.AccDocumentAccountTypeRoles)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_type_role_document_account_type_id_fkey");
+        });
+
+        modelBuilder.Entity<AccDocumentAccountTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.LanguageId, e.DocumentAccountTypeId }).HasName("acc_document_account_type_translation_pkey");
+
+            entity.HasOne(d => d.DocumentAccountType).WithMany(p => p.AccDocumentAccountTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_type_transla_document_account_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccDocumentAccountTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_document_account_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<AccPostingBatch>(entity =>
@@ -828,6 +925,17 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnLanguages)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_language_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnMxikCatalog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_mxik_catalog_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.State).WithMany(p => p.CmnMxikCatalogs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_mxik_catalog_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnNotificationType>(entity =>

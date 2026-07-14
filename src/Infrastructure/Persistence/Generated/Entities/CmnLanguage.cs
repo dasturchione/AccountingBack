@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -44,6 +44,13 @@ public partial class CmnLanguage
 
     [InverseProperty("Language")]
     public virtual ICollection<AccChartAccountPresetTranslation> AccChartAccountPresetTranslations { get; set; } = new List<AccChartAccountPresetTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<AccDocumentAccountRoleTranslation> AccDocumentAccountRoleTranslations { get; set; } = new List<AccDocumentAccountRoleTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<AccDocumentAccountTypeTranslation> AccDocumentAccountTypeTranslations { get; set; } = new List<AccDocumentAccountTypeTranslation>();
+
     [InverseProperty("Language")]
     public virtual ICollection<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; } = new List<AccSubkontoTypeTranslation>();
 

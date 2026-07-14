@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -85,23 +85,20 @@ public partial class CashOperation
 
     [Column("destination_cash_box_id")]
     public int? DestinationCashBoxId { get; set; }
+
     [Column("cash_chart_account_id")]
     public int? CashChartAccountId { get; set; }
 
     [Column("offset_account_id")]
     public int? OffsetAccountId { get; set; }
 
-    [ForeignKey("CashChartAccountId")]
-    [InverseProperty("CashOperationCashChartAccounts")]
-    public virtual AccChartAccount? CashChartAccount { get; set; }
-
-    [ForeignKey("OffsetAccountId")]
-    [InverseProperty("CashOperationOffsetAccounts")]
-    public virtual AccChartAccount? OffsetAccount { get; set; }
-
     [ForeignKey("CashBoxId")]
     [InverseProperty("CashOperationCashBoxes")]
     public virtual CashBox CashBox { get; set; } = null!;
+
+    [ForeignKey("CashChartAccountId")]
+    [InverseProperty("CashOperationCashChartAccounts")]
+    public virtual AccChartAccount? CashChartAccount { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("CashOperations")]
@@ -115,6 +112,10 @@ public partial class CashOperation
     [InverseProperty("CashOperationDestinationCashBoxes")]
     public virtual CashBox? DestinationCashBox { get; set; }
 
+    [ForeignKey("OffsetAccountId")]
+    [InverseProperty("CashOperationOffsetAccounts")]
+    public virtual AccChartAccount? OffsetAccount { get; set; }
+
     [ForeignKey("OperationTypeId")]
     [InverseProperty("CashOperations")]
     public virtual CmnOperationType OperationType { get; set; } = null!;
@@ -122,6 +123,7 @@ public partial class CashOperation
     [ForeignKey("OrganizationId")]
     [InverseProperty("CashOperations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }

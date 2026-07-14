@@ -166,7 +166,8 @@ public class ProductStockService : IProductStockService
                 UnitId = x.Product.UnitId,
                 UnitCode = x.Product.Unit.Code,
                 UnitName = x.Product.Unit.Name,
-                IsService = x.Product.IsService
+                IsService = x.Product.IsService,
+                IsPieceTracked = x.Product.IsPieceTracked
             })
             .Build();
 
@@ -182,6 +183,7 @@ public class ProductStockService : IProductStockService
                 x.UnitId,
                 x.UnitCode,
                 x.UnitName,
+                x.IsPieceTracked,
                 x.IsService
             })
             .Select(g => new ProductStockAggregateRow
@@ -190,6 +192,7 @@ public class ProductStockService : IProductStockService
                 Name = g.Key.Name,
                 Barcode = g.Key.Barcode,
                 Mxik = g.Key.Mxik,
+                IsPieceTracked = g.Key.IsPieceTracked,
                 ProductGroupName = g.Key.ProductGroupName,
                 UnitId = g.Key.UnitId,
                 UnitCode = g.Key.UnitCode,
@@ -222,6 +225,7 @@ public class ProductStockService : IProductStockService
                 Mxik = row.Mxik,
                 ProductGroupName = row.ProductGroupName,
                 UnitId = row.UnitId,
+                IsPieceTracked = row.IsPieceTracked,
                 UnitCode = row.UnitCode,
                 UnitName = row.UnitName,
                 IsService = row.IsService,
@@ -247,6 +251,7 @@ public class ProductStockService : IProductStockService
                     Mxik = x.Mxik,
                     ProductGroupName = x.ProductGroup != null ? x.ProductGroup.Name : null,
                     UnitId = x.UnitId,
+                    IsPieceTracked = x.IsPieceTracked,
                     UnitCode = x.Unit.Code,
                     UnitName = x.Unit.Name,
                     IsService = true,
@@ -324,6 +329,7 @@ public class ProductStockService : IProductStockService
         public string Name { get; set; } = null!;
         public string? Barcode { get; set; }
         public string? Mxik { get; set; }
+        public bool IsPieceTracked { get; set; }
         public string? ProductGroupName { get; set; }
         public short UnitId { get; set; }
         public string UnitCode { get; set; } = null!;
@@ -350,5 +356,6 @@ public class ProductStockService : IProductStockService
         public string UnitCode { get; set; } = null!;
         public string UnitName { get; set; } = null!;
         public bool IsService { get; set; }
+        public bool IsPieceTracked { get; set; }
     }
 }

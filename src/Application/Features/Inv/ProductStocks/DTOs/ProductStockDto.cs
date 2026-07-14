@@ -6,6 +6,7 @@ public class ProductStockDto
     public string Name { get; set; } = null!;
     public string? Barcode { get; set; }
     public string? Mxik { get; set; }
+    public bool IsPieceTracked { get; set; }
     public string? ProductGroupName { get; set; }
     public short UnitId { get; set; } 
     public string UnitCode { get; set; } = null!;

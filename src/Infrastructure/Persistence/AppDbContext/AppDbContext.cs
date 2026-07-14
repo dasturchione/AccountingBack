@@ -51,6 +51,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
+    public virtual DbSet<DocumentAccountType> DocumentAccountTypes { get; set; }
+    public virtual DbSet<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; }
+    public virtual DbSet<DocumentAccountRole> DocumentAccountRoles { get; set; }
+    public virtual DbSet<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; }
+    public virtual DbSet<DocumentAccountTypeRole> DocumentAccountTypeRoles { get; set; }
+    public virtual DbSet<DocumentAccountSetting> DocumentAccountSettings { get; set; }
     public virtual DbSet<Language> Languages { get; set; }
     public virtual DbSet<InventoryAdjustmentType> InventoryAdjustmentTypes { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }

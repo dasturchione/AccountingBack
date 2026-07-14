@@ -4,6 +4,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Markers;
 using Application.Features.AuditLogs;
 using Application.Features.Acc.AccountingPeriods;
+using Application.Features.Acc.DocumentAccountSettings;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.AccountingReports;
 using Application.Features.Reports.BankReports;
@@ -209,6 +210,7 @@ namespace Infrastructure
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
             services.AddScoped<IChartAccountService, ChartAccountService>();
             services.AddScoped<IChartAccountPresetAccountService, ChartAccountPresetAccountService>();
+            services.AddScoped<IDocumentAccountSettingService, DocumentAccountSettingService>();
             services.AddScoped<IAccountingPeriodService, AccountingPeriodService>();
             services.AddScoped<IAccountingPeriodReadRepository, AccountingPeriodReadRepository>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();

@@ -71,6 +71,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<CounterpartyBankAccount>(modelBuilder);
             ApplyScopedFilter<CounterpartyContact>(modelBuilder);
             ApplyScopedFilter<AccountingRegisterEntry>(modelBuilder);
+            ApplyScopedFilter<DocumentAccountSetting>(modelBuilder);
             ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
             ApplyScopedFilter<RegisterBalance>(modelBuilder);
             ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);

@@ -112,9 +112,6 @@ public partial class CmnState
     public virtual ICollection<CmnLanguage> CmnLanguages { get; set; } = new List<CmnLanguage>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnMxikCatalog> CmnMxikCatalogs { get; set; } = new List<CmnMxikCatalog>();
-
-    [InverseProperty("State")]
     public virtual ICollection<CmnOperationType> CmnOperationTypes { get; set; } = new List<CmnOperationType>();
 
     [InverseProperty("State")]

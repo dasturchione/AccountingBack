@@ -273,13 +273,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.IsRequired).HasDefaultValue(true);
 
             entity.HasOne(d => d.Account).WithMany(p => p.AccChartAccountSubkontos).HasConstraintName("acc_chart_account_subkonto_account_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.AccChartAccountSubkontos)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("acc_chart_account_subkonto_organization_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.AccChartAccountSubkontos)
                 .OnDelete(DeleteBehavior.ClientSetNull)

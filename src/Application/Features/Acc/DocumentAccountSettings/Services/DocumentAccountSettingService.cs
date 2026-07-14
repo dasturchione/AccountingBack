@@ -306,25 +306,51 @@ public class DocumentAccountSettingService : IDocumentAccountSettingService
 
         var organizationId = _userContext.OrganizationId.Value;
         var now = DateTime.Now;
-        var accounts = dto.Accounts ?? [];
+        var items = dto.Items ?? [];
 
-        var duplicateAccountExists = accounts
-            .GroupBy(x => x.ChartAccountId)
+        if (items.Count == 0)
+            return new List<long>();
+
+        var duplicateTypeRoleExists = items
+            .GroupBy(x => x.DocumentAccountTypeRoleId)
             .Any(x => x.Count() > 1);
-        if (duplicateAccountExists)
-            return Result.Failure<List<long>>(DocumentAccountSettingErrors.DuplicateAccounts(_userContext.LanguageId));
+        if (duplicateTypeRoleExists)
+            return Result.Failure<List<long>>(DocumentAccountSettingErrors.DuplicateTypeRoles(_userContext.LanguageId));
 
-        if (accounts.Count(x => x.IsDefault) > 1)
-            return Result.Failure<List<long>>(DocumentAccountSettingErrors.MultipleDefaults(_userContext.LanguageId));
+        foreach (var item in items)
+        {
+            var itemAccounts = item.Accounts ?? [];
+
+            var duplicateAccountExists = itemAccounts
+                .GroupBy(x => x.ChartAccountId)
+                .Any(x => x.Count() > 1);
+            if (duplicateAccountExists)
+                return Result.Failure<List<long>>(DocumentAccountSettingErrors.DuplicateAccounts(_userContext.LanguageId));
+
+            if (itemAccounts.Count(x => x.IsDefault) > 1)
+                return Result.Failure<List<long>>(DocumentAccountSettingErrors.MultipleDefaults(_userContext.LanguageId));
+        }
+
+        var documentAccountTypeRoleIds = items
+            .Select(x => x.DocumentAccountTypeRoleId)
+            .Distinct()
+            .ToList();
 
         var typeRoleQuery = _queryBuilder.For<DocumentAccountTypeRole>()
-            .Where(x => x.Id == dto.DocumentAccountTypeRoleId)
+            .Where(x => documentAccountTypeRoleIds.Contains(x.Id))
+            .As(x => x.Id)
             .Build();
-        var typeRole = await _typeRoleQuery.GetAsync(typeRoleQuery, ct);
-        if (typeRole is null)
-            return Result.Failure<List<long>>(DocumentAccountSettingErrors.TypeRoleNotFound(dto.DocumentAccountTypeRoleId, _userContext.LanguageId));
+        var existingTypeRoleIds = await _typeRoleQuery.GetAllAsync(typeRoleQuery, ct);
+        var missingTypeRoleIds = documentAccountTypeRoleIds.Except(existingTypeRoleIds).ToList();
+        if (missingTypeRoleIds.Count > 0)
+            return Result.Failure<List<long>>(DocumentAccountSettingErrors.TypeRoleNotFound(missingTypeRoleIds[0], _userContext.LanguageId));
 
-        var chartAccountIds = accounts.Select(x => x.ChartAccountId).Distinct().ToList();
+        var chartAccountIds = items
+            .SelectMany(x => x.Accounts ?? [])
+            .Select(x => x.ChartAccountId)
+            .Distinct()
+            .ToList();
+
         if (chartAccountIds.Count > 0)
         {
             var chartAccountQuery = _queryBuilder.For<ChartAccount>()
@@ -339,58 +365,69 @@ public class DocumentAccountSettingService : IDocumentAccountSettingService
                 return Result.Failure<List<long>>(DocumentAccountSettingErrors.ChartAccountsNotFound(missingChartAccountIds, _userContext.LanguageId));
         }
 
-        if (accounts.Any(x => x.IsDefault))
-            await ResetExistingDefaultsAsync(organizationId, dto.DocumentAccountTypeRoleId, ct);
+        foreach (var item in items.Where(x => (x.Accounts ?? []).Any(account => account.IsDefault)))
+            await ResetExistingDefaultsAsync(organizationId, item.DocumentAccountTypeRoleId, ct);
 
         var existingQuery = _queryBuilder.For<DocumentAccountSetting>()
             .Where(x => x.OrganizationId == organizationId &&
-                        x.DocumentAccountTypeRoleId == dto.DocumentAccountTypeRoleId)
+                        documentAccountTypeRoleIds.Contains(x.DocumentAccountTypeRoleId))
             .Build();
         var existingSettings = await _settingQuery.GetAllAsync(existingQuery, ct);
-        var existingByChartAccountId = existingSettings.ToDictionary(x => x.ChartAccountId);
-        var requestedChartAccountIds = chartAccountIds.ToHashSet();
+        var existingByRoleId = existingSettings
+            .GroupBy(x => x.DocumentAccountTypeRoleId)
+            .ToDictionary(x => x.Key, x => x.ToList());
 
         var toCreate = new List<DocumentAccountSetting>();
         var toUpdate = new List<DocumentAccountSetting>();
         var ids = new List<long>();
 
-        foreach (var existing in existingSettings.Where(x => !requestedChartAccountIds.Contains(x.ChartAccountId)))
+        foreach (var item in items)
         {
-            if (existing.StateId == StateIdConst.PASSIVE && !existing.IsDefault)
-                continue;
+            var accounts = item.Accounts ?? [];
+            var existingForRole = existingByRoleId.GetValueOrDefault(item.DocumentAccountTypeRoleId) ?? [];
+            var existingByChartAccountId = existingForRole.ToDictionary(x => x.ChartAccountId);
+            var requestedChartAccountIds = accounts
+                .Select(x => x.ChartAccountId)
+                .ToHashSet();
 
-            existing.StateId = StateIdConst.PASSIVE;
-            existing.IsDefault = false;
-            existing.UpdatedDate = now;
-            toUpdate.Add(existing);
-        }
-
-        foreach (var account in accounts.OrderBy(x => x.SortOrder))
-        {
-            if (existingByChartAccountId.TryGetValue(account.ChartAccountId, out var existing))
+            foreach (var existing in existingForRole.Where(x => !requestedChartAccountIds.Contains(x.ChartAccountId)))
             {
-                existing.IsDefault = account.IsDefault;
-                existing.CanChange = account.CanChange;
-                existing.SortOrder = Math.Max(1, account.SortOrder);
-                existing.StateId = StateIdConst.ACTIVE;
+                if (existing.StateId == StateIdConst.PASSIVE && !existing.IsDefault)
+                    continue;
+
+                existing.StateId = StateIdConst.PASSIVE;
+                existing.IsDefault = false;
                 existing.UpdatedDate = now;
                 toUpdate.Add(existing);
-                ids.Add(existing.Id);
-                continue;
             }
 
-            var entity = new DocumentAccountSetting
+            foreach (var account in accounts.OrderBy(x => x.SortOrder))
             {
-                OrganizationId = organizationId,
-                DocumentAccountTypeRoleId = dto.DocumentAccountTypeRoleId,
-                ChartAccountId = account.ChartAccountId,
-                IsDefault = account.IsDefault,
-                CanChange = account.CanChange,
-                SortOrder = Math.Max(1, account.SortOrder),
-                StateId = StateIdConst.ACTIVE,
-                CreatedDate = now
-            };
-            toCreate.Add(entity);
+                if (existingByChartAccountId.TryGetValue(account.ChartAccountId, out var existing))
+                {
+                    existing.IsDefault = account.IsDefault;
+                    existing.CanChange = account.CanChange;
+                    existing.SortOrder = Math.Max(1, account.SortOrder);
+                    existing.StateId = StateIdConst.ACTIVE;
+                    existing.UpdatedDate = now;
+                    toUpdate.Add(existing);
+                    ids.Add(existing.Id);
+                    continue;
+                }
+
+                var entity = new DocumentAccountSetting
+                {
+                    OrganizationId = organizationId,
+                    DocumentAccountTypeRoleId = item.DocumentAccountTypeRoleId,
+                    ChartAccountId = account.ChartAccountId,
+                    IsDefault = account.IsDefault,
+                    CanChange = account.CanChange,
+                    SortOrder = Math.Max(1, account.SortOrder),
+                    StateId = StateIdConst.ACTIVE,
+                    CreatedDate = now
+                };
+                toCreate.Add(entity);
+            }
         }
 
         if (toUpdate.Count > 0)

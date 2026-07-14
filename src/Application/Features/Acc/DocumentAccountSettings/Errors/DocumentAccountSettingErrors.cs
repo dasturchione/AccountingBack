@@ -23,6 +23,9 @@ public static class DocumentAccountSettingErrors
     public static Error DuplicateAccounts(short? languageId = null) =>
         Error.Business("DocumentAccountSetting.DuplicateAccounts", GetDuplicateAccountsMessage(languageId));
 
+    public static Error DuplicateTypeRoles(short? languageId = null) =>
+        Error.Business("DocumentAccountSetting.DuplicateTypeRoles", GetDuplicateTypeRolesMessage(languageId));
+
     public static Error MultipleDefaults(short? languageId = null) =>
         Error.Business("DocumentAccountSetting.MultipleDefaults", GetMultipleDefaultsMessage(languageId));
 
@@ -76,6 +79,13 @@ public static class DocumentAccountSettingErrors
         LanguageIdConst.UZ => "Bir rol ichida bitta hisob bir martadan ko'p berilmasligi kerak.",
         LanguageIdConst.RU => "Один счёт нельзя указывать больше одного раза внутри одной роли.",
         _ => "One chart account cannot be specified more than once inside one role."
+    };
+
+    private static string GetDuplicateTypeRolesMessage(short? languageId) => languageId switch
+    {
+        LanguageIdConst.UZ => "Bitta document account role sozlamasi bir martadan ko'p berilmasligi kerak.",
+        LanguageIdConst.RU => "Одну роль настройки счетов документа нельзя указывать больше одного раза.",
+        _ => "One document account type role cannot be specified more than once."
     };
 
     private static string GetMultipleDefaultsMessage(short? languageId) => languageId switch

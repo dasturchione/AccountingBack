@@ -2,6 +2,11 @@
 {
     public class DocumentAccountRuleSettingSaveDto
     {
+        public List<DocumentTypeAccountSettingSaveDto> Items { get; set; } = new();
+    }
+
+    public class DocumentTypeAccountSettingSaveDto
+    {
         public int DocumentAccountTypeRoleId { get; set; }
 
         public List<DocumentAccountSettingSaveDto> Accounts { get; set; } = new();

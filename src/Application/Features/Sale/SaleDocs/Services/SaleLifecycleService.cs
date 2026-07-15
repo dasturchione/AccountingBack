@@ -167,12 +167,15 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             if (oldStatusId == DocumentStatusIdConst.PENDING)
             {
-                var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(doc.WarehouseId, GetSaleWarehouseProductBalanceItems(doc), ct);
+                var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(
+                    doc.WarehouseId,
+                    GetSaleWarehouseProductBalanceItems(doc),
+                    GetSaleProductTables(doc).Select(x => x.Id).ToList(),
+                    ct);
                 if (!reserveRelease.IsSuccess)
                     return Result.Failure(reserveRelease.Error);
             }
 
-            await UpdateSaleProductTablesAsync(doc, ProductTableStatusIdConst.SOLD, StateIdConst.ACTIVE, ct);
 
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
@@ -280,18 +283,20 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 activePostingBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
 
-                await UpdateSaleProductTablesAsync(doc, ProductTableStatusIdConst.IN_STOCK, StateIdConst.ACTIVE, ct);
             }
             else
             {
                 if (doc.StatusId == DocumentStatusIdConst.PENDING)
                 {
-                    var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(doc.WarehouseId, GetSaleWarehouseProductBalanceItems(doc), ct);
+                    var reserveRelease = await _warehouseProductBalanceService.ReleaseReservedAsync(
+                    doc.WarehouseId,
+                    GetSaleWarehouseProductBalanceItems(doc),
+                    GetSaleProductTables(doc).Select(x => x.Id).ToList(),
+                    ct);
                     if (!reserveRelease.IsSuccess)
                         return Result.Failure(reserveRelease.Error);
                 }
 
-                await ReleaseReservedProductTablesAsync(doc, ct);
             }
 
             doc.StatusId = DocumentStatusIdConst.CANCELLED;
@@ -330,7 +335,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
             .Build();
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.Product));
-        query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable));
+        query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
 
         return await _query.GetAsync(query, ct);
     }
@@ -445,11 +450,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             var hasInvalidDraftItem = line.SaleDocTables.Any(x =>
                 x.ProductTable.ProductId != line.ProductId ||
-                x.ProductTable.OrganizationId != doc.OrganizationId ||
-                x.ProductTable.CurrentWarehouseId != doc.WarehouseId ||
-                x.ProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
-                x.ProductTable.StateId != StateIdConst.ACTIVE);
-
+                x.ProductTable.Product.OrganizationId != doc.OrganizationId ||
+                x.ProductTable.WarehouseProductTable == null ||
+                x.ProductTable.WarehouseProductTable.WarehouseId != doc.WarehouseId ||
+                x.ProductTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.RESERVED);
             if (hasInvalidDraftItem)
                 return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(doc.Id, _userContext.LanguageId));
         }
@@ -558,39 +562,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             x.ReversalEntryId == null, ct);
     }
 
-    private async Task UpdateSaleProductTablesAsync(SaleDoc doc, short statusId, short stateId, CancellationToken ct)
-    {
-        var productTables = GetSaleProductTables(doc);
-        if (productTables.Count == 0)
-            return;
-
-        foreach (var productTable in productTables)
-        {
-            productTable.StatusId = statusId;
-            productTable.StateId = stateId;
-        }
-
-        await _productTableCommand.UpdateAsync(productTables, ct);
-    }
-
-    private async Task ReleaseReservedProductTablesAsync(SaleDoc doc, CancellationToken ct)
-    {
-        var productTables = GetSaleProductTables(doc)
-            .Where(x => x.StatusId == ProductTableStatusIdConst.RESERVED)
-            .ToList();
-
-        if (productTables.Count == 0)
-            return;
-
-        foreach (var productTable in productTables)
-        {
-            productTable.StatusId = ProductTableStatusIdConst.IN_STOCK;
-            productTable.StateId = StateIdConst.ACTIVE;
-        }
-
-        await _productTableCommand.UpdateAsync(productTables, ct);
-    }
-
+    private Task ReleaseReservedProductTablesAsync(SaleDoc doc, CancellationToken ct) => Task.CompletedTask;
     private async Task<Result> ReloadAndValidateReservedProductTablesAsync(SaleDoc doc, CancellationToken ct)
     {
         foreach (var productTable in GetSaleProductTables(doc))

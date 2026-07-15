@@ -150,7 +150,6 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
 
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Purchase confirmed", ct);
 
-            await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.IN_STOCK, StateIdConst.ACTIVE, doc.WarehouseId, ct);
 
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
@@ -252,7 +251,6 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                 activePostingBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
 
-                await UpdatePurchaseProductTablesAsync(doc, ProductTableStatusIdConst.RETURNED_TO_SUPPLIER, StateIdConst.PASSIVE, null, ct);
                 await RecalculateProductCostPricesAfterCancelAsync(doc, ct);
             }
             else
@@ -296,7 +294,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
             .Build();
         query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
-        query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable));
+        query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
 
         return await _query.GetAsync(query, ct);
     }
@@ -325,9 +323,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                     _userContext.LanguageId));
             }
 
-            var hasInvalidDraftItem = line.PurchaseDocTables.Any(x =>
-                x.ProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
-                x.ProductTable.StateId != StateIdConst.ACTIVE);
+            var hasInvalidDraftItem = line.PurchaseDocTables.Any(x => x.ProductTable.ProductId != line.ProductId);
 
             if (hasInvalidDraftItem)
                 return Result.Failure(PurchaseDocErrors.InvalidDraftInventoryState(doc.Id, _userContext.LanguageId));
@@ -399,22 +395,6 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
             x.DocumentId == purchaseDocId &&
             x.ReversalEntryId == null, ct);
-    }
-
-    private async Task UpdatePurchaseProductTablesAsync(PurchaseDoc doc, short statusId, short stateId, int? currentWarehouseId, CancellationToken ct)
-    {
-        var productTables = GetPurchaseProductTables(doc);
-        if (productTables.Count == 0)
-            return;
-
-        foreach (var productTable in productTables)
-        {
-            productTable.StatusId = statusId;
-            productTable.StateId = stateId;
-            productTable.CurrentWarehouseId = currentWarehouseId;
-        }
-
-        await _productTableCommand.UpdateAsync(productTables, ct);
     }
 
     private async Task DeleteDraftProductTablesAsync(PurchaseDoc doc, CancellationToken ct)

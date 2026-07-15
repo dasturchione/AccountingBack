@@ -244,7 +244,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             .Build();
         query.AddIncludes(b => b.Include(x => x.Warehouse));
         query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.Product).ThenInclude(x => x.Unit));
-        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable));
+        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 

@@ -218,10 +218,6 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
                 activePostingBatch.ReversedAt = DateTime.Now;
                 activePostingBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
-
-                var restoredProductTables = RestoreProductTables(doc);
-                if (restoredProductTables.Count != 0)
-                    await _productTableCommand.UpdateAsync(restoredProductTables, ct);
             }
 
             doc.StatusId = DocumentStatusIdConst.CANCELLED;
@@ -261,7 +257,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
             .Build();
         query.AddIncludes(b => b.Include(x => x.Warehouse));
         query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.Product));
-        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable));
+        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 
@@ -334,106 +330,26 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
 
     private List<ProductTable> PrepareProductTablesForConfirm(InventoryAdjustmentDoc doc)
     {
-        var touchedProductTables = new List<ProductTable>();
+        var createdProductTables = new List<ProductTable>();
 
         foreach (var line in doc.InventoryAdjustmentLines)
         {
-            foreach (var item in line.InventoryAdjustmentDocTables)
+            foreach (var item in line.InventoryAdjustmentDocTables.Where(x => !x.ProductTableId.HasValue))
             {
-                if (!item.ProductTableId.HasValue)
+                var productTable = new ProductTable
                 {
-                    var createdProductTable = new ProductTable
-                    {
-                        ProductId = line.ProductId,
-                        OrganizationId = doc.OrganizationId,
-                        CurrentWarehouseId = doc.WarehouseId,
-                        StatusId = ProductTableStatusIdConst.IN_STOCK,
-                        StateId = StateIdConst.ACTIVE,
-                        CreatedDate = DateTime.Now
-                    };
+                    ProductId = line.ProductId,
+                    CreatedDate = DateTime.Now
+                };
 
-                    item.WasCreated = true;
-                    item.ProductTable = createdProductTable;
-                    touchedProductTables.Add(createdProductTable);
-                    continue;
-                }
-
-                var productTable = item.ProductTable!;
-                item.OriginalStatusId = productTable.StatusId;
-                item.OriginalStateId = productTable.StateId;
-                item.OriginalWarehouseId = productTable.CurrentWarehouseId;
-                item.WasCreated = false;
-
-                ApplyProductTableMutation(productTable, doc.AdjustmentType, doc.WarehouseId);
-                touchedProductTables.Add(productTable);
+                item.WasCreated = true;
+                item.ProductTable = productTable;
+                createdProductTables.Add(productTable);
             }
         }
 
-        return touchedProductTables;
+        return createdProductTables;
     }
-
-    private List<ProductTable> RestoreProductTables(InventoryAdjustmentDoc doc)
-    {
-        var restoredProductTables = new List<ProductTable>();
-
-        foreach (var item in doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables))
-        {
-            if (item.ProductTable == null)
-                continue;
-
-            if (item.WasCreated)
-            {
-                item.ProductTable.CurrentWarehouseId = null;
-                item.ProductTable.StatusId = ProductTableStatusIdConst.BLOCKED;
-                item.ProductTable.StateId = StateIdConst.PASSIVE;
-                restoredProductTables.Add(item.ProductTable);
-                continue;
-            }
-
-            if (item.OriginalStatusId.HasValue)
-                item.ProductTable.StatusId = item.OriginalStatusId.Value;
-
-            if (item.OriginalStateId.HasValue)
-                item.ProductTable.StateId = item.OriginalStateId.Value;
-
-            item.ProductTable.CurrentWarehouseId = item.OriginalWarehouseId;
-            restoredProductTables.Add(item.ProductTable);
-        }
-
-        return restoredProductTables
-            .GroupBy(x => x.Id)
-            .Select(x => x.First())
-            .ToList();
-    }
-
-    private static void ApplyProductTableMutation(ProductTable productTable, string adjustmentType, int warehouseId)
-    {
-        productTable.CurrentWarehouseId = warehouseId;
-
-        switch (adjustmentType)
-        {
-            case "POSITIVE_ADJUSTMENT":
-            case "FOUND_STOCK":
-            case "CORRECTION":
-                productTable.StatusId = ProductTableStatusIdConst.IN_STOCK;
-                productTable.StateId = StateIdConst.ACTIVE;
-                break;
-            case "WRITE_OFF":
-                productTable.StatusId = ProductTableStatusIdConst.WRITTEN_OFF;
-                productTable.StateId = StateIdConst.PASSIVE;
-                break;
-            case "LOSS":
-                productTable.StatusId = ProductTableStatusIdConst.LOST;
-                productTable.StateId = StateIdConst.PASSIVE;
-                break;
-            case "DAMAGE":
-            case "NEGATIVE_ADJUSTMENT":
-                productTable.StatusId = ProductTableStatusIdConst.BLOCKED;
-                productTable.StateId = StateIdConst.ACTIVE;
-                break;
-        }
-    }
-
     private async Task ReloadAdjustmentProductTablesAsync(InventoryAdjustmentDoc doc, CancellationToken ct)
     {
         foreach (var productTable in doc.InventoryAdjustmentLines

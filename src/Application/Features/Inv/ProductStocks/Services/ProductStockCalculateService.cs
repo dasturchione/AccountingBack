@@ -144,7 +144,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         CancellationToken ct)
     {
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == organizationId &&
+            .Where(x => x.Product.OrganizationId == organizationId &&
                         x.CurrentWarehouseId.HasValue &&
                         x.StateId == StateIdConst.ACTIVE &&
                         (x.StatusId == ProductTableStatusIdConst.IN_STOCK ||
@@ -225,7 +225,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var endDate = choosedDate.ToDateTime(TimeOnly.MaxValue);
         var query = _queryBuilder.For<RegisterBalance>()
-            .Where(x => x.OrganizationId == organizationId &&
+            .Where(x => x.Product.OrganizationId == organizationId &&
                         x.DocDate <= endDate &&
                         (!warehouseId.HasValue || x.WarehouseId == warehouseId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)) &&

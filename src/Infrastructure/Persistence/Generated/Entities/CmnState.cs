@@ -112,6 +112,9 @@ public partial class CmnState
     public virtual ICollection<CmnLanguage> CmnLanguages { get; set; } = new List<CmnLanguage>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CmnMxikCatalog> CmnMxikCatalogs { get; set; } = new List<CmnMxikCatalog>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CmnOperationType> CmnOperationTypes { get; set; } = new List<CmnOperationType>();
 
     [InverseProperty("State")]
@@ -173,9 +176,6 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
 
     [InverseProperty("State")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();

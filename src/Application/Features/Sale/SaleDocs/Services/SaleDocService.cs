@@ -407,13 +407,13 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Failure(selectionResult.Error);
 
         var selectedItems = selectionResult.Value;
-        var reserve = await _warehouseProductBalanceService.ReserveAsync(doc.WarehouseId, BuildWarehouseProductBalanceItems(goodsLines, selectedItems), ct);
+        var reserve = await _warehouseProductBalanceService.ReserveAsync(
+            doc.WarehouseId,
+            BuildWarehouseProductBalanceItems(goodsLines, selectedItems),
+            selectedProductTableIds,
+            ct);
         if (!reserve.IsSuccess)
             return Result.Failure(reserve.Error);
-
-        if (selectedProductTableIds.Count > 0 && !await _reservationService.TryReserveAsync(doc.WarehouseId, selectedProductTableIds, ct))
-            return Result.Failure(SaleDocErrors.InventoryReservationConflict(_userContext.LanguageId));
-
         var selectedByLineId = selectedItems.GroupBy(x => x.LineId).ToDictionary(x => x.Key, x => x.ToList());
         var rows = new List<SaleDocTable>();
         foreach (var line in pieceLines)

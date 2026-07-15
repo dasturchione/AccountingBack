@@ -9,5 +9,17 @@ public interface IWarehouseProductBalanceService
 
     Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default);
 
+    Task<Result> ReserveAsync(
+        int warehouseId,
+        IReadOnlyCollection<WarehouseProductBalanceItem> items,
+        IReadOnlyCollection<int> productTableIds,
+        CancellationToken ct = default);
+
     Task<Result> ReleaseReservedAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default);
+
+    Task<Result> ReleaseReservedAsync(
+        int warehouseId,
+        IReadOnlyCollection<WarehouseProductBalanceItem> items,
+        IReadOnlyCollection<int> productTableIds,
+        CancellationToken ct = default);
 }

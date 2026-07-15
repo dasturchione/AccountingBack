@@ -25,8 +25,8 @@ public partial class CmnProductTableStatus
     [Column("state_id")]
     public short StateId { get; set; }
 
-    [InverseProperty("Status")]
-    public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
+    [InverseProperty("ProductTableStatus")]
+    public virtual ICollection<InvWarehouseProductTable> InvWarehouseProductTables { get; set; } = new List<InvWarehouseProductTable>();
 
     [ForeignKey("StateId")]
     [InverseProperty("CmnProductTableStatuses")]

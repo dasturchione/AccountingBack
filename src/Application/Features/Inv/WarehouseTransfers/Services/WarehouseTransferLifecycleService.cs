@@ -127,7 +127,6 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
 
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Warehouse transfer confirmed", ct);
 
-            await UpdateProductTablesAsync(doc, doc.DestinationWarehouseId, ct);
 
             var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!inventoryDispatch.IsSuccess)
@@ -211,7 +210,6 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
                 activePostingBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
 
-                await UpdateProductTablesAsync(doc, doc.SourceWarehouseId, ct);
             }
 
             doc.StatusId = DocumentStatusIdConst.CANCELLED;
@@ -252,7 +250,7 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
         query.AddIncludes(b => b.Include(x => x.SourceWarehouse));
         query.AddIncludes(b => b.Include(x => x.DestinationWarehouse));
         query.AddIncludes(b => b.Include(x => x.WarehouseTransferLines).ThenInclude(x => x.Product));
-        query.AddIncludes(b => b.Include(x => x.WarehouseTransferLines).ThenInclude(x => x.WarehouseTransferDocTables).ThenInclude(x => x.ProductTable));
+        query.AddIncludes(b => b.Include(x => x.WarehouseTransferLines).ThenInclude(x => x.WarehouseTransferDocTables).ThenInclude(x => x.ProductTable).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 
@@ -285,21 +283,20 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
                 if (!seenProductTableIds.Add(item.ProductTableId))
                     return Result.Failure(WarehouseTransferErrors.DuplicateProductTable(item.ProductTableId, _userContext.LanguageId));
 
-                if (item.ProductTable.OrganizationId != doc.OrganizationId)
+                if (item.ProductTable.Product.OrganizationId != doc.OrganizationId)
                     return Result.Failure(WarehouseTransferErrors.ProductTableNotFound(item.ProductTableId, _userContext.LanguageId));
 
                 if (item.ProductTable.ProductId != line.ProductId)
                     return Result.Failure(WarehouseTransferErrors.ProductTableProductMismatch(item.ProductTableId, line.ProductId, _userContext.LanguageId));
 
-                if (item.ProductTable.StateId != StateIdConst.ACTIVE)
+                if (item.ProductTable.WarehouseProductTable == null)
                     return Result.Failure(WarehouseTransferErrors.ProductTableInactive(item.ProductTableId, _userContext.LanguageId));
 
-                if (item.ProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                    return Result.Failure(WarehouseTransferErrors.ProductTableUnavailable(item.ProductTableId, item.ProductTable.StatusId, _userContext.LanguageId));
+                if (item.ProductTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                    return Result.Failure(WarehouseTransferErrors.ProductTableUnavailable(item.ProductTableId, item.ProductTable.WarehouseProductTable.StatusId, _userContext.LanguageId));
 
-                if (item.ProductTable.CurrentWarehouseId != doc.SourceWarehouseId)
-                    return Result.Failure(WarehouseTransferErrors.ProductTableWarehouseMismatch(item.ProductTableId, doc.SourceWarehouseId, _userContext.LanguageId));
-            }
+                if (item.ProductTable.WarehouseProductTable.WarehouseId != doc.SourceWarehouseId)
+                    return Result.Failure(WarehouseTransferErrors.ProductTableWarehouseMismatch(item.ProductTableId, doc.SourceWarehouseId, _userContext.LanguageId));            }
         }
 
         return Result.Success();
@@ -309,16 +306,15 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
     {
         foreach (var productTable in GetTransferProductTables(doc))
         {
-            if (productTable.StateId != StateIdConst.ACTIVE)
+            if (productTable.WarehouseProductTable == null)
                 return Result.Failure(WarehouseTransferErrors.ProductTableInactive(productTable.Id, _userContext.LanguageId));
 
-            if (productTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                return Result.Failure(WarehouseTransferErrors.ProductTableUnavailable(productTable.Id, productTable.StatusId, _userContext.LanguageId));
+            if (productTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                return Result.Failure(WarehouseTransferErrors.ProductTableUnavailable(productTable.Id, productTable.WarehouseProductTable.StatusId, _userContext.LanguageId));
 
-            if (productTable.CurrentWarehouseId != doc.DestinationWarehouseId)
+            if (productTable.WarehouseProductTable.WarehouseId != doc.DestinationWarehouseId)
                 return Result.Failure(WarehouseTransferErrors.ProductTableWarehouseMismatch(productTable.Id, doc.DestinationWarehouseId, _userContext.LanguageId));
         }
-
         return Result.Success();
     }
 
@@ -356,22 +352,6 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
             x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER &&
             x.DocumentId == transferDocId &&
             x.ReversalEntryId == null, ct);
-
-    private async Task UpdateProductTablesAsync(WarehouseTransferDoc doc, int warehouseId, CancellationToken ct)
-    {
-        var productTables = GetTransferProductTables(doc);
-        if (productTables.Count == 0)
-            return;
-
-        foreach (var productTable in productTables)
-        {
-            productTable.CurrentWarehouseId = warehouseId;
-            productTable.StatusId = ProductTableStatusIdConst.IN_STOCK;
-            productTable.StateId = StateIdConst.ACTIVE;
-        }
-
-        await _productTableCommand.UpdateAsync(productTables, ct);
-    }
 
     private async Task ReloadTransferProductTablesAsync(WarehouseTransferDoc doc, CancellationToken ct)
     {

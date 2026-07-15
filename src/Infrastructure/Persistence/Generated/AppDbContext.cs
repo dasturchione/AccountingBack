@@ -196,6 +196,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvWarehouseProduct> InvWarehouseProducts { get; set; }
 
+    public virtual DbSet<InvWarehouseProductTable> InvWarehouseProductTables { get; set; }
+
     public virtual DbSet<MoneyRegBalance> MoneyRegBalances { get; set; }
 
     public virtual DbSet<OrgBankAccount> OrgBankAccounts { get; set; }
@@ -1684,34 +1686,11 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_product_table_pkey");
 
-            entity.HasIndex(e => new { e.OrganizationId, e.MarkingNumber }, "ux_inv_product_table_org_marking")
-                .IsUnique()
-                .HasFilter("(marking_number IS NOT NULL)");
-
-            entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }, "ux_inv_product_table_org_serial")
-                .IsUnique()
-                .HasFilter("(serial_number IS NOT NULL)");
-
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.StatusId).HasDefaultValue((short)1);
-
-            entity.HasOne(d => d.CurrentWarehouse).WithMany(p => p.InvProductTables).HasConstraintName("inv_product_table_current_warehouse_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.InvProductTables)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_organization_id_fkey");
 
             entity.HasOne(d => d.Product).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_table_product_id_fkey");
-
-            entity.HasOne(d => d.State).WithMany(p => p.InvProductTables)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_state_id_fkey");
-
-            entity.HasOne(d => d.Status).WithMany(p => p.InvProductTables)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_table_status_id_fkey");
         });
 
         modelBuilder.Entity<InvRegBalance>(entity =>
@@ -1837,6 +1816,27 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_warehouse_product_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvWarehouseProductTable>(entity =>
+        {
+            entity.HasKey(e => e.ProductTableId).HasName("inv_warehouse_product_table_pkey");
+
+            entity.Property(e => e.ProductTableId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.ReceivedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.ProductTable).WithOne(p => p.InvWarehouseProductTable)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_table_product_table_id_fkey");
+
+            entity.HasOne(d => d.ProductTableStatus).WithMany(p => p.InvWarehouseProductTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_table_product_table_status_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProductTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_table_warehouse_id_fkey");
         });
 
         modelBuilder.Entity<MoneyRegBalance>(entity =>

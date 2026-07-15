@@ -123,9 +123,6 @@ public partial class Organization
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     [InverseProperty("Organization")]

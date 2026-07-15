@@ -56,8 +56,8 @@ public partial class Warehouse
     [InverseProperty("Warehouse")]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
-    [InverseProperty("CurrentWarehouse")]
-    public virtual ICollection<ProductTable> CurrentProductTables { get; set; } = new List<ProductTable>();
+    [InverseProperty(nameof(WarehouseProductTable.Warehouse))]
+    public virtual ICollection<WarehouseProductTable> WarehouseProductTables { get; set; } = new List<WarehouseProductTable>();
 
     [InverseProperty("SourceWarehouse")]
     public virtual ICollection<WarehouseTransferDoc> SourceWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();

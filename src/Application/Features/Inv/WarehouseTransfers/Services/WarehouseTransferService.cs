@@ -370,13 +370,13 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
                 if (!seenProductTableIds.Add(item.ProductTableId))
                     return Result.Failure(WarehouseTransferErrors.DuplicateProductTable(item.ProductTableId, _userContext.LanguageId));
 
-                if (!productTableById.TryGetValue(item.ProductTableId, out var productTable) || productTable.OrganizationId != organizationId)
+                if (!productTableById.TryGetValue(item.ProductTableId, out var productTable) || productTable.Product.OrganizationId != organizationId)
                     return Result.Failure(WarehouseTransferErrors.ProductTableNotFound(item.ProductTableId, _userContext.LanguageId));
 
                 if (productTable.ProductId != line.ProductId)
                     return Result.Failure(WarehouseTransferErrors.ProductTableProductMismatch(item.ProductTableId, line.ProductId, _userContext.LanguageId));
 
-                if (productTable.CurrentWarehouseId != dto.SourceWarehouseId)
+                if (productTable.WarehouseProductTable == null || productTable.WarehouseProductTable.WarehouseId != dto.SourceWarehouseId)
                     return Result.Failure(WarehouseTransferErrors.ProductTableWarehouseMismatch(item.ProductTableId, dto.SourceWarehouseId, _userContext.LanguageId));
             }
         }

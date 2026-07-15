@@ -127,9 +127,6 @@ public partial class State
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
     [InverseProperty("State")]
-    public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
-
-    [InverseProperty("State")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     [InverseProperty("State")]

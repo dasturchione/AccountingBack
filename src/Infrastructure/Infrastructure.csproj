@@ -38,7 +38,6 @@
     <Compile Include="Persistence\Generated\Entities\AccRegEntrySubkonto.cs" />
     <Compile Include="Persistence\Generated\Entities\AccSubkontoType.cs" />
     <Compile Include="Persistence\Generated\Entities\AccSubkontoTypeTranslation.cs" />
-    <Compile Include="Persistence\Generated\Entities\AppDbContext.cs" />
     <Compile Include="Persistence\Generated\Entities\BankOperation.cs" />
     <Compile Include="Persistence\Generated\Entities\CashBox.cs" />
     <Compile Include="Persistence\Generated\Entities\CashOperation.cs" />
@@ -61,6 +60,7 @@
     <Compile Include="Persistence\Generated\Entities\CmnFaOkof.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnInventoryAdjustmentType.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnLanguage.cs" />
+    <Compile Include="Persistence\Generated\Entities\CmnMxikCatalog.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnNotificationType.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnOperationType.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnPaymentType.cs" />
@@ -109,6 +109,7 @@
     <Compile Include="Persistence\Generated\Entities\InvTransferLine.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouse.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProduct.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvWarehouseProductTable.cs" />
     <Compile Include="Persistence\Generated\Entities\MoneyRegBalance.cs" />
     <Compile Include="Persistence\Generated\Entities\OrgBankAccount.cs" />
     <Compile Include="Persistence\Generated\Entities\OrgBranch.cs" />

@@ -27,8 +27,8 @@ namespace Infrastructure.Repositories
         public async Task<List<TEntity>> GetAllAsync(QuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
             var query = specification.IgnoreQueryFilters
-                ? _dbSet.IgnoreQueryFilters().AsNoTracking().AsQueryable()
-                : _dbSet.AsNoTracking().AsQueryable();
+                ? _dbSet.IgnoreQueryFilters().AsQueryable()
+                : _dbSet.AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);
@@ -94,8 +94,8 @@ namespace Infrastructure.Repositories
         public async Task<PagedList<TEntity>> GetPagedAsync(PagedQuerySpecification<TEntity> specification, CancellationToken ct = default)
         {
             var query = specification.IgnoreQueryFilters
-                ? _dbSet.IgnoreQueryFilters().AsNoTracking().AsQueryable()
-                : _dbSet.AsNoTracking().AsQueryable();
+                ? _dbSet.IgnoreQueryFilters().AsQueryable()
+                : _dbSet.AsQueryable();
 
             if (specification.Includes.Any())
                 query = ApplyIncludes(query, specification.Includes);

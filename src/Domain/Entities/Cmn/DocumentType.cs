@@ -30,6 +30,9 @@ public partial class DocumentType
     [InverseProperty("DocumentType")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
+    [InverseProperty(nameof(WarehouseProductMovement.DocumentType))]
+    public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
+
     [InverseProperty("DocumentType")]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 

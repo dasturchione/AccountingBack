@@ -111,6 +111,12 @@ public partial class InvProduct
     public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
     [InverseProperty("Product")]
+    public virtual ICollection<InvWarehouseProductBatch> InvWarehouseProductBatches { get; set; } = new List<InvWarehouseProductBatch>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
+
+    [InverseProperty("Product")]
     public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
 
     [ForeignKey("OrganizationId")]

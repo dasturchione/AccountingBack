@@ -72,6 +72,12 @@ public partial class InvWarehouse
     public virtual ICollection<InvTransferDoc> InvTransferDocSourceWarehouses { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("Warehouse")]
+    public virtual ICollection<InvWarehouseProductBatch> InvWarehouseProductBatches { get; set; } = new List<InvWarehouseProductBatch>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
+
+    [InverseProperty("Warehouse")]
     public virtual ICollection<InvWarehouseProductTable> InvWarehouseProductTables { get; set; } = new List<InvWarehouseProductTable>();
 
     [InverseProperty("Warehouse")]

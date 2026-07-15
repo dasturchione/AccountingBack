@@ -95,6 +95,12 @@ public partial class Product
     [InverseProperty("Product")]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
+    [InverseProperty(nameof(WarehouseProductMovement.Product))]
+    public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
+
+    [InverseProperty(nameof(WarehouseProductBatch.Product))]
+    public virtual ICollection<WarehouseProductBatch> WarehouseProductBatches { get; set; } = new List<WarehouseProductBatch>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("Products")]
     public virtual Organization Organization { get; set; } = null!;

@@ -196,6 +196,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvWarehouseProduct> InvWarehouseProducts { get; set; }
 
+    public virtual DbSet<InvWarehouseProductBatch> InvWarehouseProductBatches { get; set; }
+
+    public virtual DbSet<InvWarehouseProductBatchAllocation> InvWarehouseProductBatchAllocations { get; set; }
+
+    public virtual DbSet<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; }
+
     public virtual DbSet<InvWarehouseProductTable> InvWarehouseProductTables { get; set; }
 
     public virtual DbSet<MoneyRegBalance> MoneyRegBalances { get; set; }
@@ -1816,6 +1822,67 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_warehouse_product_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvWarehouseProductBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_warehouse_product_batch_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.WarehouseId, e.ProductId, e.ReceivedDate, e.Id }, "idx_inv_warehouse_product_batch_available").HasFilter("(remaining_quantity > (0)::numeric)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvWarehouseProductBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_organization_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvWarehouseProductBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_product_id_fkey");
+
+            entity.HasOne(d => d.ReceiptMovement).WithOne(p => p.InvWarehouseProductBatch)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_receipt_movement_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProductBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvWarehouseProductBatchAllocation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_warehouse_product_batch_allocation_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Batch).WithMany(p => p.InvWarehouseProductBatchAllocations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_allocation_batch_id_fkey");
+
+            entity.HasOne(d => d.IssueMovement).WithMany(p => p.InvWarehouseProductBatchAllocations).HasConstraintName("inv_warehouse_product_batch_allocation_issue_movement_id_fkey");
+        });
+
+        modelBuilder.Entity<InvWarehouseProductMovement>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_warehouse_product_movement_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.DocumentType).WithMany(p => p.InvWarehouseProductMovements)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_movement_document_type_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvWarehouseProductMovements)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_movement_organization_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvWarehouseProductMovements)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_movement_product_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvWarehouseProductMovements)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_movement_warehouse_id_fkey");
         });
 
         modelBuilder.Entity<InvWarehouseProductTable>(entity =>

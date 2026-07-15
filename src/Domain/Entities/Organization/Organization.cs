@@ -84,6 +84,12 @@ public partial class Organization
     [InverseProperty("Organization")]
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
 
+    [InverseProperty(nameof(WarehouseProductMovement.Organization))]
+    public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
+
+    [InverseProperty(nameof(WarehouseProductBatch.Organization))]
+    public virtual ICollection<WarehouseProductBatch> WarehouseProductBatches { get; set; } = new List<WarehouseProductBatch>();
+
     [InverseProperty("Organization")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 

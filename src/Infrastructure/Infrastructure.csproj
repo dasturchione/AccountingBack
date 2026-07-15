@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Persistence\Generated\AppDbContext.cs" />
     <Compile Include="Persistence\Generated\Entities\AccAccountingPeriod.cs" />
     <Compile Include="Persistence\Generated\Entities\AccAccountingPolicy.cs" />
     <Compile Include="Persistence\Generated\Entities\AccAccountType.cs" />
@@ -109,6 +110,9 @@
     <Compile Include="Persistence\Generated\Entities\InvTransferLine.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouse.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProduct.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatch.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatchAllocation.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvWarehouseProductMovement.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductTable.cs" />
     <Compile Include="Persistence\Generated\Entities\MoneyRegBalance.cs" />
     <Compile Include="Persistence\Generated\Entities\OrgBankAccount.cs" />

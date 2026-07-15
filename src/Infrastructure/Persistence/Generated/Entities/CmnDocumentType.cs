@@ -39,6 +39,9 @@ public partial class CmnDocumentType
     public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
 
     [InverseProperty("DocumentType")]
+    public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
+
+    [InverseProperty("DocumentType")]
     public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
 
     [ForeignKey("StateId")]

@@ -176,6 +176,12 @@ public partial class OrgOrganization
     public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<InvWarehouseProductBatch> InvWarehouseProductBatches { get; set; } = new List<InvWarehouseProductBatch>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
     [InverseProperty("Organization")]

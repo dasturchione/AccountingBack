@@ -17,13 +17,23 @@ create table inv_warehouse
     constraint inv_warehouse_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
-create index idx_inv_warehouse_branch_id on inv_warehouse using btree (branch_id);
-create index idx_inv_warehouse_organization_id on inv_warehouse using btree (organization_id);
-create index idx_inv_warehouse_responsible_user_id on inv_warehouse using btree (responsible_user_id);
-create index idx_inv_warehouse_state_id on inv_warehouse using btree (state_id);
-create index idx_inv_warehouse_code on inv_warehouse using btree (code);
-create index idx_inv_warehouse_is_main on inv_warehouse using btree (is_main);
-create unique index uidx_inv_warehouse_org_code on inv_warehouse using btree (organization_id, code) WHERE (code IS not null);
-
-insert into inv_warehouse (id, organization_id, branch_id, name, responsible_user_id, state_id, created_date) values
-    ('7', '8', '6', 'amonov', '15', '1', '2026-06-20 15:38:43.144691');
+create index idx_inv_warehouse_branch_id 
+    on inv_warehouse using btree (branch_id);
+    
+create index idx_inv_warehouse_organization_id 
+    on inv_warehouse using btree (organization_id);
+    
+create index idx_inv_warehouse_responsible_user_id 
+    on inv_warehouse using btree (responsible_user_id);
+    
+create index idx_inv_warehouse_state_id 
+    on inv_warehouse using btree (state_id);
+    
+create index idx_inv_warehouse_code 
+    on inv_warehouse using btree (code);
+    
+create index idx_inv_warehouse_is_main 
+    on inv_warehouse using btree (is_main);
+    
+create unique index uidx_inv_warehouse_org_code 
+    on inv_warehouse using btree (organization_id, code) WHERE (code IS not null);

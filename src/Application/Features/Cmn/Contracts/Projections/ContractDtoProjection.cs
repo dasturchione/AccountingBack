@@ -13,7 +13,7 @@ public class ContractDtoProjection : IProjectionBuilder<Contract, ContractDto>
             OrganizationId = x.OrganizationId,
             OrganizationName = x.Organization.ShortName,
             CounterpartyId = x.CounterpartyId,
-            CounterpartyName = x.Counterparty.ShortName,
+            CounterpartyName = x.Counterparty.FullName == null ? x.Counterparty.ShortName : x.Counterparty.FullName,
             ContractTypeId = x.ContractTypeId,
             ContractTypeName = x.ContractType.Name,
             ContractNumber = x.ContractNumber,

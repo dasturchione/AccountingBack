@@ -39,6 +39,9 @@ public class ContractService : IContractService
         if (counterparty is null)
             return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
+        var startDate = (dto.StartDate ?? DateTime.Now).Date;
+        var endDate = dto.EndDate == null ? (DateTime?)null : dto.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+
         var entity = new Contract
         {
             OrganizationId = orgId,
@@ -46,11 +49,11 @@ public class ContractService : IContractService
             ContractTypeId = dto.ContractTypeId,
             ContractNumber = string.Empty,
             ContractDate = dto.ContractDate,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
             Comment = dto.Comment,
             StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
+            CreatedDate = DateTime.Now,
+            StartDate = startDate,
+            EndDate = endDate,
         };
         await _command.CreateAsync(entity, ct);
         return entity.Id;

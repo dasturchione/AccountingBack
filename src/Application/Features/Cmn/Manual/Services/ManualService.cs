@@ -486,13 +486,14 @@ public class ManualService : IManualService
         if (_userContext.OrganizationId is null)
             return Result.Failure<List<SelectListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        var date = choosedDate ?? DateTime.Now;
+        var date = choosedDate ?? DateTime.Now.Date;
+        var endDate = date.AddDays(1).AddTicks(-1);
 
         var query = _queryBuilder.For<Contract>()
                         .Where(x => x.StateId == StateIdConst.ACTIVE &&
                                     x.OrganizationId == _userContext.OrganizationId &&
                                     (x.StartDate == null || x.StartDate <= date) &&
-                                    (x.EndDate == null || x.EndDate >= date) &&
+                                    (x.EndDate == null || x.EndDate >= endDate) &&
                                     (counterpartyId == null || x.CounterpartyId == counterpartyId) &&
                                     (contractTypeId == null || x.ContractTypeId == contractTypeId))
                         .As(a => new SelectListDto

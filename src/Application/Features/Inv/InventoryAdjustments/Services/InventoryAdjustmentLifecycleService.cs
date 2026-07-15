@@ -273,8 +273,19 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
 
         foreach (var line in doc.InventoryAdjustmentLines)
         {
+            if (line.Product.IsService)
+                return Result.Failure(InventoryAdjustmentErrors.ProductServiceNotAllowed(line.ProductId, _userContext.LanguageId));
+
             if (line.Quantity <= 0)
                 return Result.Failure(InventoryAdjustmentErrors.InvalidQuantity(line.ProductId, line.Quantity, _userContext.LanguageId));
+
+            if (!line.Product.IsPieceTracked)
+            {
+                if (line.InventoryAdjustmentDocTables.Count > 0)
+                    return Result.Failure(InventoryAdjustmentErrors.QuantityItemsMismatch(line.ProductId, 0m, line.InventoryAdjustmentDocTables.Count, _userContext.LanguageId));
+
+                continue;
+            }
 
             if (line.Quantity != decimal.Truncate(line.Quantity) || line.InventoryAdjustmentDocTables.Count != (int)line.Quantity)
                 return Result.Failure(InventoryAdjustmentErrors.QuantityItemsMismatch(line.ProductId, line.Quantity, line.InventoryAdjustmentDocTables.Count, _userContext.LanguageId));
@@ -400,7 +411,9 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
 
     private async Task<Result> ReverseInventoryEntriesAsync(InventoryAdjustmentDoc doc, long reversalBatchId, CancellationToken ct)
     {
-        var expectedRows = doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables).Count();
+        var expectedRows = doc.InventoryAdjustmentLines
+            .Where(x => !x.Product.IsService)
+            .Sum(x => x.Product.IsPieceTracked ? x.InventoryAdjustmentDocTables.Count : 1);
 
         var query = _queryBuilder.For<RegisterBalance>()
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&

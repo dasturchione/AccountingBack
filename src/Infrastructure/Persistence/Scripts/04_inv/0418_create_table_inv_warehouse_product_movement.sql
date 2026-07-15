@@ -10,7 +10,10 @@ create table inv_warehouse_product_movement
     document_line_id    bigint,
 
     quantity            numeric(19,6) not null
-                            check (quantity <> 0),
+                            check (quantity > 0),
+
+    movement_sign       smallint not null
+                            check (movement_sign in (-1, 1)),
 
     movement_date       timestamp without time zone not null,
     created_date        timestamp without time zone default now() not null

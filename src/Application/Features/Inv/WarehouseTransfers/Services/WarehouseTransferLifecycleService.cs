@@ -272,8 +272,19 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
 
         foreach (var line in doc.WarehouseTransferLines)
         {
+            if (line.Product.IsService)
+                return Result.Failure(WarehouseTransferErrors.ProductServiceNotAllowed(line.ProductId, _userContext.LanguageId));
+
             if (line.Quantity <= 0)
                 return Result.Failure(WarehouseTransferErrors.InvalidQuantity(line.ProductId, line.Quantity, _userContext.LanguageId));
+
+            if (!line.Product.IsPieceTracked)
+            {
+                if (line.WarehouseTransferDocTables.Count > 0)
+                    return Result.Failure(WarehouseTransferErrors.QuantityItemsMismatch(line.ProductId, 0m, line.WarehouseTransferDocTables.Count, _userContext.LanguageId));
+
+                continue;
+            }
 
             if (line.Quantity != decimal.Truncate(line.Quantity) || line.WarehouseTransferDocTables.Count != (int)line.Quantity)
                 return Result.Failure(WarehouseTransferErrors.QuantityItemsMismatch(line.ProductId, line.Quantity, line.WarehouseTransferDocTables.Count, _userContext.LanguageId));
@@ -361,7 +372,9 @@ public class WarehouseTransferLifecycleService : BaseService, IWarehouseTransfer
 
     private async Task<Result> ReverseInventoryEntriesAsync(WarehouseTransferDoc doc, long reversalBatchId, CancellationToken ct)
     {
-        var expectedRows = doc.WarehouseTransferLines.SelectMany(x => x.WarehouseTransferDocTables).Count() * 2;
+        var expectedRows = doc.WarehouseTransferLines
+            .Where(x => !x.Product.IsService)
+            .Sum(x => x.Product.IsPieceTracked ? x.WarehouseTransferDocTables.Count * 2 : 2);
 
         var query = _queryBuilder.For<RegisterBalance>()
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER &&

@@ -39,7 +39,6 @@ public class InventoryAdjustmentLineRequestDtoValidator : AbstractValidator<Inve
         RuleFor(x => x.UnitId).GreaterThan((short)0);
         RuleFor(x => x.Quantity).GreaterThan(0);
         RuleFor(x => x.Comment).MaximumLength(1000).When(x => x.Comment != null);
-        RuleFor(x => x.Items).NotEmpty();
         RuleForEach(x => x.Items).SetValidator(new InventoryAdjustmentTableRequestDtoValidator());
     }
 }

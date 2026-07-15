@@ -73,4 +73,13 @@ public static class WarehouseProductErrors
             LanguageIdConst.RU => $"Партия товара {productTableId} не относится к товару {productId}.",
             _ => $"Product table {productTableId} does not belong to product {productId}."
         });
+
+    public static Error OriginalMovementNotFound(long registerBalanceId, short? languageId = null) =>
+        Error.Conflict("WarehouseProduct.OriginalMovementNotFound", $"Original warehouse movement for inventory register entry {registerBalanceId} was not found.");
+
+    public static Error OriginalBatchNotFound(long movementId, short? languageId = null) =>
+        Error.Conflict("WarehouseProduct.OriginalBatchNotFound", $"Warehouse batch for receipt movement {movementId} was not found.");
+
+    public static Error OriginalAllocationNotFound(long movementId, short? languageId = null) =>
+        Error.Conflict("WarehouseProduct.OriginalAllocationNotFound", $"Batch allocations for issue movement {movementId} were not found or do not match the reversal quantity.");
 }

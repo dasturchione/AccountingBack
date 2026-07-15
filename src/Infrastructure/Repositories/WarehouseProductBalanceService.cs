@@ -29,11 +29,16 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         if (!operationValidation.IsSuccess)
             return operationValidation;
 
-        var productUnitIds = await GetProductUnitIdsAsync(entryList.Select(x => x.ProductId), ct);
-        if (productUnitIds.Count != entryList.Select(x => x.ProductId).Distinct().Count())
+        var products = await GetProductSnapshotsAsync(entryList.Select(x => x.ProductId), ct);
+        if (products.Count != entryList.Select(x => x.ProductId).Distinct().Count())
             return Result.Failure(WarehouseProductErrors.ProductNotFound(
-                entryList.Select(x => x.ProductId).First(x => !productUnitIds.ContainsKey(x)),
+                entryList.Select(x => x.ProductId).First(x => !products.ContainsKey(x)),
                 _userContext.LanguageId));
+
+        var productUnitIds = products.ToDictionary(x => x.Key, x => x.Value.UnitId);
+        var movementResult = await ApplyMovementsAndBatchesAsync(entryList, products, ct);
+        if (!movementResult.IsSuccess)
+            return movementResult;
 
         var productTableEntries = entryList.Where(x => x.ProductTableId.HasValue).ToList();
         var productTablesResult = await GetProductTablesAsync(productTableEntries, ct);
@@ -263,6 +268,355 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         return Result.Success();
     }
 
+    private async Task<Result> ApplyMovementsAndBatchesAsync(
+        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyDictionary<int, WarehouseProductSnapshot> products,
+        CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        var movementsByEntry = entries.ToDictionary(
+            entry => entry,
+            entry => new WarehouseProductMovement
+            {
+                OrganizationId = entry.OrganizationId,
+                WarehouseId = entry.WarehouseId,
+                ProductId = entry.ProductId,
+                DocumentTypeId = entry.DocumentTypeId,
+                DocumentId = entry.DocumentId,
+                DocumentLineId = entry.SourceLineId,
+                Quantity = entry.Quantity,
+                MovementSign = ToMovementSign(entry.OperationTypeId),
+                MovementDate = entry.DocDate,
+                CreatedDate = now
+            });
+
+        await _context.Set<WarehouseProductMovement>().AddRangeAsync(movementsByEntry.Values, ct);
+
+        var bulkEntries = entries
+            .Where(entry => !entry.ProductTableId.HasValue && !products[entry.ProductId].IsPieceTracked)
+            .ToList();
+        if (bulkEntries.Count == 0)
+            return Result.Success();
+
+        var valuationMethods = await GetInventoryValuationMethodsAsync(
+            bulkEntries.Select(entry => entry.OrganizationId),
+            ct);
+        var originalEntries = await GetOriginalEntriesAsync(
+            bulkEntries.Where(entry => entry.ReversalEntryId.HasValue)
+                .Select(entry => entry.ReversalEntryId!.Value),
+            ct);
+        var processedEntries = new HashSet<RegisterBalance>();
+
+        foreach (var transferGroup in GetBulkTransferGroups(bulkEntries))
+        {
+            var issueEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.OUT);
+            var receiptEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.IN);
+
+            var issueResult = await ApplyIssueMovementAsync(
+                issueEntry,
+                movementsByEntry[issueEntry],
+                valuationMethods[issueEntry.OrganizationId],
+                originalEntries,
+                ct);
+            if (!issueResult.IsSuccess)
+                return issueResult;
+
+            receiptEntry.Amount = issueEntry.Amount;
+            var receiptResult = await ApplyReceiptMovementAsync(
+                receiptEntry,
+                movementsByEntry[receiptEntry],
+                originalEntries,
+                ct);
+            if (!receiptResult.IsSuccess)
+                return receiptResult;
+
+            processedEntries.Add(issueEntry);
+            processedEntries.Add(receiptEntry);
+        }
+
+        foreach (var entry in bulkEntries.Where(entry => !processedEntries.Contains(entry)))
+        {
+            var movement = movementsByEntry[entry];
+            var result = entry.OperationTypeId == OperationTypeIdConst.OUT
+                ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], originalEntries, ct)
+                : await ApplyReceiptMovementAsync(entry, movement, originalEntries, ct);
+            if (!result.IsSuccess)
+                return result;
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> ApplyIssueMovementAsync(
+        RegisterBalance entry,
+        WarehouseProductMovement issueMovement,
+        string valuationMethod,
+        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
+        CancellationToken ct)
+    {
+        if (entry.ReversalEntryId.HasValue)
+            return await ApplyReceiptReversalAsync(entry, issueMovement, originalEntries, ct);
+
+        var batches = await GetAvailableBatchesAsync(
+            entry.OrganizationId,
+            entry.WarehouseId,
+            entry.ProductId,
+            valuationMethod == InventoryValuationMethodConst.LIFO,
+            ct);
+        var availableQuantity = batches.Sum(batch => batch.RemainingQuantity);
+        if (availableQuantity < entry.Quantity)
+            return Result.Failure(WarehouseProductErrors.NotEnoughQuantity(
+                entry.WarehouseId,
+                entry.ProductId,
+                entry.Quantity,
+                availableQuantity,
+                _userContext.LanguageId));
+
+        var averageUnitCost = valuationMethod == InventoryValuationMethodConst.AVERAGE
+            ? CalculateAverageUnitCost(batches)
+            : 0m;
+        var quantityToAllocate = entry.Quantity;
+        var totalCost = 0m;
+
+        foreach (var batch in batches)
+        {
+            if (quantityToAllocate == 0m)
+                break;
+
+            var quantity = Math.Min(quantityToAllocate, batch.RemainingQuantity);
+            var unitCost = valuationMethod == InventoryValuationMethodConst.AVERAGE
+                ? averageUnitCost
+                : batch.UnitCost ?? 0m;
+
+            batch.RemainingQuantity -= quantity;
+            AddBatchAllocation(issueMovement, batch, quantity, unitCost);
+            totalCost += quantity * unitCost;
+            quantityToAllocate -= quantity;
+        }
+
+        entry.Amount = totalCost;
+        return Result.Success();
+    }
+
+    private async Task<Result> ApplyReceiptMovementAsync(
+        RegisterBalance entry,
+        WarehouseProductMovement receiptMovement,
+        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
+        CancellationToken ct)
+    {
+        if (entry.ReversalEntryId.HasValue)
+            return await ApplyIssueReversalAsync(entry, originalEntries, ct);
+
+        var unitCost = entry.Quantity == 0m ? 0m : entry.Amount / entry.Quantity;
+        if (unitCost == 0m && entry.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT)
+        {
+            unitCost = await GetWeightedUnitCostAsync(entry.OrganizationId, entry.WarehouseId, entry.ProductId, ct);
+            entry.Amount = unitCost * entry.Quantity;
+        }
+
+        var batch = new WarehouseProductBatch
+        {
+            OrganizationId = entry.OrganizationId,
+            WarehouseId = entry.WarehouseId,
+            ProductId = entry.ProductId,
+            ReceiptMovement = receiptMovement,
+            InitialQuantity = entry.Quantity,
+            RemainingQuantity = entry.Quantity,
+            UnitCost = unitCost,
+            ReceivedDate = entry.DocDate,
+            CreatedDate = DateTime.Now
+        };
+
+        await _context.Set<WarehouseProductBatch>().AddAsync(batch, ct);
+        return Result.Success();
+    }
+
+    private async Task<Result> ApplyReceiptReversalAsync(
+        RegisterBalance reversalEntry,
+        WarehouseProductMovement issueMovement,
+        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
+        CancellationToken ct)
+    {
+        if (!originalEntries.TryGetValue(reversalEntry.ReversalEntryId!.Value, out var originalEntry))
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(reversalEntry.ReversalEntryId.Value, _userContext.LanguageId));
+
+        var originalMovement = await FindMovementAsync(originalEntry, ct);
+        if (originalMovement == null)
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
+
+        var batch = await _context.Set<WarehouseProductBatch>()
+            .SingleOrDefaultAsync(item => item.ReceiptMovementId == originalMovement.Id, ct);
+        if (batch == null)
+            return Result.Failure(WarehouseProductErrors.OriginalBatchNotFound(originalMovement.Id, _userContext.LanguageId));
+
+        if (batch.RemainingQuantity < reversalEntry.Quantity)
+            return Result.Failure(WarehouseProductErrors.NotEnoughQuantity(
+                reversalEntry.WarehouseId,
+                reversalEntry.ProductId,
+                reversalEntry.Quantity,
+                batch.RemainingQuantity,
+                _userContext.LanguageId));
+
+        var unitCost = batch.UnitCost ?? 0m;
+        batch.RemainingQuantity -= reversalEntry.Quantity;
+        AddBatchAllocation(issueMovement, batch, reversalEntry.Quantity, unitCost);
+        reversalEntry.Amount = reversalEntry.Quantity * unitCost;
+        return Result.Success();
+    }
+
+    private async Task<Result> ApplyIssueReversalAsync(
+        RegisterBalance reversalEntry,
+        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
+        CancellationToken ct)
+    {
+        if (!originalEntries.TryGetValue(reversalEntry.ReversalEntryId!.Value, out var originalEntry))
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(reversalEntry.ReversalEntryId.Value, _userContext.LanguageId));
+
+        var originalMovement = await FindMovementAsync(originalEntry, ct);
+        if (originalMovement == null)
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
+
+        var allocations = await _context.Set<WarehouseProductBatchAllocation>()
+            .Include(item => item.Batch)
+            .Where(item => item.IssueMovementId == originalMovement.Id)
+            .ToListAsync(ct);
+        if (allocations.Count == 0)
+            return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
+
+        var allocatedQuantity = allocations.Sum(item => item.Quantity);
+        if (allocatedQuantity != reversalEntry.Quantity)
+            return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
+
+        foreach (var allocation in allocations)
+            allocation.Batch.RemainingQuantity += allocation.Quantity;
+
+        reversalEntry.Amount = allocations.Sum(item => item.Quantity * (item.UnitCost ?? 0m));
+        return Result.Success();
+    }
+
+    private async Task<WarehouseProductMovement?> FindMovementAsync(RegisterBalance entry, CancellationToken ct) =>
+        await _context.Set<WarehouseProductMovement>()
+            .Where(item => item.OrganizationId == entry.OrganizationId &&
+                           item.WarehouseId == entry.WarehouseId &&
+                           item.ProductId == entry.ProductId &&
+                           item.DocumentTypeId == entry.DocumentTypeId &&
+                           item.DocumentId == entry.DocumentId &&
+                           item.DocumentLineId == entry.SourceLineId &&
+                           item.MovementSign == ToMovementSign(entry.OperationTypeId))
+            .OrderByDescending(item => item.Id)
+            .FirstOrDefaultAsync(ct);
+
+    private async Task<List<WarehouseProductBatch>> GetAvailableBatchesAsync(
+        int organizationId,
+        int warehouseId,
+        int productId,
+        bool lifo,
+        CancellationToken ct)
+    {
+        var query = _context.Set<WarehouseProductBatch>()
+            .Where(item => item.OrganizationId == organizationId &&
+                           item.WarehouseId == warehouseId &&
+                           item.ProductId == productId &&
+                           item.RemainingQuantity > 0m);
+
+        return lifo
+            ? await query.OrderByDescending(item => item.ReceivedDate).ThenByDescending(item => item.Id).ToListAsync(ct)
+            : await query.OrderBy(item => item.ReceivedDate).ThenBy(item => item.Id).ToListAsync(ct);
+    }
+
+    private async Task<decimal> GetWeightedUnitCostAsync(int organizationId, int warehouseId, int productId, CancellationToken ct)
+    {
+        var batches = await _context.Set<WarehouseProductBatch>()
+            .Where(item => item.OrganizationId == organizationId &&
+                           item.WarehouseId == warehouseId &&
+                           item.ProductId == productId &&
+                           item.RemainingQuantity > 0m)
+            .Select(item => new { item.RemainingQuantity, item.UnitCost })
+            .ToListAsync(ct);
+
+        var quantity = batches.Sum(item => item.RemainingQuantity);
+        return quantity == 0m
+            ? 0m
+            : batches.Sum(item => item.RemainingQuantity * (item.UnitCost ?? 0m)) / quantity;
+    }
+
+    private async Task<Dictionary<int, string>> GetInventoryValuationMethodsAsync(IEnumerable<int> organizationIds, CancellationToken ct)
+    {
+        var ids = organizationIds.Distinct().ToList();
+        var configured = await _context.Set<OrganizationConfig>()
+            .Where(config => ids.Contains(config.OrganizationId))
+            .Select(config => new { config.OrganizationId, config.InventoryValuationMethod })
+            .ToDictionaryAsync(config => config.OrganizationId, config => config.InventoryValuationMethod, ct);
+
+        return ids.ToDictionary(
+            id => id,
+            id => NormalizeInventoryValuationMethod(configured.GetValueOrDefault(id)));
+    }
+
+    private async Task<Dictionary<long, RegisterBalance>> GetOriginalEntriesAsync(IEnumerable<long> entryIds, CancellationToken ct)
+    {
+        var ids = entryIds.Distinct().ToList();
+        return ids.Count == 0
+            ? new Dictionary<long, RegisterBalance>()
+            : await _context.Set<RegisterBalance>()
+                .Where(entry => ids.Contains(entry.Id))
+                .ToDictionaryAsync(entry => entry.Id, ct);
+    }
+
+    private void AddBatchAllocation(
+        WarehouseProductMovement issueMovement,
+        WarehouseProductBatch batch,
+        decimal quantity,
+        decimal unitCost)
+    {
+        _context.Set<WarehouseProductBatchAllocation>().Add(new WarehouseProductBatchAllocation
+        {
+            IssueMovement = issueMovement,
+            Batch = batch,
+            Quantity = quantity,
+            UnitCost = unitCost,
+            CreatedDate = DateTime.Now
+        });
+    }
+
+    private static IEnumerable<IGrouping<string, RegisterBalance>> GetBulkTransferGroups(IEnumerable<RegisterBalance> entries) =>
+        entries
+            .Where(entry => entry.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
+            .GroupBy(entry => $"{entry.DocumentId}:{entry.SourceLineId}:{entry.ProductId}")
+            .Where(group => group.Count() == 2 &&
+                            group.Count(entry => entry.OperationTypeId == OperationTypeIdConst.IN) == 1 &&
+                            group.Count(entry => entry.OperationTypeId == OperationTypeIdConst.OUT) == 1);
+
+    private static short ToMovementSign(short operationTypeId) =>
+        operationTypeId == OperationTypeIdConst.IN ? (short)1 : (short)-1;
+
+    private static decimal CalculateAverageUnitCost(IEnumerable<WarehouseProductBatch> batches)
+    {
+        var quantity = batches.Sum(batch => batch.RemainingQuantity);
+        return quantity == 0m
+            ? 0m
+            : batches.Sum(batch => batch.RemainingQuantity * (batch.UnitCost ?? 0m)) / quantity;
+    }
+
+    private static string NormalizeInventoryValuationMethod(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            InventoryValuationMethodConst.LIFO => InventoryValuationMethodConst.LIFO,
+            InventoryValuationMethodConst.AVERAGE => InventoryValuationMethodConst.AVERAGE,
+            _ => InventoryValuationMethodConst.FIFO
+        };
+
+    private async Task<Dictionary<int, WarehouseProductSnapshot>> GetProductSnapshotsAsync(IEnumerable<int> productIds, CancellationToken ct)
+    {
+        var ids = productIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<int, WarehouseProductSnapshot>();
+
+        return await _context.Set<Product>()
+            .Where(product => ids.Contains(product.Id))
+            .Select(product => new WarehouseProductSnapshot(product.Id, product.UnitId, product.IsPieceTracked))
+            .ToDictionaryAsync(product => product.Id, ct);
+    }
     private async Task<Result<Dictionary<int, int>>> GetProductTablesAsync(
         IReadOnlyCollection<RegisterBalance> entries,
         CancellationToken ct)
@@ -503,6 +857,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
                     x.Where(row => row.StatusId == ProductTableStatusIdConst.BLOCKED).Sum(row => (decimal)row.Quantity)));
     }
 
+    private sealed record WarehouseProductSnapshot(int Id, short UnitId, bool IsPieceTracked);
     private sealed record WarehouseProductBalanceChange(
         int WarehouseId,
         int ProductId,

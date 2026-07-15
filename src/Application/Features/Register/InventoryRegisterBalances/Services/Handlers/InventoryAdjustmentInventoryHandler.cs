@@ -11,27 +11,48 @@ public class InventoryAdjustmentInventoryHandler : IInventoryDocumentHandler<Inv
         var operationTypeId = IsPositiveFlow(document.AdjustmentType)
             ? OperationTypeIdConst.IN
             : OperationTypeIdConst.OUT;
+        var now = DateTime.Now;
+        var entries = new List<RegisterBalance>();
 
-        var entries = document.InventoryAdjustmentLines
-            .SelectMany(line => line.InventoryAdjustmentDocTables.Select(table => new RegisterBalance
+        foreach (var line in document.InventoryAdjustmentLines.Where(line => !line.Product.IsService))
+        {
+            if (!line.Product.IsPieceTracked)
             {
-                OrganizationId = document.OrganizationId,
-                DocumentTypeId = DocumentTypeIdConst.INVENTORYADJUSTMENT,
-                DocumentId = document.Id,
-                WarehouseId = document.WarehouseId,
-                ProductId = line.ProductId,
-                ProductTableId = table.ProductTableId,
-                OperationTypeId = operationTypeId,
-                Quantity = 1,
-                Amount = table.CostPrice,
-                DocDate = document.DocDate,
-                CreatedDate = DateTime.Now,
-                SourceLineId = table.Id
-            }))
-            .ToList();
+                entries.Add(CreateEntry(document, line, operationTypeId, null, line.Quantity, 0m, line.Id, now));
+                continue;
+            }
+
+            foreach (var table in line.InventoryAdjustmentDocTables)
+                entries.Add(CreateEntry(document, line, operationTypeId, table.ProductTableId, 1m, table.CostPrice, table.Id, now));
+        }
 
         return Task.FromResult(Result.Success(entries));
     }
+
+    private static RegisterBalance CreateEntry(
+        InventoryAdjustmentDoc document,
+        InventoryAdjustmentLine line,
+        short operationTypeId,
+        int? productTableId,
+        decimal quantity,
+        decimal amount,
+        long sourceLineId,
+        DateTime now) =>
+        new()
+        {
+            OrganizationId = document.OrganizationId,
+            DocumentTypeId = DocumentTypeIdConst.INVENTORYADJUSTMENT,
+            DocumentId = document.Id,
+            WarehouseId = document.WarehouseId,
+            ProductId = line.ProductId,
+            ProductTableId = productTableId,
+            OperationTypeId = operationTypeId,
+            Quantity = quantity,
+            Amount = amount,
+            DocDate = document.DocDate,
+            CreatedDate = now,
+            SourceLineId = sourceLineId
+        };
 
     private static bool IsPositiveFlow(string adjustmentType) =>
         adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";

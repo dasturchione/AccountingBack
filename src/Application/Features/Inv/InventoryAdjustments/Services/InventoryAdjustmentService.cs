@@ -368,6 +368,14 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             if (line.Quantity <= 0)
                 return Result.Failure(InventoryAdjustmentErrors.InvalidQuantity(line.ProductId, line.Quantity, _userContext.LanguageId));
 
+            if (!product.IsPieceTracked)
+            {
+                if (line.Items.Count > 0)
+                    return Result.Failure(InventoryAdjustmentErrors.QuantityItemsMismatch(line.ProductId, 0m, line.Items.Count, _userContext.LanguageId));
+
+                continue;
+            }
+
             if (line.Items.Count == 0)
                 return Result.Failure(InventoryAdjustmentErrors.ItemsRequired(line.ProductId, _userContext.LanguageId));
 

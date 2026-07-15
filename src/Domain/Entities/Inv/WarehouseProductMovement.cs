@@ -33,6 +33,9 @@ public partial class WarehouseProductMovement
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
 
+    [Column("movement_sign")]
+    public short MovementSign { get; set; }
+
     [Column("movement_date", TypeName = "timestamp without time zone")]
     public DateTime MovementDate { get; set; }
 

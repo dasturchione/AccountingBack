@@ -464,8 +464,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     {
         var expectedRows = doc.PurchaseDocProducts
             .Where(x => !x.Product.IsService)
-            .SelectMany(x => x.PurchaseDocTables)
-            .Count();
+            .Sum(x => x.Product.IsPieceTracked ? x.PurchaseDocTables.Count : 1);
 
         var query = _queryBuilder.For<RegisterBalance>()
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&

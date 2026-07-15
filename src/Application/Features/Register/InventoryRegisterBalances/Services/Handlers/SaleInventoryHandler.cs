@@ -39,7 +39,7 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
                 ProductTableId  = null,
                 OperationTypeId = OperationTypeIdConst.OUT,
                 Quantity        = line.Quantity,
-                Amount          = line.CostPrice,
+                Amount          = line.CostPrice * line.Quantity,
                 DocDate         = sale.DocDate,
                 CreatedDate     = DateTime.Now,
                 SourceLineId    = line.Id

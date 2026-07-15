@@ -359,6 +359,14 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
             if (line.Quantity <= 0)
                 return Result.Failure(WarehouseTransferErrors.InvalidQuantity(line.ProductId, line.Quantity, _userContext.LanguageId));
 
+            if (!product.IsPieceTracked)
+            {
+                if (line.Items.Count > 0)
+                    return Result.Failure(WarehouseTransferErrors.QuantityItemsMismatch(line.ProductId, 0m, line.Items.Count, _userContext.LanguageId));
+
+                continue;
+            }
+
             if (line.Items.Count == 0)
                 return Result.Failure(WarehouseTransferErrors.ItemsRequired(line.ProductId, _userContext.LanguageId));
 

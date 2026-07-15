@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -38,6 +38,9 @@ public partial class InvWarehouseProductMovement
     [Column("quantity")]
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
+
+    [Column("movement_sign")]
+    public short MovementSign { get; set; }
 
     [Column("movement_date", TypeName = "timestamp without time zone")]
     public DateTime MovementDate { get; set; }

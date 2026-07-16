@@ -125,6 +125,7 @@ namespace Infrastructure
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();
             services.AddScoped<IWarehouseProductBalanceService, WarehouseProductBalanceService>();
+            services.AddScoped<IWarehouseInventoryService, WarehouseInventoryService>();
 
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();

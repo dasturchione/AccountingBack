@@ -80,7 +80,6 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<Position>(modelBuilder);
             ApplyScopedFilter<CashBox>(modelBuilder);
             ApplyScopedFilter<UserOrganization>(modelBuilder);
-            ApplyScopedFilter<ProductTable>(modelBuilder);
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
             ApplyScopedFilter<FaMovementDoc>(modelBuilder);

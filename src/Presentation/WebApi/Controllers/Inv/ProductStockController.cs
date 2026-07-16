@@ -1,5 +1,4 @@
 using Application.Features.Inv.ProductStocks;
-using Application.Features.Inv.WarehouseProducts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -15,14 +14,10 @@ namespace WebApi.Controllers;
 public class ProductStockController : ControllerBase
 {
     private readonly IProductStockService _service;
-    private readonly IWarehouseInventoryService _warehouseInventoryService;
 
-    public ProductStockController(
-        IProductStockService service,
-        IWarehouseInventoryService warehouseInventoryService)
+    public ProductStockController(IProductStockService service)
     {
         _service = service;
-        _warehouseInventoryService = warehouseInventoryService;
     }
 
     [HttpGet("by-marking")]
@@ -44,9 +39,9 @@ public class ProductStockController : ControllerBase
 
     [HttpGet("products")]
     [ModuleAuthorize(PermissionCodeConst.ProductStockGetProductSummary)]
-    public async Task<IResult> GetProductSummary([FromQuery] WarehouseProductFilter filter, CancellationToken ct = default)
+    public async Task<IResult> GetProductSummary([FromQuery] ProductStockFilter filter, CancellationToken ct = default)
     {
-        var result = await _warehouseInventoryService.GetWarehouseProductsAsync(filter, ct);
+        var result = await _service.GetProductsStockAsync(filter, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

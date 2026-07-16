@@ -22,4 +22,11 @@ public static class ProductStockErrors
             LanguageIdConst.RU      => $"Товар с маркировочным номером '{markingNumber}' недоступен на складе (продан или зарезервирован).",
             _                       => $"Product with marking number '{markingNumber}' is not available in stock (sold or reserved)."
         });
+    public static Error WarehouseRequired(short? languageId = null) =>
+        Error.Business("ProductStock.WarehouseRequired", languageId switch
+        {
+            LanguageIdConst.UZ => "Omborni tanlang.",
+            LanguageIdConst.RU => "Выберите склад.",
+            _ => "Warehouse must be selected."
+        });
 }

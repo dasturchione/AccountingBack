@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.Inv.ProductPrices;
+using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -17,19 +18,22 @@ public class ProductStockService : IProductStockService
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
+    private readonly IWarehouseInventoryService _warehouseInventoryService;
 
     public ProductStockService(
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<Product> productQuery,
-        IProductPriceCalculateService priceCalculateService)
+        IProductPriceCalculateService priceCalculateService,
+        IWarehouseInventoryService warehouseInventoryService)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _productTableQuery = productTableQuery;
         _productQuery = productQuery;
         _priceCalculateService = priceCalculateService;
+        _warehouseInventoryService = warehouseInventoryService;
     }
 
     public async Task<Result<ProductTableByMarkingDto>> GetByMarkingNumberAsync(string markingNumber, CancellationToken ct = default)
@@ -38,9 +42,9 @@ public class ProductStockService : IProductStockService
             return Result.Failure<ProductTableByMarkingDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == _userContext.OrganizationId.Value
+            .Where(x => x.Product.OrganizationId == _userContext.OrganizationId.Value
                         && x.MarkingNumber == markingNumber
-                        && x.StateId == StateIdConst.ACTIVE)
+                        && x.Product.StateId == StateIdConst.ACTIVE)
             .As(x => new ProductTableByMarkingDto
             {
                 ProductTableId = x.Id,
@@ -49,8 +53,8 @@ public class ProductStockService : IProductStockService
                 Mxik = x.Product.Mxik,
                 MarkingNumber = x.MarkingNumber,
                 SerialNumber = x.SerialNumber,
-                CurrentWarehouseId = x.CurrentWarehouseId,
-                CurrentWarehouseName = x.CurrentWarehouse != null ? x.CurrentWarehouse.Name : null
+                CurrentWarehouseId = x.WarehouseProductTable != null ? x.WarehouseProductTable.WarehouseId : null,
+                CurrentWarehouseName = x.WarehouseProductTable != null ? x.WarehouseProductTable.Warehouse.Name : null
             })
             .Build();
 
@@ -69,10 +73,11 @@ public class ProductStockService : IProductStockService
 
         var orgId = _userContext.OrganizationId.Value;
         var rowsQuery = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == orgId
-                        && x.StatusId == ProductTableStatusIdConst.IN_STOCK
-                        && x.StateId == StateIdConst.ACTIVE
-                        && (!filter.WarehouseId.HasValue || x.CurrentWarehouseId == filter.WarehouseId.Value)
+            .Where(x => x.Product.OrganizationId == orgId
+                        && x.WarehouseProductTable != null
+                        && x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
+                        && x.Product.StateId == StateIdConst.ACTIVE
+                        && (!filter.WarehouseId.HasValue || x.WarehouseProductTable.WarehouseId == filter.WarehouseId.Value)
                         && x.Product.ProductGroupId != null)
             .As(x => new ProductGroupStockSourceRow
             {
@@ -143,144 +148,49 @@ public class ProductStockService : IProductStockService
         return Result.Success(PagedResponseFactory.Create(new PagedList<ProductGroupStockDto>(items, totalCount), filter.Page, filter.PageSize));
     }
 
-    public async Task<Result<PagedResponse<ProductStockDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default)
+    public async Task<Result<PagedResponse<WarehouseProductDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default)
     {
-        if (_userContext.OrganizationId is null)
-            return Result.Success(PagedResponseFactory.Create(new PagedList<ProductStockDto>([], 0), filter.Page, filter.PageSize));
+        if (!filter.WarehouseId.HasValue)
+            return Result.Failure<PagedResponse<WarehouseProductDto>>(ProductStockErrors.WarehouseRequired(_userContext.LanguageId));
 
-        var orgId = _userContext.OrganizationId.Value;
-        var rowsQuery = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == orgId
-                        && x.StatusId == ProductTableStatusIdConst.IN_STOCK
-                        && x.StateId == StateIdConst.ACTIVE
-                        && (!filter.WarehouseId.HasValue || x.CurrentWarehouseId == filter.WarehouseId.Value)
-                        && (!filter.ProductGroupId.HasValue || x.Product.ProductGroupId == filter.ProductGroupId.Value)
-                        && (string.IsNullOrEmpty(filter.Search) || x.Product.Name.Contains(filter.Search)))
-            .As(x => new ProductStockSourceRow
+        var warehouseProductsResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
+            new WarehouseProductFilter
             {
-                ProductId = x.ProductId,
-                Name = x.Product.Name,
-                Barcode = x.Product.Barcode,
-                Mxik = x.Product.Mxik,
-                ProductGroupName = x.Product.ProductGroup != null ? x.Product.ProductGroup.Name : null,
-                UnitId = x.Product.UnitId,
-                UnitCode = x.Product.Unit.Code,
-                UnitName = x.Product.Unit.Name,
-                IsService = x.Product.IsService,
-                IsPieceTracked = x.Product.IsPieceTracked
-            })
-            .Build();
+                WarehouseId = filter.WarehouseId.Value,
+                ProductGroupId = filter.ProductGroupId
+            },
+            ct);
 
-        var rows = await _productTableQuery.GetAllAsync(rowsQuery, ct);
-        var goodsRows = rows
-            .GroupBy(x => new
-            {
-                x.ProductId,
-                x.Name,
-                x.Barcode,
-                x.Mxik,
-                x.ProductGroupName,
-                x.UnitId,
-                x.UnitCode,
-                x.UnitName,
-                x.IsPieceTracked,
-                x.IsService
-            })
-            .Select(g => new ProductStockAggregateRow
-            {
-                ProductId = g.Key.ProductId,
-                Name = g.Key.Name,
-                Barcode = g.Key.Barcode,
-                Mxik = g.Key.Mxik,
-                IsPieceTracked = g.Key.IsPieceTracked,
-                ProductGroupName = g.Key.ProductGroupName,
-                UnitId = g.Key.UnitId,
-                UnitCode = g.Key.UnitCode,
-                UnitName = g.Key.UnitName,
-                IsService = g.Key.IsService,
-                Quantity = g.Count()
-            })
-            .OrderBy(x => x.Name)
+        if (!warehouseProductsResult.IsSuccess)
+            return Result.Failure<PagedResponse<WarehouseProductDto>>(warehouseProductsResult.Error);
+
+        var products = warehouseProductsResult.Value
+            .Where(x => string.IsNullOrWhiteSpace(filter.Search) ||
+                        x.ProductName.Contains(filter.Search, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var totalGoods = goodsRows.Count;
-        var pageSize = filter.PageSize ?? totalGoods;
+        var totalCount = products.Count;
+        var pageSize = filter.PageSize ?? totalCount;
         var skip = Math.Max(filter.Page - 1, 0) * pageSize;
-        var goodsPage = goodsRows.Skip(skip).Take(pageSize).ToList();
+        var pageItems = products.Skip(skip).Take(pageSize).ToList();
 
-        var goodsProductIds = goodsPage.Select(x => x.ProductId).Distinct().ToList();
-        var priceMap = await _priceCalculateService.GetSalePriceMapAsync(goodsProductIds, ct);
-        var costPriceMap = await _priceCalculateService.GetCostPriceMapAsync(goodsProductIds, ct);
-
-        var items = goodsPage.Select(row =>
-        {
-            var salePrice = priceMap.GetValueOrDefault(row.ProductId)?.SalePrice ?? 0m;
-            var costPrice = costPriceMap.GetValueOrDefault(row.ProductId)?.CostPrice ?? 0m;
-
-            return new ProductStockDto
-            {
-                Id = row.ProductId,
-                Name = row.Name,
-                Barcode = row.Barcode,
-                Mxik = row.Mxik,
-                ProductGroupName = row.ProductGroupName,
-                UnitId = row.UnitId,
-                IsPieceTracked = row.IsPieceTracked,
-                UnitCode = row.UnitCode,
-                UnitName = row.UnitName,
-                IsService = row.IsService,
-                Quantity = row.Quantity,
-                Price = salePrice,
-                CostPrice = costPrice
-            };
-        }).ToList();
-
-        if (!filter.WarehouseId.HasValue)
-        {
-            var serviceQuery = _queryBuilder.For<Product>()
-                .Where(x => x.OrganizationId == orgId
-                            && x.IsService
-                            && x.StateId == StateIdConst.ACTIVE
-                            && (!filter.ProductGroupId.HasValue || x.ProductGroupId == filter.ProductGroupId.Value)
-                            && (string.IsNullOrEmpty(filter.Search) || x.Name.Contains(filter.Search)))
-                .As(x => new ProductStockDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Barcode = x.Barcode,
-                    Mxik = x.Mxik,
-                    ProductGroupName = x.ProductGroup != null ? x.ProductGroup.Name : null,
-                    UnitId = x.UnitId,
-                    IsPieceTracked = x.IsPieceTracked,
-                    UnitCode = x.Unit.Code,
-                    UnitName = x.Unit.Name,
-                    IsService = true,
-                    Quantity = 0,
-                    Price = 0,
-                    CostPrice = 0
-                })
-                .OrderBy(x => x.Name)
-                .Build();
-
-            var serviceProducts = await _productQuery.GetAllAsync(serviceQuery, ct);
-
-            items.AddRange(serviceProducts);
-            items = items.OrderBy(x => x.Name).ToList();
-        }
-
-        return Result.Success(PagedResponseFactory.Create(new PagedList<ProductStockDto>(items, totalGoods), filter.Page, filter.PageSize));
+        return Result.Success(
+            PagedResponseFactory.Create(
+                new PagedList<WarehouseProductDto>(pageItems, totalCount),
+                filter.Page,
+                filter.PageSize));
     }
-
     public async Task<Result<PagedResponse<ProductTableStockDto>>> GetProductTablesStockAsync(ProductTableStockFilter filter, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
             return Result.Success(PagedResponseFactory.Create(new PagedList<ProductTableStockDto>([], 0), filter.Page, filter.PageSize));
 
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == _userContext.OrganizationId.Value
-                        && x.StatusId == ProductTableStatusIdConst.IN_STOCK
-                        && x.StateId == StateIdConst.ACTIVE
-                        && (!filter.WarehouseId.HasValue || x.CurrentWarehouseId == filter.WarehouseId.Value)
+            .Where(x => x.Product.OrganizationId == _userContext.OrganizationId.Value
+                        && x.WarehouseProductTable != null
+                        && x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
+                        && x.Product.StateId == StateIdConst.ACTIVE
+                        && (!filter.WarehouseId.HasValue || x.WarehouseProductTable.WarehouseId == filter.WarehouseId.Value)
                         && (!filter.ProductGroupId.HasValue || x.Product.ProductGroupId == filter.ProductGroupId.Value)
                         && (!filter.ProductId.HasValue || x.ProductId == filter.ProductId.Value))
             .As(x => new ProductTableStockDto
@@ -291,8 +201,8 @@ public class ProductStockService : IProductStockService
                 Mxik = x.Product.Mxik,
                 SerialNumber = x.SerialNumber,
                 MarkingNumber = x.MarkingNumber,
-                CurrentWarehouseId = x.CurrentWarehouseId,
-                CurrentWarehouseName = x.CurrentWarehouse != null ? x.CurrentWarehouse.Name : null
+                CurrentWarehouseId = x.WarehouseProductTable != null ? x.WarehouseProductTable.WarehouseId : null,
+                CurrentWarehouseName = x.WarehouseProductTable != null ? x.WarehouseProductTable.Warehouse.Name : null
             })
             .Build();
 

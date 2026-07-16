@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using SharedKernel.Constants;
 
 namespace Domain.Entities;
 
@@ -14,14 +15,14 @@ public partial class ProductTable
     [NotMapped]
     public short StateId
     {
-        get => WarehouseProductTable is null ? (short)0 : (short)1;
+        get => StateIdConst.ACTIVE;
         set { }
     }
 
     [NotMapped]
     public short StatusId
     {
-        get => WarehouseProductTable?.StatusId ?? 0;
+        get => WarehouseProductTable?.StatusId ?? ProductTableStatusIdConst.SOLD;
         set { }
     }
 

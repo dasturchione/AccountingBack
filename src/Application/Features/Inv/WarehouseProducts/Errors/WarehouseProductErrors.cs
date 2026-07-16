@@ -74,6 +74,14 @@ public static class WarehouseProductErrors
             _ => $"Product table {productTableId} does not belong to product {productId}."
         });
 
+    public static Error SelectedBatchUnavailable(long batchId, int warehouseId, int productId, short? languageId = null) =>
+        Error.Business("WarehouseProduct.SelectedBatchUnavailable", $"Selected batch {batchId} does not belong to product {productId} in warehouse {warehouseId} or is unavailable.");
+
+    public static Error SelectedBatchNotEnoughQuantity(long batchId, decimal requested, decimal available, short? languageId = null) =>
+        Error.Business("WarehouseProduct.SelectedBatchNotEnoughQuantity", $"Selected batch {batchId} has insufficient quantity: requested {requested}, available {available}.");
+
+    public static Error InvalidSaleAllocation(long saleDocProductId, short? languageId = null) =>
+        Error.Business("WarehouseProduct.InvalidSaleAllocation", $"Invalid warehouse batch allocation for sale product line {saleDocProductId}.");
     public static Error OriginalMovementNotFound(long registerBalanceId, short? languageId = null) =>
         Error.Conflict("WarehouseProduct.OriginalMovementNotFound", $"Original warehouse movement for inventory register entry {registerBalanceId} was not found.");
 

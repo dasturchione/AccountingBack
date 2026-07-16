@@ -80,6 +80,11 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                     VatRateId      = t.VatRateId,
                     VatAmount      = t.VatAmount,
                     TotalAmount    = t.TotalAmount,
+                }).ToList(),
+                Batches = p.SaleDocProductBatches.Select(batch => new SaleDocProductBatchReadDto
+                {
+                    BatchId = batch.WarehouseProductBatchId,
+                    Quantity = batch.Quantity
                 }).ToList()
             }).ToList()
         };

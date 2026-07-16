@@ -142,6 +142,10 @@ public class SaleDocService : BaseService, ISaleDocService
 
             var productLines = productsResult.Value;
 
+            var batchSelectionValidation = AttachProductBatchSelections(productLines, dto.Lines);
+            if (!batchSelectionValidation.IsSuccess)
+                return Result.Failure<long>(batchSelectionValidation.Error);
+
             var doc = new SaleDoc
             {
                 OrganizationId = orgId,
@@ -555,6 +559,39 @@ public class SaleDocService : BaseService, ISaleDocService
         return lines;
     }
 
+    private Result AttachProductBatchSelections(
+        IReadOnlyList<SaleDocProduct> productLines,
+        IReadOnlyList<SaleDocCreateProductDto> lineDtos)
+    {
+        if (productLines.Count != lineDtos.Count)
+            return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+
+        for (var index = 0; index < productLines.Count; index++)
+        {
+            var productLine = productLines[index];
+            var selections = lineDtos[index].ProductBatches;
+            if (selections.Count == 0)
+                continue;
+
+            if (selections.Any(item => item.BatchId <= 0 || item.Quatity <= 0m) ||
+                selections.GroupBy(item => item.BatchId).Any(group => group.Count() > 1) ||
+                selections.Sum(item => item.Quatity) > productLine.Quantity)
+            {
+                return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+            }
+
+            foreach (var selection in selections)
+            {
+                productLine.SaleDocProductBatches.Add(new SaleDocProductBatch
+                {
+                    WarehouseProductBatchId = selection.BatchId,
+                    Quantity = selection.Quatity
+                });
+            }
+        }
+
+        return Result.Success();
+    }
     private async Task<Result<List<SaleDocProduct>>> BuildProductLinesFromUpdateAsync(List<SaleDocUpdateProductDto> products, CancellationToken ct)
     {
         var lines = new List<SaleDocProduct>(products.Count);

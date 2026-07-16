@@ -50,7 +50,9 @@ public class InventoryDispatcher : IInventoryDispatcher
         }
 
         await _command.CreateAsync(result.Value, ct);
-        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(result.Value, ct);
+        var warehouseProductUpdate = document is SaleDoc sale
+            ? await _warehouseProductBalanceService.ApplySaleInventoryEntriesAsync(sale, result.Value, ct)
+            : await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(result.Value, ct);
         if (!warehouseProductUpdate.IsSuccess)
             return Result.Failure<List<RegisterBalance>>(warehouseProductUpdate.Error);
 

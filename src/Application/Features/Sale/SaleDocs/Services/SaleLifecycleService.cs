@@ -177,13 +177,13 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             }
 
 
-            var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
-            if (!dispatch.IsSuccess)
-                return Result.Failure(dispatch.Error);
-
             var inventoryDispatch = await _inventoryDispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!inventoryDispatch.IsSuccess)
                 return Result.Failure(inventoryDispatch.Error);
+
+            var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
+            if (!dispatch.IsSuccess)
+                return Result.Failure(dispatch.Error);
 
             var counterpartyDispatch = await _saleCounterpartyRegisterService.PostAsync(doc, postingBatch.Id, ct);
             if (!counterpartyDispatch.IsSuccess)
@@ -336,6 +336,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Build();
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.Product));
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
+        query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocProductBatches));
 
         return await _query.GetAsync(query, ct);
     }

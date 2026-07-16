@@ -16,12 +16,14 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
     private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+    private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
     private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
     public ProductPriceCalculateService(IUserContext userContext,
                                         IQueryBuilder queryBuilder,
                                         IQueryRepository<ProductPrice> productPriceQuery,
                                         IQueryRepository<PricingCondition> pricingConditionQuery,
                                         IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+                                        IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
                                         IQueryRepository<SaleCondition> saleConditionQuery)
     {
         _userContext = userContext;
@@ -29,6 +31,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         _productPriceQuery = productPriceQuery;
         _pricingConditionQuery = pricingConditionQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
+        _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
         _saleConditionQuery = saleConditionQuery;
     }
 
@@ -158,9 +161,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             var requiredQuantity = lines.Sum(x => x.Quantity);
             var requiredCount = (int)requiredQuantity;
             var productCandidates = candidatesByProductId.GetValueOrDefault(productId) ?? new List<InventoryCandidateSnapshot>();
-            var orderedCandidates = OrderInventoryCandidates(
-                productCandidates,
-                costingMethodId == CostingMethodIdConst.LIFO);
+            var orderedCandidates = OrderInventoryCandidates(productCandidates, descending: false);
 
             if (orderedCandidates.Count < requiredQuantity)
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InsufficientStock(
@@ -170,52 +171,34 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                     _userContext.LanguageId));
 
             var selectedIdsForProduct = groupedSelections.GetValueOrDefault(productId) ?? new List<int>();
-            if (selectedIdsForProduct.Count != requiredQuantity || selectedIdsForProduct.Count != selectedIdsForProduct.Distinct().Count())
-                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-
-            var selectedCandidatesForProduct = selectedIdsForProduct
-                .Select(id => candidateByTableId[id])
-                .ToList();
-
-            var expectedBatches = orderedCandidates
-                .Take(requiredCount)
-                .GroupBy(x => (x.PurchaseDate, x.PurchaseDocId))
-                .Select(g => new
-                {
-                    g.Key.PurchaseDate,
-                    g.Key.PurchaseDocId,
-                    Count = g.Count()
-                })
-                .ToList();
-
-            if (costingMethodId != CostingMethodIdConst.AVERAGE)
+            if (selectedIdsForProduct.Count > requiredCount ||
+                selectedIdsForProduct.Count != selectedIdsForProduct.Distinct().Count())
             {
-                var selectedBatchCounts = selectedCandidatesForProduct
-                    .GroupBy(x => (x.PurchaseDate, x.PurchaseDocId))
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Count());
-
-                foreach (var expectedBatch in expectedBatches)
-                {
-                    if (!selectedBatchCounts.TryGetValue((expectedBatch.PurchaseDate, expectedBatch.PurchaseDocId), out var selectedCount) ||
-                        selectedCount != expectedBatch.Count)
-                    {
-                        return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-                    }
-                }
+                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
             }
+
+            var selectedIdSet = selectedIdsForProduct.ToHashSet();
+            var missingCount = requiredCount - selectedIdsForProduct.Count;
+            if (missingCount > 0)
+            {
+                selectedIdsForProduct.AddRange(orderedCandidates
+                    .Select(candidate => candidate.ProductTableId)
+                    .Where(productTableId => selectedIdSet.Add(productTableId))
+                    .Take(missingCount));
+            }
+
+            if (selectedIdsForProduct.Count != requiredCount)
+                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InsufficientStock(
+                    productId,
+                    requiredCount,
+                    selectedIdsForProduct.Count,
+                    _userContext.LanguageId));
 
             var averageCost = costingMethodId == CostingMethodIdConst.AVERAGE
                 ? CalculateWeightedAverageCost(orderedCandidates)
                 : 0m;
 
-            var orderedSelectedIds = costingMethodId == CostingMethodIdConst.AVERAGE
-                ? selectedIdsForProduct.OrderBy(x => x).ToList()
-                : selectedIdsForProduct
-                    .Where(id => orderedCandidates.Any(candidate => candidate.ProductTableId == id))
-                    .OrderBy(id => orderedCandidates.FindIndex(candidate => candidate.ProductTableId == id))
-                    .ToList();
+            var orderedSelectedIds = selectedIdsForProduct;
 
             var selectedIndex = 0;
 
@@ -556,24 +539,33 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         if (productIds.Count == 0)
             return new List<InventoryCandidateSnapshot>();
 
-        var query = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productIds.Contains(x.ProductTable.ProductId) &&
+        var query = _queryBuilder.For<WarehouseProductBatchTable>()
+            .Where(x => productIds.Contains(x.Batch.ProductId) &&
+                        x.Batch.OrganizationId == organizationId &&
+                        x.Batch.WarehouseId == warehouseId &&
+                        x.Batch.RemainingQuantity > 0m &&
                         x.ProductTable.OrganizationId == organizationId &&
                         x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
                         x.ProductTable.StateId == StateIdConst.ACTIVE &&
-                        x.ProductTable.CurrentWarehouseId == warehouseId &&
-                        x.Owner.Owner.OrganizationId == organizationId)
+                        x.ProductTable.CurrentWarehouseId == warehouseId)
             .As(x => new InventoryCandidateSnapshot
             {
                 ProductTableId = x.ProductTableId,
-                ProductId = x.ProductTable.ProductId,
-                PurchaseDocId = x.Owner.OwnerId,
-                PurchaseDate = x.Owner.Owner.DocDate,
-                CostAmount = x.TotalAmount
+                ProductId = x.Batch.ProductId,
+                PurchaseDocId = x.BatchId,
+                PurchaseDate = x.Batch.ReceivedDate,
+                CostAmount = x.Batch.UnitCost ?? 0m,
+                RemainingQuantity = x.Batch.RemainingQuantity
             })
             .Build();
 
-        return await _purchaseDocTableQuery.GetAllAsync(query, ct);
+        var candidates = await _warehouseProductBatchTableQuery.GetAllAsync(query, ct);
+        return candidates
+            .GroupBy(candidate => candidate.PurchaseDocId)
+            .SelectMany(group => group
+                .OrderBy(candidate => candidate.ProductTableId)
+                .Take((int)decimal.Floor(group.First().RemainingQuantity)))
+            .ToList();
     }
 
     private static List<InventoryCandidateSnapshot> OrderInventoryCandidates(List<InventoryCandidateSnapshot>? candidates, bool descending)
@@ -701,6 +693,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         public long PurchaseDocId { get; set; }
         public DateTime PurchaseDate { get; set; }
         public decimal CostAmount { get; set; }
+        public decimal RemainingQuantity { get; set; }
     }
 
     private sealed class SaleConditionCostingMethodSnapshot

@@ -67,6 +67,13 @@ public class SaleDocProductDto
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public List<SaleDocProductTableDto> Items { get; set; } = new();
+    public List<SaleDocProductBatchReadDto> Batches { get; set; } = new();
+}
+
+public class SaleDocProductBatchReadDto
+{
+    public long BatchId { get; set; }
+    public decimal Quantity { get; set; }
 }
 
 public class SaleDocProductTableDto

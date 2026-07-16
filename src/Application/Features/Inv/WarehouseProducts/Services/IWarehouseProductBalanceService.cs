@@ -7,6 +7,11 @@ public interface IWarehouseProductBalanceService
 {
     Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default);
 
+    Task<Result> ApplySaleInventoryEntriesAsync(
+        SaleDoc sale,
+        IReadOnlyCollection<RegisterBalance> entries,
+        CancellationToken ct = default);
+
     Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default);
 
     Task<Result> ReserveAsync(

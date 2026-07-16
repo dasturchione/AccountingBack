@@ -8,7 +8,7 @@ using SharedKernel.Results;
 
 namespace Infrastructure.Repositories;
 
-public class WarehouseProductBalanceService : IWarehouseProductBalanceService
+public partial class WarehouseProductBalanceService : IWarehouseProductBalanceService
 {
     private readonly AppDbContext _context;
     private readonly IUserContext _userContext;
@@ -19,9 +19,14 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         _userContext = userContext;
     }
 
-    public async Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default)
-    {
-        if (entries.Count == 0)
+    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
+        ApplyInventoryEntriesAsync(entries, null, ct);
+
+    private async Task<Result> ApplyInventoryEntriesAsync(
+        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
+        CancellationToken ct)
+    {        if (entries.Count == 0)
             return Result.Success();
 
         var entryList = entries.ToList();
@@ -36,7 +41,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
                 _userContext.LanguageId));
 
         var productUnitIds = products.ToDictionary(x => x.Key, x => x.Value.UnitId);
-        var movementResult = await ApplyMovementsAndBatchesAsync(entryList, ct);
+        var movementResult = await ApplyMovementsAndBatchesAsync(entryList, saleAllocations, ct);
         if (!movementResult.IsSuccess)
             return movementResult;
 
@@ -270,6 +275,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
 
     private async Task<Result> ApplyMovementsAndBatchesAsync(
         IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
         CancellationToken ct)
     {
         var now = DateTime.Now;
@@ -334,9 +340,19 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         foreach (var entry in batchEntries.Where(entry => !processedEntries.Contains(entry)))
         {
             var movement = movementsByEntry[entry];
-            var result = entry.OperationTypeId == OperationTypeIdConst.OUT
-                ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], originalEntries, ct)
-                : await ApplyReceiptMovementAsync(entry, movement, originalEntries, ct);
+            Result result;
+            if (entry.OperationTypeId == OperationTypeIdConst.OUT &&
+                saleAllocations is not null &&
+                saleAllocations.TryGetValue(entry, out var plannedAllocations))
+            {
+                result = await ApplySaleIssueMovementAsync(entry, movement, plannedAllocations, ct);
+            }
+            else
+            {
+                result = entry.OperationTypeId == OperationTypeIdConst.OUT
+                    ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], originalEntries, ct)
+                    : await ApplyReceiptMovementAsync(entry, movement, originalEntries, ct);
+            }
             if (!result.IsSuccess)
                 return result;
         }

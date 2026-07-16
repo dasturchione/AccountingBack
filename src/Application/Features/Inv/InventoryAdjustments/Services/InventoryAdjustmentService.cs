@@ -4,6 +4,7 @@ using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryRegisterBalances;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -344,6 +345,8 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             var productTablesQuery = _queryBuilder.For<ProductTable>()
                 .Where(x => productTableIds.Contains(x.Id))
                 .Build();
+            productTablesQuery.AddIncludes(x => x.Include(p => p.Product));
+            productTablesQuery.AddIncludes(x => x.Include(p => p.WarehouseProductTable));
             productTableById = (await _productTableQuery.GetAllAsync(productTablesQuery, ct)).ToDictionary(x => x.Id);
         }
 
@@ -395,13 +398,13 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                     continue;
                 }
 
-                if (!productTableById.TryGetValue(item.ProductTableId.Value, out var productTable) || productTable.OrganizationId != organizationId)
+                if (!productTableById.TryGetValue(item.ProductTableId.Value, out var productTable) || productTable.Product.OrganizationId != organizationId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(item.ProductTableId.Value, _userContext.LanguageId));
 
                 if (productTable.ProductId != line.ProductId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableProductMismatch(item.ProductTableId.Value, line.ProductId, _userContext.LanguageId));
 
-                if (productTable.CurrentWarehouseId != dto.WarehouseId)
+                if (productTable.WarehouseProductTable?.WarehouseId != dto.WarehouseId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableWarehouseMismatch(item.ProductTableId.Value, dto.WarehouseId, _userContext.LanguageId));
             }
         }

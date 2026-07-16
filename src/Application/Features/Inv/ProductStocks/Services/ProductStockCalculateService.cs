@@ -56,7 +56,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
             return EmptyAsync();
 
         var productIdList = NormalizeProductIds(productIds);
-        if (productIds is not null && productIdList.Count == 0 || 
+        if (productIds is not null && productIdList.Count == 0 ||
             productGroupId is null)
             return EmptyAsync();
 
@@ -119,8 +119,8 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var query = _queryBuilder.For<WarehouseProduct>()
             .Where(x => x.Product.OrganizationId == organizationId &&
-                        (warehouseId == null || x.WarehouseId == warehouseId.Value) && 
-                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) && 
+                        (warehouseId == null || x.WarehouseId == warehouseId.Value) &&
+                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)))
             .As(x => new ProductBalanceRow
             {
@@ -145,18 +145,18 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var query = _queryBuilder.For<ProductTable>()
             .Where(x => x.Product.OrganizationId == organizationId &&
-                        x.CurrentWarehouseId.HasValue &&
-                        x.StateId == StateIdConst.ACTIVE &&
-                        (x.StatusId == ProductTableStatusIdConst.IN_STOCK ||
-                         x.StatusId == ProductTableStatusIdConst.RESERVED ||
-                         x.StatusId == ProductTableStatusIdConst.BLOCKED) &&
-                        (!warehouseId.HasValue || x.CurrentWarehouseId == warehouseId.Value) && 
-                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) && 
+                        x.WarehouseProductTable != null &&
+                        x.Product.StateId == StateIdConst.ACTIVE &&
+                        (x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK ||
+                         x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.RESERVED ||
+                         x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.BLOCKED) &&
+                        (!warehouseId.HasValue || x.WarehouseProductTable.WarehouseId == warehouseId.Value) &&
+                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)))
             .As(x => new ProductTableStatusBalanceRow
             {
                 ProductTableId = x.Id,
-                StatusId = x.StatusId
+                StatusId = x.WarehouseProductTable!.StatusId
             })
             .Build();
 

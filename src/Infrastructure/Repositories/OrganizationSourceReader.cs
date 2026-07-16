@@ -21,6 +21,6 @@ public sealed class OrganizationSourceReader(AppDbContext context) : IOrganizati
     public Task<int?> GetProductTableOrganizationIdAsync(int productTableId, CancellationToken ct = default) =>
         context.ProductTables.IgnoreQueryFilters().AsNoTracking()
             .Where(x => x.Id == productTableId)
-            .Select(x => (int?)x.OrganizationId)
+            .Select(x => (int?)x.Product.OrganizationId)
             .SingleOrDefaultAsync(ct);
 }

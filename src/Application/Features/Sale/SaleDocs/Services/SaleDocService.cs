@@ -190,7 +190,7 @@ public class SaleDocService : BaseService, ISaleDocService
         }, ct);
 
     /// <summary>
-    /// Bosqich 2: Skladchik yig'adi — aniq ProductTable elementlarini tanlaydi.
+    /// Bosqich 2: Skladchik yig'adi вЂ” aniq ProductTable elementlarini tanlaydi.
     /// IsPieceTracked=false bo'lgan tovarlar avtomatik yig'ilgan hisoblanadi.
     /// </summary>
     public Task<Result> AssemblyAsync(long id, List<SaleDocProductAssemblyDto> dtos, CancellationToken ct = default) =>
@@ -214,21 +214,21 @@ public class SaleDocService : BaseService, ISaleDocService
             return await ApplyAssemblyAsync(doc, productLines, dtos ?? new List<SaleDocProductAssemblyDto>(), ct);
         }, ct);
     /// <summary>
-    /// Bosqich 3: Bugalter tasdiqlaydi — har bir SaleDocTable uchun sotuv narxini belgilaydi.
-    /// SaleDoc → POSTED, ProductTable → SOLD, provodka yaratiladi.
+    /// Bosqich 3: Bugalter tasdiqlaydi вЂ” har bir SaleDocTable uchun sotuv narxini belgilaydi.
+    /// SaleDoc в†’ POSTED, ProductTable в†’ SOLD, provodka yaratiladi.
     /// </summary>
     public Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default) =>
         _saleLifecycleService.ConfirmAsync(id, dto, ct);
 
 
     /// <summary>
-    /// Bekor qilish — istalgan bosqichdan. ProductTable → IN_STOCK ga qaytariladi.
+    /// Bekor qilish вЂ” istalgan bosqichdan. ProductTable в†’ IN_STOCK ga qaytariladi.
     /// </summary>
     public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
         _saleLifecycleService.CancelAsync(id, ct);
 
     /// <summary>
-    /// O'zgartirish — faqat DRAFT va PENDING bosqichlarda.
+    /// O'zgartirish вЂ” faqat DRAFT va PENDING bosqichlarda.
     /// DRAFT: header + mahsulot liniyalari o'zgaradi.
     /// PENDING: header o'zgaradi (skladchik tanlagan tovarlar o'zgarmaydi).
     /// </summary>
@@ -342,7 +342,7 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success();
         }, ct);
 
-    // ──────────────── Private helpers ────────────────
+    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Private helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
@@ -360,7 +360,8 @@ public class SaleDocService : BaseService, ISaleDocService
     {
         var q = _queryBuilder.For<SaleDocProduct>().Where(x => x.OwnerId == saleDocId).Build();
         q.AddIncludes(b => b.Include(x => x.Product));
-        q.AddIncludes(b => b.Include(x => x.SaleDocTables).ThenInclude(t => t.ProductTable));
+        q.AddIncludes(b => b.Include(x => x.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.Product));
+        q.AddIncludes(b => b.Include(x => x.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
         return await _productLineQuery.GetAllAsync(q, ct);
     }
 
@@ -483,8 +484,8 @@ public class SaleDocService : BaseService, ISaleDocService
 
             var hasInvalidItem = line.SaleDocTables.Any(x =>
                 x.ProductTable.ProductId != line.ProductId ||
-                x.ProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
-                x.ProductTable.StateId != StateIdConst.ACTIVE);
+                x.ProductTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.RESERVED ||
+                x.ProductTable.Product.StateId != StateIdConst.ACTIVE);
 
             if (hasInvalidItem)
                 return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(documentId, _userContext.LanguageId));

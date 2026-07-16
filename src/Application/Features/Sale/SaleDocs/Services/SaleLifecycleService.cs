@@ -335,6 +335,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value)
             .Build();
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.Product));
+        query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.Product));
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
         query.AddIncludes(b => b.Include(d => d.SaleDocProducts).ThenInclude(l => l.SaleDocProductBatches));
 
@@ -494,8 +495,8 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     {
         var productTables = GetSaleProductTables(doc);
         var hasMovedItem = productTables.Any(x =>
-            x.StatusId != ProductTableStatusIdConst.SOLD ||
-            x.StateId != StateIdConst.ACTIVE);
+            x.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.SOLD ||
+            x.Product.StateId != StateIdConst.ACTIVE);
 
         return hasMovedItem
             ? Result.Failure(SaleDocErrors.CannotCancelMovedInventory(doc.Id, _userContext.LanguageId))

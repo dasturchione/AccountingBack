@@ -225,8 +225,8 @@ public class FaAssetService : BaseService, IFaAssetService
 
         if (dto.SourceProductTableId.HasValue &&
             !await _productTableQuery.AnyAsync(x => x.Id == dto.SourceProductTableId.Value &&
-                                                    x.OrganizationId == organizationId &&
-                                                    x.StateId == StateIdConst.ACTIVE, ct))
+                                                    x.Product.OrganizationId == organizationId &&
+                                                    x.Product.StateId == StateIdConst.ACTIVE, ct))
         {
             return FaAssetErrors.SourceProductTableNotFound(dto.SourceProductTableId.Value, _userContext.LanguageId);
         }

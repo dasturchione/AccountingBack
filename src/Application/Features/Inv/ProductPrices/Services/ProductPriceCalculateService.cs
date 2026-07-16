@@ -496,9 +496,10 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var query = _queryBuilder.For<PurchaseDocTable>()
             .Where(x => productIds.Contains(x.Owner.ProductId) &&
-                        x.ProductTable.OrganizationId == _userContext.OrganizationId.Value &&
-                        x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.ProductTable.StateId == StateIdConst.ACTIVE)
+                        x.ProductTable.Product.OrganizationId == _userContext.OrganizationId.Value &&
+                        x.ProductTable.WarehouseProductTable != null &&
+                        x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.ProductTable.Product.StateId == StateIdConst.ACTIVE)
             .As(x => new PurchaseBatchSnapshot
             {
                 ProductId = x.Owner.ProductId,
@@ -544,10 +545,11 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                         x.Batch.OrganizationId == organizationId &&
                         x.Batch.WarehouseId == warehouseId &&
                         x.Batch.RemainingQuantity > 0m &&
-                        x.ProductTable.OrganizationId == organizationId &&
-                        x.ProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.ProductTable.StateId == StateIdConst.ACTIVE &&
-                        x.ProductTable.CurrentWarehouseId == warehouseId)
+                        x.ProductTable.Product.OrganizationId == organizationId &&
+                        x.ProductTable.WarehouseProductTable != null &&
+                        x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.ProductTable.Product.StateId == StateIdConst.ACTIVE &&
+                        x.ProductTable.WarehouseProductTable.WarehouseId == warehouseId)
             .As(x => new InventoryCandidateSnapshot
             {
                 ProductTableId = x.ProductTableId,

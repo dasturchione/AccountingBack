@@ -150,13 +150,10 @@ public class ProductStockService : IProductStockService
 
     public async Task<Result<PagedResponse<WarehouseProductDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default)
     {
-        if (!filter.WarehouseId.HasValue)
-            return Result.Failure<PagedResponse<WarehouseProductDto>>(ProductStockErrors.WarehouseRequired(_userContext.LanguageId));
-
         var warehouseProductsResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
             new WarehouseProductFilter
             {
-                WarehouseId = filter.WarehouseId.Value,
+                WarehouseId = filter.WarehouseId,
                 ProductGroupId = filter.ProductGroupId
             },
             ct);

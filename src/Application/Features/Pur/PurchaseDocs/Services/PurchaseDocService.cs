@@ -472,9 +472,6 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
                             SerialNumber = item.SerialNumber,
                             MarkingNumber = item.MarkingNumber.Trim(),
                             CreatedDate = DateTime.Now,
-                            OrganizationId = organizationId,
-                            StateId = StateIdConst.ACTIVE,
-                            StatusId = ProductTableStatusIdConst.RESERVED
                         }
                     }).ToList()
             });

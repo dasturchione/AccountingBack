@@ -244,7 +244,8 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             .Build();
         query.AddIncludes(b => b.Include(x => x.Warehouse));
         query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.Product).ThenInclude(x => x.Unit));
-        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable).ThenInclude(x => x.WarehouseProductTable));
+        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.Product));
+        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 
@@ -263,10 +264,11 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
     private async Task<List<InventoryCountDifferenceDto>> BuildDifferencesAsync(InventoryCountDoc doc, CancellationToken ct)
     {
         var expectedQuery = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == doc.OrganizationId &&
-                        x.CurrentWarehouseId == doc.WarehouseId &&
-                        x.StateId == StateIdConst.ACTIVE &&
-                        x.StatusId == ProductTableStatusIdConst.IN_STOCK)
+            .Where(x => x.Product.OrganizationId == doc.OrganizationId &&
+                        x.WarehouseProductTable != null &&
+                        x.WarehouseProductTable.WarehouseId == doc.WarehouseId &&
+                        x.Product.StateId == StateIdConst.ACTIVE &&
+                        x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK)
             .As(x => new InventoryCountExpectedRow
             {
                 Id = x.Id,

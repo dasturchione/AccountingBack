@@ -257,7 +257,6 @@ public class InventoryCountService : BaseService, IInventoryCountService
                     Comment = x.Comment
                 })
                 .Build();
-
             return Result.Success(await _postingBatchQuery.GetAllAsync(query, ct));
         });
 
@@ -281,7 +280,6 @@ public class InventoryCountService : BaseService, IInventoryCountService
                 .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT && adjustmentIds.Contains(x.DocumentId))
                 .As<InventoryRegisterBalanceListDto>()
                 .Build();
-
             return Result.Success(await _inventoryRegisterQuery.GetAllAsync(query, ct));
         });
 
@@ -320,7 +318,8 @@ public class InventoryCountService : BaseService, IInventoryCountService
         query.AddIncludes(b => b.Include(x => x.Warehouse));
         query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.Product));
         query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.Unit));
-        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable));
+        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.Product));
+        query.AddIncludes(b => b.Include(x => x.InventoryCountLines).ThenInclude(x => x.InventoryCountDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 
@@ -369,6 +368,8 @@ public class InventoryCountService : BaseService, IInventoryCountService
             var productTablesQuery = _queryBuilder.For<ProductTable>()
                 .Where(x => productTableIds.Contains(x.Id))
                 .Build();
+            productTablesQuery.AddIncludes(x => x.Include(p => p.Product));
+            productTablesQuery.AddIncludes(x => x.Include(p => p.WarehouseProductTable));
             productTableById = (await _productTableQuery.GetAllAsync(productTablesQuery, ct)).ToDictionary(x => x.Id);
         }
 
@@ -420,19 +421,22 @@ public class InventoryCountService : BaseService, IInventoryCountService
                     if (!seenProductTableIds.Add(item.ProductTableId.Value))
                         return Result.Failure(InventoryCountErrors.DuplicateProductTable(item.ProductTableId.Value, _userContext.LanguageId));
 
-                    if (!productTableById.TryGetValue(item.ProductTableId.Value, out var productTable) || productTable.OrganizationId != organizationId)
+                    if (!productTableById.TryGetValue(item.ProductTableId.Value, out var productTable) || productTable.Product.OrganizationId != organizationId)
                         return Result.Failure(InventoryCountErrors.ProductTableNotFound(item.ProductTableId.Value, _userContext.LanguageId));
 
                     if (productTable.ProductId != line.ProductId)
                         return Result.Failure(InventoryCountErrors.ProductTableProductMismatch(item.ProductTableId.Value, line.ProductId, _userContext.LanguageId));
 
-                    if (productTable.StateId != StateIdConst.ACTIVE)
+                    if (productTable.Product.StateId != StateIdConst.ACTIVE)
                         return Result.Failure(InventoryCountErrors.ProductTableInactive(item.ProductTableId.Value, _userContext.LanguageId));
 
-                    if (productTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                        return Result.Failure(InventoryCountErrors.ProductTableUnavailable(item.ProductTableId.Value, productTable.StatusId, _userContext.LanguageId));
+                    if (productTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                        return Result.Failure(InventoryCountErrors.ProductTableUnavailable(
+                            item.ProductTableId.Value,
+                            productTable.WarehouseProductTable?.StatusId ?? ProductTableStatusIdConst.SOLD,
+                            _userContext.LanguageId));
 
-                    if (productTable.CurrentWarehouseId != dto.WarehouseId)
+                    if (productTable.WarehouseProductTable?.WarehouseId != dto.WarehouseId)
                         return Result.Failure(InventoryCountErrors.ProductTableWarehouseMismatch(item.ProductTableId.Value, dto.WarehouseId, _userContext.LanguageId));
                 }
 
@@ -655,10 +659,11 @@ public class InventoryCountService : BaseService, IInventoryCountService
     private async Task<List<InventoryCountExpectedRow>> GetExpectedProductTablesAsync(int organizationId, int warehouseId, CancellationToken ct)
     {
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == organizationId &&
-                        x.CurrentWarehouseId == warehouseId &&
-                        x.StateId == StateIdConst.ACTIVE &&
-                        x.StatusId == ProductTableStatusIdConst.IN_STOCK)
+            .Where(x => x.Product.OrganizationId == organizationId &&
+                        x.WarehouseProductTable != null &&
+                        x.WarehouseProductTable.WarehouseId == warehouseId &&
+                        x.Product.StateId == StateIdConst.ACTIVE &&
+                        x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK)
             .As(x => new InventoryCountExpectedRow
             {
                 Id = x.Id,

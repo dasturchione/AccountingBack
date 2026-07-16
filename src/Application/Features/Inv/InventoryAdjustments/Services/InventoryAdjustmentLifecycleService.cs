@@ -257,7 +257,8 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
             .Build();
         query.AddIncludes(b => b.Include(x => x.Warehouse));
         query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.Product));
-        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable).ThenInclude(x => x.WarehouseProductTable));
+        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.Product));
+        query.AddIncludes(b => b.Include(x => x.InventoryAdjustmentLines).ThenInclude(x => x.InventoryAdjustmentDocTables).ThenInclude(x => x.ProductTable!).ThenInclude(x => x.WarehouseProductTable));
         return await _query.GetAsync(query, ct);
     }
 
@@ -303,20 +304,23 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
                 if (!seenProductTableIds.Add(item.ProductTableId.Value))
                     return Result.Failure(InventoryAdjustmentErrors.DuplicateProductTable(item.ProductTableId.Value, _userContext.LanguageId));
 
-                if (item.ProductTable == null || item.ProductTable.OrganizationId != doc.OrganizationId)
+                if (item.ProductTable == null || item.ProductTable.Product.OrganizationId != doc.OrganizationId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(item.ProductTableId.Value, _userContext.LanguageId));
 
                 if (item.ProductTable.ProductId != line.ProductId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableProductMismatch(item.ProductTableId.Value, line.ProductId, _userContext.LanguageId));
 
-                if (item.ProductTable.StateId != StateIdConst.ACTIVE)
+                if (item.ProductTable.Product.StateId != StateIdConst.ACTIVE)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableInactive(item.ProductTableId.Value, _userContext.LanguageId));
 
-                if (item.ProductTable.CurrentWarehouseId != doc.WarehouseId)
+                if (item.ProductTable.WarehouseProductTable?.WarehouseId != doc.WarehouseId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableWarehouseMismatch(item.ProductTableId.Value, doc.WarehouseId, _userContext.LanguageId));
 
-                if (!IsPositiveFlow(doc.AdjustmentType) && item.ProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK)
-                    return Result.Failure(InventoryAdjustmentErrors.ProductTableUnavailable(item.ProductTableId.Value, item.ProductTable.StatusId, _userContext.LanguageId));
+                if (!IsPositiveFlow(doc.AdjustmentType) && item.ProductTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                    return Result.Failure(InventoryAdjustmentErrors.ProductTableUnavailable(
+                        item.ProductTableId.Value,
+                        item.ProductTable.WarehouseProductTable?.StatusId ?? ProductTableStatusIdConst.SOLD,
+                        _userContext.LanguageId));
             }
         }
 

@@ -37,35 +37,23 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         _translationQuery = translationQuery;
     }
 
-    public async Task<Result<IReadOnlyList<WarehouseProductDto>>> GetWarehouseProductsAsync(
-        WarehouseProductFilter filter,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<WarehouseProductDto>>> GetWarehouseProductsAsync(WarehouseProductFilter filter, CancellationToken cancellationToken = default)
     {
         if (_userContext.OrganizationId is null)
-            return Result.Failure<IReadOnlyList<WarehouseProductDto>>(
-                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+            return Result.Failure<IReadOnlyList<WarehouseProductDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
         var organizationId = _userContext.OrganizationId.Value;
-        var warehouse = await GetWarehouseAsync(filter.WarehouseId, organizationId, cancellationToken);
-        if (warehouse is null)
-            return Result.Failure<IReadOnlyList<WarehouseProductDto>>(
-                WarehouseErrors.NotFound(filter.WarehouseId, _userContext.LanguageId));
 
         var requestedProductIds = NormalizeProductIds(filter.ProductIds);
         if (filter.ProductIds is not null && requestedProductIds.Count == 0)
             return Result.Success<IReadOnlyList<WarehouseProductDto>>(Array.Empty<WarehouseProductDto>());
 
-        var productRows = await GetProductRowsAsync(
-            filter.WarehouseId,
-            organizationId,
-            filter.ProductGroupId,
-            requestedProductIds,
-            cancellationToken);
+        var productRows = await GetProductRowsAsync(organizationId, filter.WarehouseId, filter.ProductGroupId, requestedProductIds, cancellationToken);
         if (productRows.Count == 0)
             return Result.Success<IReadOnlyList<WarehouseProductDto>>(Array.Empty<WarehouseProductDto>());
 
         var productIds = productRows.Select(row => row.ProductId).Distinct().ToList();
-        var batches = await GetBatchRowsAsync(filter.WarehouseId, organizationId, productIds, cancellationToken);
+        var batches = await GetBatchRowsAsync(organizationId, filter.WarehouseId, productIds, cancellationToken);
         var translations = await GetTranslationsAsync(productRows, cancellationToken);
         var batchesByProductId = batches
             .GroupBy(batch => batch.ProductId)
@@ -99,24 +87,10 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         return Result.Success<IReadOnlyList<WarehouseProductDto>>(result);
     }
 
-    private async Task<Warehouse?> GetWarehouseAsync(int warehouseId, int organizationId, CancellationToken cancellationToken)
-    {
-        var query = _queryBuilder.For<Warehouse>()
-            .Where(warehouse => warehouse.Id == warehouseId && warehouse.OrganizationId == organizationId)
-            .Build();
-
-        return await _warehouseQuery.GetAsync(query, cancellationToken);
-    }
-
-    private async Task<List<WarehouseProductRow>> GetProductRowsAsync(
-        int warehouseId,
-        int organizationId,
-        int? productGroupId,
-        IReadOnlyCollection<int> productIds,
-        CancellationToken cancellationToken)
+    private async Task<List<WarehouseProductRow>> GetProductRowsAsync(int organizationId, int? warehouseId, int? productGroupId, IReadOnlyCollection<int> productIds, CancellationToken cancellationToken)
     {
         var query = _queryBuilder.For<WarehouseProduct>()
-            .Where(item => item.WarehouseId == warehouseId &&
+            .Where(item => (!warehouseId.HasValue || item.WarehouseId == warehouseId) &&
                            item.Product.OrganizationId == organizationId &&
                            (!productGroupId.HasValue || item.Product.ProductGroupId == productGroupId.Value) &&
                            (productIds.Count == 0 || productIds.Contains(item.ProductId)))
@@ -139,14 +113,10 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         return await _warehouseProductQuery.GetAllAsync(query, cancellationToken);
     }
 
-    private async Task<List<WarehouseProductBatchRow>> GetBatchRowsAsync(
-        int warehouseId,
-        int organizationId,
-        IReadOnlyCollection<int> productIds,
-        CancellationToken cancellationToken)
+    private async Task<List<WarehouseProductBatchRow>> GetBatchRowsAsync(int organizationId, int? warehouseId, IReadOnlyCollection<int> productIds, CancellationToken cancellationToken)
     {
         var query = _queryBuilder.For<WarehouseProductBatch>()
-            .Where(batch => batch.WarehouseId == warehouseId &&
+            .Where(batch => (!warehouseId.HasValue || batch.WarehouseId == warehouseId) &&
                             batch.OrganizationId == organizationId &&
                             productIds.Contains(batch.ProductId) &&
                             batch.RemainingQuantity > 0m)
@@ -165,9 +135,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         return await _warehouseProductBatchQuery.GetAllAsync(query, cancellationToken);
     }
 
-    private async Task<Dictionary<(string TableName, long RecordId), string>> GetTranslationsAsync(
-        IReadOnlyCollection<WarehouseProductRow> products,
-        CancellationToken cancellationToken)
+    private async Task<Dictionary<(string TableName, long RecordId), string>> GetTranslationsAsync(IReadOnlyCollection<WarehouseProductRow> products, CancellationToken cancellationToken)
     {
         if (!_userContext.LanguageId.HasValue)
             return new Dictionary<(string TableName, long RecordId), string>();
@@ -200,10 +168,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
             .ToDictionary(group => group.Key, group => group.Last().Value);
     }
 
-    private static IReadOnlyList<WarehouseProductBatchDto> BuildBatches(
-        IReadOnlyCollection<WarehouseProductBatchRow> batches,
-        decimal reservedQuantity,
-        decimal blockedQuantity)
+    private static IReadOnlyList<WarehouseProductBatchDto> BuildBatches(IReadOnlyCollection<WarehouseProductBatchRow> batches, decimal reservedQuantity, decimal blockedQuantity)
     {
         var remainingReserved = Math.Max(reservedQuantity, 0m);
         var remainingBlocked = Math.Max(blockedQuantity, 0m);

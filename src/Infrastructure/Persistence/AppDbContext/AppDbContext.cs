@@ -174,21 +174,21 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductTable>()
             .HasIndex(x => x.MarkingNumber)
-            .HasDatabaseName("ux_inv_product_table_marking_number_active")
+            .HasDatabaseName("ux_inv_product_table_marking_number")
             .IsUnique()
-            .HasFilter("state_id = 1 AND marking_number IS NOT NULL");
+            .HasFilter("marking_number IS NOT NULL");
 
-        modelBuilder.Entity<ProductTable>()
-            .HasIndex(x => x.CurrentWarehouseId)
-            .HasDatabaseName("idx_inv_product_table_current_warehouse_id");
+        modelBuilder.Entity<WarehouseProductTable>()
+            .HasIndex(x => x.WarehouseId)
+            .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_id");
 
-        modelBuilder.Entity<ProductTable>()
-            .HasIndex(x => new { x.OrganizationId, x.CurrentWarehouseId, x.StatusId })
-            .HasDatabaseName("idx_inv_product_table_org_warehouse_status");
+        modelBuilder.Entity<WarehouseProductTable>()
+            .HasIndex(x => new { x.WarehouseId, x.StatusId })
+            .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_status");
 
-        modelBuilder.Entity<ProductTable>()
-            .HasIndex(x => new { x.OrganizationId, x.CurrentWarehouseId, x.StatusId, x.ProductId })
-            .HasDatabaseName("idx_inv_product_table_org_warehouse_status_product");
+        modelBuilder.Entity<WarehouseProductTable>()
+            .HasIndex(x => new { x.WarehouseId, x.StatusId, x.ProductTableId })
+            .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_status_product_table");
 
         modelBuilder.Entity<ChartAccountPresetAccount>(entity =>
             entity.HasOne(e => e.ChartAccountPresetAccountNavigation)
@@ -200,14 +200,9 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductTable>()
             .HasIndex(x => x.SerialNumber)
-            .HasDatabaseName("ux_inv_product_table_serial_number_active")
+            .HasDatabaseName("ux_inv_product_table_serial_number")
             .IsUnique()
-            .HasFilter("state_id = 1 AND serial_number IS NOT NULL");
-
-        modelBuilder.Entity<ProductTable>()
-            .ToTable(t => t.HasCheckConstraint(
-                "chk_inv_product_table_active_stock_warehouse",
-                "status_id <> 1 OR current_warehouse_id IS NOT NULL"));
+            .HasFilter("serial_number IS NOT NULL");
 
         modelBuilder.Entity<WarehouseProduct>()
             .Property(x => x.AvailableQuantity)

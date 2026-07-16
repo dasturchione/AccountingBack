@@ -294,6 +294,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
             .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
             .Build();
         query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.Product));
+        query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.Product));
         query.AddIncludes(b => b.Include(d => d.PurchaseDocProducts).ThenInclude(l => l.PurchaseDocTables).ThenInclude(t => t.ProductTable).ThenInclude(t => t.WarehouseProductTable));
 
         return await _query.GetAsync(query, ct);
@@ -336,8 +337,8 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     {
         var productTables = GetPurchaseProductTables(doc);
         var hasMovedItem = productTables.Any(x =>
-            x.StatusId != ProductTableStatusIdConst.IN_STOCK ||
-            x.StateId != StateIdConst.ACTIVE);
+            x.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.IN_STOCK ||
+            x.Product.StateId != StateIdConst.ACTIVE);
 
         return hasMovedItem
             ? Result.Failure(PurchaseDocErrors.CannotCancelMovedInventory(doc.Id, _userContext.LanguageId))
@@ -641,10 +642,11 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         CancellationToken ct)
     {
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == organizationId &&
+            .Where(x => x.Product.OrganizationId == organizationId &&
                         x.ProductId == productId &&
-                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.StateId == StateIdConst.ACTIVE &&
+                        x.WarehouseProductTable != null &&
+                        x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.Product.StateId == StateIdConst.ACTIVE &&
                         !newProductTableIds.Contains(x.Id))
             .As(x => x.Id)
             .Build();
@@ -655,10 +657,11 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     private async Task<List<int>> GetAllInStockProductTableIdsAsync(int organizationId, int productId, CancellationToken ct)
     {
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.OrganizationId == organizationId &&
+            .Where(x => x.Product.OrganizationId == organizationId &&
                         x.ProductId == productId &&
-                        x.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.StateId == StateIdConst.ACTIVE)
+                        x.WarehouseProductTable != null &&
+                        x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                        x.Product.StateId == StateIdConst.ACTIVE)
             .As(x => x.Id)
             .Build();
 

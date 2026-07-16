@@ -606,8 +606,8 @@ public class ManualService : IManualService
             return new List<SelectListDto>();
 
         var query = _queryBuilder.For<ProductTable>()
-                            .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                        x.OrganizationId == _userContext.OrganizationId)
+                            .Where(x => x.Product.StateId == StateIdConst.ACTIVE &&
+                                        x.Product.OrganizationId == _userContext.OrganizationId)
                             .As(x => new SelectListDto
                             {
                                 Id = x.Id,

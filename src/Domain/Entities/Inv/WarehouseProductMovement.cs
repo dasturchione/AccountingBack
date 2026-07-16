@@ -33,10 +33,6 @@ public partial class WarehouseProductMovement
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
 
-    [Column("unit_cost")]
-    [Precision(24, 8)]
-    public decimal? UnitCost { get; set; }
-
     [Column("movement_sign")]
     public short MovementSign { get; set; }
 

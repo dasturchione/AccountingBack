@@ -373,6 +373,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .SelectMany(group => group.Entries.Select(entry => new { Entry = entry, group.Movement }))
             .ToDictionary(item => item.Entry, item => item.Movement);
         var entriesByMovement = movementGroups.ToDictionary(group => group.Movement, group => group.Entries);
+        var receiptUnitCostsByMovement = movementGroups.ToDictionary(group => group.Movement, group => group.UnitCost);
 
         await _warehouseProductMovementCommand.CreateAsync(
             movementGroups.Select(group => group.Movement),
@@ -421,7 +422,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 .ToDictionary(entry => entry.ProductTableId!.Value, entry => entry.Amount);
             var sourceAmount = sourceEntries.Sum(entry => entry.Amount);
             var destinationMovement = movementsByEntry[destinationEntries[0]];
-            destinationMovement.UnitCost = destinationMovement.Quantity == 0m
+            receiptUnitCostsByMovement[destinationMovement] = destinationMovement.Quantity == 0m
                 ? 0m
                 : sourceAmount / destinationMovement.Quantity;
 
@@ -434,6 +435,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 var receiptResult = await ApplyReceiptMovementAsync(
                     destinationEntry,
                     destinationMovement,
+                    receiptUnitCostsByMovement[destinationMovement],
                     originalEntries,
                     receiptDocumentNumbers,
                     ct);
@@ -466,6 +468,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 result = await ApplyReceiptMovementAsync(
                     CreateAggregatedEntry(entriesByMovement[movement]),
                     movement,
+                    receiptUnitCostsByMovement[movement],
                     originalEntries,
                     receiptDocumentNumbers,
                     ct);
@@ -474,7 +477,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             {
                 result = entry.OperationTypeId == OperationTypeIdConst.OUT
                     ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], originalEntries, ct)
-                    : await ApplyReceiptMovementAsync(entry, movement, originalEntries,
+                    : await ApplyReceiptMovementAsync(entry, movement, receiptUnitCostsByMovement[movement], originalEntries,
                         receiptDocumentNumbers,
                         ct);
             }
@@ -519,13 +522,13 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                         DocumentId = firstEntry.DocumentId,
                         DocumentLineId = group.Key.IsPieceTracked ? null : firstEntry.SourceLineId,
                         Quantity = quantity,
-                        UnitCost = firstEntry.OperationTypeId == OperationTypeIdConst.IN && quantity != 0m
-                            ? amount / quantity
-                            : null,
                         MovementSign = ToMovementSign(firstEntry.OperationTypeId),
                         MovementDate = firstEntry.DocDate,
                         CreatedDate = now
-                    });
+                    },
+                    firstEntry.OperationTypeId == OperationTypeIdConst.IN && quantity != 0m
+                        ? amount / quantity
+                        : null);
             })
             .ToList();
     }
@@ -606,6 +609,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private async Task<Result> ApplyReceiptMovementAsync(
         RegisterBalance entry,
         WarehouseProductMovement receiptMovement,
+        decimal? receiptUnitCost,
         IReadOnlyDictionary<long, RegisterBalance> originalEntries,
         IReadOnlyDictionary<(short DocumentTypeId, long DocumentId), string> receiptDocumentNumbers,
         CancellationToken ct)
@@ -620,7 +624,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             ct);
         if (batch is null)
         {
-            var unitCost = receiptMovement.UnitCost ?? 0m;
+            var unitCost = receiptUnitCost ?? 0m;
             if (unitCost == 0m && receiptMovement.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT)
             {
                 unitCost = await GetWeightedUnitCostAsync(
@@ -628,7 +632,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     receiptMovement.WarehouseId,
                     receiptMovement.ProductId,
                     ct);
-                receiptMovement.UnitCost = unitCost;
                 entry.Amount = unitCost * entry.Quantity;
             }
 
@@ -1273,7 +1276,10 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     group.Count(row => row.StatusId == ProductTableStatusIdConst.BLOCKED)));
     }
 
-    private sealed record WarehouseMovementGroup(IReadOnlyList<RegisterBalance> Entries, WarehouseProductMovement Movement);
+    private sealed record WarehouseMovementGroup(
+        IReadOnlyList<RegisterBalance> Entries,
+        WarehouseProductMovement Movement,
+        decimal? UnitCost);
     private sealed record WarehouseMovementGroupKey(
         int OrganizationId,
         int WarehouseId,

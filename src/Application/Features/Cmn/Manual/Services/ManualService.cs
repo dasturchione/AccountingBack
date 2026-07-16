@@ -812,6 +812,7 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<SubkontoType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)

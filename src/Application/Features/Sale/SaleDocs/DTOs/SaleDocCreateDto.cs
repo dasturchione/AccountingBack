@@ -40,7 +40,7 @@ public class SaleDocCreateProductTableDto
 public class SaleDocProductBatchDto
 {
     public long BatchId { get; set; }
-    public decimal Quatity { get; set; }
+    public decimal Quantity { get; set; }
 }
 
 public enum SaleProcessingMode

@@ -4,6 +4,7 @@ create table inv_warehouse_product_movement
     organization_id     int not null references org_organization(id),
     warehouse_id        int not null references inv_warehouse(id),
     product_id          int not null references inv_product(id),
+    product_table_id    int references inv_product_table(id),
 
     document_type_id    smallint not null references cmn_document_type(id),
     document_id         bigint not null,
@@ -11,6 +12,7 @@ create table inv_warehouse_product_movement
 
     quantity            numeric(19,6) not null
                             check (quantity > 0),
+    unit_cost           numeric(24,8) check (unit_cost is null or unit_cost >= 0),
 
     movement_sign       smallint not null
                             check (movement_sign in (-1, 1)),
@@ -34,3 +36,6 @@ create index idx_inv_warehouse_product_movement_document_line
 create index idx_inv_warehouse_product_movement_date
     on inv_warehouse_product_movement
     (organization_id, movement_date);
+create index idx_inv_warehouse_product_movement_product_table
+    on inv_warehouse_product_movement (organization_id, product_table_id)
+    where product_table_id is not null;

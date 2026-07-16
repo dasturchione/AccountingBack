@@ -342,8 +342,6 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success();
         }, ct);
 
-    // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Private helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
@@ -574,9 +572,9 @@ public class SaleDocService : BaseService, ISaleDocService
             if (selections.Count == 0)
                 continue;
 
-            if (selections.Any(item => item.BatchId <= 0 || item.Quatity <= 0m) ||
+            if (selections.Any(item => item.BatchId <= 0 || item.Quantity <= 0m) ||
                 selections.GroupBy(item => item.BatchId).Any(group => group.Count() > 1) ||
-                selections.Sum(item => item.Quatity) > productLine.Quantity)
+                selections.Sum(item => item.Quantity) > productLine.Quantity)
             {
                 return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
             }
@@ -586,7 +584,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 productLine.SaleDocProductBatches.Add(new SaleDocProductBatch
                 {
                     WarehouseProductBatchId = selection.BatchId,
-                    Quantity = selection.Quatity
+                    Quantity = selection.Quantity
                 });
             }
         }

@@ -20,6 +20,9 @@ public partial class WarehouseProductMovement
     [Column("product_id")]
     public int ProductId { get; set; }
 
+    [Column("product_table_id")]
+    public int? ProductTableId { get; set; }
+
     [Column("document_type_id")]
     public short DocumentTypeId { get; set; }
 
@@ -32,6 +35,10 @@ public partial class WarehouseProductMovement
     [Column("quantity")]
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
+
+    [Column("unit_cost")]
+    [Precision(24, 8)]
+    public decimal? UnitCost { get; set; }
 
     [Column("movement_sign")]
     public short MovementSign { get; set; }
@@ -59,6 +66,10 @@ public partial class WarehouseProductMovement
     [ForeignKey("ProductId")]
     [InverseProperty(nameof(Product.WarehouseProductMovements))]
     public virtual Product Product { get; set; } = null!;
+
+    [ForeignKey(nameof(ProductTableId))]
+    [InverseProperty(nameof(ProductTable.WarehouseProductMovements))]
+    public virtual ProductTable? ProductTable { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty(nameof(Warehouse.WarehouseProductMovements))]

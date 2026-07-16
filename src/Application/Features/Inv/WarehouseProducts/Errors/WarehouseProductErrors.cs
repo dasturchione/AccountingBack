@@ -82,6 +82,8 @@ public static class WarehouseProductErrors
 
     public static Error InvalidSaleAllocation(long saleDocProductId, short? languageId = null) =>
         Error.Business("WarehouseProduct.InvalidSaleAllocation", $"Invalid warehouse batch allocation for sale product line {saleDocProductId}.");
+    public static Error ReceiptDocumentNotFound(short documentTypeId, long documentId, short? languageId = null) =>
+        Error.NotFound("WarehouseProduct.ReceiptDocumentNotFound", $"Receipt document {documentTypeId}/{documentId} was not found.");
     public static Error OriginalMovementNotFound(long registerBalanceId, short? languageId = null) =>
         Error.Conflict("WarehouseProduct.OriginalMovementNotFound", $"Original warehouse movement for inventory register entry {registerBalanceId} was not found.");
 

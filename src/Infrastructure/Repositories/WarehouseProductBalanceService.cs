@@ -1,22 +1,93 @@
+﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
-using Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Infrastructure.Repositories;
 
 public partial class WarehouseProductBalanceService : IWarehouseProductBalanceService
 {
-    private readonly AppDbContext _context;
+    private readonly IQueryBuilder _queryBuilder;
     private readonly IUserContext _userContext;
+    private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<ProductTable> _productTableQuery;
+    private readonly IQueryRepository<WarehouseProduct> _warehouseProductQuery;
+    private readonly IQueryRepository<WarehouseProductTable> _warehouseProductTableQuery;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseProductMovementQuery;
+    private readonly IQueryRepository<WarehouseProductBatch> _warehouseProductBatchQuery;
+    private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
+    private readonly IQueryRepository<WarehouseProductBatchAllocation> _warehouseProductBatchAllocationQuery;
+    private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
+    private readonly IQueryRepository<RegisterBalance> _registerBalanceQuery;
+    private readonly IQueryRepository<PurchaseDoc> _purchaseDocQuery;
+    private readonly IQueryRepository<WarehouseTransferDoc> _warehouseTransferDocQuery;
+    private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentDocQuery;
+    private readonly ICommandRepository<WarehouseProduct> _warehouseProductCommand;
+    private readonly ICommandRepository<WarehouseProductTable> _warehouseProductTableCommand;
+    private readonly ICommandRepository<WarehouseProductMovement> _warehouseProductMovementCommand;
+    private readonly ICommandRepository<WarehouseProductBatch> _warehouseProductBatchCommand;
+    private readonly ICommandRepository<WarehouseProductBatchTable> _warehouseProductBatchTableCommand;
+    private readonly ICommandRepository<WarehouseProductBatchAllocation> _warehouseProductBatchAllocationCommand;
+    private readonly ICommandRepository<RegisterBalance> _registerBalanceCommand;
+    private readonly ICommandRepository<SaleDocProduct> _saleDocProductCommand;
+    private readonly ICommandRepository<SaleDocTable> _saleDocTableCommand;
+    private readonly ICommandRepository<SaleDocProductBatch> _saleDocProductBatchCommand;
 
-    public WarehouseProductBalanceService(AppDbContext context, IUserContext userContext)
+    public WarehouseProductBalanceService(
+        IQueryBuilder queryBuilder,
+        IUserContext userContext,
+        IQueryRepository<Product> productQuery,
+        IQueryRepository<ProductTable> productTableQuery,
+        IQueryRepository<WarehouseProduct> warehouseProductQuery,
+        IQueryRepository<WarehouseProductTable> warehouseProductTableQuery,
+        IQueryRepository<WarehouseProductMovement> warehouseProductMovementQuery,
+        IQueryRepository<WarehouseProductBatch> warehouseProductBatchQuery,
+        IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
+        IQueryRepository<WarehouseProductBatchAllocation> warehouseProductBatchAllocationQuery,
+        IQueryRepository<OrganizationConfig> organizationConfigQuery,
+        IQueryRepository<RegisterBalance> registerBalanceQuery,
+        IQueryRepository<PurchaseDoc> purchaseDocQuery,
+        IQueryRepository<WarehouseTransferDoc> warehouseTransferDocQuery,
+        IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentDocQuery,
+        ICommandRepository<WarehouseProduct> warehouseProductCommand,
+        ICommandRepository<WarehouseProductTable> warehouseProductTableCommand,
+        ICommandRepository<WarehouseProductMovement> warehouseProductMovementCommand,
+        ICommandRepository<WarehouseProductBatch> warehouseProductBatchCommand,
+        ICommandRepository<WarehouseProductBatchTable> warehouseProductBatchTableCommand,
+        ICommandRepository<WarehouseProductBatchAllocation> warehouseProductBatchAllocationCommand,
+        ICommandRepository<RegisterBalance> registerBalanceCommand,
+        ICommandRepository<SaleDocProduct> saleDocProductCommand,
+        ICommandRepository<SaleDocTable> saleDocTableCommand,
+        ICommandRepository<SaleDocProductBatch> saleDocProductBatchCommand)
     {
-        _context = context;
+        _queryBuilder = queryBuilder;
         _userContext = userContext;
+        _productQuery = productQuery;
+        _productTableQuery = productTableQuery;
+        _warehouseProductQuery = warehouseProductQuery;
+        _warehouseProductTableQuery = warehouseProductTableQuery;
+        _warehouseProductMovementQuery = warehouseProductMovementQuery;
+        _warehouseProductBatchQuery = warehouseProductBatchQuery;
+        _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
+        _warehouseProductBatchAllocationQuery = warehouseProductBatchAllocationQuery;
+        _organizationConfigQuery = organizationConfigQuery;
+        _registerBalanceQuery = registerBalanceQuery;
+        _purchaseDocQuery = purchaseDocQuery;
+        _warehouseTransferDocQuery = warehouseTransferDocQuery;
+        _inventoryAdjustmentDocQuery = inventoryAdjustmentDocQuery;
+        _warehouseProductCommand = warehouseProductCommand;
+        _warehouseProductTableCommand = warehouseProductTableCommand;
+        _warehouseProductMovementCommand = warehouseProductMovementCommand;
+        _warehouseProductBatchCommand = warehouseProductBatchCommand;
+        _warehouseProductBatchTableCommand = warehouseProductBatchTableCommand;
+        _warehouseProductBatchAllocationCommand = warehouseProductBatchAllocationCommand;
+        _registerBalanceCommand = registerBalanceCommand;
+        _saleDocProductCommand = saleDocProductCommand;
+        _saleDocTableCommand = saleDocTableCommand;
+        _saleDocProductBatchCommand = saleDocProductBatchCommand;
     }
 
     public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
@@ -26,7 +97,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         IReadOnlyCollection<RegisterBalance> entries,
         IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
         CancellationToken ct)
-    {        if (entries.Count == 0)
+    {
+        if (entries.Count == 0)
             return Result.Success();
 
         var entryList = entries.ToList();
@@ -36,9 +108,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var products = await GetProductSnapshotsAsync(entryList.Select(x => x.ProductId), ct);
         if (products.Count != entryList.Select(x => x.ProductId).Distinct().Count())
-            return Result.Failure(WarehouseProductErrors.ProductNotFound(
-                entryList.Select(x => x.ProductId).First(x => !products.ContainsKey(x)),
-                _userContext.LanguageId));
+            return Result.Failure(WarehouseProductErrors.ProductNotFound(entryList.Select(x => x.ProductId).First(x => !products.ContainsKey(x)), _userContext.LanguageId));
 
         var productUnitIds = products.ToDictionary(x => x.Key, x => x.Value.UnitId);
         var movementResult = await ApplyMovementsAndBatchesAsync(entryList, saleAllocations, ct);
@@ -53,6 +123,9 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         var productTablesById = productTablesResult.Value;
         var warehouseProductTables = await GetWarehouseProductTablesAsync(productTableEntries, ct);
         var warehouseProductTablesById = warehouseProductTables.ToDictionary(x => x.ProductTableId);
+        var createdWarehouseProductTables = new List<WarehouseProductTable>();
+        var updatedWarehouseProductTables = new HashSet<WarehouseProductTable>();
+        var deletedWarehouseProductTables = new List<WarehouseProductTable>();
         var changes = new List<WarehouseProductBalanceChange>();
         var processedEntries = new HashSet<RegisterBalance>();
 
@@ -75,6 +148,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
             warehouseProductTable.WarehouseId = destinationEntry.WarehouseId;
             warehouseProductTable.StatusId = ProductTableStatusIdConst.IN_STOCK;
+            updatedWarehouseProductTables.Add(warehouseProductTable);
 
             changes.Add(ToQuantityChange(sourceEntry));
             changes.Add(ToQuantityChange(destinationEntry));
@@ -117,7 +191,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     CreatedDate = DateTime.Now
                 };
 
-                await _context.Set<WarehouseProductTable>().AddAsync(warehouseProductTable, ct);
+                createdWarehouseProductTables.Add(warehouseProductTable);
                 warehouseProductTablesById[productTableId] = warehouseProductTable;
                 changes.Add(ToQuantityChange(entry));
                 continue;
@@ -136,10 +210,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             if (!tableValidation.IsSuccess)
                 return tableValidation;
 
-            changes.Add(ToQuantityChange(
-                entry,
-                existingWarehouseProductTable.StatusId == ProductTableStatusIdConst.RESERVED ? -entry.Quantity : 0m));
-            _context.Set<WarehouseProductTable>().Remove(existingWarehouseProductTable);
+            changes.Add(ToQuantityChange(entry, existingWarehouseProductTable.StatusId == ProductTableStatusIdConst.RESERVED ? -entry.Quantity : 0m));
+            deletedWarehouseProductTables.Add(existingWarehouseProductTable);
             warehouseProductTablesById.Remove(productTableId);
         }
 
@@ -147,7 +219,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (!balanceResult.IsSuccess)
             return balanceResult;
 
-        await _context.SaveChangesAsync(ct);
+        if (createdWarehouseProductTables.Count > 0)
+            await _warehouseProductTableCommand.CreateAsync(createdWarehouseProductTables, ct);
+        if (updatedWarehouseProductTables.Count > 0)
+            await _warehouseProductTableCommand.UpdateAsync(updatedWarehouseProductTables, ct);
+        if (deletedWarehouseProductTables.Count > 0)
+            await _warehouseProductTableCommand.DeleteAsync(deletedWarehouseProductTables, ct);
+
+        await _registerBalanceCommand.UpdateAsync(entryList, ct);
         return Result.Success();
     }
 
@@ -186,12 +265,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (distinctProductTableIds.Count != productTableIds.Count)
             return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(productTableIds.First(), 0, _userContext.LanguageId));
 
+        var updatedWarehouseProductTables = new List<WarehouseProductTable>();
         if (distinctProductTableIds.Count > 0)
         {
-            var tables = await _context.Set<WarehouseProductTable>()
-                .Include(x => x.ProductTable)
-                .Where(x => distinctProductTableIds.Contains(x.ProductTableId))
-                .ToListAsync(ct);
+            var tables = await _warehouseProductTableQuery.GetAllAsync(
+                _queryBuilder.For<WarehouseProductTable>()
+                    .Where(x => distinctProductTableIds.Contains(x.ProductTableId))
+                    .Build(),
+                ct);
 
             if (tables.Count != distinctProductTableIds.Count)
             {
@@ -201,8 +282,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     _userContext.LanguageId));
             }
 
+            var productTablesById = await GetProductTableProductIdsAsync(distinctProductTableIds, ct);
+            if (productTablesById.Count != distinctProductTableIds.Count)
+                return Result.Failure(WarehouseProductErrors.ProductTableNotFound(
+                    distinctProductTableIds.First(id => !productTablesById.ContainsKey(id)),
+                    _userContext.LanguageId));
+
             var selectedByProduct = tables
-                .GroupBy(x => x.ProductTable.ProductId)
+                .GroupBy(x => productTablesById[x.ProductTableId])
                 .ToDictionary(x => x.Key, x => (decimal)x.Count());
             var requestedByProduct = items
                 .GroupBy(x => x.ProductId)
@@ -227,13 +314,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 var validation = ValidateWarehouseProductTable(
                     table,
                     table.ProductTableId,
-                    table.ProductTable.ProductId,
+                    productTablesById[table.ProductTableId],
                     warehouseId,
                     expectedStatus);
                 if (!validation.IsSuccess)
                     return validation;
 
                 table.StatusId = nextStatus;
+                updatedWarehouseProductTables.Add(table);
             }
         }
 
@@ -255,7 +343,9 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (!balanceResult.IsSuccess)
             return balanceResult;
 
-        await _context.SaveChangesAsync(ct);
+        if (updatedWarehouseProductTables.Count > 0)
+            await _warehouseProductTableCommand.UpdateAsync(updatedWarehouseProductTables, ct);
+
         return Result.Success();
     }
 
@@ -299,7 +389,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 CreatedDate = now
             });
 
-        await _context.Set<WarehouseProductMovement>().AddRangeAsync(movementsByEntry.Values, ct);
+        await _warehouseProductMovementCommand.CreateAsync(movementsByEntry.Values, ct);
 
         var receiptDocumentNumbers = await GetReceiptDocumentNumbersAsync(
             movementsByEntry.Values.Where(movement => movement.MovementSign == 1),
@@ -371,6 +461,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 return result;
         }
 
+        await _warehouseProductMovementCommand.UpdateAsync(movementsByEntry.Values, ct);
         return Result.Success();
     }
 
@@ -417,7 +508,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 : batch.UnitCost ?? 0m;
 
             batch.RemainingQuantity -= quantity;
-            AddBatchAllocation(issueMovement, batch, quantity, unitCost);
+            await _warehouseProductBatchCommand.UpdateAsync(batch, ct);
+            await AddBatchAllocationAsync(issueMovement, batch, quantity, unitCost, ct);
             totalCost += quantity * unitCost;
             quantityToAllocate -= quantity;
         }
@@ -463,6 +555,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             OrganizationId = receiptMovement.OrganizationId,
             WarehouseId = receiptMovement.WarehouseId,
             ProductId = receiptMovement.ProductId,
+            ReceiptMovementId = receiptMovement.Id,
             ReceiptMovement = receiptMovement,
             BatchNumber = batchNumber,
             InitialQuantity = receiptMovement.Quantity,
@@ -472,13 +565,13 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             CreatedDate = DateTime.Now
         };
 
-        await _context.Set<WarehouseProductBatch>().AddAsync(batch, ct);
+        await _warehouseProductBatchCommand.CreateAsync(batch, ct);
 
         if (receiptMovement.ProductTableId.HasValue)
         {
-            await _context.Set<WarehouseProductBatchTable>().AddAsync(new WarehouseProductBatchTable
+            await _warehouseProductBatchTableCommand.CreateAsync(new WarehouseProductBatchTable
             {
-                Batch = batch,
+                BatchId = batch.Id,
                 ProductTableId = receiptMovement.ProductTableId.Value,
                 CreatedDate = DateTime.Now
             }, ct);
@@ -499,8 +592,11 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (originalMovement == null)
             return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
 
-        var batch = await _context.Set<WarehouseProductBatch>()
-            .SingleOrDefaultAsync(item => item.ReceiptMovementId == originalMovement.Id, ct);
+        var batch = await _warehouseProductBatchQuery.GetAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(item => item.ReceiptMovementId == originalMovement.Id)
+                .Build(),
+            ct);
         if (batch == null)
             return Result.Failure(WarehouseProductErrors.OriginalBatchNotFound(originalMovement.Id, _userContext.LanguageId));
 
@@ -514,7 +610,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var unitCost = batch.UnitCost ?? 0m;
         batch.RemainingQuantity -= reversalEntry.Quantity;
-        AddBatchAllocation(issueMovement, batch, reversalEntry.Quantity, unitCost);
+        await _warehouseProductBatchCommand.UpdateAsync(batch, ct);
+        await AddBatchAllocationAsync(issueMovement, batch, reversalEntry.Quantity, unitCost, ct);
         reversalEntry.Amount = reversalEntry.Quantity * unitCost;
         return Result.Success();
     }
@@ -531,10 +628,11 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (originalMovement == null)
             return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
 
-        var allocations = await _context.Set<WarehouseProductBatchAllocation>()
-            .Include(item => item.Batch)
-            .Where(item => item.IssueMovementId == originalMovement.Id)
-            .ToListAsync(ct);
+        var allocations = await _warehouseProductBatchAllocationQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatchAllocation>()
+                .Where(item => item.IssueMovementId == originalMovement.Id)
+                .Build(),
+            ct);
         if (allocations.Count == 0)
             return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
 
@@ -542,24 +640,42 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (allocatedQuantity != reversalEntry.Quantity)
             return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
 
-        foreach (var allocation in allocations)
-            allocation.Batch.RemainingQuantity += allocation.Quantity;
+        var batchIds = allocations.Select(allocation => allocation.BatchId).Distinct().ToList();
+        var batches = await _warehouseProductBatchQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(batch => batchIds.Contains(batch.Id))
+                .Build(),
+            ct);
+        var batchesById = batches.ToDictionary(batch => batch.Id);
+        if (batchesById.Count != batchIds.Count)
+            return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
 
+        foreach (var allocation in allocations)
+            batchesById[allocation.BatchId].RemainingQuantity += allocation.Quantity;
+
+        await _warehouseProductBatchCommand.UpdateAsync(batchesById.Values, ct);
         reversalEntry.Amount = allocations.Sum(item => item.Quantity * (item.UnitCost ?? 0m));
         return Result.Success();
     }
 
-    private async Task<WarehouseProductMovement?> FindMovementAsync(RegisterBalance entry, CancellationToken ct) =>
-        await _context.Set<WarehouseProductMovement>()
-            .Where(item => item.OrganizationId == entry.OrganizationId &&
-                           item.WarehouseId == entry.WarehouseId &&
-                           item.ProductId == entry.ProductId &&
-                           item.DocumentTypeId == entry.DocumentTypeId &&
-                           item.DocumentId == entry.DocumentId &&
-                           item.DocumentLineId == entry.SourceLineId &&
-                           item.MovementSign == ToMovementSign(entry.OperationTypeId))
-            .OrderByDescending(item => item.Id)
-            .FirstOrDefaultAsync(ct);
+    private async Task<WarehouseProductMovement?> FindMovementAsync(RegisterBalance entry, CancellationToken ct)
+    {
+        var movements = await _warehouseProductMovementQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductMovement>()
+                .Where(item => item.OrganizationId == entry.OrganizationId &&
+                               item.WarehouseId == entry.WarehouseId &&
+                               item.ProductId == entry.ProductId &&
+                               item.DocumentTypeId == entry.DocumentTypeId &&
+                               item.DocumentId == entry.DocumentId &&
+                               item.DocumentLineId == entry.SourceLineId &&
+                               item.MovementSign == ToMovementSign(entry.OperationTypeId))
+                .OrderBy(item => item.Id)
+                .Desc()
+                .Build(),
+            ct);
+
+        return movements.FirstOrDefault();
+    }
 
     private async Task<List<WarehouseProductBatch>> GetAvailableBatchesAsync(
         int organizationId,
@@ -569,30 +685,47 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         bool lifo,
         CancellationToken ct)
     {
-        var query = _context.Set<WarehouseProductBatch>()
-            .Where(item => item.OrganizationId == organizationId &&
-                           item.WarehouseId == warehouseId &&
-                           item.ProductId == productId &&
-                           item.RemainingQuantity > 0m);
-
+        IReadOnlyCollection<long>? batchIds = null;
         if (productTableId.HasValue)
-            query = query.Where(item => item.WarehouseProductBatchTables
-                .Any(link => link.ProductTableId == productTableId.Value));
+        {
+            batchIds = (await _warehouseProductBatchTableQuery.GetAllAsync(
+                    _queryBuilder.For<WarehouseProductBatchTable>()
+                        .Where(link => link.ProductTableId == productTableId.Value)
+                        .As(link => link.BatchId)
+                        .Build(),
+                    ct))
+                .Distinct()
+                .ToList();
+            if (batchIds.Count == 0)
+                return [];
+        }
+
+        var batches = await _warehouseProductBatchQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(item => item.OrganizationId == organizationId &&
+                               item.WarehouseId == warehouseId &&
+                               item.ProductId == productId &&
+                               item.RemainingQuantity > 0m &&
+                               (!productTableId.HasValue || batchIds!.Contains(item.Id)))
+                .Build(),
+            ct);
 
         return lifo
-            ? await query.OrderByDescending(item => item.ReceivedDate).ThenByDescending(item => item.Id).ToListAsync(ct)
-            : await query.OrderBy(item => item.ReceivedDate).ThenBy(item => item.Id).ToListAsync(ct);
+            ? batches.OrderByDescending(item => item.ReceivedDate).ThenByDescending(item => item.Id).ToList()
+            : batches.OrderBy(item => item.ReceivedDate).ThenBy(item => item.Id).ToList();
     }
 
     private async Task<decimal> GetWeightedUnitCostAsync(int organizationId, int warehouseId, int productId, CancellationToken ct)
     {
-        var batches = await _context.Set<WarehouseProductBatch>()
-            .Where(item => item.OrganizationId == organizationId &&
-                           item.WarehouseId == warehouseId &&
-                           item.ProductId == productId &&
-                           item.RemainingQuantity > 0m)
-            .Select(item => new { item.RemainingQuantity, item.UnitCost })
-            .ToListAsync(ct);
+        var batches = await _warehouseProductBatchQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(item => item.OrganizationId == organizationId &&
+                               item.WarehouseId == warehouseId &&
+                               item.ProductId == productId &&
+                               item.RemainingQuantity > 0m)
+                .As(item => new WarehouseProductBatchCost(item.RemainingQuantity, item.UnitCost))
+                .Build(),
+            ct);
 
         var quantity = batches.Sum(item => item.RemainingQuantity);
         return quantity == 0m
@@ -603,41 +736,47 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private async Task<Dictionary<int, string>> GetInventoryValuationMethodsAsync(IEnumerable<int> organizationIds, CancellationToken ct)
     {
         var ids = organizationIds.Distinct().ToList();
-        var configured = await _context.Set<OrganizationConfig>()
-            .Where(config => ids.Contains(config.OrganizationId))
-            .Select(config => new { config.OrganizationId, config.InventoryValuationMethod })
-            .ToDictionaryAsync(config => config.OrganizationId, config => config.InventoryValuationMethod, ct);
+        var configured = await _organizationConfigQuery.GetAllAsync(
+            _queryBuilder.For<OrganizationConfig>()
+                .Where(config => ids.Contains(config.OrganizationId))
+                .As(config => new OrganizationValuationMethod(config.OrganizationId, config.InventoryValuationMethod))
+                .Build(),
+            ct);
+        var configuredByOrganization = configured.ToDictionary(config => config.OrganizationId, config => config.InventoryValuationMethod);
 
         return ids.ToDictionary(
             id => id,
-            id => NormalizeInventoryValuationMethod(configured.GetValueOrDefault(id)));
+            id => NormalizeInventoryValuationMethod(configuredByOrganization.GetValueOrDefault(id)));
     }
 
     private async Task<Dictionary<long, RegisterBalance>> GetOriginalEntriesAsync(IEnumerable<long> entryIds, CancellationToken ct)
     {
         var ids = entryIds.Distinct().ToList();
-        return ids.Count == 0
-            ? new Dictionary<long, RegisterBalance>()
-            : await _context.Set<RegisterBalance>()
+        if (ids.Count == 0)
+            return new Dictionary<long, RegisterBalance>();
+
+        var entries = await _registerBalanceQuery.GetAllAsync(
+            _queryBuilder.For<RegisterBalance>()
                 .Where(entry => ids.Contains(entry.Id))
-                .ToDictionaryAsync(entry => entry.Id, ct);
+                .Build(),
+            ct);
+        return entries.ToDictionary(entry => entry.Id);
     }
 
-    private void AddBatchAllocation(
+    private Task AddBatchAllocationAsync(
         WarehouseProductMovement issueMovement,
         WarehouseProductBatch batch,
         decimal quantity,
-        decimal unitCost)
-    {
-        _context.Set<WarehouseProductBatchAllocation>().Add(new WarehouseProductBatchAllocation
+        decimal unitCost,
+        CancellationToken ct) =>
+        _warehouseProductBatchAllocationCommand.CreateAsync(new WarehouseProductBatchAllocation
         {
-            IssueMovement = issueMovement,
-            Batch = batch,
+            IssueMovementId = issueMovement.Id,
+            BatchId = batch.Id,
             Quantity = quantity,
             UnitCost = unitCost,
             CreatedDate = DateTime.Now
-        });
-    }
+        }, ct);
 
     private static IEnumerable<IGrouping<string, RegisterBalance>> GetBatchTransferGroups(IEnumerable<RegisterBalance> entries) =>
         entries
@@ -672,10 +811,13 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (ids.Count == 0)
             return new Dictionary<int, WarehouseProductSnapshot>();
 
-        return await _context.Set<Product>()
-            .Where(product => ids.Contains(product.Id))
-            .Select(product => new WarehouseProductSnapshot(product.Id, product.UnitId))
-            .ToDictionaryAsync(product => product.Id, ct);
+        var products = await _productQuery.GetAllAsync(
+            _queryBuilder.For<Product>()
+                .Where(product => ids.Contains(product.Id))
+                .As(product => new WarehouseProductSnapshot(product.Id, product.UnitId))
+                .Build(),
+            ct);
+        return products.ToDictionary(product => product.Id);
     }
     private async Task<Result<Dictionary<int, int>>> GetProductTablesAsync(
         IReadOnlyCollection<RegisterBalance> entries,
@@ -685,10 +827,12 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (productTableIds.Count == 0)
             return Result.Success(new Dictionary<int, int>());
 
-        var rows = await _context.Set<ProductTable>()
-            .Where(x => productTableIds.Contains(x.Id))
-            .Select(x => new { x.Id, x.ProductId })
-            .ToListAsync(ct);
+        var rows = await _productTableQuery.GetAllAsync(
+            _queryBuilder.For<ProductTable>()
+                .Where(x => productTableIds.Contains(x.Id))
+                .As(x => new ProductTableProduct(x.Id, x.ProductId))
+                .Build(),
+            ct);
 
         var byId = rows.ToDictionary(x => x.Id, x => x.ProductId);
         var missingId = productTableIds.FirstOrDefault(x => !byId.ContainsKey(x));
@@ -697,16 +841,32 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             : Result.Failure<Dictionary<int, int>>(WarehouseProductErrors.ProductTableNotFound(missingId, _userContext.LanguageId));
     }
 
-    private Task<List<WarehouseProductTable>> GetWarehouseProductTablesAsync(
+    private async Task<List<WarehouseProductTable>> GetWarehouseProductTablesAsync(
         IReadOnlyCollection<RegisterBalance> entries,
         CancellationToken ct)
     {
         var productTableIds = entries.Select(x => x.ProductTableId!.Value).Distinct().ToList();
         return productTableIds.Count == 0
-            ? Task.FromResult(new List<WarehouseProductTable>())
-            : _context.Set<WarehouseProductTable>()
-                .Where(x => productTableIds.Contains(x.ProductTableId))
-                .ToListAsync(ct);
+            ? []
+            : await _warehouseProductTableQuery.GetAllAsync(
+                _queryBuilder.For<WarehouseProductTable>()
+                    .Where(x => productTableIds.Contains(x.ProductTableId))
+                    .Build(),
+                ct);
+    }
+
+    private async Task<Dictionary<int, int>> GetProductTableProductIdsAsync(
+        IReadOnlyCollection<int> productTableIds,
+        CancellationToken ct)
+    {
+        var ids = productTableIds.Distinct().ToList();
+        var productTables = await _productTableQuery.GetAllAsync(
+            _queryBuilder.For<ProductTable>()
+                .Where(table => ids.Contains(table.Id))
+                .As(table => new ProductTableProduct(table.Id, table.ProductId))
+                .Build(),
+            ct);
+        return productTables.ToDictionary(table => table.Id, table => table.ProductId);
     }
 
     private async Task<Dictionary<int, DateTime>> GetReceivedDatesAsync(IEnumerable<int> productTableIds, CancellationToken ct)
@@ -715,19 +875,18 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (ids.Count == 0)
             return new Dictionary<int, DateTime>();
 
-        var rows = await _context.Set<WarehouseProductMovement>()
-            .Where(movement => movement.ProductTableId.HasValue &&
-                               ids.Contains(movement.ProductTableId.Value) &&
-                               movement.MovementSign == 1)
-            .GroupBy(movement => movement.ProductTableId!.Value)
-            .Select(group => new
-            {
-                ProductTableId = group.Key,
-                ReceivedDate = group.Min(movement => movement.MovementDate)
-            })
-            .ToListAsync(ct);
+        var movements = await _warehouseProductMovementQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductMovement>()
+                .Where(movement => movement.ProductTableId.HasValue &&
+                                   ids.Contains(movement.ProductTableId.Value) &&
+                                   movement.MovementSign == 1)
+                .As(movement => new ProductTableReceivedDate(movement.ProductTableId!.Value, movement.MovementDate))
+                .Build(),
+            ct);
 
-        return rows.ToDictionary(row => row.ProductTableId, row => row.ReceivedDate);
+        return movements
+            .GroupBy(movement => movement.ProductTableId)
+            .ToDictionary(group => group.Key, group => group.Min(movement => movement.ReceivedDate));
     }
 
     private async Task<Dictionary<(short DocumentTypeId, long DocumentId), string>> GetReceiptDocumentNumbersAsync(
@@ -747,10 +906,12 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .ToList();
         if (purchaseIds.Count > 0)
         {
-            var documents = await _context.Set<PurchaseDoc>()
-                .Where(document => purchaseIds.Contains(document.Id))
-                .Select(document => new { document.Id, document.DocNumber })
-                .ToListAsync(ct);
+            var documents = await _purchaseDocQuery.GetAllAsync(
+                _queryBuilder.For<PurchaseDoc>()
+                    .Where(document => purchaseIds.Contains(document.Id))
+                    .As(document => new DocumentNumber(document.Id, document.DocNumber))
+                    .Build(),
+                ct);
             foreach (var document in documents)
                 result[(DocumentTypeIdConst.PURCHASE, document.Id)] = document.DocNumber;
         }
@@ -761,10 +922,12 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .ToList();
         if (transferIds.Count > 0)
         {
-            var documents = await _context.Set<WarehouseTransferDoc>()
-                .Where(document => transferIds.Contains(document.Id))
-                .Select(document => new { document.Id, document.DocNumber })
-                .ToListAsync(ct);
+            var documents = await _warehouseTransferDocQuery.GetAllAsync(
+                _queryBuilder.For<WarehouseTransferDoc>()
+                    .Where(document => transferIds.Contains(document.Id))
+                    .As(document => new DocumentNumber(document.Id, document.DocNumber))
+                    .Build(),
+                ct);
             foreach (var document in documents)
                 result[(DocumentTypeIdConst.WAREHOUSETRANSFER, document.Id)] = document.DocNumber;
         }
@@ -775,10 +938,12 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .ToList();
         if (adjustmentIds.Count > 0)
         {
-            var documents = await _context.Set<InventoryAdjustmentDoc>()
-                .Where(document => adjustmentIds.Contains(document.Id))
-                .Select(document => new { document.Id, document.DocNumber })
-                .ToListAsync(ct);
+            var documents = await _inventoryAdjustmentDocQuery.GetAllAsync(
+                _queryBuilder.For<InventoryAdjustmentDoc>()
+                    .Where(document => adjustmentIds.Contains(document.Id))
+                    .As(document => new DocumentNumber(document.Id, document.DocNumber))
+                    .Build(),
+                ct);
             foreach (var document in documents)
                 result[(DocumentTypeIdConst.INVENTORYADJUSTMENT, document.Id)] = document.DocNumber;
         }
@@ -824,10 +989,13 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (ids.Count == 0)
             return new Dictionary<int, short>();
 
-        return await _context.Set<Product>()
-            .Where(x => ids.Contains(x.Id))
-            .Select(x => new { x.Id, x.UnitId })
-            .ToDictionaryAsync(x => x.Id, x => x.UnitId, ct);
+        var products = await _productQuery.GetAllAsync(
+            _queryBuilder.For<Product>()
+                .Where(product => ids.Contains(product.Id))
+                .As(product => new WarehouseProductSnapshot(product.Id, product.UnitId))
+                .Build(),
+            ct);
+        return products.ToDictionary(product => product.Id, product => product.UnitId);
     }
 
     private async Task<Result> ApplyWarehouseProductChangesAsync(
@@ -852,10 +1020,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var productIds = normalized.Select(x => x.ProductId).Distinct().ToList();
         var warehouseIds = normalized.Select(x => x.WarehouseId).Distinct().ToList();
-        var existing = await _context.Set<WarehouseProduct>()
-            .Where(x => warehouseIds.Contains(x.WarehouseId) && productIds.Contains(x.ProductId))
-            .ToListAsync(ct);
+        var existing = await _warehouseProductQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProduct>()
+                .Where(x => warehouseIds.Contains(x.WarehouseId) && productIds.Contains(x.ProductId))
+                .Build(),
+            ct);
         var existingByKey = existing.ToDictionary(x => (x.WarehouseId, x.ProductId));
+        var createdWarehouseProducts = new List<WarehouseProduct>();
+        var updatedWarehouseProducts = new List<WarehouseProduct>();
 
         var missingKeys = normalized
             .Where(x => !existingByKey.ContainsKey((x.WarehouseId, x.ProductId)))
@@ -884,7 +1056,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 };
                 warehouseProduct.AvailableQuantity = warehouseProduct.Quantity - warehouseProduct.ReservedQuantity - warehouseProduct.BlockedQuantity;
 
-                await _context.Set<WarehouseProduct>().AddAsync(warehouseProduct, ct);
+                createdWarehouseProducts.Add(warehouseProduct);
                 existingByKey[key] = warehouseProduct;
             }
 
@@ -896,7 +1068,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             warehouseProduct.ReservedQuantity += change.ReservedQuantityDelta;
             warehouseProduct.BlockedQuantity += change.BlockedQuantityDelta;
             warehouseProduct.AvailableQuantity = warehouseProduct.Quantity - warehouseProduct.ReservedQuantity - warehouseProduct.BlockedQuantity;
+            if (!createdWarehouseProducts.Contains(warehouseProduct))
+                updatedWarehouseProducts.Add(warehouseProduct);
         }
+
+        if (createdWarehouseProducts.Count > 0)
+            await _warehouseProductCommand.CreateAsync(createdWarehouseProducts, ct);
+        if (updatedWarehouseProducts.Count > 0)
+            await _warehouseProductCommand.UpdateAsync(updatedWarehouseProducts.Distinct(), ct);
 
         return Result.Success();
     }
@@ -949,33 +1128,48 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var warehouseIds = keys.Select(x => x.WarehouseId).Distinct().ToList();
         var productIds = keys.Select(x => x.ProductId).Distinct().ToList();
-        var rows = await _context.Set<WarehouseProductTable>()
-            .Where(x => warehouseIds.Contains(x.WarehouseId) &&
-                        productIds.Contains(x.ProductTable.ProductId) &&
-                        (x.StatusId == ProductTableStatusIdConst.IN_STOCK ||
-                         x.StatusId == ProductTableStatusIdConst.RESERVED ||
-                         x.StatusId == ProductTableStatusIdConst.BLOCKED))
-            .GroupBy(x => new { x.WarehouseId, ProductId = x.ProductTable.ProductId, x.StatusId })
-            .Select(x => new
-            {
-                x.Key.WarehouseId,
-                x.Key.ProductId,
-                x.Key.StatusId,
-                Quantity = x.Count()
-            })
-            .ToListAsync(ct);
+        var productTables = await _productTableQuery.GetAllAsync(
+            _queryBuilder.For<ProductTable>()
+                .Where(table => productIds.Contains(table.ProductId))
+                .As(table => new ProductTableProduct(table.Id, table.ProductId))
+                .Build(),
+            ct);
+        var productIdByProductTableId = productTables.ToDictionary(table => table.Id, table => table.ProductId);
+        if (productIdByProductTableId.Count == 0)
+            return new Dictionary<(int WarehouseId, int ProductId), WarehouseProductInitialBalance>();
 
-        return rows
-            .GroupBy(x => (x.WarehouseId, x.ProductId))
+        var productTableIds = productIdByProductTableId.Keys.ToList();
+        var tables = await _warehouseProductTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductTable>()
+                .Where(table => warehouseIds.Contains(table.WarehouseId) &&
+                                productTableIds.Contains(table.ProductTableId) &&
+                                (table.StatusId == ProductTableStatusIdConst.IN_STOCK ||
+                                 table.StatusId == ProductTableStatusIdConst.RESERVED ||
+                                 table.StatusId == ProductTableStatusIdConst.BLOCKED))
+                .Build(),
+            ct);
+
+        return tables
+            .Select(table => new WarehouseProductInitialBalanceRow(
+                table.WarehouseId,
+                productIdByProductTableId[table.ProductTableId],
+                table.StatusId))
+            .GroupBy(row => (row.WarehouseId, row.ProductId))
             .ToDictionary(
-                x => x.Key,
-                x => new WarehouseProductInitialBalance(
-                    x.Sum(row => (decimal)row.Quantity),
-                    x.Where(row => row.StatusId == ProductTableStatusIdConst.RESERVED).Sum(row => (decimal)row.Quantity),
-                    x.Where(row => row.StatusId == ProductTableStatusIdConst.BLOCKED).Sum(row => (decimal)row.Quantity)));
+                group => group.Key,
+                group => new WarehouseProductInitialBalance(
+                    group.Count(),
+                    group.Count(row => row.StatusId == ProductTableStatusIdConst.RESERVED),
+                    group.Count(row => row.StatusId == ProductTableStatusIdConst.BLOCKED)));
     }
 
     private sealed record WarehouseProductSnapshot(int Id, short UnitId);
+    private sealed record ProductTableProduct(int Id, int ProductId);
+    private sealed record ProductTableReceivedDate(int ProductTableId, DateTime ReceivedDate);
+    private sealed record DocumentNumber(long Id, string DocNumber);
+    private sealed record WarehouseProductBatchCost(decimal RemainingQuantity, decimal? UnitCost);
+    private sealed record OrganizationValuationMethod(int OrganizationId, string? InventoryValuationMethod);
+    private sealed record WarehouseProductInitialBalanceRow(int WarehouseId, int ProductId, short StatusId);
     private sealed record WarehouseProductBalanceChange(
         int WarehouseId,
         int ProductId,

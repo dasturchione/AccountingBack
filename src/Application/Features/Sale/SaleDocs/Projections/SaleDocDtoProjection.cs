@@ -57,6 +57,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 CostPrice   = p.CostPrice,
                 Amount      = p.Amount,
                 VatRateId   = p.VatRateId,
+                IsPieceTracked = p.Product.IsPieceTracked,
                 VatRateName = p.VatRate != null ? p.VatRate.Name : null,
                 InventoryAccountId = p.InventoryAccountId,
                 InventoryAccountNumber = p.InventoryAccount == null ? null : p.InventoryAccount.Number,

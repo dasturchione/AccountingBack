@@ -1,6 +1,5 @@
-using Application.Features.Inv.WarehouseProducts;
+﻿using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
@@ -17,7 +16,18 @@ public partial class WarehouseProductBalanceService
         if (!allocationPlan.IsSuccess)
             return Result.Failure(allocationPlan.Error);
 
-        return await CreateWarehouseMovementsAsync(entries, allocationPlan.Value.EntryAllocations, ct);
+        var movementResult = await CreateWarehouseMovementsAsync(entries, allocationPlan.Value.EntryAllocations, ct);
+        if (!movementResult.IsSuccess)
+            return movementResult;
+
+        var productLines = sale.SaleDocProducts.Where(line => !line.Product.IsService).ToList();
+        var productTables = productLines.SelectMany(line => line.SaleDocTables).ToList();
+        if (productLines.Count > 0)
+            await _saleDocProductCommand.UpdateAsync(productLines, ct);
+        if (productTables.Count > 0)
+            await _saleDocTableCommand.UpdateAsync(productTables, ct);
+
+        return Result.Success();
     }
 
     private async Task<Result> CreateWarehouseMovementsAsync(
@@ -213,10 +223,13 @@ public partial class WarehouseProductBalanceService
             .Select(table => table.ProductTableId)
             .ToList();
         var lockedWarehouseProductTables = await LockWarehouseProductTablesAsync(selectedProductTableIds, ct);
-        var productTables = await _context.Set<ProductTable>()
-            .Include(table => table.Product)
-            .Where(table => selectedProductTableIds.Contains(table.Id))
-            .ToDictionaryAsync(table => table.Id, ct);
+        var productTables = (await _productTableQuery.GetAllAsync(
+                _queryBuilder.For<ProductTable>()
+                    .Where(table => selectedProductTableIds.Contains(table.Id))
+                    .As(table => new SaleProductTableSnapshot(table.Id, table.ProductId, table.Product.OrganizationId))
+                    .Build(),
+                ct))
+            .ToDictionary(table => table.Id);
         var productTableValidation = await ValidateSelectedProductTablesAsync(
             sale,
             productLine,
@@ -227,9 +240,11 @@ public partial class WarehouseProductBalanceService
             return Result.Failure<SaleProductAllocation>(productTableValidation.Error);
 
         var batchIds = batches.Select(batch => batch.Id).ToList();
-        var batchLinks = await _context.Set<WarehouseProductBatchTable>()
-            .Where(link => batchIds.Contains(link.BatchId) && selectedProductTableIds.Contains(link.ProductTableId))
-            .ToListAsync(ct);
+        var batchLinks = await _warehouseProductBatchTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatchTable>()
+                .Where(link => batchIds.Contains(link.BatchId) && selectedProductTableIds.Contains(link.ProductTableId))
+                .Build(),
+            ct);
         var batchesById = batches.ToDictionary(batch => batch.Id);
         if (productLine.SaleDocProductBatches.Count > 0)
         {
@@ -362,7 +377,7 @@ public partial class WarehouseProductBalanceService
     private Task<Result> ValidateSelectedProductTablesAsync(
         SaleDoc sale,
         SaleDocProduct productLine,
-        IReadOnlyDictionary<int, ProductTable> productTables,
+        IReadOnlyDictionary<int, SaleProductTableSnapshot> productTables,
         IReadOnlyDictionary<int, WarehouseProductTable> warehouseProductTables,
         CancellationToken ct)
     {
@@ -370,7 +385,7 @@ public partial class WarehouseProductBalanceService
         {
             if (!productTables.TryGetValue(saleTable.ProductTableId, out var productTable) ||
                 productTable.ProductId != productLine.ProductId ||
-                productTable.Product.OrganizationId != sale.OrganizationId ||
+                productTable.OrganizationId != sale.OrganizationId ||
                 !warehouseProductTables.TryGetValue(saleTable.ProductTableId, out var warehouseProductTable) ||
                 warehouseProductTable.WarehouseId != sale.WarehouseId ||
                 warehouseProductTable.StatusId is not (ProductTableStatusIdConst.IN_STOCK or ProductTableStatusIdConst.RESERVED))
@@ -401,11 +416,12 @@ public partial class WarehouseProductBalanceService
         {
             if (!allocationByBatchId.TryGetValue(existing.WarehouseProductBatchId, out var allocation))
             {
-                _context.Set<SaleDocProductBatch>().Remove(existing);
+                await _saleDocProductBatchCommand.DeleteAsync(existing, ct);
                 continue;
             }
 
             existing.Quantity = allocation.Quantity;
+            await _saleDocProductBatchCommand.UpdateAsync(existing, ct);
         }
 
         var created = allocationByBatchId
@@ -418,7 +434,7 @@ public partial class WarehouseProductBalanceService
             })
             .ToList();
         if (created.Count > 0)
-            await _context.Set<SaleDocProductBatch>().AddRangeAsync(created, ct);
+            await _saleDocProductBatchCommand.CreateAsync(created, ct);
 
         return Result.Success();
     }
@@ -433,9 +449,12 @@ public partial class WarehouseProductBalanceService
             return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.Id, _userContext.LanguageId));
 
         var batchIds = allocations.Select(allocation => allocation.BatchId).Distinct().ToList();
-        var batchesById = await _context.Set<WarehouseProductBatch>()
-            .Where(batch => batchIds.Contains(batch.Id))
-            .ToDictionaryAsync(batch => batch.Id, ct);
+        var batchesById = (await _warehouseProductBatchQuery.GetAllAsync(
+                _queryBuilder.For<WarehouseProductBatch>()
+                    .Where(batch => batchIds.Contains(batch.Id))
+                    .Build(),
+                ct))
+            .ToDictionary(batch => batch.Id);
         if (batchesById.Count != batchIds.Count)
             return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.Id, _userContext.LanguageId));
 
@@ -465,7 +484,8 @@ public partial class WarehouseProductBalanceService
 
             var unitCost = batch.UnitCost ?? 0m;
             batch.RemainingQuantity -= allocation.Quantity;
-            AddBatchAllocation(issueMovement, batch, allocation.Quantity, unitCost);
+            await _warehouseProductBatchCommand.UpdateAsync(batch, ct);
+            await AddBatchAllocationAsync(issueMovement, batch, allocation.Quantity, unitCost, ct);
             totalCost += allocation.Quantity * unitCost;
         }
 
@@ -477,26 +497,30 @@ public partial class WarehouseProductBalanceService
         int organizationId,
         int warehouseId,
         int productId,
-        CancellationToken ct) =>
-        await _context.Set<WarehouseProductBatch>()
-            .FromSqlInterpolated($"SELECT * FROM inv_warehouse_product_batch WHERE organization_id = {organizationId} AND warehouse_id = {warehouseId} AND product_id = {productId} AND remaining_quantity > 0 ORDER BY received_date ASC, id ASC FOR UPDATE")
-            .ToListAsync(ct);
+        CancellationToken ct)
+    {
+        var batches = await _warehouseProductBatchQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(batch => batch.OrganizationId == organizationId &&
+                                batch.WarehouseId == warehouseId &&
+                                batch.ProductId == productId &&
+                                batch.RemainingQuantity > 0m)
+                .Build(),
+            ct);
+        return batches.OrderBy(batch => batch.ReceivedDate).ThenBy(batch => batch.Id).ToList();
+    }
 
     private async Task<Dictionary<int, WarehouseProductTable>> LockWarehouseProductTablesAsync(
         IReadOnlyCollection<int> productTableIds,
         CancellationToken ct)
     {
-        var result = new Dictionary<int, WarehouseProductTable>();
-        foreach (var productTableId in productTableIds.Distinct().OrderBy(id => id))
-        {
-            var warehouseProductTable = await _context.Set<WarehouseProductTable>()
-                .FromSqlInterpolated($"SELECT * FROM inv_warehouse_product_table WHERE product_table_id = {productTableId} FOR UPDATE")
-                .SingleOrDefaultAsync(ct);
-            if (warehouseProductTable is not null)
-                result[productTableId] = warehouseProductTable;
-        }
-
-        return result;
+        var ids = productTableIds.Distinct().ToList();
+        var tables = await _warehouseProductTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductTable>()
+                .Where(table => ids.Contains(table.ProductTableId))
+                .Build(),
+            ct);
+        return tables.ToDictionary(table => table.ProductTableId);
     }
 
     private static decimal GetAvailableQuantity(IDictionary<long, decimal> quantities, long batchId) =>
@@ -510,6 +534,8 @@ public partial class WarehouseProductBalanceService
             .Where(pair => pair.Value > 0m)
             .Select(pair => new ProductBatchAllocation { BatchId = pair.Key, Quantity = pair.Value })
             .ToList();
+
+    private sealed record SaleProductTableSnapshot(int Id, int ProductId, int OrganizationId);
 
     private sealed class SaleInventoryAllocationPlan
     {

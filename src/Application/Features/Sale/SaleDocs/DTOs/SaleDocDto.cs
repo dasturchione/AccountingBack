@@ -75,6 +75,8 @@ public class SaleDocProductBatchReadDto
 {
     public long BatchId { get; set; }
     public decimal Quantity { get; set; }
+    public string? BatchNumber { get; set; } 
+    public DateTime BatchDate { get; set; }
 }
 
 public class SaleDocProductTableDto

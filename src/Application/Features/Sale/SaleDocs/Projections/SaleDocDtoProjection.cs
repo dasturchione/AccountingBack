@@ -85,7 +85,9 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
                 Batches = p.SaleDocProductBatches.Select(batch => new SaleDocProductBatchReadDto
                 {
                     BatchId = batch.WarehouseProductBatchId,
-                    Quantity = batch.Quantity
+                    Quantity = batch.Quantity,
+                    BatchNumber = batch.WarehouseProductBatch.BatchNumber,
+                    BatchDate = batch.WarehouseProductBatch.ReceivedDate
                 }).ToList()
             }).ToList()
         };

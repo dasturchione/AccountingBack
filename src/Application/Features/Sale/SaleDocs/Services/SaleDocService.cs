@@ -32,9 +32,11 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
     private readonly IProductTableReservationService _reservationService;
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
+    private readonly IWarehouseInventoryService _warehouseInventoryService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IDocNumberGenerator _docNumberGenerator;
 
@@ -53,9 +55,11 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<Warehouse> warehouseQuery,
                           IQueryRepository<CounterpartyCard> counterpartyQuery,
                           IQueryRepository<Product> productQuery,
+                          IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
                           IProductPriceCalculateService priceCalculateService,
                           IProductTableReservationService reservationService,
                           IWarehouseProductBalanceService warehouseProductBalanceService,
+                          IWarehouseInventoryService warehouseInventoryService,
                           IActiveInventoryCountGuardService activeInventoryCountGuardService,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
@@ -75,9 +79,11 @@ public class SaleDocService : BaseService, ISaleDocService
         _warehouseQuery = warehouseQuery;
         _counterpartyQuery = counterpartyQuery;
         _productQuery = productQuery;
+        _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
         _priceCalculateService = priceCalculateService;
         _reservationService = reservationService;
         _warehouseProductBalanceService = warehouseProductBalanceService;
+        _warehouseInventoryService = warehouseInventoryService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _docNumberGenerator = docNumberGenerator;
     }
@@ -342,6 +348,110 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Success();
         }, ct);
 
+    public async Task<Result<List<SaleDocAvailableProductDto>>> GetAvailableProductsAsync(long id, CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var organizationId = _userContext.OrganizationId.Value;
+        var documentQuery = _queryBuilder.For<SaleDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
+        documentQuery.AddIncludes(b => b.Include(x => x.SaleDocProducts).ThenInclude(x => x.Product));
+        documentQuery.AddIncludes(b => b.Include(x => x.SaleDocProducts).ThenInclude(x => x.SaleDocProductBatches));
+
+        var document = await _query.GetAsync(documentQuery, ct);
+        if (document is null)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(SaleDocErrors.NotFound(id, _userContext.LanguageId));
+
+        var productLines = document.SaleDocProducts
+            .Where(x => !x.Product.IsService && x.Product.IsPieceTracked)
+            .ToList();
+        if (productLines.Count == 0)
+            return Result.Success(new List<SaleDocAvailableProductDto>());
+
+        var productIds = productLines.Select(x => x.ProductId).Distinct().ToList();
+        var inventoryResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
+            new WarehouseProductFilter
+            {
+                WarehouseId = document.WarehouseId,
+                ProductIds = productIds
+            },
+            ct);
+        if (!inventoryResult.IsSuccess)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(inventoryResult.Error);
+
+        var availableBatchesByProductId = inventoryResult.Value
+            .ToDictionary(x => x.ProductId, x => x.Batches);
+        var availableBatchIds = availableBatchesByProductId.Values
+            .SelectMany(x => x)
+            .Select(x => x.BatchId)
+            .Distinct()
+            .ToList();
+
+        var productTablesByBatchId = new Dictionary<long, List<AvailableProductTableRow>>();
+        if (availableBatchIds.Count > 0)
+        {
+            var productTableQuery = _queryBuilder.For<WarehouseProductBatchTable>()
+                .Where(x => availableBatchIds.Contains(x.BatchId) &&
+                            x.Batch.OrganizationId == organizationId &&
+                            x.Batch.WarehouseId == document.WarehouseId &&
+                            x.Batch.ProductId == x.ProductTable.ProductId &&
+                            x.ProductTable.WarehouseProductTable != null &&
+                            x.ProductTable.WarehouseProductTable.WarehouseId == document.WarehouseId &&
+                            x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK)
+                .As(x => new AvailableProductTableRow
+                {
+                    BatchId = x.BatchId,
+                    ProductId = x.ProductTable.ProductId,
+                    ProductTableId = x.ProductTableId,
+                    MarkingNumber = x.ProductTable.MarkingNumber
+                })
+                .Build();
+
+            productTablesByBatchId = (await _warehouseProductBatchTableQuery.GetAllAsync(productTableQuery, ct))
+                .GroupBy(x => x.BatchId)
+                .ToDictionary(x => x.Key, x => x.OrderBy(item => item.ProductTableId).ToList());
+        }
+
+        var result = productLines.Select(line =>
+        {
+            var requiredBatchIds = line.SaleDocProductBatches
+                .Select(x => x.WarehouseProductBatchId)
+                .ToHashSet();
+            var availableBatches = availableBatchesByProductId.GetValueOrDefault(line.ProductId) ?? [];
+
+            return new SaleDocAvailableProductDto
+            {
+                SaleDocProductId = line.Id,
+                ProductId = line.ProductId,
+                Batches = availableBatches
+                    .OrderBy(x => x.ReceivedDate)
+                    .ThenBy(x => x.BatchId)
+                    .Select(batch => new SaleDocAvailableProductBatchDto
+                    {
+                        BatchId = batch.BatchId,
+                        BatchNumber = batch.BatchNumber,
+                        BatchDate = batch.ReceivedDate,
+                        IsRequired = requiredBatchIds.Contains(batch.BatchId),
+                        ProductTables = (productTablesByBatchId.GetValueOrDefault(batch.BatchId) ?? [])
+                            .Where(x => x.ProductId == line.ProductId)
+                            .Take(GetProductTableLimit(batch.AvailableQuantity))
+                            .Select(x => new SaleDocAvailableProductTableDto
+                            {
+                                ProductTableId = x.ProductTableId,
+                                MarkingNumber = x.MarkingNumber
+                            })
+                            .ToList()
+                    })
+                    .Where(x => x.ProductTables.Count > 0)
+                    .ToList()
+            };
+        }).ToList();
+
+        return Result.Success(result);
+    }
+
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
@@ -379,7 +489,7 @@ public class SaleDocService : BaseService, ISaleDocService
             return Result.Failure(SaleDocErrors.LineNotFound(unknown.Id, _userContext.LanguageId));
 
         if (doc.StatusId == DocumentStatusIdConst.PENDING)
-            return ValidateWarehouseConfirmedLines(doc.Id, productLines);
+            return ValidateWarehouseConfirmedLines(doc, productLines);
         if (doc.StatusId == DocumentStatusIdConst.POSTED)
             return Result.Success();
         if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
@@ -433,6 +543,12 @@ public class SaleDocService : BaseService, ISaleDocService
 
         if (rows.Count > 0)
             await _lineCommand.CreateAsync(rows, ct);
+
+        var reservedLines = await GetProductLinesForAssemblyAsync(doc.Id, ct);
+        var reservedLinesValidation = ValidateWarehouseConfirmedLines(doc, reservedLines);
+        if (!reservedLinesValidation.IsSuccess)
+            return reservedLinesValidation;
+
         doc.StatusId = DocumentStatusIdConst.PENDING;
         await _command.UpdateAsync(doc, ct);
         await CreateAssemblyAuditAsync(doc.Id, ct);
@@ -458,7 +574,7 @@ public class SaleDocService : BaseService, ISaleDocService
         return result;
     }
     
-    private Result ValidateWarehouseConfirmedLines(long documentId, List<SaleDocProduct> productLines)
+    private Result ValidateWarehouseConfirmedLines(SaleDoc document, List<SaleDocProduct> productLines)
     {
         foreach (var line in productLines)
         {
@@ -480,13 +596,19 @@ public class SaleDocService : BaseService, ISaleDocService
                     _userContext.LanguageId));
             }
 
+            if (line.SaleDocTables.Select(x => x.ProductTableId).Distinct().Count() != line.SaleDocTables.Count)
+                return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+
             var hasInvalidItem = line.SaleDocTables.Any(x =>
                 x.ProductTable.ProductId != line.ProductId ||
-                x.ProductTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.RESERVED ||
+                x.ProductTable.Product.OrganizationId != document.OrganizationId ||
+                x.ProductTable.WarehouseProductTable == null ||
+                x.ProductTable.WarehouseProductTable.WarehouseId != document.WarehouseId ||
+                x.ProductTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.RESERVED ||
                 x.ProductTable.Product.StateId != StateIdConst.ACTIVE);
 
             if (hasInvalidItem)
-                return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(documentId, _userContext.LanguageId));
+                return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(document.Id, _userContext.LanguageId));
         }
 
         return Result.Success();
@@ -657,6 +779,21 @@ public class SaleDocService : BaseService, ISaleDocService
         return lines;
     }
 
+    private sealed class AvailableProductTableRow
+    {
+        public long BatchId { get; init; }
+        public int ProductId { get; init; }
+        public int ProductTableId { get; init; }
+        public string? MarkingNumber { get; init; }
+    }
+
+    private static int GetProductTableLimit(decimal availableQuantity) =>
+        availableQuantity <= 0m
+            ? 0
+            : availableQuantity >= int.MaxValue
+                ? int.MaxValue
+                : (int)decimal.Floor(availableQuantity);
+
     private static List<WarehouseProductBalanceItem> BuildWarehouseProductBalanceItems(
         IReadOnlyCollection<SaleDocProduct> productLines,
         IReadOnlyCollection<ProductTableSelectionDto> selectedItems)
@@ -691,5 +828,4 @@ public class SaleDocService : BaseService, ISaleDocService
                 x.Sum(i => i.Quantity)))
             .ToList();
     }
-
 }

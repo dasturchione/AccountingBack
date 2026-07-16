@@ -112,6 +112,7 @@
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProduct.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatch.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatchAllocation.cs" />
+    <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatchTable.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductMovement.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductTable.cs" />
     <Compile Include="Persistence\Generated\Entities\MoneyRegBalance.cs" />
@@ -133,6 +134,7 @@
     <Compile Include="Persistence\Generated\Entities\SaleCondition.cs" />
     <Compile Include="Persistence\Generated\Entities\SaleDoc.cs" />
     <Compile Include="Persistence\Generated\Entities\SaleDocProduct.cs" />
+    <Compile Include="Persistence\Generated\Entities\SaleDocProductBatch.cs" />
     <Compile Include="Persistence\Generated\Entities\SaleDocTable.cs" />
     <Compile Include="Persistence\Generated\Entities\SysAuditLog.cs" />
     <Compile Include="Persistence\Generated\Entities\SysEmailVerificationToken.cs" />

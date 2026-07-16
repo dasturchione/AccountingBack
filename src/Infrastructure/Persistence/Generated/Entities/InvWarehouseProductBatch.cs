@@ -55,6 +55,9 @@ public partial class InvWarehouseProductBatch
     [InverseProperty("Batch")]
     public virtual ICollection<InvWarehouseProductBatchAllocation> InvWarehouseProductBatchAllocations { get; set; } = new List<InvWarehouseProductBatchAllocation>();
 
+    [InverseProperty("Batch")]
+    public virtual ICollection<InvWarehouseProductBatchTable> InvWarehouseProductBatchTables { get; set; } = new List<InvWarehouseProductBatchTable>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvWarehouseProductBatches")]
     public virtual OrgOrganization Organization { get; set; } = null!;
@@ -66,6 +69,9 @@ public partial class InvWarehouseProductBatch
     [ForeignKey("ReceiptMovementId")]
     [InverseProperty("InvWarehouseProductBatch")]
     public virtual InvWarehouseProductMovement ReceiptMovement { get; set; } = null!;
+
+    [InverseProperty("WarehouseProductBatch")]
+    public virtual ICollection<SaleDocProductBatch> SaleDocProductBatches { get; set; } = new List<SaleDocProductBatch>();
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("InvWarehouseProductBatches")]

@@ -200,6 +200,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvWarehouseProductBatchAllocation> InvWarehouseProductBatchAllocations { get; set; }
 
+    public virtual DbSet<InvWarehouseProductBatchTable> InvWarehouseProductBatchTables { get; set; }
+
     public virtual DbSet<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; }
 
     public virtual DbSet<InvWarehouseProductTable> InvWarehouseProductTables { get; set; }
@@ -241,6 +243,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
 
     public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
+
+    public virtual DbSet<SaleDocProductBatch> SaleDocProductBatches { get; set; }
 
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
 
@@ -1862,6 +1866,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.IssueMovement).WithMany(p => p.InvWarehouseProductBatchAllocations).HasConstraintName("inv_warehouse_product_batch_allocation_issue_movement_id_fkey");
         });
 
+        modelBuilder.Entity<InvWarehouseProductBatchTable>(entity =>
+        {
+            entity.HasKey(e => new { e.BatchId, e.ProductTableId }).HasName("pk_inv_warehouse_product_batch_table");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Batch).WithMany(p => p.InvWarehouseProductBatchTables).HasConstraintName("inv_warehouse_product_batch_table_batch_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvWarehouseProductBatchTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_batch_table_product_table_id_fkey");
+        });
+
         modelBuilder.Entity<InvWarehouseProductMovement>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_warehouse_product_movement_pkey");
@@ -2252,6 +2269,17 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sale_doc_product_unit_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocProducts).HasConstraintName("sale_doc_product_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleDocProductBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_doc_product_batch_pkey");
+
+            entity.HasOne(d => d.SaleDocProduct).WithMany(p => p.SaleDocProductBatches).HasConstraintName("sale_doc_product_batch_sale_doc_product_id_fkey");
+
+            entity.HasOne(d => d.WarehouseProductBatch).WithMany(p => p.SaleDocProductBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_doc_product_batch_warehouse_product_batch_id_fkey");
         });
 
         modelBuilder.Entity<SaleDocTable>(entity =>

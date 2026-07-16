@@ -28,12 +28,19 @@ public class SaleDocCreateProductDto
     public int? CostAccountId { get; set; }
 
     public bool Assembled { get; set; } = false;
+    public List<SaleDocProductBatchDto> ProductBatches { get; set; } = new();
     public List<SaleDocCreateProductTableDto> Items { get; set; } = new();
 }
 
 public class SaleDocCreateProductTableDto
 {
     public int ProductTableId { get; set; }
+}
+
+public class SaleDocProductBatchDto
+{
+    public long BatchId { get; set; }
+    public decimal Quatity { get; set; }
 }
 
 public enum SaleProcessingMode

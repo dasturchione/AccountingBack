@@ -27,6 +27,9 @@ public partial class ProductTable
     [InverseProperty("SourceProductTable")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty(nameof(WarehouseProductBatchTable.ProductTable))]
+    public virtual ICollection<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; } = new List<WarehouseProductBatchTable>();
+
     [ForeignKey("ProductId")]
     [InverseProperty("ProductTables")]
     public virtual Product Product { get; set; } = null!;

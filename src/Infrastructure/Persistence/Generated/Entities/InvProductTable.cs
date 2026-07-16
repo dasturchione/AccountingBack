@@ -43,6 +43,9 @@ public partial class InvProductTable
     public virtual ICollection<InvTransferDocTable> InvTransferDocTables { get; set; } = new List<InvTransferDocTable>();
 
     [InverseProperty("ProductTable")]
+    public virtual ICollection<InvWarehouseProductBatchTable> InvWarehouseProductBatchTables { get; set; } = new List<InvWarehouseProductBatchTable>();
+
+    [InverseProperty("ProductTable")]
     public virtual InvWarehouseProductTable? InvWarehouseProductTable { get; set; }
 
     [ForeignKey("ProductId")]

@@ -83,6 +83,9 @@ public partial class SaleDocProduct
     [InverseProperty("SaleDocProducts")]
     public virtual InvProduct Product { get; set; } = null!;
 
+    [InverseProperty("SaleDocProduct")]
+    public virtual ICollection<SaleDocProductBatch> SaleDocProductBatches { get; set; } = new List<SaleDocProductBatch>();
+
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 

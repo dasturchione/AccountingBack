@@ -68,86 +68,83 @@ public class ProductStockService : IProductStockService
 
     public async Task<Result<PagedResponse<ProductGroupStockDto>>> GetProductGroupsStockAsync(ProductGroupStockFilter filter, CancellationToken ct = default)
     {
-        if (_userContext.OrganizationId is null)
-            return Result.Success(PagedResponseFactory.Create(new PagedList<ProductGroupStockDto>([], 0), filter.Page, filter.PageSize));
-
-        var orgId = _userContext.OrganizationId.Value;
-        var rowsQuery = _queryBuilder.For<ProductTable>()
-            .Where(x => x.Product.OrganizationId == orgId
-                        && x.WarehouseProductTable != null
-                        && x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
-                        && x.Product.StateId == StateIdConst.ACTIVE
-                        && (!filter.WarehouseId.HasValue || x.WarehouseProductTable.WarehouseId == filter.WarehouseId.Value)
-                        && x.Product.ProductGroupId != null)
-            .As(x => new ProductGroupStockSourceRow
+        var warehouseProductsResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
+            new WarehouseProductFilter
             {
-                ProductId = x.ProductId,
-                GroupId = x.Product.ProductGroupId!.Value,
-                GroupName = x.Product.ProductGroup!.Name
-            })
-            .Build();
+                WarehouseId = filter.WarehouseId
+            },
+            ct);
 
-        var rows = await _productTableQuery.GetAllAsync(rowsQuery, ct);
-        var groupedRows = rows
-            .GroupBy(x => new { x.GroupId, x.GroupName })
-            .Select(g => new ProductGroupAggregateRow
+        if (!warehouseProductsResult.IsSuccess)
+            return Result.Failure<PagedResponse<ProductGroupStockDto>>(warehouseProductsResult.Error);
+
+        var warehouseProducts = warehouseProductsResult.Value;
+        var groupRows = warehouseProducts
+            .Where(product => product.ProductGroupId.HasValue)
+            .GroupBy(product => new
             {
-                Id = g.Key.GroupId,
-                Name = g.Key.GroupName,
-                Quantity = g.Count()
+                Id = product.ProductGroupId!.Value,
+                Name = product.ProductGroupName ?? string.Empty
             })
-            .OrderBy(x => x.Name)
+            .Select(group => new ProductGroupAggregateRow
+            {
+                Id = group.Key.Id,
+                Name = group.Key.Name,
+                Quantity = group.Sum(product => product.Quantity)
+            })
+            .OrderBy(group => group.Name)
             .ToList();
 
-        var totalCount = groupedRows.Count;
+        var totalCount = groupRows.Count;
         var pageSize = filter.PageSize ?? totalCount;
         var skip = Math.Max(filter.Page - 1, 0) * pageSize;
-        var pageRows = groupedRows.Skip(skip).Take(pageSize).ToList();
+        var pageRows = groupRows.Skip(skip).Take(pageSize).ToList();
 
         if (pageRows.Count == 0)
             return Result.Success(PagedResponseFactory.Create(new PagedList<ProductGroupStockDto>([], totalCount), filter.Page, filter.PageSize));
 
-        var pageGroupIds = pageRows.Select(x => x.Id).ToList();
-        var perProductRows = rows
-            .Where(x => pageGroupIds.Contains(x.GroupId))
-            .GroupBy(x => new
+        var pageGroupIds = pageRows.Select(group => group.Id).ToHashSet();
+        var perProductRows = warehouseProducts
+            .Where(product => product.ProductGroupId.HasValue && pageGroupIds.Contains(product.ProductGroupId.Value))
+            .GroupBy(product => new
             {
-                x.GroupId,
-                x.ProductId
+                GroupId = product.ProductGroupId!.Value,
+                product.ProductId
             })
-            .Select(g => new GroupProductAggregateRow
+            .Select(group => new GroupProductAggregateRow
             {
-                GroupId = g.Key.GroupId,
-                ProductId = g.Key.ProductId,
-                Quantity = g.Count()
+                GroupId = group.Key.GroupId,
+                ProductId = group.Key.ProductId,
+                Quantity = group.Sum(product => product.Quantity)
             })
             .ToList();
 
-        var productIds = perProductRows.Select(x => x.ProductId).Distinct().ToList();
+        var productIds = perProductRows.Select(product => product.ProductId).Distinct().ToList();
         var priceMap = await _priceCalculateService.GetSalePriceMapAsync(productIds, ct);
         var costPriceMap = await _priceCalculateService.GetCostPriceMapAsync(productIds, ct);
-        var rowsByGroup = perProductRows.GroupBy(x => x.GroupId).ToDictionary(x => x.Key, x => x.ToList());
+        var rowsByGroup = perProductRows
+            .GroupBy(product => product.GroupId)
+            .ToDictionary(group => group.Key, group => group.ToList());
 
-        var items = pageRows.Select(row =>
+        var items = pageRows.Select(group =>
         {
-            var productRows = rowsByGroup.GetValueOrDefault(row.Id) ?? [];
-            var totalAmount = productRows.Sum(x => priceMap.GetValueOrDefault(x.ProductId)?.SalePrice * x.Quantity ?? 0m);
-            var totalCostAmount = productRows.Sum(x => costPriceMap.GetValueOrDefault(x.ProductId)?.CostPrice * x.Quantity ?? 0m);
+            var products = rowsByGroup.GetValueOrDefault(group.Id) ?? [];
+            var totalAmount = products.Sum(product => priceMap.GetValueOrDefault(product.ProductId)?.SalePrice * product.Quantity ?? 0m);
+            var totalCostAmount = products.Sum(product => costPriceMap.GetValueOrDefault(product.ProductId)?.CostPrice * product.Quantity ?? 0m);
 
             return new ProductGroupStockDto
             {
-                Id = row.Id,
-                Name = row.Name,
-                Quantity = row.Quantity,
-                Price = row.Quantity > 0 ? Math.Round(totalAmount / row.Quantity, 2) : 0m,
-                CostPrice = row.Quantity > 0 ? Math.Round(totalCostAmount / row.Quantity, 2) : 0m,
+                Id = group.Id,
+                Name = group.Name,
+                Quantity = group.Quantity,
+                Price = group.Quantity > 0m ? Math.Round(totalAmount / group.Quantity, 2) : 0m,
+                CostPrice = group.Quantity > 0m ? Math.Round(totalCostAmount / group.Quantity, 2) : 0m,
                 TotalAmount = totalAmount
             };
         }).ToList();
 
         return Result.Success(PagedResponseFactory.Create(new PagedList<ProductGroupStockDto>(items, totalCount), filter.Page, filter.PageSize));
     }
-
     public async Task<Result<PagedResponse<WarehouseProductDto>>> GetProductsStockAsync(ProductStockFilter filter, CancellationToken ct = default)
     {
         var warehouseProductsResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
@@ -220,14 +217,14 @@ public class ProductStockService : IProductStockService
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
     }
 
     private sealed class GroupProductAggregateRow
     {
         public int GroupId { get; set; }
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
     }
 
     private sealed class ProductStockAggregateRow
@@ -243,13 +240,6 @@ public class ProductStockService : IProductStockService
         public string UnitName { get; set; } = null!;
         public bool IsService { get; set; }
         public int Quantity { get; set; }
-    }
-
-    private sealed class ProductGroupStockSourceRow
-    {
-        public int ProductId { get; set; }
-        public int GroupId { get; set; }
-        public string GroupName { get; set; } = null!;
     }
 
     private sealed class ProductStockSourceRow

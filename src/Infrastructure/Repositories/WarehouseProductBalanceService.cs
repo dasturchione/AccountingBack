@@ -368,31 +368,18 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
         CancellationToken ct)
     {
-        var now = DateTime.Now;
-        var movementsByEntry = entries.ToDictionary(
-            entry => entry,
-            entry => new WarehouseProductMovement
-            {
-                OrganizationId = entry.OrganizationId,
-                WarehouseId = entry.WarehouseId,
-                ProductId = entry.ProductId,
-                ProductTableId = entry.ProductTableId,
-                DocumentTypeId = entry.DocumentTypeId,
-                DocumentId = entry.DocumentId,
-                DocumentLineId = entry.SourceLineId,
-                Quantity = entry.Quantity,
-                UnitCost = entry.OperationTypeId == OperationTypeIdConst.IN && entry.Quantity != 0m
-                    ? entry.Amount / entry.Quantity
-                    : null,
-                MovementSign = ToMovementSign(entry.OperationTypeId),
-                MovementDate = entry.DocDate,
-                CreatedDate = now
-            });
+        var movementGroups = BuildWarehouseMovementGroups(entries);
+        var movementsByEntry = movementGroups
+            .SelectMany(group => group.Entries.Select(entry => new { Entry = entry, group.Movement }))
+            .ToDictionary(item => item.Entry, item => item.Movement);
+        var entriesByMovement = movementGroups.ToDictionary(group => group.Movement, group => group.Entries);
 
-        await _warehouseProductMovementCommand.CreateAsync(movementsByEntry.Values, ct);
+        await _warehouseProductMovementCommand.CreateAsync(
+            movementGroups.Select(group => group.Movement),
+            ct);
 
         var receiptDocumentNumbers = await GetReceiptDocumentNumbersAsync(
-            movementsByEntry.Values.Where(movement => movement.MovementSign == 1),
+            movementGroups.Select(group => group.Movement).Where(movement => movement.MovementSign == 1),
             ct);
 
         var batchEntries = entries.ToList();
@@ -410,35 +397,55 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         foreach (var transferGroup in GetBatchTransferGroups(batchEntries))
         {
-            var issueEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.OUT);
-            var receiptEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.IN);
+            var sourceEntries = transferGroup
+                .Where(entry => entry.OperationTypeId == OperationTypeIdConst.OUT)
+                .ToList();
+            var destinationEntries = transferGroup
+                .Where(entry => entry.OperationTypeId == OperationTypeIdConst.IN)
+                .ToList();
 
-            var issueResult = await ApplyIssueMovementAsync(
-                issueEntry,
-                movementsByEntry[issueEntry],
-                valuationMethods[issueEntry.OrganizationId],
-                originalEntries,
-                ct);
-            if (!issueResult.IsSuccess)
-                return issueResult;
+            foreach (var sourceEntry in sourceEntries)
+            {
+                var issueResult = await ApplyIssueMovementAsync(
+                    sourceEntry,
+                    movementsByEntry[sourceEntry],
+                    valuationMethods[sourceEntry.OrganizationId],
+                    originalEntries,
+                    ct);
+                if (!issueResult.IsSuccess)
+                    return issueResult;
+            }
 
-            receiptEntry.Amount = issueEntry.Amount;
-            movementsByEntry[receiptEntry].UnitCost = receiptEntry.Quantity == 0m
+            var sourceAmountByProductTableId = sourceEntries
+                .Where(entry => entry.ProductTableId.HasValue)
+                .ToDictionary(entry => entry.ProductTableId!.Value, entry => entry.Amount);
+            var sourceAmount = sourceEntries.Sum(entry => entry.Amount);
+            var destinationMovement = movementsByEntry[destinationEntries[0]];
+            destinationMovement.UnitCost = destinationMovement.Quantity == 0m
                 ? 0m
-                : receiptEntry.Amount / receiptEntry.Quantity;
-            var receiptResult = await ApplyReceiptMovementAsync(
-                receiptEntry,
-                movementsByEntry[receiptEntry],
-                originalEntries,
-                receiptDocumentNumbers,
-                ct);
-            if (!receiptResult.IsSuccess)
-                return receiptResult;
+                : sourceAmount / destinationMovement.Quantity;
 
-            processedEntries.Add(issueEntry);
-            processedEntries.Add(receiptEntry);
+            foreach (var destinationEntry in destinationEntries)
+            {
+                destinationEntry.Amount = destinationEntry.ProductTableId.HasValue
+                    ? sourceAmountByProductTableId[destinationEntry.ProductTableId.Value]
+                    : sourceAmount;
+
+                var receiptResult = await ApplyReceiptMovementAsync(
+                    destinationEntry,
+                    destinationMovement,
+                    originalEntries,
+                    receiptDocumentNumbers,
+                    ct);
+                if (!receiptResult.IsSuccess)
+                    return receiptResult;
+            }
+
+            processedEntries.UnionWith(sourceEntries);
+            processedEntries.UnionWith(destinationEntries);
         }
 
+        var processedIssueReversalMovements = new HashSet<WarehouseProductMovement>();
         foreach (var entry in batchEntries.Where(entry => !processedEntries.Contains(entry)))
         {
             var movement = movementsByEntry[entry];
@@ -448,6 +455,20 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 saleAllocations.TryGetValue(entry, out var plannedAllocations))
             {
                 result = await ApplySaleIssueMovementAsync(entry, movement, plannedAllocations, ct);
+            }
+            else if (entry.OperationTypeId == OperationTypeIdConst.IN &&
+                     entry.ReversalEntryId.HasValue &&
+                     entriesByMovement[movement].Count > 1)
+            {
+                if (!processedIssueReversalMovements.Add(movement))
+                    continue;
+
+                result = await ApplyReceiptMovementAsync(
+                    CreateAggregatedEntry(entriesByMovement[movement]),
+                    movement,
+                    originalEntries,
+                    receiptDocumentNumbers,
+                    ct);
             }
             else
             {
@@ -461,8 +482,72 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 return result;
         }
 
-        await _warehouseProductMovementCommand.UpdateAsync(movementsByEntry.Values, ct);
+        await _warehouseProductMovementCommand.UpdateAsync(
+            movementGroups.Select(group => group.Movement),
+            ct);
         return Result.Success();
+    }
+
+    private static List<WarehouseMovementGroup> BuildWarehouseMovementGroups(
+        IReadOnlyCollection<RegisterBalance> entries)
+    {
+        var now = DateTime.Now;
+        return entries
+            .GroupBy(entry => new WarehouseMovementGroupKey(
+                entry.OrganizationId,
+                entry.WarehouseId,
+                entry.ProductId,
+                entry.DocumentTypeId,
+                entry.DocumentId,
+                entry.OperationTypeId,
+                entry.ProductTableId.HasValue ? null : entry.SourceLineId,
+                entry.ProductTableId.HasValue))
+            .Select(group =>
+            {
+                var groupedEntries = group.ToList();
+                var firstEntry = groupedEntries[0];
+                var quantity = groupedEntries.Sum(entry => entry.Quantity);
+                var amount = groupedEntries.Sum(entry => entry.Amount);
+                return new WarehouseMovementGroup(
+                    groupedEntries,
+                    new WarehouseProductMovement
+                    {
+                        OrganizationId = firstEntry.OrganizationId,
+                        WarehouseId = firstEntry.WarehouseId,
+                        ProductId = firstEntry.ProductId,
+                        DocumentTypeId = firstEntry.DocumentTypeId,
+                        DocumentId = firstEntry.DocumentId,
+                        DocumentLineId = group.Key.IsPieceTracked ? null : firstEntry.SourceLineId,
+                        Quantity = quantity,
+                        UnitCost = firstEntry.OperationTypeId == OperationTypeIdConst.IN && quantity != 0m
+                            ? amount / quantity
+                            : null,
+                        MovementSign = ToMovementSign(firstEntry.OperationTypeId),
+                        MovementDate = firstEntry.DocDate,
+                        CreatedDate = now
+                    });
+            })
+            .ToList();
+    }
+
+    private static RegisterBalance CreateAggregatedEntry(IReadOnlyCollection<RegisterBalance> entries)
+    {
+        var firstEntry = entries.First();
+        return new RegisterBalance
+        {
+            OrganizationId = firstEntry.OrganizationId,
+            DocumentTypeId = firstEntry.DocumentTypeId,
+            DocumentId = firstEntry.DocumentId,
+            WarehouseId = firstEntry.WarehouseId,
+            ProductId = firstEntry.ProductId,
+            OperationTypeId = firstEntry.OperationTypeId,
+            Quantity = entries.Sum(entry => entry.Quantity),
+            Amount = entries.Sum(entry => entry.Amount),
+            DocDate = firstEntry.DocDate,
+            CreatedDate = firstEntry.CreatedDate,
+            PostingBatchId = firstEntry.PostingBatchId,
+            ReversalEntryId = firstEntry.ReversalEntryId
+        };
     }
 
     private async Task<Result> ApplyIssueMovementAsync(
@@ -528,51 +613,62 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (entry.ReversalEntryId.HasValue)
             return await ApplyIssueReversalAsync(entry, originalEntries, ct);
 
-        var unitCost = receiptMovement.UnitCost ?? 0m;
-        if (unitCost == 0m && receiptMovement.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT)
+        var batch = await _warehouseProductBatchQuery.GetAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(item => item.ReceiptMovementId == receiptMovement.Id)
+                .Build(),
+            ct);
+        if (batch is null)
         {
-            unitCost = await GetWeightedUnitCostAsync(
-                receiptMovement.OrganizationId,
-                receiptMovement.WarehouseId,
-                receiptMovement.ProductId,
-                ct);
-            receiptMovement.UnitCost = unitCost;
-            entry.Amount = unitCost * receiptMovement.Quantity;
+            var unitCost = receiptMovement.UnitCost ?? 0m;
+            if (unitCost == 0m && receiptMovement.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT)
+            {
+                unitCost = await GetWeightedUnitCostAsync(
+                    receiptMovement.OrganizationId,
+                    receiptMovement.WarehouseId,
+                    receiptMovement.ProductId,
+                    ct);
+                receiptMovement.UnitCost = unitCost;
+                entry.Amount = unitCost * entry.Quantity;
+            }
+
+            if (!receiptDocumentNumbers.TryGetValue(
+                    (receiptMovement.DocumentTypeId, receiptMovement.DocumentId),
+                    out var batchNumber))
+            {
+                return Result.Failure(WarehouseProductErrors.ReceiptDocumentNotFound(
+                    receiptMovement.DocumentTypeId,
+                    receiptMovement.DocumentId,
+                    _userContext.LanguageId));
+            }
+
+            batch = new WarehouseProductBatch
+            {
+                OrganizationId = receiptMovement.OrganizationId,
+                WarehouseId = receiptMovement.WarehouseId,
+                ProductId = receiptMovement.ProductId,
+                ReceiptMovementId = receiptMovement.Id,
+                ReceiptMovement = receiptMovement,
+                BatchNumber = batchNumber,
+                InitialQuantity = receiptMovement.Quantity,
+                RemainingQuantity = receiptMovement.Quantity,
+                UnitCost = unitCost,
+                ReceivedDate = receiptMovement.MovementDate,
+                CreatedDate = DateTime.Now
+            };
+
+            await _warehouseProductBatchCommand.CreateAsync(batch, ct);
         }
 
-        if (!receiptDocumentNumbers.TryGetValue(
-                (receiptMovement.DocumentTypeId, receiptMovement.DocumentId),
-                out var batchNumber))
-        {
-            return Result.Failure(WarehouseProductErrors.ReceiptDocumentNotFound(
-                receiptMovement.DocumentTypeId,
-                receiptMovement.DocumentId,
-                _userContext.LanguageId));
-        }
-
-        var batch = new WarehouseProductBatch
-        {
-            OrganizationId = receiptMovement.OrganizationId,
-            WarehouseId = receiptMovement.WarehouseId,
-            ProductId = receiptMovement.ProductId,
-            ReceiptMovementId = receiptMovement.Id,
-            ReceiptMovement = receiptMovement,
-            BatchNumber = batchNumber,
-            InitialQuantity = receiptMovement.Quantity,
-            RemainingQuantity = receiptMovement.Quantity,
-            UnitCost = unitCost,
-            ReceivedDate = receiptMovement.MovementDate,
-            CreatedDate = DateTime.Now
-        };
-
-        await _warehouseProductBatchCommand.CreateAsync(batch, ct);
-
-        if (receiptMovement.ProductTableId.HasValue)
+        if (entry.ProductTableId.HasValue &&
+            !await _warehouseProductBatchTableQuery.AnyAsync(
+                link => link.BatchId == batch.Id && link.ProductTableId == entry.ProductTableId.Value,
+                ct))
         {
             await _warehouseProductBatchTableCommand.CreateAsync(new WarehouseProductBatchTable
             {
                 BatchId = batch.Id,
-                ProductTableId = receiptMovement.ProductTableId.Value,
+                ProductTableId = entry.ProductTableId.Value,
                 CreatedDate = DateTime.Now
             }, ct);
         }
@@ -667,7 +763,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                                item.ProductId == entry.ProductId &&
                                item.DocumentTypeId == entry.DocumentTypeId &&
                                item.DocumentId == entry.DocumentId &&
-                               item.DocumentLineId == entry.SourceLineId &&
+                               (item.DocumentLineId == entry.SourceLineId ||
+                                (entry.ProductTableId.HasValue && item.DocumentLineId == null)) &&
                                item.MovementSign == ToMovementSign(entry.OperationTypeId))
                 .OrderBy(item => item.Id)
                 .Desc()
@@ -781,10 +878,11 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private static IEnumerable<IGrouping<string, RegisterBalance>> GetBatchTransferGroups(IEnumerable<RegisterBalance> entries) =>
         entries
             .Where(entry => entry.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
-            .GroupBy(entry => $"{entry.DocumentId}:{entry.SourceLineId}:{entry.ProductId}")
-            .Where(group => group.Count() == 2 &&
-                            group.Count(entry => entry.OperationTypeId == OperationTypeIdConst.IN) == 1 &&
-                            group.Count(entry => entry.OperationTypeId == OperationTypeIdConst.OUT) == 1);
+            .GroupBy(entry => $"{entry.DocumentId}:{entry.ProductId}")
+            .Where(group => group.Any(entry => entry.OperationTypeId == OperationTypeIdConst.IN) &&
+                            group.Any(entry => entry.OperationTypeId == OperationTypeIdConst.OUT) &&
+                            group.Where(entry => entry.OperationTypeId == OperationTypeIdConst.IN).Sum(entry => entry.Quantity) ==
+                            group.Where(entry => entry.OperationTypeId == OperationTypeIdConst.OUT).Sum(entry => entry.Quantity));
 
     private static short ToMovementSign(short operationTypeId) =>
         operationTypeId == OperationTypeIdConst.IN ? (short)1 : (short)-1;
@@ -875,18 +973,30 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (ids.Count == 0)
             return new Dictionary<int, DateTime>();
 
-        var movements = await _warehouseProductMovementQuery.GetAllAsync(
-            _queryBuilder.For<WarehouseProductMovement>()
-                .Where(movement => movement.ProductTableId.HasValue &&
-                                   ids.Contains(movement.ProductTableId.Value) &&
-                                   movement.MovementSign == 1)
-                .As(movement => new ProductTableReceivedDate(movement.ProductTableId!.Value, movement.MovementDate))
+        var batchLinks = await _warehouseProductBatchTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatchTable>()
+                .Where(link => ids.Contains(link.ProductTableId))
+                .As(link => new ProductTableBatchLink(link.ProductTableId, link.BatchId))
                 .Build(),
             ct);
+        if (batchLinks.Count == 0)
+            return new Dictionary<int, DateTime>();
 
-        return movements
-            .GroupBy(movement => movement.ProductTableId)
-            .ToDictionary(group => group.Key, group => group.Min(movement => movement.ReceivedDate));
+        var batchIds = batchLinks.Select(link => link.BatchId).Distinct().ToList();
+        var batches = await _warehouseProductBatchQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatch>()
+                .Where(batch => batchIds.Contains(batch.Id))
+                .As(batch => new BatchReceivedDate(batch.Id, batch.ReceivedDate))
+                .Build(),
+            ct);
+        var receivedDateByBatchId = batches.ToDictionary(batch => batch.BatchId, batch => batch.ReceivedDate);
+
+        return batchLinks
+            .Where(link => receivedDateByBatchId.ContainsKey(link.BatchId))
+            .GroupBy(link => link.ProductTableId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Min(link => receivedDateByBatchId[link.BatchId]));
     }
 
     private async Task<Dictionary<(short DocumentTypeId, long DocumentId), string>> GetReceiptDocumentNumbersAsync(
@@ -1163,9 +1273,20 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     group.Count(row => row.StatusId == ProductTableStatusIdConst.BLOCKED)));
     }
 
+    private sealed record WarehouseMovementGroup(IReadOnlyList<RegisterBalance> Entries, WarehouseProductMovement Movement);
+    private sealed record WarehouseMovementGroupKey(
+        int OrganizationId,
+        int WarehouseId,
+        int ProductId,
+        short DocumentTypeId,
+        long DocumentId,
+        short OperationTypeId,
+        long? SourceLineId,
+        bool IsPieceTracked);
     private sealed record WarehouseProductSnapshot(int Id, short UnitId);
     private sealed record ProductTableProduct(int Id, int ProductId);
-    private sealed record ProductTableReceivedDate(int ProductTableId, DateTime ReceivedDate);
+    private sealed record ProductTableBatchLink(int ProductTableId, long BatchId);
+    private sealed record BatchReceivedDate(long BatchId, DateTime ReceivedDate);
     private sealed record DocumentNumber(long Id, string DocNumber);
     private sealed record WarehouseProductBatchCost(decimal RemainingQuantity, decimal? UnitCost);
     private sealed record OrganizationValuationMethod(int OrganizationId, string? InventoryValuationMethod);

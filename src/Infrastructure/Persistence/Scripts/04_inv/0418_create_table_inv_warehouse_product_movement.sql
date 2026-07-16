@@ -1,10 +1,9 @@
-create table inv_warehouse_product_movement
+﻿create table inv_warehouse_product_movement
 (
     id                  bigserial primary key,
     organization_id     int not null references org_organization(id),
     warehouse_id        int not null references inv_warehouse(id),
     product_id          int not null references inv_product(id),
-    product_table_id    int references inv_product_table(id),
 
     document_type_id    smallint not null references cmn_document_type(id),
     document_id         bigint not null,
@@ -36,6 +35,3 @@ create index idx_inv_warehouse_product_movement_document_line
 create index idx_inv_warehouse_product_movement_date
     on inv_warehouse_product_movement
     (organization_id, movement_date);
-create index idx_inv_warehouse_product_movement_product_table
-    on inv_warehouse_product_movement (organization_id, product_table_id)
-    where product_table_id is not null;

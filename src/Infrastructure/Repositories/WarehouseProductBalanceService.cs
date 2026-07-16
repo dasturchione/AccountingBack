@@ -36,7 +36,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
                 _userContext.LanguageId));
 
         var productUnitIds = products.ToDictionary(x => x.Key, x => x.Value.UnitId);
-        var movementResult = await ApplyMovementsAndBatchesAsync(entryList, products, ct);
+        var movementResult = await ApplyMovementsAndBatchesAsync(entryList, ct);
         if (!movementResult.IsSuccess)
             return movementResult;
 
@@ -270,7 +270,6 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
 
     private async Task<Result> ApplyMovementsAndBatchesAsync(
         IReadOnlyCollection<RegisterBalance> entries,
-        IReadOnlyDictionary<int, WarehouseProductSnapshot> products,
         CancellationToken ct)
     {
         var now = DateTime.Now;
@@ -292,22 +291,20 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
 
         await _context.Set<WarehouseProductMovement>().AddRangeAsync(movementsByEntry.Values, ct);
 
-        var bulkEntries = entries
-            .Where(entry => !entry.ProductTableId.HasValue && !products[entry.ProductId].IsPieceTracked)
-            .ToList();
-        if (bulkEntries.Count == 0)
+        var batchEntries = entries.ToList();
+        if (batchEntries.Count == 0)
             return Result.Success();
 
         var valuationMethods = await GetInventoryValuationMethodsAsync(
-            bulkEntries.Select(entry => entry.OrganizationId),
+            batchEntries.Select(entry => entry.OrganizationId),
             ct);
         var originalEntries = await GetOriginalEntriesAsync(
-            bulkEntries.Where(entry => entry.ReversalEntryId.HasValue)
+            batchEntries.Where(entry => entry.ReversalEntryId.HasValue)
                 .Select(entry => entry.ReversalEntryId!.Value),
             ct);
         var processedEntries = new HashSet<RegisterBalance>();
 
-        foreach (var transferGroup in GetBulkTransferGroups(bulkEntries))
+        foreach (var transferGroup in GetBatchTransferGroups(batchEntries))
         {
             var issueEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.OUT);
             var receiptEntry = transferGroup.Single(entry => entry.OperationTypeId == OperationTypeIdConst.IN);
@@ -334,7 +331,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
             processedEntries.Add(receiptEntry);
         }
 
-        foreach (var entry in bulkEntries.Where(entry => !processedEntries.Contains(entry)))
+        foreach (var entry in batchEntries.Where(entry => !processedEntries.Contains(entry)))
         {
             var movement = movementsByEntry[entry];
             var result = entry.OperationTypeId == OperationTypeIdConst.OUT
@@ -361,6 +358,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
             entry.OrganizationId,
             entry.WarehouseId,
             entry.ProductId,
+            entry.ProductTableId,
             valuationMethod == InventoryValuationMethodConst.LIFO,
             ct);
         var availableQuantity = batches.Sum(batch => batch.RemainingQuantity);
@@ -428,6 +426,17 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         };
 
         await _context.Set<WarehouseProductBatch>().AddAsync(batch, ct);
+
+        if (entry.ProductTableId.HasValue)
+        {
+            await _context.Set<WarehouseProductBatchTable>().AddAsync(new WarehouseProductBatchTable
+            {
+                Batch = batch,
+                ProductTableId = entry.ProductTableId.Value,
+                CreatedDate = DateTime.Now
+            }, ct);
+        }
+
         return Result.Success();
     }
 
@@ -510,6 +519,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         int organizationId,
         int warehouseId,
         int productId,
+        int? productTableId,
         bool lifo,
         CancellationToken ct)
     {
@@ -518,6 +528,10 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
                            item.WarehouseId == warehouseId &&
                            item.ProductId == productId &&
                            item.RemainingQuantity > 0m);
+
+        if (productTableId.HasValue)
+            query = query.Where(item => item.WarehouseProductBatchTables
+                .Any(link => link.ProductTableId == productTableId.Value));
 
         return lifo
             ? await query.OrderByDescending(item => item.ReceivedDate).ThenByDescending(item => item.Id).ToListAsync(ct)
@@ -579,7 +593,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
         });
     }
 
-    private static IEnumerable<IGrouping<string, RegisterBalance>> GetBulkTransferGroups(IEnumerable<RegisterBalance> entries) =>
+    private static IEnumerable<IGrouping<string, RegisterBalance>> GetBatchTransferGroups(IEnumerable<RegisterBalance> entries) =>
         entries
             .Where(entry => entry.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
             .GroupBy(entry => $"{entry.DocumentId}:{entry.SourceLineId}:{entry.ProductId}")
@@ -614,7 +628,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
 
         return await _context.Set<Product>()
             .Where(product => ids.Contains(product.Id))
-            .Select(product => new WarehouseProductSnapshot(product.Id, product.UnitId, product.IsPieceTracked))
+            .Select(product => new WarehouseProductSnapshot(product.Id, product.UnitId))
             .ToDictionaryAsync(product => product.Id, ct);
     }
     private async Task<Result<Dictionary<int, int>>> GetProductTablesAsync(
@@ -857,7 +871,7 @@ public class WarehouseProductBalanceService : IWarehouseProductBalanceService
                     x.Where(row => row.StatusId == ProductTableStatusIdConst.BLOCKED).Sum(row => (decimal)row.Quantity)));
     }
 
-    private sealed record WarehouseProductSnapshot(int Id, short UnitId, bool IsPieceTracked);
+    private sealed record WarehouseProductSnapshot(int Id, short UnitId);
     private sealed record WarehouseProductBalanceChange(
         int WarehouseId,
         int ProductId,

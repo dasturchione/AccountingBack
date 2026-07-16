@@ -96,6 +96,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WarehouseProductMovement> WarehouseProductMovements { get; set; }
     public virtual DbSet<WarehouseProductBatch> WarehouseProductBatches { get; set; }
     public virtual DbSet<WarehouseProductBatchAllocation> WarehouseProductBatchAllocations { get; set; }
+    public virtual DbSet<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; }
     public virtual DbSet<Branch> Branches { get; set; }
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<Position> Positions { get; set; }

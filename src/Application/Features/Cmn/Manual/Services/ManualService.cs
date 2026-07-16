@@ -636,9 +636,7 @@ public class ManualService : IManualService
     public async Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
-        {
             return new List<SelectListDto>();
-        }
 
         var query = _queryBuilder.For<ProductTable>()
                             .Where(x => x.StateId == StateIdConst.ACTIVE &&

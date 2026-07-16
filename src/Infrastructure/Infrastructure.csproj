@@ -70,8 +70,6 @@
     <Compile Include="Persistence\Generated\Entities\CmnPricingMethod.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnProductPriceType.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnProductTableStatus.cs" />
-    <Compile Include="Persistence\Generated\Entities\CmnProductType.cs" />
-    <Compile Include="Persistence\Generated\Entities\CmnProductTypeTranslation.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnRegion.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnState.cs" />
     <Compile Include="Persistence\Generated\Entities\CmnTaxType.cs" />

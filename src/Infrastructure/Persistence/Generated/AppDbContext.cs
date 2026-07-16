@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Generated.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -116,9 +116,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
 
-    public virtual DbSet<CmnProductType> CmnProductTypes { get; set; }
 
-    public virtual DbSet<CmnProductTypeTranslation> CmnProductTypeTranslations { get; set; }
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
@@ -1038,26 +1036,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_product_table_status_state_id_fkey");
         });
 
-        modelBuilder.Entity<CmnProductType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_product_type_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-        });
-
-        modelBuilder.Entity<CmnProductTypeTranslation>(entity =>
-        {
-            entity.HasKey(e => new { e.ProductTypeId, e.LanguageId }).HasName("cmn_product_type_translation_pkey");
-
-            entity.HasOne(d => d.Language).WithMany(p => p.CmnProductTypeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_product_type_translation_language_id_fkey");
-
-            entity.HasOne(d => d.ProductType).WithMany(p => p.CmnProductTypeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_product_type_translation_product_type_id_fkey");
-        });
-
         modelBuilder.Entity<CmnRegion>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_region_pkey");
@@ -1620,17 +1598,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.IsPurchased).HasDefaultValue(true);
             entity.Property(e => e.IsSold).HasDefaultValue(true);
-            entity.Property(e => e.ProductTypeId).HasDefaultValue((short)1);
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_organization_id_fkey");
 
             entity.HasOne(d => d.ProductGroup).WithMany(p => p.InvProducts).HasConstraintName("inv_product_product_group_id_fkey");
-
-            entity.HasOne(d => d.ProductType).WithMany(p => p.InvProducts)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_product_type_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.InvProducts)
                 .OnDelete(DeleteBehavior.ClientSetNull)

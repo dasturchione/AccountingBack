@@ -53,7 +53,6 @@ public class ProductGroupService : BaseService, IProductGroupService
                     Code = p.Code,
                     Sku = p.Sku,
                     Article = p.Article,
-                    ProductTypeId = p.ProductTypeId,
                     UnitId = p.UnitId,
                     Barcode = p.Barcode,
                     Name = p.Name,
@@ -158,7 +157,6 @@ public class ProductGroupService : BaseService, IProductGroupService
                 product.Code = dtoProduct.Code;
                 product.Sku = dtoProduct.Sku;
                 product.Article = dtoProduct.Article;
-                product.ProductTypeId = dtoProduct.ProductTypeId;
                 product.Name = dtoProduct.Name;
                 product.Barcode = dtoProduct.Barcode;
                 product.Description = dtoProduct.Description;

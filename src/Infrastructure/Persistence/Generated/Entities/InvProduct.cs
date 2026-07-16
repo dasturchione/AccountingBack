@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -14,7 +14,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("Name", Name = "idx_inv_product_name")]
 [Index("OrganizationId", Name = "idx_inv_product_organization_id")]
 [Index("ProductGroupId", Name = "idx_inv_product_product_group_id")]
-[Index("ProductTypeId", Name = "idx_inv_product_product_type_id")]
 [Index("Sku", Name = "idx_inv_product_sku")]
 [Index("StateId", Name = "idx_inv_product_state_id")]
 [Index("UnitId", Name = "idx_inv_product_unit_id")]
@@ -80,8 +79,6 @@ public partial class InvProduct
     [Precision(18, 3)]
     public decimal? MinStock { get; set; }
 
-    [Column("product_type_id")]
-    public short ProductTypeId { get; set; }
 
     [Column("is_sold")]
     public bool IsSold { get; set; }
@@ -120,16 +117,11 @@ public partial class InvProduct
     public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
 
     [ForeignKey("OrganizationId")]
-    [InverseProperty("InvProducts")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
     [ForeignKey("ProductGroupId")]
-    [InverseProperty("InvProducts")]
     public virtual InvProductGroup? ProductGroup { get; set; }
 
-    [ForeignKey("ProductTypeId")]
-    [InverseProperty("InvProducts")]
-    public virtual CmnProductType ProductType { get; set; } = null!;
 
     [InverseProperty("Product")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
@@ -138,10 +130,8 @@ public partial class InvProduct
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [ForeignKey("StateId")]
-    [InverseProperty("InvProducts")]
     public virtual CmnState State { get; set; } = null!;
 
     [ForeignKey("UnitId")]
-    [InverseProperty("InvProducts")]
     public virtual CmnUnit Unit { get; set; } = null!;
 }

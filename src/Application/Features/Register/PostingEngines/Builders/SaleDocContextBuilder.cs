@@ -417,7 +417,6 @@ namespace Application.Features.Register.PostingEngines
                     TableId = x.Id,
                     ProductId = x.ProductId,
                     ProductName = x.Product.Name,
-                    ProductTypeId = x.Product.ProductTypeId,
                     ProductGroupId = x.Product.ProductGroupId,
                     ProductGroupName = x.Product.ProductGroup != null ? x.Product.ProductGroup.Name : null
                 })
@@ -437,7 +436,6 @@ namespace Application.Features.Register.PostingEngines
                 .As(x => new ServiceProductTempDto
                 {
                     ProductId = x.Id,
-                    ProductTypeId = x.ProductTypeId,
                     IsService = x.IsService,
                     IsPieceTracked = x.IsPieceTracked,
                     ProductGroupId = x.ProductGroupId,
@@ -520,7 +518,6 @@ namespace Application.Features.Register.PostingEngines
             public int TableId { get; set; }
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
-            public short ProductTypeId { get; set; }
             public int? ProductGroupId { get; set; }
             public string? ProductGroupName { get; set; }
         }
@@ -528,7 +525,6 @@ namespace Application.Features.Register.PostingEngines
         private sealed class ServiceProductTempDto
         {
             public int ProductId { get; set; }
-            public short ProductTypeId { get; set; }
             public bool IsService { get; set; }
             public bool IsPieceTracked { get; set; }
             public int? ProductGroupId { get; set; }

@@ -3,7 +3,6 @@ namespace Application.Features.Products;
 public class ProductBaseDto
 {
     public bool IsPieceTracked { get; set; }
-    public short ProductTypeId { get; set; } = 1;
     public bool IsSold { get; set; } = true;
     public bool IsPurchased { get; set; } = true;
     public string? Code { get; set; }

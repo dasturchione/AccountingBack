@@ -52,9 +52,6 @@ public partial class Product
     //[StringLength(14)]
     //public string? Gtin { get; set; }
 
-    [Column("product_type_id")]
-    public short ProductTypeId { get; set; }
-
     [Column("is_sold")]
     public bool IsSold { get; set; }
 
@@ -108,10 +105,6 @@ public partial class Product
     [ForeignKey("ProductGroupId")]
     [InverseProperty("Products")]
     public virtual ProductGroup? ProductGroup { get; set; }
-
-    [ForeignKey("ProductTypeId")]
-    [InverseProperty("Products")]
-    public virtual ProductType ProductType { get; set; } = null!;
 
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();

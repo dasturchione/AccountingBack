@@ -1,4 +1,4 @@
-﻿namespace Application.Features.Manual;
+namespace Application.Features.Manual;
 
 public class SelectListDto
 {
@@ -10,12 +10,6 @@ public class SelectListDto
 public class ProductSelectListDto : SelectListDto
 {
     public string? Mxik { get; set; }
-
-    public short ProductTypeId { get; set; }
-
-    public string? ProductTypeCode { get; set; }
-
-    public string? ProductTypeName { get; set; }
 
     public short UnitId { get; set; }
     

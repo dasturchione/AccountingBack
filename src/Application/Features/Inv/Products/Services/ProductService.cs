@@ -41,7 +41,6 @@ public class ProductService : BaseService, IProductService
                 Sku = dto.Sku,
                 Article = dto.Article,
                 ProductGroupId = dto.ProductGroupId,
-                ProductTypeId = dto.ProductTypeId,
                 UnitId = dto.UnitId,
                 Barcode = dto.Barcode,
                 Name = dto.Name,
@@ -73,7 +72,6 @@ public class ProductService : BaseService, IProductService
                 Sku = s.Sku,
                 Article = s.Article,
                 ProductGroupId = s.ProductGroupId,
-                ProductTypeId = s.ProductTypeId,
                 CreatedDate = DateTime.Now,
                 Barcode = s.Barcode,
                 Description = s.Description,
@@ -145,7 +143,6 @@ public class ProductService : BaseService, IProductService
             entity.Sku = dto.Sku;
             entity.Article = dto.Article;
             entity.ProductGroupId = dto.ProductGroupId;
-            entity.ProductTypeId = dto.ProductTypeId;
             entity.UnitId = dto.UnitId;
             entity.Barcode = dto.Barcode;
             entity.Name = dto.Name;

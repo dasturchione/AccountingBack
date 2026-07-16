@@ -170,7 +170,6 @@ public static class PermissionCodeConst
     public const string ManualGetSuppliers                = "MANUAL_GET_SUPPLIERS";
     public const string ManualGetClients                  = "MANUAL_GET_CLIENTS";
     public const string ManualGetProductGroups            = "MANUAL_GET_PRODUCT_GROUPS";
-    public const string ManualGetProductTypes             = "MANUAL_GET_PRODUCT_TYPES";
     public const string ManualGetProducts                 = "MANUAL_GET_PRODUCTS";
     public const string ManualGetWarehouses               = "MANUAL_GET_WAREHOUSES";
     public const string ManualGetChartAccounts            = "MANUAL_GET_CHART_ACCOUNTS";

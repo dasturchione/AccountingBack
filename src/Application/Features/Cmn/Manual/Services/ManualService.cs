@@ -41,7 +41,6 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<ProductGroup> _productGroupQuery;
-    private readonly IQueryRepository<ProductType> _productTypeQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
@@ -86,7 +85,6 @@ public class ManualService : IManualService
         IQueryRepository<Position> positionQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<ProductGroup> productGroupQuery,
-        IQueryRepository<ProductType> productTypeQuery,
         IQueryRepository<Product> productQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
@@ -133,7 +131,6 @@ public class ManualService : IManualService
         _positionQuery = positionQuery;
         _counterpartyQuery = counterpartyQuery;
         _productGroupQuery = productGroupQuery;
-        _productTypeQuery = productTypeQuery;
         _productQuery = productQuery;
         _warehouseQuery = warehouseQuery;
         _chartAccountQuery = chartAccountQuery;
@@ -570,43 +567,19 @@ public class ManualService : IManualService
         return await _productGroupQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetProductTypesAsync(bool? isService = null, CancellationToken ct = default)
-    {
-        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
-
-        var query = _queryBuilder.For<ProductType>()
-                                 .Where(x => isService == null || x.IsService == isService)
-                                 .As(s => new SelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Code = s.Code,
-                                     Name = s.ProductTypeTranslations
-                                                 .Where(t => t.LanguageId == languageId)
-                                                 .Select(t => t.Name)
-                                                 .FirstOrDefault() ?? s.Name
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
-
-        return await _productTypeQuery.GetAllAsync(query, ct);
-    }
-
     public async Task<List<ProductSelectListDto>> GetProductsAsync(
         int? productGroupId = null,
         int? warehouseId = null,
         bool? isService = null,
-        short? productTypeId = null,
         bool? isSold = null,
         bool? isPurchased = null,
         CancellationToken ct = default)
     {
-        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<Product>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE &&
                                              (productGroupId == null || x.ProductGroupId == productGroupId) &&
                                              (isService == null || x.IsService == isService) &&
-                                             (productTypeId == null || x.ProductTypeId == productTypeId) &&
                                              (isSold == null || x.IsSold == isSold) &&
                                              (isPurchased == null || x.IsPurchased == isPurchased) &&
                                              (warehouseId == null || x.RegisterBalances.Any(a => a.WarehouseId == warehouseId)))
@@ -616,12 +589,6 @@ public class ManualService : IManualService
                                      Name = s.Name,
                                      Code = s.Barcode,
                                      Mxik = s.Mxik,
-                                     ProductTypeId = s.ProductTypeId,
-                                     ProductTypeCode = s.ProductType.Code,
-                                     ProductTypeName = s.ProductType.ProductTypeTranslations
-                                                         .Where(t => t.LanguageId == languageId)
-                                                         .Select(t => t.Name)
-                                                         .FirstOrDefault() ?? s.ProductType.Name,
                                      UnitId = s.UnitId,
                                      UnitCode = s.Unit.Code,
                                      IsPieceTracked = s.IsPieceTracked,
@@ -845,7 +812,6 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default)
     {
-        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<SubkontoType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
@@ -865,7 +831,6 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetAccountTypesAsync(CancellationToken ct = default)
     {
-        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
         var query = _queryBuilder.For<AccountType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)

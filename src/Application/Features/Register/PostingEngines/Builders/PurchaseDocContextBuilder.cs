@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -265,7 +265,6 @@ namespace Application.Features.Register.PostingEngines
                     ProductId = s.Id,
                     ProductName = s.Name,
                     IsService = s.IsService,
-                    ProductTypeId = s.ProductTypeId,
                     ProductGroupId = s.ProductGroupId,
                     ProductGroupName = s.ProductGroup != null ? s.ProductGroup.Name : null,
                 }).Build();
@@ -290,7 +289,6 @@ namespace Application.Features.Register.PostingEngines
                         ProductId = item.ProductId,
                         ProductName = item.ProductName,
                         IsService = item.IsService,
-                        ProductTypeId = item.ProductTypeId,
                         ProductGroupId = item.ProductGroupId,
                         ProductGroupName = item.ProductGroupName,
                         DebitAccountId = group.Key.DebitAccountId,
@@ -369,7 +367,6 @@ namespace Application.Features.Register.PostingEngines
             public int ProductId { get; set; }
             public string ProductName { get; set; } = null!;
             public bool IsService { get; set; }
-            public short ProductTypeId { get; set; }
             public int? ProductGroupId { get; set; }
             public string? ProductGroupName { get; set; }
             public int? DebitAccountId { get; set; }

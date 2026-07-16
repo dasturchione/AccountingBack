@@ -13,7 +13,6 @@ public class ProductInGroupBaseDto
     public string? Code { get; set; }
     public string? Sku { get; set; }
     public string? Article { get; set; }
-    public short ProductTypeId { get; set; } = 1;
     public bool IsSold { get; set; } = true;
     public bool IsPurchased { get; set; } = true;
     public short UnitId { get; set; }

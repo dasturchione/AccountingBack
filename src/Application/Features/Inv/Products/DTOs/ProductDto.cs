@@ -7,9 +7,6 @@ public class ProductDto
     public string OrganizationName { get; set; } = null!;
     public int? ProductGroupId { get; set; }
     public string? ProductGroupName { get; set; }
-    public short ProductTypeId { get; set; }
-    public string ProductTypeName { get; set; } = null!;
-    public string ProductTypeCode { get; set; } = null!;
     public short UnitId { get; set; }
     public string UnitName { get; set; } = null!;
     public string? Code { get; set; }

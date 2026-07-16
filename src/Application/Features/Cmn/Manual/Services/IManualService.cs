@@ -48,12 +48,10 @@ public interface IManualService
 
     // inv
     Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetProductTypesAsync(bool? isService = null, CancellationToken ct = default);
     Task<List<ProductSelectListDto>> GetProductsAsync(
         int? productGroupId = null,
         int? warehouseId = null,
         bool? isService = null,
-        short? productTypeId = null,
         bool? isSold = null,
         bool? isPurchased = null,
         CancellationToken ct = default);

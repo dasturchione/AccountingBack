@@ -22,9 +22,6 @@ public class ProductGroupTableDto
     public string? Code { get; set; }
     public string? Sku { get; set; }
     public string? Article { get; set; }
-    public short ProductTypeId { get; set; }
-    public string ProductTypeCode { get; set; } = null!;
-    public string ProductTypeName { get; set; } = null!;
     public short UnitId { get; set; }
     public string? Barcode { get; set; }
     public string Name { get; set; } = null!;

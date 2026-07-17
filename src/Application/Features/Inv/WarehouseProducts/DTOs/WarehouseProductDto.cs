@@ -10,6 +10,7 @@ public sealed class WarehouseProductDto
     public short UnitId { get; init; }
     public string UnitName { get; init; } = null!;
     public string UnitCode { get; init; } = null!;
+    public bool IsPieceTracked { get; init; }
     public decimal Quantity { get; init; }
     public decimal ReservedQuantity { get; init; }
     public decimal BlockedQuantity { get; init; }

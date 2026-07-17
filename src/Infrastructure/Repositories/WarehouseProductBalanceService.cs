@@ -863,13 +863,28 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         return entries.ToDictionary(entry => entry.Id);
     }
 
-    private Task AddBatchAllocationAsync(
+    private async Task AddBatchAllocationAsync(
         WarehouseProductMovement issueMovement,
         WarehouseProductBatch batch,
         decimal quantity,
         decimal unitCost,
-        CancellationToken ct) =>
-        _warehouseProductBatchAllocationCommand.CreateAsync(new WarehouseProductBatchAllocation
+        CancellationToken ct)
+    {
+        var allocations = await _warehouseProductBatchAllocationQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductBatchAllocation>()
+                .Where(allocation => allocation.IssueMovementId == issueMovement.Id &&
+                                     allocation.BatchId == batch.Id)
+                .Build(),
+            ct);
+        var existingAllocation = allocations.SingleOrDefault();
+        if (existingAllocation is not null)
+        {
+            existingAllocation.Quantity += quantity;
+            await _warehouseProductBatchAllocationCommand.UpdateAsync(existingAllocation, ct);
+            return;
+        }
+
+        await _warehouseProductBatchAllocationCommand.CreateAsync(new WarehouseProductBatchAllocation
         {
             IssueMovementId = issueMovement.Id,
             BatchId = batch.Id,
@@ -877,6 +892,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             UnitCost = unitCost,
             CreatedDate = DateTime.Now
         }, ct);
+    }
 
     private static IEnumerable<IGrouping<string, RegisterBalance>> GetBatchTransferGroups(IEnumerable<RegisterBalance> entries) =>
         entries

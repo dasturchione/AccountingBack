@@ -60,6 +60,14 @@ public class SaleDocController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpGet("available-products")]
+    [ModuleAuthorize(PermissionCodeConst.SaleDocAssembly)]
+    public async Task<IResult> GetAvailableProductsAsync([FromQuery] int productId, [FromQuery] int warehouseId, CancellationToken ct = default)
+    {
+        var result = await _service.GetAvailableProductsAsync(productId, warehouseId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpGet("{id:long}/available-products")]
     [ModuleAuthorize(PermissionCodeConst.SaleDocAssembly)]
     public async Task<IResult> GetAvailableProductsAsync([FromRoute] long id, CancellationToken ct = default)

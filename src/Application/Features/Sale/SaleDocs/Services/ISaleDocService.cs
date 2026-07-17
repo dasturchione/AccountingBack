@@ -14,4 +14,5 @@ public interface ISaleDocService
     Task<Result> CancelAsync(long id, CancellationToken ct = default);
     Task<Result> DeleteAsync(long id, CancellationToken ct = default);
     Task<Result<List<SaleDocAvailableProductDto>>> GetAvailableProductsAsync(long id, CancellationToken ct = default);
+    Task<Result<List<SaleDocAvailableProductDto>>> GetAvailableProductsAsync(int productId, int warehouseId, CancellationToken ct = default);
 }

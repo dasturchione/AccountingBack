@@ -1,13 +1,14 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
-using Application.Features.Inv.ProductPrices;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyCards;
+using Application.Features.Inv.ProductPrices;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.InventoryCounts;
 using Application.Features.SaleDocTables;
 using Application.Features.Warehouses;
-using Application.Features.Inv.WarehouseProducts;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -445,12 +446,99 @@ public class SaleDocService : BaseService, ISaleDocService
                             })
                             .ToList()
                     })
-                    .Where(x => x.ProductTables.Count > 0)
+                    .Where(x => x.ProductTables?.Count > 0)
                     .ToList()
             };
         }).ToList();
 
         return Result.Success(result);
+    }
+
+    public async Task<Result<List<SaleDocAvailableProductDto>>> GetAvailableProductsAsync(int productId, int warehouseId, CancellationToken ct = default)
+    {
+        if (_userContext.OrganizationId is null)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var organizationId = _userContext.OrganizationId.Value;
+        var product = await _productQuery.GetAsync(
+            _queryBuilder.For<Product>()
+                .Where(x => x.Id == productId && x.OrganizationId == organizationId)
+                .Build(),
+            ct);
+        if (product is null)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(SaleDocErrors.ProductNotFound(productId, _userContext.LanguageId));
+
+        if (product.IsService)
+            return Result.Success(new List<SaleDocAvailableProductDto>());
+
+        var inventoryResult = await _warehouseInventoryService.GetWarehouseProductsAsync(
+            new WarehouseProductFilter
+            {
+                WarehouseId = warehouseId,
+                ProductIds = [productId]
+            },
+            ct);
+        if (!inventoryResult.IsSuccess)
+            return Result.Failure<List<SaleDocAvailableProductDto>>(inventoryResult.Error);
+
+        var availableBatches = inventoryResult.Value
+            .SingleOrDefault(x => x.ProductId == productId)
+            ?.Batches ?? [];
+        var batchIds = availableBatches.Select(x => x.BatchId).ToList();
+        var productTablesByBatchId = new Dictionary<long, List<AvailableProductTableRow>>();
+        if (product.IsPieceTracked && batchIds.Count > 0)
+        {
+            var productTableQuery = _queryBuilder.For<WarehouseProductBatchTable>()
+                .Where(x => batchIds.Contains(x.BatchId) &&
+                            x.Batch.OrganizationId == organizationId &&
+                            x.Batch.WarehouseId == warehouseId &&
+                            x.Batch.ProductId == productId &&
+                            x.ProductTable.ProductId == productId &&
+                            x.ProductTable.WarehouseProductTable != null &&
+                            x.ProductTable.WarehouseProductTable.WarehouseId == warehouseId &&
+                            x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK)
+                .As(x => new AvailableProductTableRow
+                {
+                    BatchId = x.BatchId,
+                    ProductId = x.ProductTable.ProductId,
+                    ProductTableId = x.ProductTableId,
+                    MarkingNumber = x.ProductTable.MarkingNumber
+                })
+                .Build();
+
+            productTablesByBatchId = (await _warehouseProductBatchTableQuery.GetAllAsync(productTableQuery, ct))
+                .GroupBy(x => x.BatchId)
+                .ToDictionary(x => x.Key, x => x.OrderBy(item => item.ProductTableId).ToList());
+        }
+
+        var result = new SaleDocAvailableProductDto
+        {
+            ProductId = productId,
+            Batches = availableBatches
+                .OrderBy(x => x.ReceivedDate)
+                .ThenBy(x => x.BatchId)
+                .Select(batch => new SaleDocAvailableProductBatchDto
+                {
+                    BatchId = batch.BatchId,
+                    BatchNumber = batch.BatchNumber,
+                    BatchDate = batch.ReceivedDate,
+                    IsRequired = false,
+                    ProductTables = product.IsPieceTracked
+                        ? (productTablesByBatchId.GetValueOrDefault(batch.BatchId) ?? [])
+                        .Take(GetProductTableLimit(batch.AvailableQuantity))
+                        .Select(x => new SaleDocAvailableProductTableDto
+                        {
+                            ProductTableId = x.ProductTableId,
+                            MarkingNumber = x.MarkingNumber
+                        })
+                        .ToList()
+                        : new()
+                })
+                .Where(x => !product.IsPieceTracked || x.ProductTables?.Count > 0)
+                .ToList()
+        };
+
+        return Result.Success(new List<SaleDocAvailableProductDto> { result });
     }
 
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)

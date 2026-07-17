@@ -200,9 +200,6 @@ public partial class WarehouseProductBalanceService
         }
 
         var allocations = ToBatchAllocations(allocatedQuantityByBatchId);
-        var totalCost = allocations.Sum(allocation =>
-            allocation.Quantity * (batchesById[allocation.BatchId].UnitCost ?? 0m));
-        productLine.CostPrice = productLine.Quantity == 0m ? 0m : totalCost / productLine.Quantity;
 
         return Result.Success(new SaleProductAllocation(
             allocations,
@@ -290,7 +287,6 @@ public partial class WarehouseProductBalanceService
             }
 
             productTableIds.Add(saleTable.ProductTableId);
-            saleTable.CostPrice = batch.UnitCost ?? 0m;
         }
 
         var allocations = allocatedTableIdsByBatchId
@@ -314,7 +310,6 @@ public partial class WarehouseProductBalanceService
             }
         }
 
-        productLine.CostPrice = productLine.SaleDocTables.Sum(table => table.CostPrice);
         var entryAllocations = productLine.SaleDocTables.ToDictionary(
             saleTable => saleTable.Id,
             saleTable => (IReadOnlyList<ProductBatchAllocation>)new List<ProductBatchAllocation>
@@ -458,7 +453,6 @@ public partial class WarehouseProductBalanceService
         if (batchesById.Count != batchIds.Count)
             return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.Id, _userContext.LanguageId));
 
-        var totalCost = 0m;
         foreach (var allocation in allocations)
         {
             var batch = batchesById[allocation.BatchId];
@@ -486,10 +480,8 @@ public partial class WarehouseProductBalanceService
             batch.RemainingQuantity -= allocation.Quantity;
             await _warehouseProductBatchCommand.UpdateAsync(batch, ct);
             await AddBatchAllocationAsync(issueMovement, batch, allocation.Quantity, unitCost, ct);
-            totalCost += allocation.Quantity * unitCost;
         }
 
-        entry.Amount = totalCost;
         return Result.Success();
     }
 

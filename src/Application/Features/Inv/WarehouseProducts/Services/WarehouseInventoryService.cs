@@ -72,6 +72,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
                 UnitId = row.UnitId,
                 UnitName = GetLocalizedName(translations, UnitTableName, row.UnitId, row.UnitName),
                 UnitCode = row.UnitCode,
+                IsPieceTracked = row.IsPieceTracked,
                 Quantity = row.Quantity,
                 ReservedQuantity = row.ReservedQuantity,
                 BlockedQuantity = row.BlockedQuantity,
@@ -104,6 +105,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
                 UnitId = item.UnitId,
                 UnitName = item.Unit.Name,
                 UnitCode = item.Unit.Code,
+                IsPieceTracked = item.Product.IsPieceTracked,
                 Quantity = item.Quantity,
                 ReservedQuantity = item.ReservedQuantity,
                 BlockedQuantity = item.BlockedQuantity
@@ -230,6 +232,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         public decimal Quantity { get; init; }
         public decimal ReservedQuantity { get; init; }
         public decimal BlockedQuantity { get; init; }
+        public bool IsPieceTracked { get; set; }
     }
 
     private sealed class WarehouseProductBatchRow

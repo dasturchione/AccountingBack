@@ -115,7 +115,7 @@ public class SaleDocService : BaseService, ISaleDocService
         });
 
     /// <summary>
-    /// Bosqich 1: Bugalter sotuv hujjatini yaratadi.
+    /// Bosqich 1: Buxgalter sotuv hujjatini yaratadi.
     /// SaleDoc (DRAFT) + SaleDocProduct yaratiladi. ProductTable hali o'zgarmaydi.
     /// </summary>
     public Task<Result<long>> CreateAsync(SaleDocCreateDto dto, CancellationToken ct = default) =>
@@ -219,8 +219,9 @@ public class SaleDocService : BaseService, ISaleDocService
             var productLines = await GetProductLinesForAssemblyAsync(id, ct);
             return await ApplyAssemblyAsync(doc, productLines, dtos ?? new List<SaleDocProductAssemblyDto>(), ct);
         }, ct);
+
     /// <summary>
-    /// Bosqich 3: Bugalter tasdiqlaydi вЂ” har bir SaleDocTable uchun sotuv narxini belgilaydi.
+    /// Bosqich 3: Buxgalter tasdiqlaydi вЂ” har bir SaleDocTable uchun sotuv narxini belgilaydi.
     /// SaleDoc в†’ POSTED, ProductTable в†’ SOLD, provodka yaratiladi.
     /// </summary>
     public Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default) =>
@@ -535,10 +536,8 @@ public class SaleDocService : BaseService, ISaleDocService
             foreach (var item in matched)
             {
                 var vat = line.VatRateId.HasValue && line.VatAmount > 0 && line.Quantity > 0 ? Math.Round(line.VatAmount / line.Quantity, 2) : 0m;
-                rows.Add(new SaleDocTable { OwnerId = line.Id, ProductTableId = item.ProductTableId, CostPrice = item.CostPrice, Amount = line.UnitPrice, VatRateId = line.VatRateId, VatAmount = vat, TotalAmount = line.UnitPrice + vat });
+                rows.Add(new SaleDocTable { OwnerId = line.Id, ProductTableId = item.ProductTableId, CostPrice = line.CostPrice, Amount = line.UnitPrice, VatRateId = line.VatRateId, VatAmount = vat, TotalAmount = line.UnitPrice + vat });
             }
-            line.CostPrice = matched.Sum(x => x.CostPrice);
-            await _productLineCommand.UpdateAsync(line, ct);
         }
 
         if (rows.Count > 0)
@@ -666,7 +665,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = p.Quantity,
                 UnitId = unitId,
                 UnitPrice = p.UnitPrice,
-                CostPrice = product.IsService || !product.IsPieceTracked ? p.CostPrice : 0m,
+                CostPrice = p.CostPrice,
                 Amount = amount,
                 VatRateId = p.VatRateId,
                 InventoryAccountId = p.InventoryAccountId,
@@ -765,7 +764,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = p.Quantity,
                 UnitId = unitId,
                 UnitPrice = p.UnitPrice,
-                CostPrice = product.IsService || !product.IsPieceTracked ? p.CostPrice : 0m,
+                CostPrice = p.CostPrice,
                 Amount = amount,
                 VatRateId = p.VatRateId,
                 InventoryAccountId = p.InventoryAccountId,

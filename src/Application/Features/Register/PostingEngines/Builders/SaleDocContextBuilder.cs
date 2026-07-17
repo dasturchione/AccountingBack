@@ -90,7 +90,7 @@ namespace Application.Features.Register.PostingEngines
                         PurchaseDate = lastPurchase.Date,
                         WarehouseId = lastPurchase.WarehouseId,
                         WarehouseName = lastPurchase.WarehouseName,
-                        CostPrice = table.CostPrice > 0 ? table.CostPrice : lastPurchase.CostAmount,
+                        CostPrice = table.CostPrice,
                         InventoryAccountId = saleLine.InventoryAccountId,
                         CostAccountId = saleLine.CostAccountId
                     };

@@ -389,6 +389,8 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 if (!vatAmountResult.IsSuccess)
                     return Result.Failure(vatAmountResult.Error);
 
+                table.CostPrice = lineDto.CostPrice;
+
                 table.Amount = lineDto.UnitPrice;
                 table.VatAmount = vatAmountResult.Value;
                 table.TotalAmount = table.Amount + table.VatAmount;
@@ -397,7 +399,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             await _lineCommand.UpdateAsync(productLine.SaleDocTables, ct);
 
             productLine.UnitPrice = lineDto.UnitPrice;
-            productLine.CostPrice = productLine.SaleDocTables.Sum(x => x.CostPrice);
+            productLine.CostPrice = lineDto.CostPrice;
             productLine.Amount = productLine.SaleDocTables.Sum(x => x.Amount);
             productLine.VatAmount = productLine.SaleDocTables.Sum(x => x.VatAmount);
             productLine.TotalAmount = productLine.SaleDocTables.Sum(x => x.TotalAmount);

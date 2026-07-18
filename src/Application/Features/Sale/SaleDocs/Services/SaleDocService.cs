@@ -7,6 +7,7 @@ using Application.Features.Inv.ProductPrices;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.InventoryCounts;
 using Application.Features.SaleDocTables;
+using Application.Features.SaleShipments;
 using Application.Features.Warehouses;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using Domain.Entities;
@@ -34,6 +35,10 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
+    private readonly IQueryRepository<SaleShipmentDoc> _shipmentDocQuery;
+    private readonly ICommandRepository<SaleShipmentDoc> _shipmentDocCommand;
+    private readonly IQueryRepository<SaleShipmentProduct> _shipmentProductQuery;
+    private readonly ICommandRepository<SaleShipmentProduct> _shipmentProductCommand;
     private readonly IProductPriceCalculateService _priceCalculateService;
     private readonly IProductTableReservationService _reservationService;
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
@@ -57,6 +62,10 @@ public class SaleDocService : BaseService, ISaleDocService
                           IQueryRepository<CounterpartyCard> counterpartyQuery,
                           IQueryRepository<Product> productQuery,
                           IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
+                          IQueryRepository<SaleShipmentDoc> shipmentDocQuery,
+                          ICommandRepository<SaleShipmentDoc> shipmentDocCommand,
+                          IQueryRepository<SaleShipmentProduct> shipmentProductQuery,
+                          ICommandRepository<SaleShipmentProduct> shipmentProductCommand,
                           IProductPriceCalculateService priceCalculateService,
                           IProductTableReservationService reservationService,
                           IWarehouseProductBalanceService warehouseProductBalanceService,
@@ -81,6 +90,10 @@ public class SaleDocService : BaseService, ISaleDocService
         _counterpartyQuery = counterpartyQuery;
         _productQuery = productQuery;
         _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
+        _shipmentDocQuery = shipmentDocQuery;
+        _shipmentDocCommand = shipmentDocCommand;
+        _shipmentProductQuery = shipmentProductQuery;
+        _shipmentProductCommand = shipmentProductCommand;
         _priceCalculateService = priceCalculateService;
         _reservationService = reservationService;
         _warehouseProductBalanceService = warehouseProductBalanceService;
@@ -143,6 +156,10 @@ public class SaleDocService : BaseService, ISaleDocService
             if (counterparty is null)
                 return Result.Failure<long>(CounterpartyCardErrors.NotFound(dto.CounterpartyId, _userContext.LanguageId));
 
+            var shipmentLinkResult = await ValidateShipmentLinkAsync(dto, orgId, ct);
+            if (!shipmentLinkResult.IsSuccess)
+                return Result.Failure<long>(shipmentLinkResult.Error);
+
             var productsResult = await BuildProductLinesAsync(dto.Lines, ct);
             if (!productsResult.IsSuccess)
                 return Result.Failure<long>(productsResult.Error);
@@ -176,6 +193,13 @@ public class SaleDocService : BaseService, ISaleDocService
             };
 
             await _command.CreateAsync(doc, ct);
+
+            if (shipmentLinkResult.Value is not null)
+            {
+                var shipmentLinkingResult = await LinkShipmentAsync(shipmentLinkResult.Value, doc.Id, productLines, ct);
+                if (!shipmentLinkingResult.IsSuccess)
+                    return Result.Failure<long>(shipmentLinkingResult.Error);
+            }
 
             if (dto.ProcessingMode == SaleProcessingMode.Immediate)
             {
@@ -541,6 +565,98 @@ public class SaleDocService : BaseService, ISaleDocService
         return Result.Success(new List<SaleDocAvailableProductDto> { result });
     }
 
+    private async Task<Result<SaleShipmentLink?>> ValidateShipmentLinkAsync(
+        SaleDocCreateDto dto,
+        int organizationId,
+        CancellationToken ct)
+    {
+        if (!dto.ShipmentId.HasValue)
+            return Result.Success<SaleShipmentLink?>(null);
+
+        var shipment = await _shipmentDocQuery.GetAsync(
+            _queryBuilder.For<SaleShipmentDoc>()
+                .Where(x => x.Id == dto.ShipmentId.Value && x.OrganizationId == organizationId)
+                .Build(),
+            ct);
+        if (shipment is null)
+            return Result.Failure<SaleShipmentLink?>(SaleShipmentErrors.NotFound(dto.ShipmentId.Value, _userContext.LanguageId));
+        if (shipment.SaleDocId.HasValue)
+            return Result.Failure<SaleShipmentLink?>(SaleShipmentErrors.AlreadyLinkedToSale(shipment.Id, _userContext.LanguageId));
+
+        var requestedLinks = dto.Lines
+            .Select((line, index) => new ShipmentLineLink(index, line.ShipmentProductId, line.ProductId, line.Quantity))
+            .Where(link => link.ShipmentProductId.HasValue)
+            .ToList();
+        if (requestedLinks.GroupBy(link => link.ShipmentProductId!.Value).Any(group => group.Count() > 1))
+            return Result.Failure<SaleShipmentLink?>(SaleShipmentErrors.DuplicateShipmentProductLink(_userContext.LanguageId));
+        if (requestedLinks.Count == 0)
+            return Result.Success<SaleShipmentLink?>(new SaleShipmentLink(shipment, []));
+
+        var shipmentProductIds = requestedLinks
+            .Select(link => link.ShipmentProductId!.Value)
+            .ToList();
+        var shipmentProducts = await _shipmentProductQuery.GetAllAsync(
+            _queryBuilder.For<SaleShipmentProduct>()
+                .Where(x => shipmentProductIds.Contains(x.Id) && x.OwnerId == shipment.Id)
+                .Build(),
+            ct);
+        var shipmentProductsById = shipmentProducts.ToDictionary(x => x.Id);
+        var links = new List<SaleShipmentProductLink>(requestedLinks.Count);
+
+        foreach (var requestedLink in requestedLinks)
+        {
+            var shipmentProductId = requestedLink.ShipmentProductId!.Value;
+            if (!shipmentProductsById.TryGetValue(shipmentProductId, out var shipmentProduct))
+            {
+                return Result.Failure<SaleShipmentLink?>(
+                    SaleShipmentErrors.ShipmentProductNotFound(shipmentProductId, _userContext.LanguageId));
+            }
+            if (shipmentProduct.SaleDocProductId.HasValue)
+            {
+                return Result.Failure<SaleShipmentLink?>(
+                    SaleShipmentErrors.ShipmentProductAlreadyLinked(shipmentProductId, _userContext.LanguageId));
+            }
+            if (shipmentProduct.ProductId != requestedLink.ProductId || shipmentProduct.Quantity != requestedLink.Quantity)
+            {
+                return Result.Failure<SaleShipmentLink?>(
+                    SaleShipmentErrors.ShipmentProductMismatch(
+                        shipmentProductId,
+                        requestedLink.ProductId,
+                        requestedLink.Quantity,
+                        _userContext.LanguageId));
+            }
+
+            links.Add(new SaleShipmentProductLink(requestedLink.LineIndex, shipmentProduct));
+        }
+
+        return Result.Success<SaleShipmentLink?>(new SaleShipmentLink(shipment, links));
+    }
+
+    private async Task<Result> LinkShipmentAsync(
+        SaleShipmentLink shipmentLink,
+        long saleDocId,
+        IReadOnlyList<SaleDocProduct> saleDocProducts,
+        CancellationToken ct)
+    {
+        if (shipmentLink.Shipment.SaleDocId.HasValue)
+            return Result.Failure(SaleShipmentErrors.AlreadyLinkedToSale(shipmentLink.Shipment.Id, _userContext.LanguageId));
+
+        shipmentLink.Shipment.SaleDocId = saleDocId;
+        await _shipmentDocCommand.UpdateAsync(shipmentLink.Shipment, ct);
+
+        foreach (var productLink in shipmentLink.ProductLinks)
+        {
+            if (productLink.LineIndex < 0 || productLink.LineIndex >= saleDocProducts.Count)
+                return Result.Failure(SaleShipmentErrors.ShipmentProductNotFound(productLink.ShipmentProduct.Id, _userContext.LanguageId));
+
+            productLink.ShipmentProduct.SaleDocProductId = saleDocProducts[productLink.LineIndex].Id;
+        }
+
+        if (shipmentLink.ProductLinks.Count > 0)
+            await _shipmentProductCommand.UpdateAsync(shipmentLink.ProductLinks.Select(x => x.ShipmentProduct), ct);
+
+        return Result.Success();
+    }
     private async Task<SaleDocDto?> GetByIdInternalAsync(long id, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
@@ -866,6 +982,13 @@ public class SaleDocService : BaseService, ISaleDocService
         return lines;
     }
 
+    private sealed record ShipmentLineLink(int LineIndex, long? ShipmentProductId, int ProductId, decimal Quantity);
+
+    private sealed record SaleShipmentProductLink(int LineIndex, SaleShipmentProduct ShipmentProduct);
+
+    private sealed record SaleShipmentLink(
+        SaleShipmentDoc Shipment,
+        IReadOnlyList<SaleShipmentProductLink> ProductLinks);
     private sealed class AvailableProductTableRow
     {
         public long BatchId { get; init; }

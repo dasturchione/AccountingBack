@@ -11,12 +11,16 @@ public class SaleDocCreateDto
     public int? CustomerAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
+
+    public long? ShipmentId { get; set; }
+
     public SaleProcessingMode ProcessingMode { get; set; } = SaleProcessingMode.StepByStep;
     public List<SaleDocCreateProductDto> Lines { get; set; } = new();
 }
 
 public class SaleDocCreateProductDto
 {
+    public long? ShipmentProductId { get; set; }
     public int ProductId { get; set; }
     public decimal Quantity { get; set; }
     public decimal CostPrice { get; set; }

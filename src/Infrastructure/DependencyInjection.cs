@@ -76,6 +76,7 @@ using Application.Features.Register.PostingEngines.Builders;
 using Application.Features.Roles;
 using Application.Features.SaleConditions;
 using Application.Features.SaleDocs;
+using Application.Features.SaleShipments;
 using Application.Features.SaleDocTables;
 using Application.Features.Users;
 using Application.Features.Users.Services;
@@ -207,6 +208,7 @@ namespace Infrastructure
             services.AddScoped<IPurchaseLifecycleService, PurchaseLifecycleService>();
             services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
             services.AddScoped<ISaleDocService, SaleDocService>();
+            services.AddScoped<ISaleShipmentService, SaleShipmentService>();
             services.AddScoped<ISaleLifecycleService, SaleLifecycleService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
             services.AddScoped<IChartAccountService, ChartAccountService>();

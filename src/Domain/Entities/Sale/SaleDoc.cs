@@ -98,6 +98,9 @@ public partial class SaleDoc
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
+    [InverseProperty(nameof(SaleShipmentDoc.SaleDoc))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("CustomerAccountId")]
     [InverseProperty(nameof(ChartAccount.SaleDocCustomerAccounts))]
     public virtual ChartAccount? CustomerAccount { get; set; }

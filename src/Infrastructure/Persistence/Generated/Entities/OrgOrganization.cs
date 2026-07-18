@@ -215,6 +215,9 @@ public partial class OrgOrganization
     [InverseProperty("Organization")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty("Organization")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("OrgOrganizations")]
     public virtual CmnState State { get; set; } = null!;

@@ -61,6 +61,9 @@ public partial class CmnDocumentStatus
     [InverseProperty("Status")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty("Status")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnDocumentStatuses")]
     public virtual CmnState State { get; set; } = null!;

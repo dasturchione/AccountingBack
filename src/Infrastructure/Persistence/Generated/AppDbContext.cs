@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Infrastructure.Persistence.Generated.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -115,8 +115,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CmnProductPriceType> CmnProductPriceTypes { get; set; }
 
     public virtual DbSet<CmnProductTableStatus> CmnProductTableStatuses { get; set; }
-
-
 
     public virtual DbSet<CmnRegion> CmnRegions { get; set; }
 
@@ -245,6 +243,14 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SaleDocProductBatch> SaleDocProductBatches { get; set; }
 
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
+
+    public virtual DbSet<SaleShipmentDoc> SaleShipmentDocs { get; set; }
+
+    public virtual DbSet<SaleShipmentProduct> SaleShipmentProducts { get; set; }
+
+    public virtual DbSet<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; }
+
+    public virtual DbSet<SaleShipmentTable> SaleShipmentTables { get; set; }
 
     public virtual DbSet<SysAuditLog> SysAuditLogs { get; set; }
 
@@ -2268,6 +2274,101 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sale_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.SaleDocTables).HasConstraintName("sale_doc_table_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleShipmentDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_shipment_doc_pkey");
+
+            entity.HasIndex(e => e.AcceptedUserId, "idx_sale_shipment_doc_accepted_user_id").HasFilter("(accepted_user_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.CounterpartyId, e.DocDate }, "idx_sale_shipment_doc_organization_counterparty_date")
+                .IsDescending(false, false, true)
+                .HasFilter("(counterparty_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.DocNumber }, "idx_sale_shipment_doc_organization_doc_number").HasFilter("(doc_number IS NOT NULL)");
+
+            entity.HasIndex(e => e.SaleDocId, "idx_sale_shipment_doc_sale_doc_id").HasFilter("(sale_doc_id IS NOT NULL)");
+
+            entity.HasIndex(e => e.SubmittedUserId, "idx_sale_shipment_doc_submitted_user_id").HasFilter("(submitted_user_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.DocDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.AcceptedUser).WithMany(p => p.SaleShipmentDocAcceptedUsers).HasConstraintName("sale_shipment_doc_accepted_user_id_fkey");
+
+            entity.HasOne(d => d.CancelledUser).WithMany(p => p.SaleShipmentDocCancelledUsers).HasConstraintName("sale_shipment_doc_cancelled_user_id_fkey");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.SaleShipmentDocs).HasConstraintName("sale_shipment_doc_counterparty_id_fkey");
+
+            entity.HasOne(d => d.CreatedUser).WithMany(p => p.SaleShipmentDocCreatedUsers)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_doc_created_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.SaleShipmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.SaleDoc).WithMany(p => p.SaleShipmentDocs).HasConstraintName("sale_shipment_doc_sale_doc_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.SaleShipmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_doc_status_id_fkey");
+
+            entity.HasOne(d => d.SubmittedUser).WithMany(p => p.SaleShipmentDocSubmittedUsers).HasConstraintName("sale_shipment_doc_submitted_user_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.SaleShipmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_doc_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleShipmentProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_shipment_product_pkey");
+
+            entity.HasIndex(e => e.SaleDocProductId, "idx_sale_shipment_product_sale_doc_product_id").HasFilter("(sale_doc_product_id IS NOT NULL)");
+
+            entity.HasIndex(e => e.SaleDocProductId, "uq_sale_shipment_product_sale_doc_product_id")
+                .IsUnique()
+                .HasFilter("(sale_doc_product_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.SaleShipmentProducts).HasConstraintName("sale_shipment_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.SaleShipmentProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_product_product_id_fkey");
+
+            entity.HasOne(d => d.SaleDocProduct).WithOne(p => p.SaleShipmentProduct).HasConstraintName("sale_shipment_product_sale_doc_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.SaleShipmentProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_product_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleShipmentProductBatch>(entity =>
+        {
+            entity.HasKey(e => new { e.ShipmentProductId, e.BatchId }).HasName("sale_shipment_product_batch_pkey");
+
+            entity.HasOne(d => d.Batch).WithMany(p => p.SaleShipmentProductBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_product_batch_batch_id_fkey");
+
+            entity.HasOne(d => d.ShipmentProduct).WithMany(p => p.SaleShipmentProductBatches).HasConstraintName("sale_shipment_product_batch_shipment_product_id_fkey");
+        });
+
+        modelBuilder.Entity<SaleShipmentTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sale_shipment_table_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.ProductTable).WithOne(p => p.SaleShipmentTable)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sale_shipment_table_product_table_id_fkey");
+
+            entity.HasOne(d => d.ShipmentProduct).WithMany(p => p.SaleShipmentTables).HasConstraintName("sale_shipment_table_shipment_product_id_fkey");
         });
 
         modelBuilder.Entity<SysAuditLog>(entity =>

@@ -73,6 +73,9 @@ public partial class InvWarehouseProductBatch
     [InverseProperty("WarehouseProductBatch")]
     public virtual ICollection<SaleDocProductBatch> SaleDocProductBatches { get; set; } = new List<SaleDocProductBatch>();
 
+    [InverseProperty("Batch")]
+    public virtual ICollection<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; } = new List<SaleShipmentProductBatch>();
+
     [ForeignKey("WarehouseId")]
     [InverseProperty("InvWarehouseProductBatches")]
     public virtual InvWarehouse Warehouse { get; set; } = null!;

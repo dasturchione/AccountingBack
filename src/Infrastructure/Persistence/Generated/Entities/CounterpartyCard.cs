@@ -128,6 +128,9 @@ public partial class CounterpartyCard
     [InverseProperty("Counterparty")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty("Counterparty")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyCards")]
     public virtual CmnState State { get; set; } = null!;

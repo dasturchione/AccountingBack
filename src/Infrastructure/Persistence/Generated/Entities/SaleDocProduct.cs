@@ -89,6 +89,9 @@ public partial class SaleDocProduct
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
+    [InverseProperty("SaleDocProduct")]
+    public virtual SaleShipmentProduct? SaleShipmentProduct { get; set; }
+
     [ForeignKey("UnitId")]
     [InverseProperty("SaleDocProducts")]
     public virtual CmnUnit Unit { get; set; } = null!;

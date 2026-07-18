@@ -134,6 +134,10 @@
     <Compile Include="Persistence\Generated\Entities\SaleDocProduct.cs" />
     <Compile Include="Persistence\Generated\Entities\SaleDocProductBatch.cs" />
     <Compile Include="Persistence\Generated\Entities\SaleDocTable.cs" />
+    <Compile Include="Persistence\Generated\Entities\SaleShipmentDoc.cs" />
+    <Compile Include="Persistence\Generated\Entities\SaleShipmentProduct.cs" />
+    <Compile Include="Persistence\Generated\Entities\SaleShipmentProductBatch.cs" />
+    <Compile Include="Persistence\Generated\Entities\SaleShipmentTable.cs" />
     <Compile Include="Persistence\Generated\Entities\SysAuditLog.cs" />
     <Compile Include="Persistence\Generated\Entities\SysEmailVerificationToken.cs" />
     <Compile Include="Persistence\Generated\Entities\SysModule.cs" />

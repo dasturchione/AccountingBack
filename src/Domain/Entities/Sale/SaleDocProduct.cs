@@ -82,6 +82,9 @@ public partial class SaleDocProduct
     [InverseProperty(nameof(SaleDocProductBatch.SaleDocProduct))]
     public virtual ICollection<SaleDocProductBatch> SaleDocProductBatches { get; set; } = new List<SaleDocProductBatch>();
 
+    [InverseProperty(nameof(SaleShipmentProduct.SaleDocProduct))]
+    public virtual SaleShipmentProduct? SaleShipmentProduct { get; set; }
+
     [ForeignKey("UnitId")]
     [InverseProperty("SaleDocProducts")]
     public virtual Unit Unit { get; set; } = null!;

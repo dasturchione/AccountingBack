@@ -159,6 +159,18 @@ public partial class SysUser
     [InverseProperty("SysUsers")]
     public virtual SysRole Role { get; set; } = null!;
 
+    [InverseProperty("AcceptedUser")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty("CancelledUser")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocCancelledUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty("CreatedUser")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocCreatedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty("SubmittedUser")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocSubmittedUsers { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("SysUsers")]
     public virtual CmnState State { get; set; } = null!;

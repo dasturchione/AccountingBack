@@ -57,6 +57,9 @@ public partial class WarehouseProductBatch
     [InverseProperty(nameof(WarehouseProductBatchTable.Batch))]
     public virtual ICollection<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; } = new List<WarehouseProductBatchTable>();
 
+    [InverseProperty(nameof(SaleShipmentProductBatch.Batch))]
+    public virtual ICollection<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; } = new List<SaleShipmentProductBatch>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty(nameof(Organization.WarehouseProductBatches))]
     public virtual Organization Organization { get; set; } = null!;

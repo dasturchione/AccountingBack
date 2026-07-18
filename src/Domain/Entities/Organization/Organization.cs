@@ -81,6 +81,9 @@ public partial class Organization
     [InverseProperty(nameof(DocumentAccountSetting.Organization))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 
+    [InverseProperty(nameof(SaleShipmentDoc.Organization))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [InverseProperty("Organization")]
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
 

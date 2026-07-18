@@ -11,7 +11,7 @@ create table sale_shipment_product
     product_id              int not null
         references inv_product(id),
 
-    unit_id                 int not null
+    unit_id                 smallint not null
         references cmn_unit(id),
 
     quantity                numeric(19,6) not null

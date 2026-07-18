@@ -11,7 +11,7 @@ create table sale_shipment_table
 
     created_date            timestamp without time zone not null default now(),
 
-    unique (product_table_id)
+    unique (shipment_product_id, product_table_id)
 );
 
 -- Получение всех серийных единиц строки комплектации

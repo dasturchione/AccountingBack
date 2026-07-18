@@ -89,6 +89,9 @@ public partial class CounterpartyCard
     [InverseProperty("Counterparty")]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
+    [InverseProperty(nameof(SaleShipmentDoc.Counterparty))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("CounterpartyTypeId")]
     [InverseProperty("CounterpartyCards")]
     public virtual CounterpartyType CounterpartyType { get; set; } = null!;

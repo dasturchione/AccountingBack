@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -79,7 +79,6 @@ public partial class InvProduct
     [Precision(18, 3)]
     public decimal? MinStock { get; set; }
 
-
     [Column("is_sold")]
     public bool IsSold { get; set; }
 
@@ -117,11 +116,12 @@ public partial class InvProduct
     public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
 
     [ForeignKey("OrganizationId")]
+    [InverseProperty("InvProducts")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
     [ForeignKey("ProductGroupId")]
+    [InverseProperty("InvProducts")]
     public virtual InvProductGroup? ProductGroup { get; set; }
-
 
     [InverseProperty("Product")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
@@ -129,9 +129,14 @@ public partial class InvProduct
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
+    [InverseProperty("Product")]
+    public virtual ICollection<SaleShipmentProduct> SaleShipmentProducts { get; set; } = new List<SaleShipmentProduct>();
+
     [ForeignKey("StateId")]
+    [InverseProperty("InvProducts")]
     public virtual CmnState State { get; set; } = null!;
 
     [ForeignKey("UnitId")]
+    [InverseProperty("InvProducts")]
     public virtual CmnUnit Unit { get; set; } = null!;
 }

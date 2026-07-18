@@ -5,14 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("sys_user")]
-[Index("LanguageId", Name = "idx_sys_user_language_id")]
-[Index("OrganizationId", Name = "idx_sys_user_organization_id")]
-[Index("PhoneNumber", Name = "idx_sys_user_phone")]
-[Index("RoleId", Name = "idx_sys_user_role_id")]
-[Index("UserName", Name = "uidx_sys_user_user_name", IsUnique = true)]
-[Index("Email", Name = "idx_sys_user_email")]
-[Index("EmailVerified", Name = "idx_sys_user_email_verified")]
-[Index("IsPlatformAdmin", Name = "idx_sys_user_is_platform_admin")]
 public partial class User
 {
     [Key]
@@ -65,7 +57,6 @@ public partial class User
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
-
     [Column("email_verified")]
     public bool EmailVerified { get; set; }
 
@@ -107,4 +98,16 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
+
+    [InverseProperty(nameof(SaleShipmentDoc.AcceptedUser))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty(nameof(SaleShipmentDoc.CancelledUser))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocCancelledUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty(nameof(SaleShipmentDoc.CreatedUser))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocCreatedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty(nameof(SaleShipmentDoc.SubmittedUser))]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocSubmittedUsers { get; set; } = new List<SaleShipmentDoc>();
 }

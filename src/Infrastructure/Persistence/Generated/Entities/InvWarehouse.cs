@@ -97,6 +97,9 @@ public partial class InvWarehouse
     [InverseProperty("Warehouse")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("InvWarehouses")]
     public virtual CmnState State { get; set; } = null!;

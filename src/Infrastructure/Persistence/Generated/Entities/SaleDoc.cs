@@ -115,6 +115,9 @@ public partial class SaleDoc
     [InverseProperty("Owner")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
+    [InverseProperty("SaleDoc")]
+    public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("SaleDocs")]
     public virtual CmnState State { get; set; } = null!;

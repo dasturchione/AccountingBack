@@ -43,8 +43,8 @@ public interface IManualService
 
     // counterparty
     Task<List<SelectListDto>> GetCounterpartiesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetSuppliersAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetClientsAsync(CancellationToken ct = default);
+    Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default);
+    Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default);
 
     // inv
     Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default);

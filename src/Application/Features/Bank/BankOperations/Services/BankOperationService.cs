@@ -218,7 +218,7 @@ public class BankOperationService : BaseService, IBankOperationService
             OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
             OperationTypeId = dto.OperationTypeId,
-            PaymentTypeId = dto.PaymentTypeId,
+            PaymentTypeId = dto.PaymentTypeId ?? PaymentTypeIdConst.BANK,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,
             BankChartAccountId = dto.BankChartAccountId,

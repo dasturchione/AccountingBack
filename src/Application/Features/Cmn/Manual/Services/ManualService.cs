@@ -518,16 +518,17 @@ public class ManualService : IManualService
         return await _counterpartyQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetSuppliersAsync(CancellationToken ct = default)
+    public async Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default)
     {
         var query = _queryBuilder.For<CounterpartyCard>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE &&
                                              (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
                                               x.CounterpartyTypeId == CounterPartyTypeIdConst.SUPPLIER))
-                                 .As(s => new SelectListDto
+                                 .As(s => new CounterpartySelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName!
+                                     Name = s.FullName!,
+                                     Inn = s.Inn
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
@@ -535,16 +536,17 @@ public class ManualService : IManualService
         return await _counterpartyQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetClientsAsync(CancellationToken ct = default)
+    public async Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default)
     {
         var query = _queryBuilder.For<CounterpartyCard>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE &&
                                              (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
                                               x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT))
-                                 .As(s => new SelectListDto
+                                 .As(s => new CounterpartySelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName!
+                                     Name = s.FullName!,
+                                     Inn = s.Inn
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();

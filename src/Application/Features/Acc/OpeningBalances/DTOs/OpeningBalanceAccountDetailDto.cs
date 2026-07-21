@@ -25,8 +25,6 @@
     {
         public long Id { get; set; }
 
-        public long OpeningBalanceAccountId { get; set; }
-
         public decimal DebitAmount { get; set; }
 
         public decimal CreditAmount { get; set; }
@@ -54,7 +52,6 @@
 
     public class OpeningBalanceAccountDetailSubkontoDto
     {
-
         public short SubkontoTypeId { get; set; }
 
         public long SubkontoId { get; set; }

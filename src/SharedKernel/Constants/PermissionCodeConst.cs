@@ -18,6 +18,14 @@ public static class PermissionCodeConst
     public const string ChartAccountDelete     = "CHART_ACCOUNT_DELETE";
     #endregion
 
+    #region Opening balance
+    public const string OpeningBalanceView = "OPENING_BALANCE_VIEW";
+    public const string OpeningBalanceViewDetail = "OPENING_BALANCE_VIEW_DETAIL";
+    public const string OpeningBalanceCreate = "OPENING_BALANCE_CREATE";
+    public const string OpeningBalanceUpdate = "OPENING_BALANCE_UPDATE";
+    public const string OpeningBalanceDelete = "OPENING_BALANCE_DELETE";
+    #endregion
+
     #region BankOperation
     public const string BankOperationView       = "BANK_OPERATION_VIEW";
     public const string BankOperationViewDetail = "BANK_OPERATION_VIEW_DETAIL";

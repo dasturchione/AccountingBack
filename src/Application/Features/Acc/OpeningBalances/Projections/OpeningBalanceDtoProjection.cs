@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Authentication;
+using Application.Abstractions.Authentication;
 using Application.Features.OrgBankAccounts;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -29,7 +29,7 @@ namespace Application.Features.Acc.OpeningBalances
                 OrganizationName = x.Organization.FullName,
                 CreatedDate = x.CreatedDate,
                 StateName = x.State.FullName,
-                Accounts = x.OpeningBalanceAccounts.Select(s => new OpeningBalanceAccountDto
+                Accounts = x.OpeningBalanceAccounts.OrderBy(s => s.ChartAccount.Number).Select(s => new OpeningBalanceAccountDto
                 {
                     Id = s.Id, 
                     ChartAccountCode = s.ChartAccount.Code,

@@ -63,5 +63,7 @@
         public string SubkontoTypeName { get; set; } = null!;
 
         public string SubkontoTypeCode { get; set; } = null!;
+
+        public string SubkontoName { get; set; } = null!;
     }
 }

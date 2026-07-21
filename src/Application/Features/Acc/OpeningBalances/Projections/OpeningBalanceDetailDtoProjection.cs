@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Authentication;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -28,7 +28,7 @@ namespace Application.Features.Acc.OpeningBalances
                 CreatedDate = x.CreatedDate,
                 CreditAmount = x.CreditAmount,
                 DebitAmount = x.DebitAmount,
-                Details = x.OpeningBalanceAccountDetails.Select(s => new OpeningBalanceAccountDetailDto
+                Details = x.OpeningBalanceAccountDetails.OrderBy(s => s.SortOrder).Select(s => new OpeningBalanceAccountDetailDto
                 {
                     Id = s.Id,
                     CreditAmount = s.CreditAmount,
@@ -39,11 +39,10 @@ namespace Application.Features.Acc.OpeningBalances
                     CurrencyName = s.Currency.Name,
                     Description = s.Description,
                     ExchangeRate = s.ExchangeRate,
-                    OpeningBalanceAccountId = s.OpeningBalanceAccountId,
                     Quantity = s.Quantity,
                     SortOrder = s.SortOrder,
                     CreatedDate = s.CreatedDate,
-                    Subkontos = s.OpeningBalanceAccountDetailSubkontos.Select(t => new OpeningBalanceAccountDetailSubkontoDto
+                    Subkontos = s.OpeningBalanceAccountDetailSubkontos.OrderBy(t => t.SortOrder).Select(t => new OpeningBalanceAccountDetailSubkontoDto
                     {
                         SubkontoId = t.SubkontoId,
                         SubkontoTypeId = t.SubkontoTypeId,

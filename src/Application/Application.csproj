@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Acc\OpeningBalances\Queries\" />
+    <Folder Include="Features\Acc\OpeningBalances\Validators\" />
     <Folder Include="Features\Register\PostingEngines\Resolvers\" />
   </ItemGroup>
 

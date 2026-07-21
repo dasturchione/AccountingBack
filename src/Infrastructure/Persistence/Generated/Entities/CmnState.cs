@@ -52,6 +52,9 @@ public partial class CmnState
     public virtual ICollection<AccDocumentAccountType> AccDocumentAccountTypes { get; set; } = new List<AccDocumentAccountType>();
 
     [InverseProperty("State")]
+    public virtual ICollection<AccOpeningBalance> AccOpeningBalances { get; set; } = new List<AccOpeningBalance>();
+
+    [InverseProperty("State")]
     public virtual ICollection<AccSubkontoType> AccSubkontoTypes { get; set; } = new List<AccSubkontoType>();
 
     [InverseProperty("State")]

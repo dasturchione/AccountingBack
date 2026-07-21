@@ -69,6 +69,9 @@ public partial class AccChartAccount
     [InverseProperty("ChartAccount")]
     public virtual ICollection<AccDocumentAccountSetting> AccDocumentAccountSettings { get; set; } = new List<AccDocumentAccountSetting>();
 
+    [InverseProperty("ChartAccount")]
+    public virtual ICollection<AccOpeningBalanceAccount> AccOpeningBalanceAccounts { get; set; } = new List<AccOpeningBalanceAccount>();
+
     [InverseProperty("CreditAccount")]
     public virtual ICollection<AccRegEntry> AccRegEntryCreditAccounts { get; set; } = new List<AccRegEntry>();
 

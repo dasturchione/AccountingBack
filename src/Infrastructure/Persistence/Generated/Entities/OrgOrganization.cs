@@ -93,6 +93,9 @@ public partial class OrgOrganization
     public virtual ICollection<AccDocumentAccountSetting> AccDocumentAccountSettings { get; set; } = new List<AccDocumentAccountSetting>();
 
     [InverseProperty("Organization")]
+    public virtual AccOpeningBalance? AccOpeningBalance { get; set; }
+
+    [InverseProperty("Organization")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("Organization")]

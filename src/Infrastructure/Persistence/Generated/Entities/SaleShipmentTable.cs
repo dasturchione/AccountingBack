@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("sale_shipment_table")]
+[Index("ProductTableId", Name = "idx_sale_shipment_table_product_table_id")]
 [Index("ShipmentProductId", Name = "idx_sale_shipment_table_shipment_product_id")]
-[Index("ProductTableId", Name = "sale_shipment_table_product_table_id_key", IsUnique = true)]
+[Index("ShipmentProductId", "ProductTableId", Name = "uq_sale_shipment_table_shipment_product", IsUnique = true)]
 public partial class SaleShipmentTable
 {
     [Key]
@@ -25,7 +26,7 @@ public partial class SaleShipmentTable
     public DateTime CreatedDate { get; set; }
 
     [ForeignKey("ProductTableId")]
-    [InverseProperty("SaleShipmentTable")]
+    [InverseProperty("SaleShipmentTables")]
     public virtual InvProductTable ProductTable { get; set; } = null!;
 
     [ForeignKey("ShipmentProductId")]

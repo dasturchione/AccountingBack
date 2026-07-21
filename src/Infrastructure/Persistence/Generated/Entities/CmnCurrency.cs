@@ -30,6 +30,9 @@ public partial class CmnCurrency
     public short StateId { get; set; }
 
     [InverseProperty("Currency")]
+    public virtual ICollection<AccOpeningBalanceAccountDetail> AccOpeningBalanceAccountDetails { get; set; } = new List<AccOpeningBalanceAccountDetail>();
+
+    [InverseProperty("Currency")]
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("Currency")]

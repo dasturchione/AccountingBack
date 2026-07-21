@@ -44,6 +44,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccDocumentAccountTypeTranslation> AccDocumentAccountTypeTranslations { get; set; }
 
+    public virtual DbSet<AccOpeningBalance> AccOpeningBalances { get; set; }
+
+    public virtual DbSet<AccOpeningBalanceAccount> AccOpeningBalanceAccounts { get; set; }
+
+    public virtual DbSet<AccOpeningBalanceAccountDetail> AccOpeningBalanceAccountDetails { get; set; }
+
+    public virtual DbSet<AccOpeningBalanceAccountDetailSubkonto> AccOpeningBalanceAccountDetailSubkontos { get; set; }
+
     public virtual DbSet<AccPostingBatch> AccPostingBatches { get; set; }
 
     public virtual DbSet<AccRegEntry> AccRegEntries { get; set; }
@@ -505,6 +513,61 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Language).WithMany(p => p.AccDocumentAccountTypeTranslations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_document_account_type_translation_language_id_fkey");
+        });
+
+        modelBuilder.Entity<AccOpeningBalance>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_opening_balance_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithOne(p => p.AccOpeningBalance)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_opening_balance_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.AccOpeningBalances)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_opening_balance_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccOpeningBalanceAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_opening_balance_account_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.ChartAccount).WithMany(p => p.AccOpeningBalanceAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_opening_balance_account_chart_account_id_fkey");
+
+            entity.HasOne(d => d.OpeningBalance).WithMany(p => p.AccOpeningBalanceAccounts).HasConstraintName("acc_opening_balance_account_opening_balance_id_fkey");
+        });
+
+        modelBuilder.Entity<AccOpeningBalanceAccountDetail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("acc_opening_balance_account_detail_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.AccOpeningBalanceAccountDetails)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_opening_balance_account_detail_currency_id_fkey");
+
+            entity.HasOne(d => d.OpeningBalanceAccount).WithMany(p => p.AccOpeningBalanceAccountDetails).HasConstraintName("acc_opening_balance_account_det_opening_balance_account_id_fkey");
+        });
+
+        modelBuilder.Entity<AccOpeningBalanceAccountDetailSubkonto>(entity =>
+        {
+            entity.HasKey(e => new { e.OpeningBalanceAccountDetailId, e.SubkontoTypeId }).HasName("acc_opening_balance_account_detail_subkonto_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.OpeningBalanceAccountDetail).WithMany(p => p.AccOpeningBalanceAccountDetailSubkontos).HasConstraintName("acc_opening_balance_account_d_opening_balance_account_deta_fkey");
+
+            entity.HasOne(d => d.SubkontoType).WithMany(p => p.AccOpeningBalanceAccountDetailSubkontos)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_opening_balance_account_detail_subkon_subkonto_type_id_fkey");
         });
 
         modelBuilder.Entity<AccPostingBatch>(entity =>
@@ -2364,7 +2427,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
-            entity.HasOne(d => d.ProductTable).WithOne(p => p.SaleShipmentTable)
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.SaleShipmentTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sale_shipment_table_product_table_id_fkey");
 

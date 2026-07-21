@@ -40,6 +40,9 @@ public partial class AccSubkontoType
     public virtual ICollection<AccChartAccountSubkonto> AccChartAccountSubkontos { get; set; } = new List<AccChartAccountSubkonto>();
 
     [InverseProperty("SubkontoType")]
+    public virtual ICollection<AccOpeningBalanceAccountDetailSubkonto> AccOpeningBalanceAccountDetailSubkontos { get; set; } = new List<AccOpeningBalanceAccountDetailSubkonto>();
+
+    [InverseProperty("SubkontoType")]
     public virtual ICollection<AccRegEntrySubkonto> AccRegEntrySubkontos { get; set; } = new List<AccRegEntrySubkonto>();
 
     [InverseProperty("SubkontoType")]

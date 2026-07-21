@@ -33,6 +33,9 @@ public partial class State
     [InverseProperty(nameof(DocumentAccountSetting.State))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 
+    [InverseProperty(nameof(OpeningBalance.State))]
+    public virtual ICollection<OpeningBalance> OpeningBalances { get; set; } = new List<OpeningBalance>();
+
     [InverseProperty(nameof(DocumentAccountType.State))]
     public virtual ICollection<DocumentAccountType> DocumentAccountTypes { get; set; } = new List<DocumentAccountType>();
 

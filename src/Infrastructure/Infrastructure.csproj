@@ -34,6 +34,10 @@
     <Compile Include="Persistence\Generated\Entities\AccDocumentAccountType.cs" />
     <Compile Include="Persistence\Generated\Entities\AccDocumentAccountTypeRole.cs" />
     <Compile Include="Persistence\Generated\Entities\AccDocumentAccountTypeTranslation.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccOpeningBalance.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccOpeningBalanceAccount.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccOpeningBalanceAccountDetail.cs" />
+    <Compile Include="Persistence\Generated\Entities\AccOpeningBalanceAccountDetailSubkonto.cs" />
     <Compile Include="Persistence\Generated\Entities\AccPostingBatch.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntry.cs" />
     <Compile Include="Persistence\Generated\Entities\AccRegEntrySubkonto.cs" />

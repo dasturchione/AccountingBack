@@ -27,6 +27,9 @@ public partial class Currency
     [Column("state_id")]
     public short StateId { get; set; }
 
+    [InverseProperty(nameof(OpeningBalanceAccountDetail.Currency))]
+    public virtual ICollection<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; } = new List<OpeningBalanceAccountDetail>();
+
     [InverseProperty("Currency")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 

@@ -31,6 +31,9 @@ public partial class SubkontoType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [InverseProperty(nameof(OpeningBalanceAccountDetailSubkonto.SubkontoType))]
+    public virtual ICollection<OpeningBalanceAccountDetailSubkonto> OpeningBalanceAccountDetailSubkontos { get; set; } = new List<OpeningBalanceAccountDetailSubkonto>();
+
     [InverseProperty("SubkontoType")]
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 

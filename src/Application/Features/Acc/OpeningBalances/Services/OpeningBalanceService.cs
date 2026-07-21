@@ -226,8 +226,6 @@ namespace Application.Features.Acc.OpeningBalances
 
                 await SyncAccountDetailsAsync(account, dto.Details, ct);
 
-                account.DebitAmount = dto.Details.Sum(x => x.DebitAmount);
-                account.CreditAmount = dto.Details.Sum(x => x.CreditAmount);
                 await _openingBalanceAccountCommand.UpdateAsync(account, ct);
 
                 return Result.Success();
@@ -346,12 +344,18 @@ namespace Application.Features.Acc.OpeningBalances
                 return Result.Success(account);
             }
 
+            var debitAmount = dto.Details.Sum(x => x.DebitAmount);
+            var creditAmount = dto.Details.Sum(x => x.CreditAmount);
+
             account = new OpeningBalanceAccount
             {
                 OpeningBalanceId = openingBalanceId,
                 ChartAccountId = dto.ChartAccountId,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                DebitAmount = debitAmount > creditAmount ? (debitAmount - creditAmount) : decimal.Zero,
+                CreditAmount = creditAmount > debitAmount ? (creditAmount - debitAmount) : decimal.Zero,
             };
+
             await _openingBalanceAccountCommand.CreateAsync(account, ct);
 
             return Result.Success(account);

@@ -54,7 +54,7 @@ public partial class Organization
     public short? DefaultLanguageId { get; set; }
 
     [Column("tenant_id")]
-    public int? TenantId { get; set; }
+    public int TenantId { get; set; }
 
     [Column("setup_status")]
     [StringLength(30)]
@@ -124,6 +124,10 @@ public partial class Organization
     [InverseProperty("Organizations")]
     public virtual Language? DefaultLanguage { get; set; }
 
+    [ForeignKey(nameof(TenantId))]
+    [InverseProperty(nameof(PlatformTenant.Organizations))]
+    public virtual PlatformTenant PlatformTenant { get; set; } = null!;
+
     [ForeignKey("DistrictId")]
     [InverseProperty("Organizations")]
     public virtual District? District { get; set; }
@@ -174,9 +178,6 @@ public partial class Organization
     [ForeignKey("StateId")]
     [InverseProperty("Organizations")]
     public virtual State State { get; set; } = null!;
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<Role> Roles { get; set; } = new List<Role>();

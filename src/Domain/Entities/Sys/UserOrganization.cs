@@ -33,7 +33,6 @@ public partial class UserOrganization
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("is_owner")]
     public bool IsOwner { get; set; }
 
@@ -48,6 +47,7 @@ public partial class UserOrganization
 
     [Column("blocked_at", TypeName = "timestamp without time zone")]
     public DateTime? BlockedAt { get; set; }
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("UserOrganizations")]
     public virtual Organization Organization { get; set; } = null!;

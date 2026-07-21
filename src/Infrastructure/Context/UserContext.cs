@@ -15,6 +15,8 @@ public class UserContext : IUserContext
 
     public int? Id => GetClaimInt(System.Security.Claims.ClaimTypes.NameIdentifier);
 
+    public int? TenantId => GetClaimInt("TenantId");
+
     public int? RoleId => GetClaimInt(System.Security.Claims.ClaimTypes.Role);
 
     public int? OrganizationId => _accessor.HttpContext?.Items[CurrentOrgIdKey] is int id && id > 0 ? id : null;

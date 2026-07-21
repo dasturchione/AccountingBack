@@ -10,6 +10,7 @@ using Application.Features.Users.Services;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
@@ -45,6 +46,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     private readonly IAuditLogQueryCore _auditLogQueryCore;
     private readonly IOrganizationSetupCore _organizationSetupCore;
     private readonly IDashboardService _dashboardService;
+    private readonly IQueryBuilder _queryBuilder;
 
     public PlatformService(
         IUserContext userContext,
@@ -68,6 +70,7 @@ public sealed class PlatformService : BaseService, IPlatformService
         IOrganizationSetupCore organizationSetupCore,
         IDashboardService dashboardService,
         ILogger<PlatformService> logger,
+        IQueryBuilder queryBuilder,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
         _userContext = userContext;
@@ -90,6 +93,7 @@ public sealed class PlatformService : BaseService, IPlatformService
         _auditLogQueryCore = auditLogQueryCore;
         _organizationSetupCore = organizationSetupCore;
         _dashboardService = dashboardService;
+        _queryBuilder = queryBuilder;
     }
 
     public Task<Result<PlatformDashboardDto>> GetDashboardAsync(CancellationToken ct = default) =>
@@ -938,13 +942,12 @@ public sealed class PlatformService : BaseService, IPlatformService
 
     private async Task<PlatformOrganizationDto> MapOrganizationAsync(Organization organization, CancellationToken ct)
     {
-        var tenantName = organization.TenantId.HasValue
-            ? await _tenantQuery.GetAsync(new QuerySpecification<PlatformTenant, string>
-            {
-                Criteria = x => x.Id == organization.TenantId.Value,
-                Selector = x => x.Name
-            }, ct)
-            : null;
+        var tenantQuery = _queryBuilder.For<PlatformTenant>()
+                                        .Where(x => x.Id == organization.TenantId)
+                                        .As(s => s.Name)
+                                        .Build();
+
+        var tenantName = await _tenantQuery.GetAsync(tenantQuery, ct);
 
         var usersCount = await CountUserOrganizationsAsync(x => x.OrganizationId == organization.Id && x.StateId == StateIdConst.ACTIVE, ct);
 
@@ -980,15 +983,16 @@ public sealed class PlatformService : BaseService, IPlatformService
 
     private async Task<AccountantWorkspaceDto?> BuildWorkspaceDtoAsync(int organizationId, CancellationToken ct)
     {
-        var organization = await _organizationQuery.GetAsync(new QuerySpecification<Organization>
-        {
-            Criteria = x => x.Id == organizationId
-        }, ct);
+        var organizationQuery = _queryBuilder.For<Organization>()
+                                        .Where(x => x.Id == organizationId)
+                                        .Build();
 
-        if (organization is null || organization.TenantId is null)
+        var organization = await _organizationQuery.GetAsync(organizationQuery, ct);
+
+        if (organization is null)
             return null;
 
-        var tenant = await GetTenantEntityAsync(organization.TenantId.Value, ct);
+        var tenant = await GetTenantEntityAsync(organization.TenantId, ct);
         if (tenant is null)
             return null;
 

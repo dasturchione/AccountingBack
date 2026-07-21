@@ -159,7 +159,10 @@ public partial class OpeningBalanceService
             return [];
 
         var query = _queryBuilder.For<User>()
-            .Where(x => entityIds.Contains(x.Id) && x.OrganizationId == organizationId)
+            .Where(x => entityIds.Contains(x.Id) &&
+                        x.UserOrganizations.Any(membership =>
+                            membership.OrganizationId == organizationId &&
+                            membership.StateId == StateIdConst.ACTIVE))
             .As(x => new { x.Id, x.FirstName, x.LastName, x.UserName })
             .Build();
         var items = await _userQuery.GetAllAsync(query, ct);

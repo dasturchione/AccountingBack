@@ -89,7 +89,6 @@ public sealed class UserManagementCore : IUserManagementCore
             LastName = prepared.LastName,
             RoleId = prepared.RoleId,
             LanguageId = options.Scope == UserManagementScope.Global ? prepared.LanguageId : null,
-            OrganizationId = options.Scope == UserManagementScope.Global ? GetDefaultOrganizationId(memberships) : null,
             EmailVerified = prepared.EmailVerified,
             EmailVerifiedAt = options.Scope == UserManagementScope.Global && prepared.EmailVerified ? now : null,
             IsPlatformAdmin = prepared.IsPlatformAdmin,
@@ -178,8 +177,6 @@ public sealed class UserManagementCore : IUserManagementCore
         {
             user.LanguageId = prepared.LanguageId;
             user.EmailVerifiedAt = prepared.EmailVerified ? user.EmailVerifiedAt ?? now : null;
-            if (memberships is not null)
-                user.OrganizationId = GetDefaultOrganizationId(memberships);
         }
 
         await _userCommand.UpdateAsync(user, ct);

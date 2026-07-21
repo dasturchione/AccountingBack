@@ -502,7 +502,11 @@ public class FaReceiptService : BaseService, IFaReceiptService
             return new Dictionary<int, User>();
 
         var query = _queryBuilder.For<User>()
-            .Where(x => ids.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
+            .Where(x => ids.Contains(x.Id) &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.UserOrganizations.Any(membership =>
+                            membership.OrganizationId == organizationId &&
+                            membership.StateId == StateIdConst.ACTIVE))
             .Build();
         var entities = await _userQuery.GetAllAsync(query, ct);
         return entities.ToDictionary(x => x.Id);

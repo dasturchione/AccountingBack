@@ -68,7 +68,6 @@ public class AuthService : IAuthService
         {
             b.Include(u => u.Role);
             b.Include(u => u.State);
-            b.Include(u => u.Organization);
         });
 
         var user = await _userQuery.GetAsync(query, ct);
@@ -127,32 +126,8 @@ public class AuthService : IAuthService
                 IsDefault = uo.IsDefault
             }
         };
+
         var organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
-
-        // Legacy databases may still keep the default organization on sys_user.organization_id
-        // without a corresponding sys_user_organization membership row.
-        if (!hasGlobalAccess
-            && organizations.Count == 0
-            && user.OrganizationId.HasValue
-            && user.Organization is not null)
-        {
-            organizations =
-            [
-                new UserOrgDto
-                {
-                    OrganizationId = user.OrganizationId.Value,
-                    OrganizationName = user.Organization.ShortName,
-                    RoleId = user.RoleId,
-                    RoleName = user.Role.FullName,
-                    IsDefault = true
-                }
-            ];
-
-            _logger.LogWarning(
-                "Authentication used legacy sys_user.organization_id fallback for {UserName}. Consider backfilling sys_user_organization for user {UserId}.",
-                normalizedUserName,
-                user.Id);
-        }
 
         if (!hasGlobalAccess && organizations.Count == 0)
         {

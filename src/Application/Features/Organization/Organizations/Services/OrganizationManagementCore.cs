@@ -63,11 +63,11 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
                 return Result.Failure(ResolveInnConflict(prepared.Inn, options.Scope));
         }
 
-        if (options.ValidateTenantExists && prepared.TenantId.HasValue)
+        if (options.ValidateTenantExists)
         {
-            var tenantExists = await _tenantQuery.AnyAsync(x => x.Id == prepared.TenantId.Value, ct);
+            var tenantExists = await _tenantQuery.AnyAsync(x => x.Id == prepared.TenantId, ct);
             if (!tenantExists)
-                return Result.Failure(PlatformErrors.TenantNotFound(prepared.TenantId.Value));
+                return Result.Failure(PlatformErrors.TenantNotFound(prepared.TenantId));
         }
 
         organization.ShortName = prepared.ShortName;

@@ -75,7 +75,7 @@ namespace Infrastructure.Authentication
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user.RoleId.ToString()),
-                new Claim("OrganizationId", organizationId.ToString()),
+                new Claim("TenantId", user.TenantId.ToString())
             };
 
             if (user.Role?.HasGlobalAccess == true)

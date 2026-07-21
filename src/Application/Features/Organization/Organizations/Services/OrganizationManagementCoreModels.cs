@@ -45,7 +45,7 @@ public sealed class OrganizationManagementUpdateRequest
     public string? Director { get; init; }
     public bool IsParent { get; init; }
     public short? DefaultLanguageId { get; init; }
-    public int? TenantId { get; init; }
+    public int TenantId { get; init; }
     public string? SetupStatus { get; init; }
     public DateTime? SetupCompletedAt { get; init; }
     public string? Email { get; init; }

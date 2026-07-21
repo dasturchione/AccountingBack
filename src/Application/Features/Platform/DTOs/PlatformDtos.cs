@@ -126,7 +126,7 @@ public sealed class PlatformOrganizationUpdateDto
     public string? Director { get; set; }
     public bool IsParent { get; set; }
     public short? DefaultLanguageId { get; set; }
-    public int? TenantId { get; set; }
+    public int TenantId { get; set; }
     public string? SetupStatus { get; set; }
     public DateTime? SetupCompletedAt { get; set; }
     public string? Email { get; set; }

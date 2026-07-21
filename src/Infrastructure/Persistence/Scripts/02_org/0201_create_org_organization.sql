@@ -13,7 +13,7 @@ create table org_organization
     state_id smallint not null,
     created_date timestamp without time zone default now() not null,
     default_language_id smallint,
-    tenant_id integer,
+    tenant_id integer not null references platform_tenant(id),
     setup_status character varying(30) default 'not_started'::character varying not null,
     setup_completed_at timestamp without time zone,
     email character varying(200),

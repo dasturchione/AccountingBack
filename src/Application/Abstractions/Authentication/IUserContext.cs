@@ -8,6 +8,8 @@ public interface IUserContext
 
     short? LanguageId { get; }
 
+    int? TenantId { get; }
+
     // Header berilgan bo'lsa — o'sha org; berilmasa null
     int? OrganizationId { get; }
 

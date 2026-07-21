@@ -206,7 +206,6 @@ public class FaMovementService : BaseService, IFaMovementService
 
         if (dto.ToResponsibleUserId.HasValue &&
             !await _userQuery.AnyAsync(x => x.Id == dto.ToResponsibleUserId.Value &&
-                                            x.OrganizationId == organizationId &&
                                             x.StateId == StateIdConst.ACTIVE, ct))
         {
             return Result.Failure<FaMovementDraftData>(FaMovementErrors.ResponsibleUserNotFound(dto.ToResponsibleUserId.Value, _userContext.LanguageId));

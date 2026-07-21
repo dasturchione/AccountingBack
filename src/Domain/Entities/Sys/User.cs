@@ -42,6 +42,9 @@ public partial class User
     [Column("role_id")]
     public int RoleId { get; set; }
 
+    [Column("tenant_id")]
+    public int TenantId { get; set; }
+
     [Column("last_access_time", TypeName = "timestamp without time zone")]
     public DateTime? LastAccessTime { get; set; }
 
@@ -53,9 +56,6 @@ public partial class User
 
     [Column("language_id")]
     public short? LanguageId { get; set; }
-
-    [Column("organization_id")]
-    public int? OrganizationId { get; set; }
 
     [Column("email_verified")]
     public bool EmailVerified { get; set; }
@@ -84,9 +84,9 @@ public partial class User
     [InverseProperty("Users")]
     public virtual Language? Language { get; set; }
 
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("Users")]
-    public virtual Organization? Organization { get; set; }
+    [ForeignKey(nameof(TenantId))]
+    [InverseProperty(nameof(PlatformTenant.Users))]
+    public virtual PlatformTenant PlatformTenant { get; set; } = null!;
 
     [ForeignKey("RoleId")]
     [InverseProperty("Users")]

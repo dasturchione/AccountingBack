@@ -9,13 +9,11 @@ using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Events;
-using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -35,40 +33,7 @@ namespace WebApi.Configuration
         {
             builder.Services.AddEndpointsApiExplorer();
 
-            if (builder.Environment.IsDevelopment())
-                TryAddUserSecrets(builder.Configuration, typeof(Program).Assembly);
-
             return builder;
-        }
-
-        private static void TryAddUserSecrets(ConfigurationManager configuration, Assembly assembly)
-        {
-            var secretsId = assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId;
-            if (string.IsNullOrWhiteSpace(secretsId))
-                return;
-
-            try
-            {
-                var userSecretsRoot = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "Microsoft",
-                    "UserSecrets",
-                    secretsId);
-
-                var secretsFile = Path.Combine(userSecretsRoot, "secrets.json");
-                if (!File.Exists(secretsFile))
-                    return;
-
-                configuration.AddUserSecrets(assembly, optional: true);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Optional secrets must never block startup in restricted environments.
-            }
-            catch (IOException)
-            {
-                // Optional secrets must never block startup in restricted environments.
-            }
         }
 
         private static WebApplicationBuilder AddExposers(this WebApplicationBuilder builder)
@@ -205,13 +170,7 @@ namespace WebApi.Configuration
                 return builder;
             }
 
-            var rootPath = Environment.GetEnvironmentVariable("APPDATA")
-                ?? Environment.GetEnvironmentVariable("HOME")
-                ?? environment.ContentRootPath;
-
-            var candidatePath = rootPath != null
-                ? Path.Combine(rootPath, "ASP.NET", "DataProtection-Keys")
-                : Path.Combine(environment.ContentRootPath, ".aspnet-dataprotection-keys");
+            var candidatePath = Path.Combine(environment.ContentRootPath, ".aspnet-dataprotection-keys");
 
             var configuredPath = builder.Configuration["DataProtection:KeysPath"];
             var keyDirectory = !string.IsNullOrWhiteSpace(configuredPath)
@@ -401,8 +360,12 @@ namespace WebApi.Configuration
             var aslBelgiServerBaseUrl = configuration["AslBelgi:ServerBaseUrl"];
             var aslBelgiAuthPath = configuration["AslBelgi:AuthenticatePath"];
             var aslBelgiRefreshPath = configuration["AslBelgi:RefreshPath"];
+            var hasLegacyAslBelgiConfiguration = !string.IsNullOrWhiteSpace(aslBelgiServerBaseUrl)
+                || !string.IsNullOrWhiteSpace(aslBelgiAuthPath)
+                || !string.IsNullOrWhiteSpace(aslBelgiRefreshPath);
+            var hasAslBelgiV1Configuration = !string.IsNullOrWhiteSpace(configuration["AslBelgi:BaseUrl"]);
 
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            if (hasLegacyAslBelgiConfiguration && env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
                 if (IsPlaceholderValue(aslBelgiServerBaseUrl))
                     throw new InvalidOperationException("AslBelgi:ServerBaseUrl is not configured with a real value.");
@@ -413,7 +376,7 @@ namespace WebApi.Configuration
                 if (string.IsNullOrWhiteSpace(aslBelgiRefreshPath))
                     throw new InvalidOperationException("AslBelgi:RefreshPath is required in production.");
             }
-            else
+            else if (hasLegacyAslBelgiConfiguration)
             {
                 if (IsPlaceholderValue(aslBelgiServerBaseUrl) || IsPlaceholderValue(aslBelgiAuthPath) || IsPlaceholderValue(aslBelgiRefreshPath))
                     Log.Warning("AslBelgi development config still uses placeholder values. Set real values or override via environment variables before production.");
@@ -454,6 +417,9 @@ namespace WebApi.Configuration
 
                 foreach (var key in ForbiddenGlobalProviderSecretKeys)
                 {
+                    if (hasAslBelgiV1Configuration && string.Equals(key, "AslBelgi:ApiKey", StringComparison.Ordinal))
+                        continue;
+
                     if (!IsPlaceholderValue(configuration[key]))
                         throw new InvalidOperationException($"{key} must not be configured globally in production; use the scoped credential store.");
                 }

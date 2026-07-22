@@ -96,6 +96,7 @@
     <Compile Include="Persistence\Generated\Entities\FaReceiptDocLine.cs" />
     <Compile Include="Persistence\Generated\Entities\FaRevaluationDoc.cs" />
     <Compile Include="Persistence\Generated\Entities\FaRevaluationDocLine.cs" />
+    <Compile Include="Persistence\Generated\Entities\IdempotencyRecord.cs" />
     <Compile Include="Persistence\Generated\Entities\InvInventoryAdjustmentDoc.cs" />
     <Compile Include="Persistence\Generated\Entities\InvInventoryAdjustmentDocTable.cs" />
     <Compile Include="Persistence\Generated\Entities\InvInventoryAdjustmentLine.cs" />
@@ -117,6 +118,8 @@
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductBatchTable.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductMovement.cs" />
     <Compile Include="Persistence\Generated\Entities\InvWarehouseProductTable.cs" />
+    <Compile Include="Persistence\Generated\Entities\MarkingTransfer.cs" />
+    <Compile Include="Persistence\Generated\Entities\MarkingTransferCode.cs" />
     <Compile Include="Persistence\Generated\Entities\MoneyRegBalance.cs" />
     <Compile Include="Persistence\Generated\Entities\OrgBankAccount.cs" />
     <Compile Include="Persistence\Generated\Entities\OrgBranch.cs" />

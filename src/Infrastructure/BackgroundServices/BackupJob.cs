@@ -129,15 +129,7 @@ public class BackupJob : IJob
 
     private static string FindPgDump()
     {
-        // 1. PATH
-        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
-        {
-            var candidate = Path.Combine(dir.Trim(), "pg_dump");
-            if (File.Exists(candidate))          return candidate;
-            if (File.Exists(candidate + ".exe")) return candidate + ".exe";
-        }
-
-        // 2. Windows standart joylari
+        // Windows standart joylari
         string[] windowsPaths =
         [
             @"C:\Program Files\PostgreSQL\18\bin\pg_dump.exe",
@@ -149,7 +141,7 @@ public class BackupJob : IJob
         foreach (var path in windowsPaths)
             if (File.Exists(path)) return path;
 
-        // 3. Linux/Mac
+        // Linux/Mac
         string[] unixPaths = ["/usr/bin/pg_dump", "/usr/local/bin/pg_dump"];
         foreach (var path in unixPaths)
             if (File.Exists(path)) return path;

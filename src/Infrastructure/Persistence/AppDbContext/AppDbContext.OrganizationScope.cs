@@ -83,6 +83,9 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
             ApplyScopedFilter<FaMovementDoc>(modelBuilder);
+            ApplyScopedFilter<MarkingTransfer>(modelBuilder);
+            ApplyScopedFilter<MarkingTransferCode>(modelBuilder);
+            ApplyScopedFilter<IdempotencyRecord>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(e => HasGlobalAccess

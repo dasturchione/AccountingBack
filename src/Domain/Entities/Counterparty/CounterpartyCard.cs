@@ -74,6 +74,9 @@ public partial class CounterpartyCard
     [StringLength(100)]
     public string? ExternalId { get; set; }
 
+    [Column("crpt_participant_id")]
+    public int? CrptParticipantId { get; set; }
+
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 

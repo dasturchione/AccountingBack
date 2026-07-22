@@ -35,4 +35,7 @@ public partial class PlatformTenant
 
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedDate { get; set; }
+
+    [InverseProperty("Tenant")]
+    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

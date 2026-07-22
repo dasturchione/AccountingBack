@@ -244,6 +244,7 @@ appsettings.*.local.json
 appsettings.Production.json
 **/secrets.json
 **/credentials*.json
+src/Presentation/WebApi/appdata/drive/
 .env
 .env.*
 !.env.example
@@ -255,6 +256,11 @@ appsettings.Production.json
 **/DataProtection-Keys/
 **/data-protection-keys/
 orleans.codegen.cs
+
+# Local and recursively generated diagnostic output
+[Tt]mp/
+[Tt]emp/
+**/artifacts-cleanup/
 
 # Including strong name files can present a security risk
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)

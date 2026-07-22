@@ -135,9 +135,76 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<NotificationRead> NotificationReads { get; set; }
     public virtual DbSet<NotificationDelivery> NotificationDeliveries { get; set; }
+    public virtual DbSet<MarkingTransfer> MarkingTransfers { get; set; }
+    public virtual DbSet<MarkingTransferCode> MarkingTransferCodes { get; set; }
+    public virtual DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<MarkingTransfer>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_transfer_pkey");
+
+            entity.HasIndex(e => e.DocumentId)
+                .HasDatabaseName("idx_marking_transfer_document_id")
+                .HasFilter("document_id IS NOT NULL");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_transfer_organization_id_fkey");
+
+            entity.HasOne(e => e.SellerCounterparty)
+                .WithMany()
+                .HasForeignKey(e => e.SellerCounterpartyId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_transfer_seller_counterparty_id_fkey");
+
+            entity.HasOne(e => e.BuyerCounterparty)
+                .WithMany()
+                .HasForeignKey(e => e.BuyerCounterpartyId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_transfer_buyer_counterparty_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingTransferCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_transfer_code_pkey");
+
+            entity.HasIndex(e => e.Gtin)
+                .HasDatabaseName("idx_marking_transfer_code_gtin")
+                .HasFilter("gtin IS NOT NULL");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_transfer_code_organization_id_fkey");
+
+            entity.HasOne(e => e.MarkingTransfer)
+                .WithMany(e => e.MarkingTransferCodes)
+                .HasForeignKey(e => e.MarkingTransferId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("marking_transfer_code_marking_transfer_id_fkey");
+        });
+
+        modelBuilder.Entity<IdempotencyRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("idempotency_record_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("idempotency_record_organization_id_fkey");
+        });
+
         modelBuilder.Entity<PostingBatch>()
             .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })
             .HasDatabaseName("ux_acc_posting_batch_document_posted")

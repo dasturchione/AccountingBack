@@ -19,20 +19,10 @@ public class GoogleDriveUploader : IGoogleDriveUploader
     // DriveService faqat upload qilayotganda yaratiladi
     private DriveService CreateDriveService()
     {
-        // ERP dek: to'liq yo'l = working directory + relative path
-        var credentialPath = Path.IsPathRooted(_settings.CredentialsPath)
-            ? _settings.CredentialsPath
-            : Path.Combine(Directory.GetCurrentDirectory(), _settings.CredentialsPath);
+        if (string.IsNullOrWhiteSpace(_settings.CredentialsJson))
+            throw new InvalidOperationException("GoogleDrive:CredentialsJson is not configured.");
 
-        if (!System.IO.File.Exists(credentialPath))
-            throw new FileNotFoundException(
-                $"Google Drive credentials fayl topilmadi: {credentialPath}. " +
-                $"Faylni shu yo'lga joylashtiring yoki appsettings.json dagi " +
-                $"GoogleDrive.CredentialsPath ni to'g'irlang.");
-
-        GoogleCredential credential;
-        using var stream = new FileStream(credentialPath, FileMode.Open, FileAccess.Read);
-        credential = GoogleCredential.FromStream(stream)
+        var credential = GoogleCredential.FromJson(_settings.CredentialsJson)
             .CreateScoped(DriveService.Scope.DriveFile);
 
         return new DriveService(new BaseClientService.Initializer

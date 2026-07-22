@@ -11,9 +11,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("EmailVerified", Name = "idx_sys_user_email_verified")]
 [Index("IsPlatformAdmin", Name = "idx_sys_user_is_platform_admin")]
 [Index("LanguageId", Name = "idx_sys_user_language_id")]
-[Index("OrganizationId", Name = "idx_sys_user_organization_id")]
 [Index("PhoneNumber", Name = "idx_sys_user_phone")]
 [Index("RoleId", Name = "idx_sys_user_role_id")]
+[Index("TenantId", Name = "ix_sys_user_tenant_id")]
 [Index("UserName", Name = "uidx_sys_user_user_name", IsUnique = true)]
 public partial class SysUser
 {
@@ -64,9 +64,6 @@ public partial class SysUser
     [Column("language_id")]
     public short? LanguageId { get; set; }
 
-    [Column("organization_id")]
-    public int? OrganizationId { get; set; }
-
     [Column("email_verified")]
     public bool EmailVerified { get; set; }
 
@@ -83,6 +80,9 @@ public partial class SysUser
     [Column("timezone")]
     [StringLength(100)]
     public string? Timezone { get; set; }
+
+    [Column("tenant_id")]
+    public int TenantId { get; set; }
 
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
@@ -151,10 +151,6 @@ public partial class SysUser
     [InverseProperty("SysUsers")]
     public virtual CmnLanguage? Language { get; set; }
 
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("SysUsers")]
-    public virtual OrgOrganization? Organization { get; set; }
-
     [ForeignKey("RoleId")]
     [InverseProperty("SysUsers")]
     public virtual SysRole Role { get; set; } = null!;
@@ -177,4 +173,8 @@ public partial class SysUser
 
     [InverseProperty("User")]
     public virtual SysUserOrganization? SysUserOrganization { get; set; }
+
+    [ForeignKey("TenantId")]
+    [InverseProperty("SysUsers")]
+    public virtual PlatformTenant Tenant { get; set; } = null!;
 }

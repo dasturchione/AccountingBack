@@ -158,6 +158,9 @@ public partial class OrgOrganization
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<IdempotencyRecord> IdempotencyRecords { get; set; } = new List<IdempotencyRecord>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
 
     [InverseProperty("Organization")]
@@ -186,6 +189,12 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingTransferCode> MarkingTransferCodes { get; set; } = new List<MarkingTransferCode>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingTransfer> MarkingTransfers { get; set; } = new List<MarkingTransfer>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
@@ -230,7 +239,4 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

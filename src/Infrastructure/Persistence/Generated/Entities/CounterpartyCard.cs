@@ -85,6 +85,9 @@ public partial class CounterpartyCard
     [StringLength(100)]
     public string? ExternalId { get; set; }
 
+    [Column("crpt_participant_id")]
+    public int? CrptParticipantId { get; set; }
+
     [InverseProperty("Counterparty")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
@@ -113,6 +116,12 @@ public partial class CounterpartyCard
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty("BuyerCounterparty")]
+    public virtual ICollection<MarkingTransfer> MarkingTransferBuyerCounterparties { get; set; } = new List<MarkingTransfer>();
+
+    [InverseProperty("SellerCounterparty")]
+    public virtual ICollection<MarkingTransfer> MarkingTransferSellerCounterparties { get; set; } = new List<MarkingTransfer>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyCards")]

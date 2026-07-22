@@ -16,12 +16,15 @@ public interface IPlatformService
     Task<Result> DeactivateTenantAsync(int id, CancellationToken ct = default);
 
     Task<Result<PagedResponse<PlatformUserDto>>> GetTenantUsersAsync(int tenantId, PlatformUserListFilter filter, CancellationToken ct = default);
+    Task<Result<PlatformUserDetailDto>> GetTenantUserByIdAsync(int tenantId, int userId, CancellationToken ct = default);
     Task<Result<int>> CreateTenantUserAsync(int tenantId, PlatformUserCreateDto dto, CancellationToken ct = default);
+    Task<Result> UpdateTenantUserAsync(int tenantId, int userId, PlatformUserUpdateDto dto, CancellationToken ct = default);
     Task<Result> BlockTenantUserAsync(int tenantId, int userId, CancellationToken ct = default);
     Task<Result> UnblockTenantUserAsync(int tenantId, int userId, CancellationToken ct = default);
     Task<Result> SetTenantUserPasswordAsync(int tenantId, int userId, PlatformSetPasswordDto dto, CancellationToken ct = default);
 
     Task<Result<PagedResponse<PlatformOrganizationDto>>> GetTenantOrganizationsAsync(int tenantId, PlatformOrganizationListFilter filter, CancellationToken ct = default);
+    Task<Result<PlatformOrganizationDetailDto>> GetTenantOrganizationByIdAsync(int tenantId, int organizationId, CancellationToken ct = default);
     Task<Result<int>> CreateTenantOrganizationAsync(int tenantId, OrganizationCreateDto dto, CancellationToken ct = default);
     Task<Result> ActivateTenantOrganizationAsync(int tenantId, int organizationId, CancellationToken ct = default);
     Task<Result> DeactivateTenantOrganizationAsync(int tenantId, int organizationId, CancellationToken ct = default);

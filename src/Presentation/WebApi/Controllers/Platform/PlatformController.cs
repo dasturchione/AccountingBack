@@ -87,12 +87,28 @@ public sealed class PlatformController : ControllerBase
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("tenants/{tenantId:int}/users/{userId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetUserById)]
+    public async Task<IResult> GetTenantUserByIdAsync([FromRoute] int tenantId, [FromRoute] int userId, CancellationToken ct = default)
+    {
+        var response = await _platformService.GetTenantUserByIdAsync(tenantId, userId, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost("tenants/{id:int}/users")]
     [ModuleAuthorize(PermissionCodeConst.PlatformCreateUser)]
     public async Task<IResult> CreateTenantUserAsync([FromRoute] int id, [FromBody] PlatformUserCreateDto dto, CancellationToken ct = default)
     {
         var response = await _platformService.CreateTenantUserAsync(id, dto, ct);
         return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPut("tenants/{tenantId:int}/users/{userId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateUser)]
+    public async Task<IResult> UpdateTenantUserAsync([FromRoute] int tenantId, [FromRoute] int userId, [FromBody] PlatformUserUpdateDto dto, CancellationToken ct = default)
+    {
+        var response = await _platformService.UpdateTenantUserAsync(tenantId, userId, dto, ct);
+        return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
     [HttpPost("tenants/{tenantId:int}/users/{userId:int}/block")]
@@ -124,6 +140,14 @@ public sealed class PlatformController : ControllerBase
     public async Task<IResult> GetTenantOrganizationsAsync([FromRoute] int id, [FromQuery] PlatformOrganizationListFilter filter, CancellationToken ct = default)
     {
         var response = await _platformService.GetTenantOrganizationsAsync(id, filter, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("tenants/{tenantId:int}/organizations/{organizationId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizationById)]
+    public async Task<IResult> GetTenantOrganizationByIdAsync([FromRoute] int tenantId, [FromRoute] int organizationId, CancellationToken ct = default)
+    {
+        var response = await _platformService.GetTenantOrganizationByIdAsync(tenantId, organizationId, ct);
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 

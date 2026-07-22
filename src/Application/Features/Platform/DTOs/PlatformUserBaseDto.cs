@@ -12,5 +12,6 @@
         public bool EmailVerified { get; set; }
         public bool IsPlatformAdmin { get; set; }
         public string? Timezone { get; set; }
+        public List<int> Organizations { get; set; } = [];
     }
 }

@@ -24,6 +24,7 @@ public class ProductGroupTableDto
     public string? Article { get; set; }
     public short UnitId { get; set; }
     public string? Barcode { get; set; }
+    public string? Mxik { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public bool IsPieceTracked { get; set; }

@@ -12,6 +12,7 @@ public class ProductInGroupBaseDto
 {
     public string? Code { get; set; }
     public string? Sku { get; set; }
+    public string? Mxik { get; set; }
     public string? Article { get; set; }
     public bool IsSold { get; set; } = true;
     public bool IsPurchased { get; set; } = true;

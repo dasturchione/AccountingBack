@@ -35,7 +35,6 @@ public partial class Role
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }

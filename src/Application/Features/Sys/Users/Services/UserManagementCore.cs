@@ -88,6 +88,7 @@ public sealed class UserManagementCore : IUserManagementCore
             FirstName = prepared.FirstName,
             LastName = prepared.LastName,
             RoleId = prepared.RoleId,
+            TenantId = request.TenantId,
             LanguageId = options.Scope == UserManagementScope.Global ? prepared.LanguageId : null,
             EmailVerified = prepared.EmailVerified,
             EmailVerifiedAt = options.Scope == UserManagementScope.Global && prepared.EmailVerified ? now : null,

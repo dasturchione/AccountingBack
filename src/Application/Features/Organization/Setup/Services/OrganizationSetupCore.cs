@@ -104,39 +104,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         await _defaultCommand.UpdateAsync(defaults, ct);
     }
 
-    public async Task SeedWorkspaceSetupAsync(WorkspaceSetupInitializationRequest request, CancellationToken ct = default)
-    {
-        if (request.HasTax && request.TaxSettings is not null)
-            await UpsertTaxSettingsAsync(request.OrganizationId, request.TaxSettings, ct);
-
-        if (request.HasAccounting && request.AccountingPolicy is not null)
-            await UpsertAccountingPolicyAsync(request.OrganizationId, request.AccountingPolicy, ct);
-
-        if (request.HasDefaults && request.Defaults is not null)
-            await UpsertDefaultsAsync(request.OrganizationId, request.Defaults, ct);
-
-        await _setupStateCommand.CreateAsync(new OrganizationSetupState
-        {
-            OrganizationId = request.OrganizationId,
-            CurrentStep = ResolveWorkspaceCurrentStep(
-                organizationCompleted: true,
-                taxCompleted: request.HasTax,
-                accountingCompleted: request.HasAccounting,
-                defaultsCompleted: request.HasDefaults,
-                usersCompleted: request.UsersCompleted,
-                isCompleted: request.IsCompleted),
-            OrganizationCompleted = true,
-            TaxCompleted = request.HasTax,
-            AccountingCompleted = request.HasAccounting,
-            DefaultsCompleted = request.HasDefaults,
-            UsersCompleted = request.UsersCompleted,
-            IsCompleted = request.IsCompleted,
-            CompletedAt = request.IsCompleted ? request.Timestamp : null,
-            CreatedDate = request.Timestamp,
-            UpdatedDate = request.Timestamp
-        }, ct);
-    }
-
     public async Task UpdateSetupStateAsync(int organizationId, Action<OrganizationSetupState> update, CancellationToken ct = default)
     {
         var setup = await GetOrCreateSetupStateAsync(organizationId, ct);

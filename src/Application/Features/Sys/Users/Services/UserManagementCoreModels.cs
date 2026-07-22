@@ -44,6 +44,7 @@ public sealed class UserManagementCreateRequest
     public string FirstName { get; init; } = null!;
     public string LastName { get; init; } = null!;
     public int RoleId { get; init; }
+    public int TenantId { get; init; }
     public short? LanguageId { get; init; }
     public bool EmailVerified { get; init; }
     public bool IsPlatformAdmin { get; init; }

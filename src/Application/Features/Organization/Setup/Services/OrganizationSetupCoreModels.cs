@@ -36,17 +36,3 @@ public sealed class OrganizationSetupDefaultsWriteModel
     public int? CogsAccountId { get; init; }
     public DateTime CreatedDate { get; init; }
 }
-
-public sealed class WorkspaceSetupInitializationRequest
-{
-    public int OrganizationId { get; init; }
-    public bool HasTax { get; init; }
-    public OrganizationSetupTaxSettingsWriteModel? TaxSettings { get; init; }
-    public bool HasAccounting { get; init; }
-    public OrganizationSetupAccountingPolicyWriteModel? AccountingPolicy { get; init; }
-    public bool HasDefaults { get; init; }
-    public OrganizationSetupDefaultsWriteModel? Defaults { get; init; }
-    public bool UsersCompleted { get; init; }
-    public bool IsCompleted { get; init; }
-    public DateTime Timestamp { get; init; }
-}

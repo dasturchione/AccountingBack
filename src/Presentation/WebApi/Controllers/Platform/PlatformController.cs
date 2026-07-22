@@ -1,4 +1,6 @@
+using Application.Features.Organizations;
 using Application.Features.Platform;
+using Application.Features.Platform.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -77,157 +79,99 @@ public sealed class PlatformController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpGet("users")]
+    [HttpGet("tenants/{id:int}/users")]
     [ModuleAuthorize(PermissionCodeConst.PlatformGetUsers)]
-    public async Task<IResult> GetUsersAsync([FromQuery] PlatformUserListFilter filter, CancellationToken ct = default)
+    public async Task<IResult> GetTenantUsersAsync([FromRoute] int id, [FromQuery] PlatformUserListFilter filter, CancellationToken ct = default)
     {
-        var response = await _platformService.GetUsersAsync(filter, ct);
+        var response = await _platformService.GetTenantUsersAsync(id, filter, ct);
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("users/{id:int}")]
+    [HttpGet("tenants/{tenantId:int}/users/{userId:int}")]
     [ModuleAuthorize(PermissionCodeConst.PlatformGetUserById)]
-    public async Task<IResult> GetUserByIdAsync([FromRoute] int id, CancellationToken ct = default)
+    public async Task<IResult> GetTenantUserByIdAsync([FromRoute] int tenantId, [FromRoute] int userId, CancellationToken ct = default)
     {
-        var response = await _platformService.GetUserByIdAsync(id, ct);
+        var response = await _platformService.GetTenantUserByIdAsync(tenantId, userId, ct);
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPost("users")]
+    [HttpPost("tenants/{id:int}/users")]
     [ModuleAuthorize(PermissionCodeConst.PlatformCreateUser)]
-    public async Task<IResult> CreateUserAsync([FromBody] PlatformUserCreateDto dto, CancellationToken ct = default)
+    public async Task<IResult> CreateTenantUserAsync([FromRoute] int id, [FromBody] PlatformUserCreateDto dto, CancellationToken ct = default)
     {
-        var response = await _platformService.CreateUserAsync(dto, ct);
+        var response = await _platformService.CreateTenantUserAsync(id, dto, ct);
         return response.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPut("users/{id:int}")]
+    [HttpPut("tenants/{tenantId:int}/users/{userId:int}")]
     [ModuleAuthorize(PermissionCodeConst.PlatformUpdateUser)]
-    public async Task<IResult> UpdateUserAsync([FromRoute] int id, [FromBody] PlatformUserUpdateDto dto, CancellationToken ct = default)
+    public async Task<IResult> UpdateTenantUserAsync([FromRoute] int tenantId, [FromRoute] int userId, [FromBody] PlatformUserUpdateDto dto, CancellationToken ct = default)
     {
-        var response = await _platformService.UpdateUserAsync(id, dto, ct);
+        var response = await _platformService.UpdateTenantUserAsync(tenantId, userId, dto, ct);
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPost("users/{id:int}/block")]
+    [HttpPost("tenants/{tenantId:int}/users/{userId:int}/block")]
     [ModuleAuthorize(PermissionCodeConst.PlatformBlockUser)]
-    public async Task<IResult> BlockUserAsync([FromRoute] int id, CancellationToken ct = default)
+    public async Task<IResult> BlockTenantUserAsync([FromRoute] int tenantId, [FromRoute] int userId, CancellationToken ct = default)
     {
-        var response = await _platformService.BlockUserAsync(id, ct);
+        var response = await _platformService.BlockTenantUserAsync(tenantId, userId, ct);
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPost("users/{id:int}/unblock")]
+    [HttpPost("tenants/{tenantId:int}/users/{userId:int}/unblock")]
     [ModuleAuthorize(PermissionCodeConst.PlatformUnblockUser)]
-    public async Task<IResult> UnblockUserAsync([FromRoute] int id, CancellationToken ct = default)
+    public async Task<IResult> UnblockTenantUserAsync([FromRoute] int tenantId, [FromRoute] int userId, CancellationToken ct = default)
     {
-        var response = await _platformService.UnblockUserAsync(id, ct);
+        var response = await _platformService.UnblockTenantUserAsync(tenantId, userId, ct);
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpGet("organizations")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizations)]
-    public async Task<IResult> GetOrganizationsAsync([FromQuery] PlatformOrganizationListFilter filter, CancellationToken ct = default)
-    {
-        var response = await _platformService.GetOrganizationsAsync(filter, ct);
-        return response.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpGet("organizations/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizationById)]
-    public async Task<IResult> GetOrganizationByIdAsync([FromRoute] int id, CancellationToken ct = default)
-    {
-        var response = await _platformService.GetOrganizationByIdAsync(id, ct);
-        return response.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpPut("organizations/{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateOrganization)]
-    public async Task<IResult> UpdateOrganizationAsync([FromRoute] int id, [FromBody] PlatformOrganizationUpdateDto dto, CancellationToken ct = default)
-    {
-        var response = await _platformService.UpdateOrganizationAsync(id, dto, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("organizations/{id:int}/activate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformActivateOrganization)]
-    public async Task<IResult> ActivateOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
-    {
-        var response = await _platformService.ActivateOrganizationAsync(id, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("organizations/{id:int}/deactivate")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformDeactivateOrganization)]
-    public async Task<IResult> DeactivateOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
-    {
-        var response = await _platformService.DeactivateOrganizationAsync(id, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("organizations/{id:int}/archive")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformArchiveOrganization)]
-    public async Task<IResult> ArchiveOrganizationAsync([FromRoute] int id, CancellationToken ct = default)
-    {
-        var response = await _platformService.ArchiveOrganizationAsync(id, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("accountant-workspaces")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformCreateAccountantWorkspace)]
-    public async Task<IResult> CreateAccountantWorkspaceAsync([FromBody] AccountantWorkspaceCreateDto dto, CancellationToken ct = default)
-    {
-        var response = await _platformService.CreateAccountantWorkspaceAsync(dto, ct);
-        return response.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpGet("accountant-workspaces/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformGetAccountantWorkspace)]
-    public async Task<IResult> GetAccountantWorkspaceAsync([FromRoute] int organizationId, CancellationToken ct = default)
-    {
-        var response = await _platformService.GetAccountantWorkspaceAsync(organizationId, ct);
-        return response.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpPost("users/{userId:int}/organizations")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformAttachUserToOrganization)]
-    public async Task<IResult> AttachUserToOrganizationAsync(
-        [FromRoute] int userId,
-        [FromBody] PlatformUserOrganizationCreateDto dto,
-        CancellationToken ct = default)
-    {
-        var response = await _platformService.AttachUserToOrganizationAsync(userId, dto, ct);
-        return response.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpPut("users/{userId:int}/organizations/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateUserOrganization)]
-    public async Task<IResult> UpdateUserOrganizationAsync(
-        [FromRoute] int userId,
-        [FromRoute] int organizationId,
-        [FromBody] PlatformUserOrganizationUpdateDto dto,
-        CancellationToken ct = default)
-    {
-        var response = await _platformService.UpdateUserOrganizationAsync(userId, organizationId, dto, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpDelete("users/{userId:int}/organizations/{organizationId:int}")]
-    [ModuleAuthorize(PermissionCodeConst.PlatformRemoveUserFromOrganization)]
-    public async Task<IResult> RemoveUserFromOrganizationAsync(
-        [FromRoute] int userId,
-        [FromRoute] int organizationId,
-        CancellationToken ct = default)
-    {
-        var response = await _platformService.RemoveUserFromOrganizationAsync(userId, organizationId, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("users/{userId:int}/set-password")]
+    [HttpPost("tenants/{tenantId:int}/users/{userId:int}/set-password")]
     [ModuleAuthorize(PermissionCodeConst.PlatformSetUserPassword)]
-    public async Task<IResult> SetUserPasswordAsync([FromRoute] int userId, [FromBody] PlatformSetPasswordDto dto, CancellationToken ct = default)
+    public async Task<IResult> SetTenantUserPasswordAsync([FromRoute] int tenantId, [FromRoute] int userId, [FromBody] PlatformSetPasswordDto dto, CancellationToken ct = default)
     {
-        var response = await _platformService.SetUserPasswordAsync(userId, dto, ct);
+        var response = await _platformService.SetTenantUserPasswordAsync(tenantId, userId, dto, ct);
+        return response.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpGet("tenants/{id:int}/organizations")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizations)]
+    public async Task<IResult> GetTenantOrganizationsAsync([FromRoute] int id, [FromQuery] PlatformOrganizationListFilter filter, CancellationToken ct = default)
+    {
+        var response = await _platformService.GetTenantOrganizationsAsync(id, filter, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("tenants/{tenantId:int}/organizations/{organizationId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetOrganizationById)]
+    public async Task<IResult> GetTenantOrganizationByIdAsync([FromRoute] int tenantId, [FromRoute] int organizationId, CancellationToken ct = default)
+    {
+        var response = await _platformService.GetTenantOrganizationByIdAsync(tenantId, organizationId, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("tenants/{id:int}/organizations")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateOrganization)]
+    public async Task<IResult> CreateTenantOrganizationAsync([FromRoute] int id, [FromBody] OrganizationCreateDto dto, CancellationToken ct = default)
+    {
+        var response = await _platformService.CreateTenantOrganizationAsync(id, dto, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("tenants/{tenantId:int}/organizations/{organizationId:int}/activate")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformActivateOrganization)]
+    public async Task<IResult> ActivateTenantOrganizationAsync([FromRoute] int tenantId, [FromRoute] int organizationId, CancellationToken ct = default)
+    {
+        var response = await _platformService.ActivateTenantOrganizationAsync(tenantId, organizationId, ct);
+        return response.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("tenants/{tenantId:int}/organizations/{organizationId:int}/deactivate")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformDeactivateOrganization)]
+    public async Task<IResult> DeactivateTenantOrganizationAsync([FromRoute] int tenantId, [FromRoute] int organizationId, CancellationToken ct = default)
+    {
+        var response = await _platformService.DeactivateTenantOrganizationAsync(tenantId, organizationId, ct);
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 

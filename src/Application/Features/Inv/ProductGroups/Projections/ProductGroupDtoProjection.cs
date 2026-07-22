@@ -26,6 +26,7 @@ public class ProductGroupDtoProjection : IProjectionBuilder<ProductGroup, Produc
                 Sku = s.Sku,
                 Article = s.Article,
                 Barcode = s.Barcode,
+                Mxik = s.Mxik,
                 CreatedDate = s.CreatedDate,
                 Description = s.Description,
                 Name = s.Name,

@@ -437,8 +437,6 @@ public static class PermissionCodeConst
     public const string PlatformActivateOrganization       = "PLATFORM_ACTIVATE_ORGANIZATION";
     public const string PlatformDeactivateOrganization     = "PLATFORM_DEACTIVATE_ORGANIZATION";
     public const string PlatformArchiveOrganization        = "PLATFORM_ARCHIVE_ORGANIZATION";
-    public const string PlatformCreateAccountantWorkspace  = "PLATFORM_CREATE_ACCOUNTANT_WORKSPACE";
-    public const string PlatformGetAccountantWorkspace     = "PLATFORM_GET_ACCOUNTANT_WORKSPACE";
     public const string PlatformAttachUserToOrganization   = "PLATFORM_ATTACH_USER_TO_ORGANIZATION";
     public const string PlatformUpdateUserOrganization     = "PLATFORM_UPDATE_USER_ORGANIZATION";
     public const string PlatformRemoveUserFromOrganization = "PLATFORM_REMOVE_USER_FROM_ORGANIZATION";

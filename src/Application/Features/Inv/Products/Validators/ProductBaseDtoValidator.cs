@@ -10,7 +10,7 @@ public class ProductBaseDtoValidator : AbstractValidator<ProductBaseDto>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(250);
         RuleFor(x => x.Barcode).MaximumLength(100).When(x => x.Barcode != null);
         RuleFor(x => x.Description).MaximumLength(1000).When(x => x.Description != null);
-        RuleFor(x => x.Mxik).MaximumLength(17).When(x => x.Mxik != null);
+        RuleFor(x => x.Mxik).Length(17).When(x => x.Mxik != null);
         RuleFor(x => x)
             .Must(x => x.IsSold || x.IsPurchased)
             .WithMessage("Product must be marked as sold or purchased.");

@@ -16,6 +16,9 @@ namespace SharedKernel.Results
         public static Error UserHasNoOrganization(short? languageId = null) =>
             Error.Business("Common.UserHasNoOrganization", GetUserHasNoOrganizationMessage(languageId));
 
+        public static Error UserHasNoTenant(short? languageId = null) =>
+            Error.Forbidden("Common.UserHasNoTenant", GetUserHasNoTenantMessage(languageId));
+
         public static Error WarehouseBlockedByInventoryCount(int warehouseId, string operationName, short? languageId = null) =>
             Error.Business("Common.WarehouseBlockedByInventoryCount", GetWarehouseBlockedByInventoryCountMessage(warehouseId, operationName, languageId));
 
@@ -76,6 +79,21 @@ namespace SharedKernel.Results
                     "Для текущего пользователя не указана организация.",
                 _ =>
                     "No organization is assigned to the current user."
+            };
+        }
+
+        private static string GetUserHasNoTenantMessage(short? languageId)
+        {
+            return languageId switch
+            {
+                LanguageIdConst.UZ =>
+                    "Joriy foydalanuvchi uchun tenant belgilanmagan.",
+                LanguageIdConst.UZ_CYRL =>
+                    "Жорий фойдаланувчи учун тенант белгиланмаган.",
+                LanguageIdConst.RU =>
+                    "Для текущего пользователя не указан тенант.",
+                _ =>
+                    "No tenant is assigned to the current user."
             };
         }
 

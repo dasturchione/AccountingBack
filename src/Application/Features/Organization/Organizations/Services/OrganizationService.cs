@@ -56,6 +56,11 @@ public class OrganizationService : BaseService, IOrganizationService
     public Task<Result<int>> CreateAsync(OrganizationCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(CreateAsync), async () =>
         {
+            if (_userContext.TenantId is null)
+                return Result.Failure<int>(CommonErrors.UserHasNoTenant(_userContext.LanguageId));
+
+            var tenantId = _userContext.TenantId.Value;
+
             var exists = await _orgQuery.AnyAsync(o => o.Inn == dto.Inn, ct);
             if (exists)
                 return Result.Failure<int>(OrganizationErrors.InnConflict(dto.Inn, _userContext.LanguageId));
@@ -72,7 +77,7 @@ public class OrganizationService : BaseService, IOrganizationService
                 Director          = dto.Director,
                 IsParent          = dto.IsParent,
                 DefaultLanguageId = dto.DefaultLanguageId,
-                TenantId          = dto.TenantId,
+                TenantId          = tenantId,
                 SetupStatus       = string.IsNullOrWhiteSpace(dto.SetupStatus) ? "pending" : dto.SetupStatus,
                 SetupCompletedAt  = dto.SetupCompletedAt,
                 Email             = dto.Email,
@@ -83,6 +88,7 @@ public class OrganizationService : BaseService, IOrganizationService
             };
 
             await _orgCommand.CreateAsync(org, ct);
+
             return org.Id;
         });
 

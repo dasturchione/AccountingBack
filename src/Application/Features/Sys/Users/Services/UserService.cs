@@ -40,12 +40,17 @@ public class UserService : BaseService, IUserService
 
     public async Task<Result<int>> CreateAsync(UserCreateDto dto, CancellationToken ct = default)
     {
+        if (_userContext.TenantId is null)
+            return Result.Failure<int>(CommonErrors.UserHasNoTenant(_userContext.LanguageId));
+
         UserWelcomeEmailMessage? welcomeEmail = null;
 
         var result = await ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
+            var user = MapCreateRequest(dto, _userContext.TenantId!.Value);
+
             var coreResult = await _userManagementCore.CreateUserAsync(
-                MapCreateRequest(dto),
+                user,
                 UserManagementOptions.ForOrganization(sendWelcomeEmail: true),
                 ct);
 
@@ -53,6 +58,7 @@ public class UserService : BaseService, IUserService
                 return Result.Failure<int>(coreResult.Error);
 
             welcomeEmail = coreResult.Value.WelcomeEmail;
+
             return coreResult.Value.UserId;
         }, ct);
 
@@ -121,9 +127,10 @@ public class UserService : BaseService, IUserService
                 UserManagementOptions.ForOrganization(sendWelcomeEmail: false),
                 ct), ct);
 
-    private static UserManagementCreateRequest MapCreateRequest(UserCreateDto dto) =>
+    private static UserManagementCreateRequest MapCreateRequest(UserCreateDto dto, int tenantId) =>
         new()
         {
+            TenantId = tenantId,
             UserName = dto.UserName,
             Password = dto.Password,
             PhoneNumber = dto.PhoneNumber,

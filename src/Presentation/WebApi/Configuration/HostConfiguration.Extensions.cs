@@ -1,29 +1,26 @@
-﻿using Application.Common.Settings;
-using Infrastructure.BackgroundServices;
-using Quartz;
-using Application.Common.Markers;
+﻿using Application.Common.Markers;
+using Application.Common.Settings;
 using FluentValidation;
 using Infrastructure;
+using Infrastructure.BackgroundServices;
 using Infrastructure.Options;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
+using Npgsql;
+using Quartz;
 using Serilog;
 using Serilog.Events;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using System.Security.Cryptography.X509Certificates;
 using WebApi.Infrastructure;
 using WebApi.Middlewares;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Routing.Constraints;
-using Npgsql;
-using Microsoft.AspNetCore.DataProtection;
 
 namespace WebApi.Configuration
 {
@@ -227,7 +224,7 @@ namespace WebApi.Configuration
                 q.AddTrigger(opts => opts
                     .ForJob(backupJobKey)
                     .WithIdentity("BackupJobTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(04, 05)));
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(16, 10)));
 
                 // AdjustBalance Job — har kuni 02:30 da
                 var adjustJobKey = new JobKey("AdjustBalanceJob");

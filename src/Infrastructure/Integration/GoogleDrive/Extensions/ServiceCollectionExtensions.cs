@@ -2,6 +2,7 @@
 using Integration.GoogleDrive.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Integration.GoogleDrive.Extensions;
 
@@ -11,7 +12,10 @@ public static class ServiceCollectionExtensions
             this IServiceCollection services,
             IConfiguration configuration)
     {
-        services.Configure<GoogleDriveSettings>(configuration.GetSection("GoogleDrive"));
+        services.AddSingleton<IValidateOptions<GoogleDriveSettings>, GoogleDriveSettingsValidator>();
+        services.AddOptions<GoogleDriveSettings>()
+            .Bind(configuration.GetSection("GoogleDrive"))
+            .ValidateOnStart();
         services.AddScoped<IGoogleDriveUploader, GoogleDriveUploader>();
 
         return services;

@@ -224,7 +224,7 @@ namespace WebApi.Configuration
                 q.AddTrigger(opts => opts
                     .ForJob(backupJobKey)
                     .WithIdentity("BackupJobTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(16, 10)));
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(04, 05)));
 
                 // AdjustBalance Job — har kuni 02:30 da
                 var adjustJobKey = new JobKey("AdjustBalanceJob");

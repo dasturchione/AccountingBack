@@ -29,12 +29,13 @@ public class BackupJob : IJob
     {
         var db = _settings.Database;
 
-        string backupDir = Path.Combine(Directory.GetCurrentDirectory(), "appdata", "tempfiles");
+        string backupDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "appdata", "tempfiles"));
         Directory.CreateDirectory(backupDir);
 
         string timestamp  = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        string backupPath = Path.Combine(backupDir, $"{db.Name}-{timestamp}.backup");
-        string zipPath    = Path.Combine(backupDir, $"{db.Name}-{timestamp}.zip");
+        string backupFilePrefix = GetSafeFileNameSegment(db.Name);
+        string backupPath = Path.Combine(backupDir, $"{backupFilePrefix}-{timestamp}.backup");
+        string zipPath    = Path.Combine(backupDir, $"{backupFilePrefix}-{timestamp}.zip");
 
         string pgDumpPath = !string.IsNullOrWhiteSpace(_settings.PgDumpPath)
             ? _settings.PgDumpPath
@@ -43,17 +44,23 @@ public class BackupJob : IJob
         try
         {
             // 1. pg_dump
-            _logger.LogInformation("Backup boshlandi: {DB} @ {Host}", db.Name, db.Host);
+            _logger.LogInformation("Backup started.");
 
             var processInfo = new ProcessStartInfo
             {
                 FileName               = pgDumpPath,
-                Arguments              = $"-h {db.Host} -U {db.User} -F c {db.Name}",
                 RedirectStandardOutput = true,
                 RedirectStandardError  = true,
                 UseShellExecute        = false,
                 Environment            = { ["PGPASSWORD"] = db.Password }
             };
+            processInfo.ArgumentList.Add("-h");
+            processInfo.ArgumentList.Add(db.Host);
+            processInfo.ArgumentList.Add("-U");
+            processInfo.ArgumentList.Add(db.User);
+            processInfo.ArgumentList.Add("-F");
+            processInfo.ArgumentList.Add("c");
+            processInfo.ArgumentList.Add(db.Name);
 
             int exitCode;
             using (var process = Process.Start(processInfo)!)
@@ -67,9 +74,7 @@ public class BackupJob : IJob
                 await process.WaitForExitAsync();
                 exitCode = process.ExitCode;
 
-                var stderr = await stderrTask;
-                if (!string.IsNullOrWhiteSpace(stderr))
-                    _logger.LogWarning("pg_dump stderr: {Stderr}", stderr);
+                await stderrTask;
             }
 
             // pg_dump muvaffaqiyatsiz bo'lsa to'xtatamiz
@@ -80,41 +85,54 @@ public class BackupJob : IJob
                 return;
             }
 
-            _logger.LogInformation("Backup yaratildi: {Path}", backupPath);
+            _logger.LogInformation("PostgreSQL backup file was created successfully.");
 
             // 2. Zip
             using (var zipStream = new FileStream(zipPath, FileMode.Create))
             using (var archive   = new ZipArchive(zipStream, ZipArchiveMode.Create))
                 archive.CreateEntryFromFile(backupPath, Path.GetFileName(backupPath));
 
-            _logger.LogInformation("Arxiv yaratildi: {ZipPath}", zipPath);
+            _logger.LogInformation("Backup archive was created successfully.");
 
             // 3. Google Drive ga yuklash (ixtiyoriy)
             if (_settings.EnableEmailSend)
             {
-                var url = await _driveUploader.UploadAsync(zipPath, "application/zip");
-                _logger.LogInformation("Backup Google Drive ga yuklandi: {Url}", url);
+                _logger.LogInformation("Google Drive upload enabled.");
+                _logger.LogInformation("Google Drive upload started.");
+                await _driveUploader.UploadAsync(zipPath, "application/octet-stream");
+                _logger.LogInformation("Backup was uploaded to Google Drive successfully.");
             }
             else
             {
-                _logger.LogInformation("Google Drive yuklash o'chirilgan (EnableEmailSend=false). " +
-                                       "Fayl saqlanib qoldi: {ZipPath}", zipPath);
+                _logger.LogInformation("Google Drive upload is disabled by BackupJob:EnableEmailSend; local backup files were retained.");
             }
 
             // 4. Temp fayllarni tozalash (faqat Drive ga yuklangandan keyin)
             if (_settings.EnableEmailSend)
             {
-                foreach (var file in Directory.GetFiles(backupDir))
+                foreach (var file in new[] { backupPath, zipPath })
                 {
-                    try   { File.Delete(file); }
-                    catch (Exception ex) { _logger.LogWarning(ex, "Faylni o'chirib bo'lmadi: {File}", file); }
+                    try { File.Delete(file); }
+                    catch (Exception) { _logger.LogWarning("A successfully uploaded backup file could not be removed from the local temporary directory."); }
                 }
-                _logger.LogInformation("Tempfiles papkasi tozalandi");
+                _logger.LogInformation("Local backup files were cleaned up after a successful upload.");
             }
+        }
+        catch (GoogleDriveConfigurationException exception)
+        {
+            _logger.LogError("Backup stopped because Google Drive configuration is invalid: {Reason}", exception.Message);
+        }
+        catch (GoogleDrivePermissionException exception)
+        {
+            _logger.LogError("Backup was retained locally because Google Drive permission or configuration was rejected: {Reason}", exception.Message);
+        }
+        catch (GoogleDriveUploadException exception)
+        {
+            _logger.LogError("Backup was retained locally because Google Drive upload failed: {Reason}", exception.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Backup xatosi: {Message}", ex.Message);
+            _logger.LogError("Backup failed. Failure type: {FailureType}.", ex.GetType().Name);
         }
     }
 
@@ -125,6 +143,18 @@ public class BackupJob : IJob
     {
         try { if (File.Exists(path)) File.Delete(path); }
         catch { /* ignore */ }
+    }
+
+    private static string GetSafeFileNameSegment(string? value)
+    {
+        var source = string.IsNullOrWhiteSpace(value) ? "database" : value;
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var safeValue = new string(source
+            .Select(character => invalidCharacters.Contains(character) || character is '/' or '\\' ? '_' : character)
+            .ToArray())
+            .Trim('.', ' ');
+
+        return string.IsNullOrWhiteSpace(safeValue) ? "database" : safeValue;
     }
 
     private static string FindPgDump()
@@ -147,7 +177,6 @@ public class BackupJob : IJob
             if (File.Exists(path)) return path;
 
         throw new FileNotFoundException(
-            "pg_dump topilmadi. appsettings.json dagi BackupJob.PgDumpPath ni belgilang " +
-            "yoki PostgreSQL bin papkasini PATH ga qo'shing.");
+            "pg_dump was not found. Configure BackupJob:PgDumpPath with an installed pg_dump executable path.");
     }
 }

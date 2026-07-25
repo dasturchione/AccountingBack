@@ -98,7 +98,7 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
                 Name = x.ChartAccountPresetAccountTranslations
                     .Where(t => t.LanguageId == languageId)
                     .Select(t => t.Name)
-                    .FirstOrDefault() ?? x.Number,
+                    .FirstOrDefault() ?? x.Name,
                 ParentPresetAccountId = x.ParentPresetAccountId,
                 ParentNumber = x.ChartAccountPresetAccountNavigation != null ? x.ChartAccountPresetAccountNavigation.Number : null,
                 AccountTypeId = x.AccountTypeId,

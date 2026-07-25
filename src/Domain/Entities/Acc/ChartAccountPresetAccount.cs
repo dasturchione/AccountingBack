@@ -21,6 +21,10 @@ public partial class ChartAccountPresetAccount
     [StringLength(20)]
     public string Number { get; set; } = null!;
 
+    [Column("name")]
+    [StringLength(255)]
+    public string Name { get; set; } = null!;
+
     [Column("parent_preset_account_id")]
     public int? ParentPresetAccountId { get; set; }
 

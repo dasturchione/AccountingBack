@@ -391,7 +391,7 @@ public class ChartAccountService : IChartAccountService
                     Name = x.ChartAccountPresetAccountTranslations
                         .Where(t => t.LanguageId == languageId)
                         .Select(t => t.Name)
-                        .FirstOrDefault() ?? x.Number,
+                        .FirstOrDefault() ?? x.Name,
                     ParentPresetAccountId = x.ParentPresetAccountId,
                     AccountTypeId = x.AccountTypeId,
                     IsQuantity = x.IsQuantity,

@@ -300,7 +300,34 @@ public class ChartAccountService : IChartAccountService
             .OrderBy(x => x.SortOrder)
             .Build();
 
-        return await _chartAccountSubkontoQuery.GetAllAsync(query, ct);
+        var subkontos = await _chartAccountSubkontoQuery.GetAllAsync(query, ct);
+
+        FillSubkontoEndpoints(subkontos);
+
+        return subkontos;
+    }
+
+    private void FillSubkontoEndpoints(List<ChartAccountSubkontoDto> subkontos)
+    {
+        foreach (var subkonto in subkontos)
+        {
+            subkonto.ManualEndpoint = GetEndpoint(subkonto.SubkontoTypeId);
+        }
+    }
+
+    private string? GetEndpoint(short subkontoTypeId)
+    {
+        return subkontoTypeId switch
+        {
+            SubkontoTypeIdConst.Contracts => "contracts",
+            SubkontoTypeIdConst.InventoryItems => "products",
+            SubkontoTypeIdConst.Warehouses => "warehouses",
+            SubkontoTypeIdConst.Counterparties => "counterparties",
+            SubkontoTypeIdConst.OrganizationCashDesks => "cash-boxes",
+            SubkontoTypeIdConst.BankAccounts => "bank-accounts",
+            SubkontoTypeIdConst.VatRates => "vat-rates",
+            _ => null
+        };
     }
 
     private async Task SyncChartAccountSubkontosAsync(

@@ -10,6 +10,8 @@ public class ChartAccountSubkontoDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+
+    public string? ManualEndpoint { get; set; } 
 }
 
 public class ChartAccountSubkontoUpsertDto

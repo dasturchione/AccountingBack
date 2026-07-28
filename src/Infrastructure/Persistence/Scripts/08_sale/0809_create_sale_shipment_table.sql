@@ -11,7 +11,7 @@ create table sale_shipment_table
 
     created_date            timestamp without time zone not null default now(),
 
-    unique (shipment_product_id, product_table_id)
+    constraint uq_sale_shipment_table_shipment_product unique (shipment_product_id, product_table_id)
 );
 
 -- Получение всех серийных единиц строки комплектации

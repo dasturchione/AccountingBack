@@ -45,4 +45,7 @@ public partial class DocumentType
     [ForeignKey("StateId")]
     [InverseProperty("DocumentTypes")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(DocumentTypeTranslation.DocumentType))]
+    public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
 }

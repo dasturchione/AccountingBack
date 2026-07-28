@@ -21,6 +21,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PostingBatch> PostingBatches { get; set; }
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }
     public virtual DbSet<SubkontoTypeTranslation> SubkontoTypeTranslations { get; set; }
+    public virtual DbSet<AccountTypeTranslation> AccountTypeTranslations { get; set; }
     public virtual DbSet<OpeningBalance> OpeningBalances { get; set; }
     public virtual DbSet<OpeningBalanceAccount> OpeningBalanceAccounts { get; set; }
     public virtual DbSet<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; }
@@ -74,6 +75,14 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<State> States { get; set; }
     public virtual DbSet<TaxType> TaxTypes { get; set; }
     public virtual DbSet<Translation> Translations { get; set; }
+    public virtual DbSet<ContractTypeTranslation> ContractTypeTranslations { get; set; }
+    public virtual DbSet<CostingMethodTranslation> CostingMethodTranslations { get; set; }
+    public virtual DbSet<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; }
+    public virtual DbSet<CurrencyTranslation> CurrencyTranslations { get; set; }
+    public virtual DbSet<DocumentStatusTranslation> DocumentStatusTranslations { get; set; }
+    public virtual DbSet<DocumentTypeTranslation> DocumentTypeTranslations { get; set; }
+    public virtual DbSet<OperationTypeTranslation> OperationTypeTranslations { get; set; }
+    public virtual DbSet<PaymentTypeTranslation> PaymentTypeTranslations { get; set; }
     public virtual DbSet<Unit> Units { get; set; }
     public virtual DbSet<VatRate> VatRates { get; set; }
     public virtual DbSet<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; }

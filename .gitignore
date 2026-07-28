@@ -383,3 +383,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Standart va tahlil hujjatlari (jamoa/server uchun emas)
+standarts/

@@ -45,4 +45,7 @@ public partial class OperationType
     [ForeignKey("StateId")]
     [InverseProperty("OperationTypes")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(OperationTypeTranslation.OperationType))]
+    public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
 }

@@ -39,4 +39,7 @@ public partial class DocumentStatus
     [ForeignKey("StateId")]
     [InverseProperty("DocumentStatuses")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(DocumentStatusTranslation.DocumentStatus))]
+    public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
 }

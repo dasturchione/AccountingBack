@@ -23,5 +23,8 @@ public partial class CmnCostingMethod
     public string Name { get; set; } = null!;
 
     [InverseProperty("CostingMethod")]
+    public virtual ICollection<CmnCostingMethodTranslation> CmnCostingMethodTranslations { get; set; } = new List<CmnCostingMethodTranslation>();
+
+    [InverseProperty("CostingMethod")]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
 }

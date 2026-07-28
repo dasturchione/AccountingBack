@@ -26,6 +26,9 @@ public partial class CmnCounterpartyType
     public short StateId { get; set; }
 
     [InverseProperty("CounterpartyType")]
+    public virtual ICollection<CmnCounterpartyTypeTranslation> CmnCounterpartyTypeTranslations { get; set; } = new List<CmnCounterpartyTypeTranslation>();
+
+    [InverseProperty("CounterpartyType")]
     public virtual ICollection<CounterpartyCard> CounterpartyCards { get; set; } = new List<CounterpartyCard>();
 
     [ForeignKey("StateId")]

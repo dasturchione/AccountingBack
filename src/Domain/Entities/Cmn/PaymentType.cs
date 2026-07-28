@@ -32,4 +32,7 @@ public partial class PaymentType
     [ForeignKey("StateId")]
     [InverseProperty("PaymentTypes")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(PaymentTypeTranslation.PaymentType))]
+    public virtual ICollection<PaymentTypeTranslation> PaymentTypeTranslations { get; set; } = new List<PaymentTypeTranslation>();
 }

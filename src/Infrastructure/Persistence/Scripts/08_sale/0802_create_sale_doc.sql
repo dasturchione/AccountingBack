@@ -46,6 +46,13 @@ create index idx_sale_doc_cancelled_by_user_id on sale_doc using btree (cancelle
 create index idx_sale_doc_customer_account_id on sale_doc (customer_account_id);
 create index idx_sale_doc_vat_account_id on sale_doc (vat_account_id);
 
+create sequence doc_number_sale_seq
+    start with 100000001
+    increment by 1
+    no minvalue
+    no maxvalue
+    cache 1;
+
 create function set_sale_doc_number() returns trigger
     language plpgsql
     as $$

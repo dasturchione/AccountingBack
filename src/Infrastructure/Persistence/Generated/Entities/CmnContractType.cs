@@ -30,6 +30,9 @@ public partial class CmnContractType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("ContractType")]
+    public virtual ICollection<CmnContractTypeTranslation> CmnContractTypeTranslations { get; set; } = new List<CmnContractTypeTranslation>();
+
+    [InverseProperty("ContractType")]
     public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
 
     [ForeignKey("StateId")]

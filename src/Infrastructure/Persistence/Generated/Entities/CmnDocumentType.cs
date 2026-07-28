@@ -33,6 +33,9 @@ public partial class CmnDocumentType
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("DocumentType")]
+    public virtual ICollection<CmnDocumentTypeTranslation> CmnDocumentTypeTranslations { get; set; } = new List<CmnDocumentTypeTranslation>();
+
+    [InverseProperty("DocumentType")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
 
     [InverseProperty("DocumentType")]

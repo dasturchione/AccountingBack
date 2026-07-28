@@ -40,6 +40,9 @@ public partial class CmnLanguage
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("Language")]
+    public virtual ICollection<AccAccountTypeTranslation> AccAccountTypeTranslations { get; set; } = new List<AccAccountTypeTranslation>();
+
+    [InverseProperty("Language")]
     public virtual ICollection<AccChartAccountPresetAccountTranslation> AccChartAccountPresetAccountTranslations { get; set; } = new List<AccChartAccountPresetAccountTranslation>();
 
     [InverseProperty("Language")]
@@ -53,6 +56,30 @@ public partial class CmnLanguage
 
     [InverseProperty("Language")]
     public virtual ICollection<AccSubkontoTypeTranslation> AccSubkontoTypeTranslations { get; set; } = new List<AccSubkontoTypeTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnContractTypeTranslation> CmnContractTypeTranslations { get; set; } = new List<CmnContractTypeTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnCostingMethodTranslation> CmnCostingMethodTranslations { get; set; } = new List<CmnCostingMethodTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnCounterpartyTypeTranslation> CmnCounterpartyTypeTranslations { get; set; } = new List<CmnCounterpartyTypeTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnCurrencyTranslation> CmnCurrencyTranslations { get; set; } = new List<CmnCurrencyTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnDocumentStatusTranslation> CmnDocumentStatusTranslations { get; set; } = new List<CmnDocumentStatusTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnDocumentTypeTranslation> CmnDocumentTypeTranslations { get; set; } = new List<CmnDocumentTypeTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnOperationTypeTranslation> CmnOperationTypeTranslations { get; set; } = new List<CmnOperationTypeTranslation>();
+
+    [InverseProperty("Language")]
+    public virtual ICollection<CmnPaymentTypeTranslation> CmnPaymentTypeTranslations { get; set; } = new List<CmnPaymentTypeTranslation>();
 
     [InverseProperty("Language")]
     public virtual ICollection<CmnTranslation> CmnTranslations { get; set; } = new List<CmnTranslation>();

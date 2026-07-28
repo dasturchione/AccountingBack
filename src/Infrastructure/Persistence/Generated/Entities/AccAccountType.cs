@@ -30,6 +30,9 @@ public partial class AccAccountType
     public DateTime CreatedDate { get; set; }
 
     [InverseProperty("AccountType")]
+    public virtual ICollection<AccAccountTypeTranslation> AccAccountTypeTranslations { get; set; } = new List<AccAccountTypeTranslation>();
+
+    [InverseProperty("AccountType")]
     public virtual ICollection<AccChartAccountPresetAccount> AccChartAccountPresetAccounts { get; set; } = new List<AccChartAccountPresetAccount>();
 
     [InverseProperty("AccountType")]

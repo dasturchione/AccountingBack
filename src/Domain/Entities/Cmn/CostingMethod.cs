@@ -22,4 +22,7 @@ public partial class CostingMethod
 
     [InverseProperty("CostingMethod")]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
+
+    [InverseProperty(nameof(CostingMethodTranslation.CostingMethod))]
+    public virtual ICollection<CostingMethodTranslation> CostingMethodTranslations { get; set; } = new List<CostingMethodTranslation>();
 }

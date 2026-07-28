@@ -1,4 +1,4 @@
-﻿
+
 create table org_organization_config 
 (
     organization_id integer not null,

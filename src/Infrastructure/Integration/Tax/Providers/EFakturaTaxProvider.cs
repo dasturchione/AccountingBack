@@ -9,13 +9,13 @@ namespace Integration.Tax.Providers;
 
 public sealed class EFakturaTaxProvider : TaxProviderBase, ITaxDocumentProvider
 {
-    public EFakturaTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationSettings> options, ILogger<EFakturaTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
+    public EFakturaTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationOptions> options, ILogger<EFakturaTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
 
     public override string Code => "E_FAKTURA";
 
     public override string Name => "E-Faktura";
 
-    protected override TaxIntegrationSettings.ProviderSettings ResolveProviderSettings() => Settings.EFaktura;
+    protected override TaxIntegrationOptions.ProviderOptions ResolveProviderSettings() => Settings.EFaktura;
 
     public Task<TaxProviderOperationResultDto> SubmitAsync(TaxProviderOperationRequestDto request, CancellationToken ct = default)
         => ExecuteAsync(Settings.EFaktura.SubmitPath, "submit", request, ct);

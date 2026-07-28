@@ -29,10 +29,13 @@ public static class ServiceCollectionExtensions
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AslBelgiOptions>>().Value;
                 client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
             })
-            .AddHttpMessageHandler<AslBelgiGetRetryHandler>()
-            .AddHttpMessageHandler<AslBelgiAuthorizationHandler>();
+            // Tartib: auth tashqarida, retry ichkarida. Authorization sarlavhasi
+            // bir marta qo'yiladi va AslBelgiGetRetryHandler uni har bir qayta
+            // urinish nusxasiga ko'chiradi.
+            .AddHttpMessageHandler<AslBelgiAuthorizationHandler>()
+            .AddHttpMessageHandler<AslBelgiGetRetryHandler>();
 
         return services;
     }

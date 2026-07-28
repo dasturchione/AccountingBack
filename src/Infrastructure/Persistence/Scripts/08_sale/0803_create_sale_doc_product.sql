@@ -11,15 +11,24 @@ create table sale_doc_product
     vat_amount numeric(24,8) default 0 not null,
     total_amount numeric(24,8) not null,
     unit_id smallint default 1 not null,
+    inventory_account_id integer,
+    income_account_id integer,
+    cost_account_id integer,
     constraint sale_doc_product_pkey primary key (id),
     constraint sale_doc_product_owner_id_fkey foreign key (owner_id) references sale_doc(id) on DELETE CASCADE,
     constraint sale_doc_product_product_id_fkey foreign key (product_id) references inv_product(id),
     constraint sale_doc_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id),
-    constraint sale_doc_product_vat_rate_id_fkey foreign key (vat_rate_id) references cmn_vat_rate(id)
+    constraint sale_doc_product_vat_rate_id_fkey foreign key (vat_rate_id) references cmn_vat_rate(id),
+    constraint sale_doc_product_inventory_account_id_fkey foreign key (inventory_account_id) references acc_chart_account(id),
+    constraint sale_doc_product_income_account_id_fkey foreign key (income_account_id) references acc_chart_account(id),
+    constraint sale_doc_product_cost_account_id_fkey foreign key (cost_account_id) references acc_chart_account(id)
 );
 
 create index ix_sale_doc_product_owner_id on sale_doc_product using btree (owner_id);
 create index ix_sale_doc_product_product_id on sale_doc_product using btree (product_id);
+create index idx_sale_doc_product_inventory_account_id on sale_doc_product (inventory_account_id);
+create index idx_sale_doc_product_income_account_id on sale_doc_product (income_account_id);
+create index idx_sale_doc_product_cost_account_id on sale_doc_product (cost_account_id);
 
 insert into sale_doc_product (id, owner_id, product_id, quantity, unit_price, cost_price, amount, vat_rate_id, vat_amount, total_amount, unit_id) values
     ('26', '78', '24', '1.000000', '18975.00000000', '17250.00000000', '18975.00000000', '2', '2277.00000000', '21252.00000000', '1'),

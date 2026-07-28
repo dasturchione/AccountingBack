@@ -1,4 +1,4 @@
-﻿create table cmn_price_rounding_method 
+create table cmn_price_rounding_method 
 (
     id smallint   not null,
     code character varying(50) not null,

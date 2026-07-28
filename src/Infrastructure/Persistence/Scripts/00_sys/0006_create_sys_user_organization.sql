@@ -1,4 +1,4 @@
-﻿create table sys_user_organization 
+create table sys_user_organization 
 (
     user_id integer not null,
     organization_id integer not null,

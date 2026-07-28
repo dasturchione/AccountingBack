@@ -20,6 +20,8 @@ create table sale_doc
     posted_by_user_id integer,
     cancelled_at timestamp without time zone,
     cancelled_by_user_id integer,
+    customer_account_id integer,
+    vat_account_id integer,
     constraint sale_doc_pkey primary key (id),
     constraint sale_doc_contract_id_fkey foreign key (contract_id) references cmn_contract(id),
     constraint sale_doc_counterparty_id_fkey foreign key (counterparty_id) references counterparty_card(id),
@@ -27,7 +29,9 @@ create table sale_doc
     constraint sale_doc_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint sale_doc_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint sale_doc_status_id_fkey foreign key (status_id) references cmn_document_status(id),
-    constraint sale_doc_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id)
+    constraint sale_doc_warehouse_id_fkey foreign key (warehouse_id) references inv_warehouse(id),
+    constraint sale_doc_customer_account_id_fkey foreign key (customer_account_id) references acc_chart_account(id),
+    constraint sale_doc_vat_account_id_fkey foreign key (vat_account_id) references acc_chart_account(id)
 );
 
 create index idx_sale_doc_contract_id on sale_doc using btree (contract_id) WHERE (contract_id IS not null);
@@ -39,6 +43,8 @@ create index idx_sale_doc_status_id on sale_doc using btree (status_id);
 create index idx_sale_doc_warehouse_id on sale_doc using btree (warehouse_id);
 create index idx_sale_doc_posted_by_user_id on sale_doc using btree (posted_by_user_id);
 create index idx_sale_doc_cancelled_by_user_id on sale_doc using btree (cancelled_by_user_id);
+create index idx_sale_doc_customer_account_id on sale_doc (customer_account_id);
+create index idx_sale_doc_vat_account_id on sale_doc (vat_account_id);
 
 create function set_sale_doc_number() returns trigger
     language plpgsql

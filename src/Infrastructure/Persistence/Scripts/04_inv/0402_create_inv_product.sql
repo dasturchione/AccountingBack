@@ -11,9 +11,7 @@ create table inv_product
     state_id smallint not null,
     created_date timestamp without time zone default now() not null,
     mxik character varying(17),
-    gtin character varying(14),
     is_piece_tracked boolean default false not null,
-    product_type_id smallint not null default 1,
     is_sold boolean not null default true,
     is_purchased boolean not null default true,
     code character varying(100),
@@ -26,7 +24,6 @@ create table inv_product
     constraint inv_product_pkey primary key (id),
     constraint inv_product_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint inv_product_product_group_id_fkey foreign key (product_group_id) references inv_product_group(id),
-    constraint inv_product_product_type_id_fkey foreign key (product_type_id) references cmn_product_type(id),
     constraint inv_product_state_id_fkey foreign key (state_id) references cmn_state(id),
     constraint inv_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id)
 );
@@ -37,7 +34,6 @@ create index idx_inv_product_organization_id on inv_product using btree (organiz
 create index idx_inv_product_product_group_id on inv_product using btree (product_group_id);
 create index idx_inv_product_state_id on inv_product using btree (state_id);
 create index idx_inv_product_unit_id on inv_product using btree (unit_id);
-create index idx_inv_product_product_type_id on inv_product using btree (product_type_id);
 create index ix_inv_product_mxik on inv_product using btree (mxik) WHERE (mxik IS not null);
 create index idx_inv_product_code on inv_product using btree (code);
 create index idx_inv_product_sku on inv_product using btree (sku);

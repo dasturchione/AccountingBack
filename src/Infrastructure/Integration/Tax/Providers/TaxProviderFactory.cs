@@ -7,9 +7,9 @@ namespace Integration.Tax.Providers;
 public sealed class TaxProviderFactory : ITaxProviderFactory
 {
     private readonly IReadOnlyCollection<ITaxProvider> _providers;
-    private readonly TaxIntegrationSettings _settings;
+    private readonly TaxIntegrationOptions _settings;
 
-    public TaxProviderFactory(IEnumerable<ITaxProvider> providers, IOptions<TaxIntegrationSettings> options)
+    public TaxProviderFactory(IEnumerable<ITaxProvider> providers, IOptions<TaxIntegrationOptions> options)
     {
         _providers = providers.ToList();
         _settings = options.Value;

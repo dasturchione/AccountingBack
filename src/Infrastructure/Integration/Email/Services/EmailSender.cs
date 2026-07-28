@@ -11,10 +11,10 @@ namespace Integration.Email.Services;
 
 public sealed class EmailSender : IEmailSender
 {
-    private readonly EmailSettings _settings;
+    private readonly EmailOptions _settings;
     private readonly ILogger<EmailSender> _logger;
 
-    public EmailSender(IOptions<EmailSettings> options, ILogger<EmailSender> logger)
+    public EmailSender(IOptions<EmailOptions> options, ILogger<EmailSender> logger)
     {
         _settings = options.Value;
         _logger = logger;

@@ -1,5 +1,6 @@
 using Application.Abstractions.Integration;
 using Integration.CentralBank.Configs;
+using Integration.CentralBank.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Globalization;
@@ -10,17 +11,15 @@ namespace Integration.CentralBank.Services;
 
 public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
 {
-    private readonly HttpClient _httpClient;
-    private readonly CentralBankSettings _settings;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly CentralBankOptions _settings;
     private readonly ILogger<CentralBankCurrencyRateProvider> _logger;
 
-    public CentralBankCurrencyRateProvider(HttpClient httpClient, IOptions<CentralBankSettings> options, ILogger<CentralBankCurrencyRateProvider> logger)
+    public CentralBankCurrencyRateProvider(IHttpClientFactory httpClientFactory, IOptions<CentralBankOptions> options, ILogger<CentralBankCurrencyRateProvider> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _settings = options.Value;
         _logger = logger;
-        _httpClient.BaseAddress = new Uri(_settings.BaseUrl, UriKind.Absolute);
-        _httpClient.Timeout = TimeSpan.FromSeconds(Math.Max(5, _settings.TimeoutSeconds));
     }
 
     public string Code => _settings.DefaultProviderCode;
@@ -31,8 +30,9 @@ public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
     {
         _logger.LogInformation("Fetching latest currency rates from Central Bank");
 
-        var items = await SendWithRetryAsync(async token =>
-            await _httpClient.GetFromJsonAsync<List<CentralBankRateDto>>(string.Empty, token) ?? [], ct);
+        // Qayta urinish CentralBankRetryHandler'da bajariladi.
+        var client = _httpClientFactory.CreateClient(CentralBankHttpClientNames.Client);
+        var items = await client.GetFromJsonAsync<List<CentralBankRateDto>>(string.Empty, ct) ?? [];
         return Map(items, DateTime.UtcNow.Date);
     }
 
@@ -42,8 +42,8 @@ public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
         var uri = $"all/{normalized:yyyy-MM-dd}/";
         _logger.LogInformation("Fetching currency rates from Central Bank for {Date}", normalized);
 
-        var items = await SendWithRetryAsync(async token =>
-            await _httpClient.GetFromJsonAsync<List<CentralBankRateDto>>(uri, token) ?? [], ct);
+        var client = _httpClientFactory.CreateClient(CentralBankHttpClientNames.Client);
+        var items = await client.GetFromJsonAsync<List<CentralBankRateDto>>(uri, ct) ?? [];
         return Map(items, normalized);
     }
 
@@ -84,33 +84,6 @@ public sealed class CentralBankCurrencyRateProvider : ICurrencyRateProvider
         return result;
     }
 
-    private async Task<T> SendWithRetryAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct)
-    {
-        var attempts = Math.Max(1, _settings.RetryCount);
-        var delay = TimeSpan.FromMilliseconds(300);
-
-        for (var i = 1; i <= attempts; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            try
-            {
-                return await action(ct);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (i < attempts)
-            {
-                _logger.LogWarning(ex, "Central Bank request attempt {Attempt}/{Attempts} failed", i, attempts);
-                await Task.Delay(delay, ct);
-                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
-            }
-        }
-
-        return await action(ct);
-    }
 
     private sealed class CentralBankRateDto
     {

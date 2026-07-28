@@ -102,7 +102,7 @@ using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
 using Integration.Tax.Configs;
 using Integration.Email.Configs;
-using Integration.GoogleDrive.Extensions;
+using Integration.GoogleDrive.Configs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;

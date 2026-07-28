@@ -6,10 +6,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SharedKernel.Exceptions;
+using SharedKernel.Security;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Integration.AslBelgi.Services;
 
@@ -95,7 +95,7 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
 
         if (response.StatusCode == HttpStatusCode.BadRequest && _environment?.IsDevelopment() == true)
         {
-            var detail = RedactSensitiveValues(await response.Content.ReadAsStringAsync());
+            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync(), _apiKey);
             throw new IntegrationHttpException($"CRPT request failed with HTTP status 400. Detail: {detail}", 400);
         }
 
@@ -109,12 +109,4 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
         };
     }
 
-    private string RedactSensitiveValues(string value)
-    {
-        if (!string.IsNullOrWhiteSpace(_apiKey))
-            value = value.Replace(_apiKey, "[REDACTED]", StringComparison.Ordinal);
-
-        value = Regex.Replace(value, "(?i)(authorization|api[_-]?key|access[_-]?token|token|password)\\s*[:=]\\s*(?:\\\"[^\\\"]*\\\"|Bearer\\s+[^,\\s}]+|[^,\\s}]+)", "$1=[REDACTED]");
-        return value;
-    }
 }

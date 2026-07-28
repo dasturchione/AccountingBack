@@ -10,13 +10,13 @@ namespace Integration.Tax.Providers;
 
 public sealed class MxikTaxProvider : TaxProviderBase, ITaxLookupProvider
 {
-    public MxikTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationSettings> options, ILogger<MxikTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
+    public MxikTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationOptions> options, ILogger<MxikTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
 
     public override string Code => "MXIK";
 
     public override string Name => "MXIK";
 
-    protected override TaxIntegrationSettings.ProviderSettings ResolveProviderSettings() => Settings.Mxik;
+    protected override TaxIntegrationOptions.ProviderOptions ResolveProviderSettings() => Settings.Mxik;
 
     public async Task<IReadOnlyCollection<TaxProviderLookupItemDto>> SearchAsync(TaxProviderLookupRequestDto request, CancellationToken ct = default)
     {

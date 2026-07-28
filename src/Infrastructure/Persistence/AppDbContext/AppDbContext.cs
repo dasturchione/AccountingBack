@@ -20,6 +20,11 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountingPeriod> AccountingPeriods { get; set; }
     public virtual DbSet<PostingBatch> PostingBatches { get; set; }
     public virtual DbSet<SubkontoType> SubkontoTypes { get; set; }
+    public virtual DbSet<SubkontoTypeTranslation> SubkontoTypeTranslations { get; set; }
+    public virtual DbSet<OpeningBalance> OpeningBalances { get; set; }
+    public virtual DbSet<OpeningBalanceAccount> OpeningBalanceAccounts { get; set; }
+    public virtual DbSet<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; }
+    public virtual DbSet<OpeningBalanceAccountDetailSubkonto> OpeningBalanceAccountDetailSubkontos { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
@@ -59,6 +64,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentAccountSetting> DocumentAccountSettings { get; set; }
     public virtual DbSet<Language> Languages { get; set; }
     public virtual DbSet<InventoryAdjustmentType> InventoryAdjustmentTypes { get; set; }
+    public virtual DbSet<MxikCatalog> MxikCatalogs { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
     public virtual DbSet<PriceRoundingMethod> PriceRoundingMethods { get; set; }
@@ -116,7 +122,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
     public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
+    public virtual DbSet<SaleDocProductBatch> SaleDocProductBatches { get; set; }
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
+    public virtual DbSet<SaleShipmentDoc> SaleShipmentDocs { get; set; }
+    public virtual DbSet<SaleShipmentProduct> SaleShipmentProducts { get; set; }
+    public virtual DbSet<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; }
+    public virtual DbSet<SaleShipmentTable> SaleShipmentTables { get; set; }
     public virtual DbSet<Module> Modules { get; set; }
     public virtual DbSet<ModuleSubGroup> ModuleSubGroups { get; set; }
     public virtual DbSet<Role> Roles { get; set; }
@@ -239,23 +250,9 @@ public partial class AppDbContext : DbContext
             .HasColumnName("xmin")
             .IsRowVersion();
 
-        modelBuilder.Entity<ProductTable>()
-            .HasIndex(x => x.MarkingNumber)
-            .HasDatabaseName("ux_inv_product_table_marking_number")
-            .IsUnique()
-            .HasFilter("marking_number IS NOT NULL");
-
         modelBuilder.Entity<WarehouseProductTable>()
             .HasIndex(x => x.WarehouseId)
             .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_id");
-
-        modelBuilder.Entity<WarehouseProductTable>()
-            .HasIndex(x => new { x.WarehouseId, x.StatusId })
-            .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_status");
-
-        modelBuilder.Entity<WarehouseProductTable>()
-            .HasIndex(x => new { x.WarehouseId, x.StatusId, x.ProductTableId })
-            .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_status_product_table");
 
         modelBuilder.Entity<ChartAccountPresetAccount>(entity =>
             entity.HasOne(e => e.ChartAccountPresetAccountNavigation)
@@ -264,12 +261,6 @@ public partial class AppDbContext : DbContext
                     .HasPrincipalKey(e => new { e.PresetId, e.Id })
                     .HasConstraintName("fk_acc_chart_account_preset_account_parent")
                     );
-
-        modelBuilder.Entity<ProductTable>()
-            .HasIndex(x => x.SerialNumber)
-            .HasDatabaseName("ux_inv_product_table_serial_number")
-            .IsUnique()
-            .HasFilter("serial_number IS NOT NULL");
 
         modelBuilder.Entity<WarehouseProduct>()
             .Property(x => x.AvailableQuantity)
@@ -342,12 +333,6 @@ public partial class AppDbContext : DbContext
             .HasIndex(x => new { x.OrganizationId, x.DocNumber })
             .HasDatabaseName("ux_inv_inventory_count_doc_org_doc_number")
             .IsUnique();
-
-        modelBuilder.Entity<InventoryCountDoc>()
-            .HasIndex(x => new { x.OrganizationId, x.WarehouseId })
-            .HasDatabaseName("ux_inv_inventory_count_doc_active_warehouse")
-            .IsUnique()
-            .HasFilter("state_id = 1 AND status_id IN (1, 4)");
 
         modelBuilder.Entity<OrganizationConfig>()
             .HasOne(x => x.Organization)

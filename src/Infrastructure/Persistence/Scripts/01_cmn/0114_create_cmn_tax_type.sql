@@ -1,4 +1,4 @@
-﻿create table cmn_tax_type 
+create table cmn_tax_type 
 (
     id smallint   not null,
     code character varying(50) not null,

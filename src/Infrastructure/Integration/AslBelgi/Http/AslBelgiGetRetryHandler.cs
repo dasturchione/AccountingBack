@@ -71,13 +71,11 @@ public sealed class AslBelgiGetRetryHandler : DelegatingHandler
             VersionPolicy = request.VersionPolicy
         };
 
+        // Authorization ham ko'chiriladi: auth handler pipeline'da bu handler'dan
+        // TASHQARIDA turadi, ya'ni qayta urinishda u boshqa ishlamaydi. Sarlavha
+        // tashlab ketilsa, 2-urinishdan boshlab so'rov autentifikatsiyasiz ketardi.
         foreach (var header in request.Headers)
-        {
-            if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
-                continue;
-
             clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
-        }
 
         foreach (var option in request.Options)
             clone.Options.Set(new HttpRequestOptionsKey<object?>(option.Key), option.Value);

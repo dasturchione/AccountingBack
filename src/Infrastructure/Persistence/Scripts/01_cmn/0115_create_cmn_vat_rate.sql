@@ -1,4 +1,4 @@
-﻿create table cmn_vat_rate 
+create table cmn_vat_rate 
 (
     id smallint   not null,
     code character varying(50) not null,

@@ -35,7 +35,7 @@ namespace Application.Features.ChartAccountPresetAccounts
                 PresetId = x.PresetId,
                 Name = x.ChartAccountPresetAccountTranslations.Any() 
                             ? x.ChartAccountPresetAccountTranslations.First().Name 
-                            : x.Number,
+                            : x.Name,
                 StateId = x.StateId,
                 StateName = x.State.FullName,
                 Number = x.Number,

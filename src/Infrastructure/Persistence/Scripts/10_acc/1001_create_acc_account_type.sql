@@ -35,3 +35,4 @@ insert into acc_account_type (id, code, name, state_id) values
         public const short Tranzit = 6;
 
         public const short OffBalance = 7;*/
+

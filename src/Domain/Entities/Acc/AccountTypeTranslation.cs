@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class AccountTypeTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("AccountTypeId")]
-    [InverseProperty(nameof(Entities.AccountType.AccountTypeTranslations))]
+    [InverseProperty(nameof(AccountType.AccountTypeTranslations))]
     public virtual AccountType AccountType { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.AccountTypeTranslations))]
+    [InverseProperty(nameof(Language.AccountTypeTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

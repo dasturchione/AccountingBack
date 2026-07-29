@@ -113,6 +113,18 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Branch> Branches { get; set; }
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<Position> Positions { get; set; }
+    public virtual DbSet<PayEmployee> PayEmployees { get; set; }
+    public virtual DbSet<PayEmployment> PayEmployments { get; set; }
+    public virtual DbSet<PayComponent> PayComponents { get; set; }
+    public virtual DbSet<PayEmployeeComponent> PayEmployeeComponents { get; set; }
+    public virtual DbSet<PayPeriod> PayPeriods { get; set; }
+    public virtual DbSet<PayTimesheet> PayTimesheets { get; set; }
+    public virtual DbSet<PayTimesheetLine> PayTimesheetLines { get; set; }
+    public virtual DbSet<PayPayrollDoc> PayPayrollDocs { get; set; }
+    public virtual DbSet<PayPayrollLine> PayPayrollLines { get; set; }
+    public virtual DbSet<PayPayrollCalcLine> PayPayrollCalcLines { get; set; }
+    public virtual DbSet<PayPaymentBatch> PayPaymentBatches { get; set; }
+    public virtual DbSet<PayPaymentLine> PayPaymentLines { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
     public virtual DbSet<OrganizationClaimRequest> OrganizationClaimRequests { get; set; }
     public virtual DbSet<OrganizationDefault> OrganizationDefaults { get; set; }

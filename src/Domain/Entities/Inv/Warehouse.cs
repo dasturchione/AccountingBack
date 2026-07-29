@@ -1,16 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("inv_warehouse")]
-[Index("BranchId", Name = "idx_inv_warehouse_branch_id")]
-[Index("OrganizationId", Name = "idx_inv_warehouse_organization_id")]
-[Index("ResponsibleUserId", Name = "idx_inv_warehouse_responsible_user_id")]
-[Index("StateId", Name = "idx_inv_warehouse_state_id")]
-[Index("Code", Name = "idx_inv_warehouse_code")]
-[Index("IsMain", Name = "idx_inv_warehouse_is_main")]
 public partial class Warehouse
 {
     [Key]
@@ -46,6 +39,7 @@ public partial class Warehouse
 
     [Column("is_main")]
     public bool IsMain { get; set; }
+
     [ForeignKey("BranchId")]
     [InverseProperty("Warehouses")]
     public virtual Branch? Branch { get; set; }
@@ -67,6 +61,9 @@ public partial class Warehouse
 
     [InverseProperty(nameof(WarehouseProductBatch.Warehouse))]
     public virtual ICollection<WarehouseProductBatch> WarehouseProductBatches { get; set; } = new List<WarehouseProductBatch>();
+
+    [InverseProperty(nameof(OpeningInventory.Warehouse))]
+    public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
 
     [InverseProperty("SourceWarehouse")]
     public virtual ICollection<WarehouseTransferDoc> SourceWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();

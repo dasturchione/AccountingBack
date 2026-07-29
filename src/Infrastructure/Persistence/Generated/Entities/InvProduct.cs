@@ -95,6 +95,9 @@ public partial class InvProduct
     public virtual ICollection<InvInventoryCountLine> InvInventoryCountLines { get; set; } = new List<InvInventoryCountLine>();
 
     [InverseProperty("Product")]
+    public virtual ICollection<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; } = new List<InvOpeningInventoryProduct>();
+
+    [InverseProperty("Product")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
     [InverseProperty("Product")]

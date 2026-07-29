@@ -197,6 +197,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvInventoryCountLine> InvInventoryCountLines { get; set; }
 
+    public virtual DbSet<InvOpeningInventory> InvOpeningInventories { get; set; }
+
+    public virtual DbSet<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; }
+
+    public virtual DbSet<InvOpeningInventoryTable> InvOpeningInventoryTables { get; set; }
+
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
     public virtual DbSet<InvProductGroup> InvProductGroups { get; set; }
@@ -1801,6 +1807,73 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Unit).WithMany(p => p.InvInventoryCountLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_inventory_count_line_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.InvOpeningInventoryCancelledByUsers).HasConstraintName("inv_opening_inventory_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.Contract).WithMany(p => p.InvOpeningInventories).HasConstraintName("inv_opening_inventory_contract_id_fkey");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_counterparty_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.InvOpeningInventoryPostedByUsers).HasConstraintName("inv_opening_inventory_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_status_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventoryProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_product_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.DebitAccount).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_debit_account_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvOpeningInventoryProducts).HasConstraintName("inv_opening_inventory_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventoryTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_table_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvOpeningInventoryTables).HasConstraintName("inv_opening_inventory_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvOpeningInventoryTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_table_product_table_id_fkey");
         });
 
         modelBuilder.Entity<InvProduct>(entity =>

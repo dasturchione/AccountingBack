@@ -41,6 +41,9 @@ public partial class Unit
     [InverseProperty(nameof(SaleShipmentProduct.Unit))]
     public virtual ICollection<SaleShipmentProduct> SaleShipmentProducts { get; set; } = new List<SaleShipmentProduct>();
 
+    [InverseProperty(nameof(OpeningInventoryProduct.Unit))]
+    public virtual ICollection<OpeningInventoryProduct> OpeningInventoryProducts { get; set; } = new List<OpeningInventoryProduct>();
+
     [ForeignKey("StateId")]
     [InverseProperty("Units")]
     public virtual State State { get; set; } = null!;

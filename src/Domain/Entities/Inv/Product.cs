@@ -95,6 +95,9 @@ public partial class Product
     [InverseProperty(nameof(WarehouseProductMovement.Product))]
     public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
 
+    [InverseProperty(nameof(OpeningInventoryProduct.Product))]
+    public virtual ICollection<OpeningInventoryProduct> OpeningInventoryProducts { get; set; } = new List<OpeningInventoryProduct>();
+
     [InverseProperty(nameof(WarehouseProductBatch.Product))]
     public virtual ICollection<WarehouseProductBatch> WarehouseProductBatches { get; set; } = new List<WarehouseProductBatch>();
 

@@ -86,6 +86,18 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<MarkingTransfer>(modelBuilder);
             ApplyScopedFilter<MarkingTransferCode>(modelBuilder);
             ApplyScopedFilter<IdempotencyRecord>(modelBuilder);
+            ApplyScopedFilter<PayEmployee>(modelBuilder);
+            ApplyScopedFilter<PayEmployment>(modelBuilder);
+            ApplyScopedFilter<PayComponent>(modelBuilder);
+            ApplyScopedFilter<PayEmployeeComponent>(modelBuilder);
+            ApplyScopedFilter<PayPeriod>(modelBuilder);
+            ApplyScopedFilter<PayTimesheet>(modelBuilder);
+            ApplyScopedFilter<PayTimesheetLine>(modelBuilder);
+            ApplyScopedFilter<PayPayrollDoc>(modelBuilder);
+            ApplyScopedFilter<PayPayrollLine>(modelBuilder);
+            ApplyScopedFilter<PayPayrollCalcLine>(modelBuilder);
+            ApplyScopedFilter<PayPaymentBatch>(modelBuilder);
+            ApplyScopedFilter<PayPaymentLine>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(e => HasGlobalAccess

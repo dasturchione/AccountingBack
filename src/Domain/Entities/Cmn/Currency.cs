@@ -1,11 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
 [Table("cmn_currency")]
-[Index("Code", Name = "idx_cmn_currency_code", IsUnique = true)]
 public partial class Currency
 {
     [Key]
@@ -29,6 +27,9 @@ public partial class Currency
 
     [InverseProperty(nameof(OpeningBalanceAccountDetail.Currency))]
     public virtual ICollection<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; } = new List<OpeningBalanceAccountDetail>();
+
+    [InverseProperty(nameof(CurrencyTranslation.Currency))]
+    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
 
     [InverseProperty("Currency")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
@@ -75,10 +76,7 @@ public partial class Currency
     [InverseProperty(nameof(CurrencyRevaluationLine.TargetCurrency))]
     public virtual ICollection<CurrencyRevaluationLine> CurrencyRevaluationTargetLines { get; set; } = new List<CurrencyRevaluationLine>();
 
-    [ForeignKey("StateId")]
-    [InverseProperty("Currencies")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.Currencies))]
     public virtual State State { get; set; } = null!;
-
-    [InverseProperty(nameof(CurrencyTranslation.Currency))]
-    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
 }

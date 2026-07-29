@@ -137,9 +137,9 @@ namespace WebApi.Configuration
             var isProduction = environment.IsProduction();
             if (isProduction)
             {
-                var productionKeyPath = RequiredExternalSetting(builder.Configuration, "DataProtection:KeysPath");
-                var certificatePath = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePath");
-                var certificatePassword = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePassword");
+                var productionKeyPath = RequiredProductionSetting(builder.Configuration, "DataProtection:KeysPath");
+                var certificatePath = RequiredProductionSetting(builder.Configuration, "DataProtection:EncryptionCertificatePath");
+                var certificatePassword = RequiredProductionSetting(builder.Configuration, "DataProtection:EncryptionCertificatePassword");
 
                 if (!Path.IsPathRooted(productionKeyPath))
                     throw new InvalidOperationException("DataProtection:KeysPath must be an absolute production path.");
@@ -409,8 +409,8 @@ namespace WebApi.Configuration
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
-                foreach (var key in ProductionExternalSecretKeys)
-                    _ = RequiredExternalSetting(configuration, key);
+                foreach (var key in ProductionRequiredSettingKeys)
+                    _ = RequiredProductionSetting(configuration, key);
 
                 foreach (var key in ForbiddenGlobalProviderSecretKeys)
                 {
@@ -423,7 +423,7 @@ namespace WebApi.Configuration
             }
         }
 
-        private static readonly string[] ProductionExternalSecretKeys =
+        private static readonly string[] ProductionRequiredSettingKeys =
         [
             "ConnectionStrings:Default",
             "Jwt:Key",
@@ -433,7 +433,10 @@ namespace WebApi.Configuration
             "Email:Password",
             "EImzo:CertificatePassword",
             "EImzo:CertificatePath",
-            "TaxIntegration:Didox:PartnerToken"
+            "TaxIntegration:Didox:PartnerToken",
+            "DataProtection:KeysPath",
+            "DataProtection:EncryptionCertificatePath",
+            "DataProtection:EncryptionCertificatePassword"
         ];
 
         private static readonly string[] ForbiddenGlobalProviderSecretKeys =
@@ -468,37 +471,17 @@ namespace WebApi.Configuration
                 || value.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("YOUR-", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("REAL_TOKEN", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("EXAMPLE", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string RequiredExternalSetting(ConfigurationManager configuration, string key)
+        private static string RequiredProductionSetting(ConfigurationManager configuration, string key)
         {
             var value = configuration[key];
-            if (IsPlaceholderValue(value) || !IsExternalConfigurationValue(configuration, key))
-                throw new InvalidOperationException($"{key} must be supplied by the production environment or secret store.");
+            if (IsPlaceholderValue(value))
+                throw new InvalidOperationException($"{key} is not configured with a real value.");
 
             return value!.Trim();
-        }
-
-        private static bool IsExternalConfigurationValue(ConfigurationManager configuration, string key)
-        {
-            if (configuration is not IConfigurationRoot root)
-                return false;
-
-            foreach (var provider in root.Providers.Reverse())
-            {
-                if (!provider.TryGet(key, out var value) || string.IsNullOrWhiteSpace(value))
-                    continue;
-
-                var providerName = provider.GetType().FullName ?? provider.GetType().Name;
-                return providerName.Contains("EnvironmentVariables", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("UserSecrets", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("KeyVault", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("Vault", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("KeyPerFile", StringComparison.OrdinalIgnoreCase);
-            }
-
-            return false;
         }
 
         private static WebApplicationBuilder AddJwtToken(this WebApplicationBuilder builder)

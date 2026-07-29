@@ -36,10 +36,7 @@ public partial class AccountType
     [InverseProperty(nameof(AccountTypeTranslation.AccountType))]
     public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
 
-    [ForeignKey("StateId")]
-    [InverseProperty("AccountTypes")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.AccountTypes))]
     public virtual State State { get; set; } = null!;
-
-    [InverseProperty(nameof(AccountTypeTranslation.AccountType))]
-    public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
 }

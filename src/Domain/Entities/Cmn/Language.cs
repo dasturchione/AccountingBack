@@ -79,29 +79,8 @@ public partial class Language
     [InverseProperty(nameof(ChartAccountPresetAccountTranslation.Language))]
     public virtual ICollection<ChartAccountPresetAccountTranslation> ChartAccountPresetAccountTranslations { get; set; } = new List<ChartAccountPresetAccountTranslation>();
 
-    [InverseProperty(nameof(AccountTypeTranslation.Language))]
-    public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
-
-    [InverseProperty(nameof(ContractTypeTranslation.Language))]
-    public virtual ICollection<ContractTypeTranslation> ContractTypeTranslations { get; set; } = new List<ContractTypeTranslation>();
-
-    [InverseProperty(nameof(CostingMethodTranslation.Language))]
-    public virtual ICollection<CostingMethodTranslation> CostingMethodTranslations { get; set; } = new List<CostingMethodTranslation>();
-
     [InverseProperty(nameof(CounterpartyTypeTranslation.Language))]
     public virtual ICollection<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; } = new List<CounterpartyTypeTranslation>();
-
-    [InverseProperty(nameof(CurrencyTranslation.Language))]
-    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
-
-    [InverseProperty(nameof(DocumentStatusTranslation.Language))]
-    public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
-
-    [InverseProperty(nameof(DocumentTypeTranslation.Language))]
-    public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
-
-    [InverseProperty(nameof(OperationTypeTranslation.Language))]
-    public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
 
     [InverseProperty(nameof(PaymentTypeTranslation.Language))]
     public virtual ICollection<PaymentTypeTranslation> PaymentTypeTranslations { get; set; } = new List<PaymentTypeTranslation>();

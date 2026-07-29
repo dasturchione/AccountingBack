@@ -1,13 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("acc_posting_batch")]
-[Index("DocumentTypeId", "DocumentId", Name = "idx_acc_posting_batch_document")]
-[Index("OrganizationId", Name = "idx_acc_posting_batch_organization_id")]
-[Index("Status", Name = "idx_acc_posting_batch_status")]
 public partial class PostingBatch
 {
     [Key]

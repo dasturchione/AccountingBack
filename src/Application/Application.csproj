@@ -28,6 +28,12 @@
   <ItemGroup>
     <Folder Include="Features\Acc\OpeningBalances\Queries\" />
     <Folder Include="Features\Acc\OpeningBalances\Validators\" />
+    <Folder Include="Features\Inv\OpeningInventories\Services\" />
+    <Folder Include="Features\Inv\OpeningInventories\Filters\" />
+    <Folder Include="Features\Inv\OpeningInventories\Errors\" />
+    <Folder Include="Features\Inv\OpeningInventories\Queries\" />
+    <Folder Include="Features\Inv\OpeningInventories\Validators\" />
+    <Folder Include="Features\Inv\OpeningInventories\Projections\" />
     <Folder Include="Features\Register\PostingEngines\Resolvers\" />
   </ItemGroup>
 

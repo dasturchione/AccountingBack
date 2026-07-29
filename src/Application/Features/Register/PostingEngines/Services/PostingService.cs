@@ -196,6 +196,7 @@ namespace Application.Features.Register.PostingEngines
                 SubkontoTypeIdConst.VatRatesTurnover => [SubkontoTypeIdConst.VatRates],
                 SubkontoTypeIdConst.FixedAssetsTurnover => [SubkontoTypeIdConst.FixedAssets],
                 SubkontoTypeIdConst.ReceivedInvoicesTurnover => [SubkontoTypeIdConst.CounterpartySettlementDocuments],
+                SubkontoTypeIdConst.OrganizationEmployeesTurnover => [SubkontoTypeIdConst.OrganizationEmployees],
                 _ => []
             };
 

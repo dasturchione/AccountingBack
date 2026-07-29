@@ -15,6 +15,12 @@ public static class AuditLogTableConst
     public const string FaDepreciationRun = "fa_depreciation_run";
     public const string FaDisposalDoc = "fa_disposal_doc";
     public const string FaRevaluationDoc = "fa_revaluation_doc";
+    public const string PayEmployee = "pay_employee";
+    public const string PayComponent = "pay_component";
+    public const string PayPeriod = "pay_period";
+    public const string PayTimesheet = "pay_timesheet";
+    public const string PayPayrollDoc = "pay_payroll_doc";
+    public const string PayPaymentBatch = "pay_payment_batch";
     public const string AuthorizationBypass = "sys_authorization_bypass";
 }
 

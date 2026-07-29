@@ -65,6 +65,13 @@ using Application.Features.OrganizationSetup;
 using Application.Features.OrgBankAccounts;
 using Application.Features.Platform;
 using Application.Features.Positions;
+using Application.Features.Pay.Components;
+using Application.Features.Pay.Employees;
+using Application.Features.Pay.Payments;
+using Application.Features.Pay.PayrollDocuments;
+using Application.Features.Pay.Periods;
+using Application.Features.Pay.Reports;
+using Application.Features.Pay.Timesheets;
 using Application.Features.PricingConditions;
 using Application.Features.ProductGroups;
 using Application.Features.Products;
@@ -165,6 +172,14 @@ namespace Infrastructure
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IPositionService, PositionService>();
+            services.AddScoped<IPayrollEmployeeService, PayrollEmployeeService>();
+            services.AddScoped<IPayrollComponentService, PayrollComponentService>();
+            services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
+            services.AddScoped<IPayrollTimesheetService, PayrollTimesheetService>();
+            services.AddScoped<IPayrollAccountResolver, PayrollAccountResolver>();
+            services.AddScoped<IPayrollDocumentService, PayrollDocumentService>();
+            services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
+            services.AddScoped<IPayrollReportService, PayrollReportService>();
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
             services.AddScoped<IFaAssetService, FaAssetService>();
@@ -279,6 +294,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<FaDisposalDoc>, FaDisposalContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaRevaluationDoc>, FaRevaluationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaReceiptDoc>, FaReceiptContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<PayPayrollDoc>, PayrollDocumentContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

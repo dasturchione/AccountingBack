@@ -1,4 +1,4 @@
-﻿create table cmn_language 
+create table cmn_language 
 (
     id smallint   not null,
     code character varying(10) not null,

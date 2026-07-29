@@ -1,3 +1,4 @@
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.AuditLogs;
 using Application.Features.Integration.AslBelgi.DTOs;
@@ -6,6 +7,7 @@ using Domain.Entities;
 using Integration.AslBelgi.Http;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Exceptions;
 using System.Net;
@@ -25,13 +27,23 @@ public sealed class AslBelgiTransferService : IAslBelgiTransferService
     private readonly IUserContext _userContext;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuditLogService _auditLogService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AslBelgiTransferService> _logger;
 
-    public AslBelgiTransferService(AppDbContext context, IUserContext userContext, IHttpClientFactory httpClientFactory, IAuditLogService auditLogService)
+    public AslBelgiTransferService(
+        AppDbContext context,
+        IUserContext userContext,
+        IHttpClientFactory httpClientFactory,
+        IAuditLogService auditLogService,
+        IUnitOfWork unitOfWork,
+        ILogger<AslBelgiTransferService> logger)
     {
         _context = context;
         _userContext = userContext;
         _httpClientFactory = httpClientFactory;
         _auditLogService = auditLogService;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public Task<JsonElement> SearchTransferRequestsAsync(CrptTransferSearchRequestDto request, CancellationToken ct = default) =>
@@ -50,16 +62,33 @@ public sealed class AslBelgiTransferService : IAslBelgiTransferService
             throw new InvalidOperationException("Signed CRPT transfer document participant IDs do not match the selected counterparties.");
 
         var hash = ComputeHash(RequestOperation, request.SignedPayload.DocumentBody, request.SellerCounterpartyId, request.BuyerCounterpartyId);
+
+        // TRANZAKSIYA 1 — tashqi chaqiruvdan oldin alohida commit qilinadi.
+        // Bu qulf: parallel yoki takroriy so'rov shu yerda to'xtaydi.
         var replay = await TryCreateIdempotencyRecordAsync(organizationId, request.IdempotencyKey, RequestOperation, hash, body.ExternalDocumentReference, ct);
         if (replay is not null)
             return replay;
 
+        string? documentId;
         try
         {
+            // Tashqi chaqiruv ataylab hech qanday tranzaksiya ichida emas.
             var response = await SendJsonAsync(HttpMethod.Post, "public/api/v1/doc/transfer/request", request.SignedPayload, ct);
-            var documentId = response.GetProperty("documentId").GetString();
+            documentId = response.GetProperty("documentId").GetString();
             if (string.IsNullOrWhiteSpace(documentId))
                 throw new IntegrationHttpException("CRPT transfer request response did not include a document ID.", 502);
+        }
+        catch
+        {
+            // Tashqi chaqiruv bajarilmadi: CRPT tomonda hujjat yo'q, oddiy xato.
+            await MarkFailedAsync(organizationId, request.IdempotencyKey, ct);
+            throw;
+        }
+
+        // TRANZAKSIYA 2 — mahalliy yozuvlar va audit log bitta tranzaksiyada.
+        try
+        {
+            await _unitOfWork.BeginAsync(ct);
 
             var transfer = new MarkingTransfer
             {
@@ -90,11 +119,14 @@ public sealed class AslBelgiTransferService : IAslBelgiTransferService
 
             _auditLogService.SetNewValues(new { transfer.Id, transfer.DocumentId, transfer.Status });
             await _auditLogService.CreateAsync("marking_transfer", transfer.Id.ToString(), AuditLogOperationTypeConst.Create);
+
+            await _unitOfWork.CommitAsync(ct);
             return new CrptTransferWriteResultDto { DocumentId = documentId, Status = transfer.Status };
         }
-        catch
+        catch (Exception ex)
         {
-            await MarkFailedAsync(organizationId, request.IdempotencyKey, ct);
+            await _unitOfWork.RollbackAsync(ct);
+            await HandleRemoteSuccessLocalFailureAsync(organizationId, request.IdempotencyKey, documentId, RequestOperation, ex);
             throw;
         }
     }
@@ -104,31 +136,106 @@ public sealed class AslBelgiTransferService : IAslBelgiTransferService
         var organizationId = RequireOrganization();
         var body = ParseConfirmationBody(request.SignedPayload.DocumentBody);
         var hash = ComputeHash(ConfirmationOperation, request.SignedPayload.DocumentBody, 0, 0);
+
+        // TRANZAKSIYA 1 — qulf, tashqi chaqiruvdan oldin alohida commit.
         var replay = await TryCreateIdempotencyRecordAsync(organizationId, request.IdempotencyKey, ConfirmationOperation, hash, body.TransferRequestDocId, ct);
         if (replay is not null)
             return replay;
 
         var transfer = await _context.MarkingTransfers.SingleOrDefaultAsync(x => x.DocumentId == body.TransferRequestDocId, ct)
             ?? throw new InvalidOperationException("The CRPT transfer request is not available in the current organization.");
+
+        string? documentId;
         try
         {
+            // Tashqi chaqiruv ataylab hech qanday tranzaksiya ichida emas.
             var response = await SendJsonAsync(HttpMethod.Post, "public/api/v1/doc/transfer/confirmation", request.SignedPayload, ct);
-            var documentId = response.GetProperty("documentId").GetString();
+            documentId = response.GetProperty("documentId").GetString();
             if (string.IsNullOrWhiteSpace(documentId))
                 throw new IntegrationHttpException("CRPT transfer confirmation response did not include a document ID.", 502);
-
-            transfer.Status = body.Resolution;
-            transfer.UpdatedDate = DateTime.UtcNow;
-            await CompleteIdempotencyAsync(organizationId, request.IdempotencyKey, documentId, "COMPLETED", ct);
-            await _context.SaveChangesAsync(ct);
-            _auditLogService.SetNewValues(new { transfer.Id, transfer.Status, ConfirmationDocumentId = documentId });
-            await _auditLogService.CreateAsync("marking_transfer", transfer.Id.ToString(), AuditLogOperationTypeConst.Update, "CRPT confirmation");
-            return new CrptTransferWriteResultDto { DocumentId = documentId, Status = transfer.Status };
         }
         catch
         {
             await MarkFailedAsync(organizationId, request.IdempotencyKey, ct);
             throw;
+        }
+
+        // TRANZAKSIYA 2 — status o'zgarishi, idempotentlik yakuni va audit log birga.
+        try
+        {
+            await _unitOfWork.BeginAsync(ct);
+
+            transfer.Status = body.Resolution;
+            transfer.UpdatedDate = DateTime.UtcNow;
+            await CompleteIdempotencyAsync(organizationId, request.IdempotencyKey, documentId, "COMPLETED", ct);
+            await _context.SaveChangesAsync(ct);
+
+            _auditLogService.SetNewValues(new { transfer.Id, transfer.Status, ConfirmationDocumentId = documentId });
+            await _auditLogService.CreateAsync("marking_transfer", transfer.Id.ToString(), AuditLogOperationTypeConst.Update, "CRPT confirmation");
+
+            await _unitOfWork.CommitAsync(ct);
+            return new CrptTransferWriteResultDto { DocumentId = documentId, Status = transfer.Status };
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            await HandleRemoteSuccessLocalFailureAsync(organizationId, request.IdempotencyKey, documentId, ConfirmationOperation, ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// CRPT tomonda hujjat YARATILGAN, lekin mahalliy yozuv saqlanmadi.
+    /// Bu holat orqaga qaytarilmaydi — tashqi tizimni rollback qilib bo'lmaydi.
+    ///
+    /// Ikki variant ko'rib chiqildi:
+    ///   A) Idempotentlik yozuvi COMPLETED + documentId qilinadi. Takroriy so'rov
+    ///      replay sifatida documentId ni qaytaradi, mijoz "muvaffaqiyat" ko'radi —
+    ///      lekin bazada MarkingTransfer yo'q. Muammo jimgina yopiladi.
+    ///   B) Yozuv FAILED bo'lib qoladi, documentId esa saqlanadi. Kalit iste'mol
+    ///      qilingan, ya'ni CRPT ga takroriy yuborish bo'lmaydi; takroriy so'rov esa
+    ///      "requires reconciliation" xatosini oladi va operator xabardor bo'ladi.
+    ///
+    /// B tanlandi: marking kodlari nazorat qilinadigan ma'lumot, ularni jimgina
+    /// yo'qotgandan ko'ra ochiq xato berib qo'lda tiklashga majburlash xavfsizroq.
+    /// </summary>
+    private async Task HandleRemoteSuccessLocalFailureAsync(int orgId, string key, string? documentId, string operation, Exception ex)
+    {
+        _logger.LogCritical(
+            ex,
+            "CRPT {Operation} succeeded remotely but local persistence failed. DocumentId={DocumentId}, IdempotencyKey={IdempotencyKey}, OrganizationId={OrganizationId}. Manual reconciliation required.",
+            operation,
+            documentId,
+            key,
+            orgId);
+
+        try
+        {
+            // Rollback'dan keyin tracker'da saqlanmagan obyektlar qoladi — tozalanadi.
+            _context.ChangeTracker.Clear();
+
+            // Kompensatsiya so'rov bekor qilinganda ham bajarilishi kerak,
+            // shuning uchun ataylab CancellationToken.None ishlatiladi.
+            var record = await _context.IdempotencyRecords
+                .SingleOrDefaultAsync(x => x.OrganizationId == orgId && x.IdempotencyKey == key, CancellationToken.None);
+
+            if (record is null)
+                return;
+
+            record.Status = "FAILED";
+            record.ResultDocumentId = documentId;
+            record.UpdatedDate = DateTime.UtcNow;
+            await _context.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception compensationEx)
+        {
+            // Kompensatsiya ham bajarilmadi. Asl istisno niqoblanmasligi uchun bu yerda
+            // to'xtatiladi; documentId yuqoridagi Critical logda saqlanib qolgan.
+            _logger.LogCritical(
+                compensationEx,
+                "Failed to record reconciliation state for CRPT DocumentId={DocumentId}, IdempotencyKey={IdempotencyKey}.",
+                documentId,
+                key);
         }
     }
 

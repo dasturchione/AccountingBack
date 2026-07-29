@@ -1,4 +1,4 @@
-﻿create table cmn_unit 
+create table cmn_unit 
 (
     id smallint   not null,
     code character varying(20) not null,

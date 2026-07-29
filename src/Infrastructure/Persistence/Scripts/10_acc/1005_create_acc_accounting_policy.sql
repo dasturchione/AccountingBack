@@ -1,4 +1,4 @@
-﻿create table acc_accounting_policy 
+create table acc_accounting_policy 
 (
     id smallint not null,
     code character varying(50) not null,

@@ -12,11 +12,11 @@ namespace Integration.GoogleDrive.Services;
 
 public class GoogleDriveUploader : IGoogleDriveUploader
 {
-    private readonly GoogleDriveSettings _settings;
+    private readonly GoogleDriveOptions _settings;
     private readonly ILogger<GoogleDriveUploader> _logger;
 
     public GoogleDriveUploader(
-        IOptions<GoogleDriveSettings> options,
+        IOptions<GoogleDriveOptions> options,
         ILogger<GoogleDriveUploader> logger)
     {
         _settings = options.Value;

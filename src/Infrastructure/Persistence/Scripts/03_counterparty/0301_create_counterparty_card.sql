@@ -20,6 +20,7 @@ create table counterparty_card
     is_vat_payer boolean default false not null,
     oked character varying(20),
     external_id character varying(100),
+    crpt_participant_id integer,
     constraint counterparty_card_pkey primary key (id),
     constraint counterparty_card_counterparty_type_id_fkey foreign key (counterparty_type_id) references cmn_counterparty_type(id),
     constraint counterparty_card_district_id_fkey foreign key (district_id) references cmn_district(id),

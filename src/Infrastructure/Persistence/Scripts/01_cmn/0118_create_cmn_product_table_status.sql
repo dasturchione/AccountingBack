@@ -1,4 +1,4 @@
-﻿create table cmn_product_table_status 
+create table cmn_product_table_status 
 (
     id smallint   not null,
     code character varying(50) not null,

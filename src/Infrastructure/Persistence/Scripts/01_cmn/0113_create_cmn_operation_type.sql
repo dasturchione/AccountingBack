@@ -1,4 +1,4 @@
-﻿create table cmn_operation_type 
+create table cmn_operation_type 
 (
     id smallint   not null,
     code character varying(50) not null,

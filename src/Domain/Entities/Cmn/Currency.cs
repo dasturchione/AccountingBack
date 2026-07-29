@@ -81,4 +81,7 @@ public partial class Currency
     [ForeignKey("StateId")]
     [InverseProperty("Currencies")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(CurrencyTranslation.Currency))]
+    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
 }

@@ -9,13 +9,13 @@ namespace Integration.Tax.Providers;
 
 public sealed class SoliqApiTaxProvider : TaxProviderBase, ITaxLookupProvider
 {
-    public SoliqApiTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationSettings> options, ILogger<SoliqApiTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
+    public SoliqApiTaxProvider(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IOptions<TaxIntegrationOptions> options, ILogger<SoliqApiTaxProvider> logger) : base(httpClientFactory, httpContextAccessor, options, logger) { }
 
     public override string Code => "SOLIQ_API";
 
     public override string Name => "Soliq API";
 
-    protected override TaxIntegrationSettings.ProviderSettings ResolveProviderSettings() => Settings.SoliqApi;
+    protected override TaxIntegrationOptions.ProviderOptions ResolveProviderSettings() => Settings.SoliqApi;
 
     public async Task<IReadOnlyCollection<TaxProviderLookupItemDto>> SearchAsync(TaxProviderLookupRequestDto request, CancellationToken ct = default)
     {

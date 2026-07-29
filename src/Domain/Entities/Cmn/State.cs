@@ -194,4 +194,7 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty(nameof(MxikCatalog.State))]
+    public virtual ICollection<MxikCatalog> MxikCatalogs { get; set; } = new List<MxikCatalog>();
 }

@@ -1,4 +1,4 @@
-﻿create table acc_subkonto_type 
+create table acc_subkonto_type 
 (
     id smallint   not null,
     code character varying(50) not null,

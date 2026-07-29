@@ -1,4 +1,4 @@
-﻿create table sys_role_module 
+create table sys_role_module 
 (
     role_id integer not null,
     module_id integer not null,

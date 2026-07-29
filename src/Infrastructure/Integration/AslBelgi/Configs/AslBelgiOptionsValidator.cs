@@ -31,6 +31,9 @@ public sealed partial class AslBelgiOptionsValidator : IValidateOptions<AslBelgi
             failures.Add("AslBelgi:Tin must contain either 9-digit TIN or 14-digit PINFL.");
         }
 
+        if (options.TimeoutSeconds <= 0)
+            failures.Add("AslBelgi:TimeoutSeconds must be greater than zero.");
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

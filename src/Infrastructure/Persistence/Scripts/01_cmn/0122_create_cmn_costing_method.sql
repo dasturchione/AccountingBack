@@ -1,4 +1,4 @@
-﻿create table cmn_costing_method 
+create table cmn_costing_method 
 (
     id smallint   not null,
     code character varying(50) not null,

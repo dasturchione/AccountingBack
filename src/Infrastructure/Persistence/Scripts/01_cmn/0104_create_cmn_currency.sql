@@ -1,4 +1,4 @@
-﻿create table cmn_currency 
+create table cmn_currency 
 (
     id smallint   not null,
     code character varying(10) not null,

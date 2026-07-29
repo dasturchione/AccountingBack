@@ -1,4 +1,4 @@
-﻿create table acc_account_type 
+create table acc_account_type 
 (
     id smallint   not null,
     code character varying(50) not null,
@@ -9,8 +9,8 @@
     constraint acc_account_type_state_id_fkey foreign key (state_id) references cmn_state(id)
 );
 
-create unique index idx_acc_account_type_code 
-    on acc_account_type using btree (code);
+create unique index idx_acc_account_type_code on acc_account_type using btree (code);
+create index idx_acc_account_type_state_id on acc_account_type using btree (state_id);
 
 insert into acc_account_type (id, code, name, state_id) values
     ('1', 'active',             'Aktiv',                '1'),

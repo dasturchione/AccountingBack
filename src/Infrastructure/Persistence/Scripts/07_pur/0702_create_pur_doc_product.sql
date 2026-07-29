@@ -10,15 +10,21 @@ create table pur_doc_product
     vat_amount numeric(24,8) not null,
     total_amount numeric(24,8) not null,
     unit_price numeric(24,8) not null,
+    debit_account_id integer,
+    vat_account_id integer,
     constraint pur_doc_product_pkey primary key (id),
     constraint pur_doc_product_owner_id_fkey foreign key (owner_id) references pur_doc(id),
     constraint pur_doc_product_product_id_fkey foreign key (product_id) references inv_product(id),
     constraint pur_doc_product_unit_id_fkey foreign key (unit_id) references cmn_unit(id),
-    constraint pur_doc_product_vat_rate_id_fkey foreign key (vat_rate_id) references cmn_vat_rate(id)
+    constraint pur_doc_product_vat_rate_id_fkey foreign key (vat_rate_id) references cmn_vat_rate(id),
+    constraint pur_doc_product_debit_account_id_fkey foreign key (debit_account_id) references acc_chart_account(id),
+    constraint pur_doc_product_vat_account_id_fkey foreign key (vat_account_id) references acc_chart_account(id)
 );
 
 create index ix_pur_doc_product_owner_id on pur_doc_product using btree (owner_id);
 create index ix_pur_doc_product_product_id on pur_doc_product using btree (product_id) WHERE (product_id IS not null);
+create index idx_pur_doc_product_debit_account_id on pur_doc_product (debit_account_id);
+create index idx_pur_doc_product_vat_account_id on pur_doc_product (vat_account_id);
 
 insert into pur_doc_product (id, owner_id, product_id, quantity, unit_id, amount, vat_rate_id, vat_amount, total_amount, unit_price) values
     ('14', '92', '23', '4.000000', '1', '40000.00000000', '2', '4800.00000000', '44800.00000000', '10000.00000000'),

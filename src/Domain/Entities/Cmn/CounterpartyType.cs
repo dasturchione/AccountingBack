@@ -29,4 +29,7 @@ public partial class CounterpartyType
     [ForeignKey("StateId")]
     [InverseProperty("CounterpartyTypes")]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(CounterpartyTypeTranslation.CounterpartyType))]
+    public virtual ICollection<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; } = new List<CounterpartyTypeTranslation>();
 }

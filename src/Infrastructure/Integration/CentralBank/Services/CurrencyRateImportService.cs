@@ -17,7 +17,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
     private readonly ICommandRepository<CurrencyRate> _rateCommand;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IReadOnlyCollection<ICurrencyRateProvider> _providers;
-    private readonly CentralBankSettings _settings;
+    private readonly CentralBankOptions _settings;
     private readonly ILogger<CurrencyRateImportService> _logger;
     private CurrencyRateImportResultDto? _lastStatus;
 
@@ -27,7 +27,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         ICommandRepository<CurrencyRate> rateCommand,
         IUnitOfWork unitOfWork,
         IEnumerable<ICurrencyRateProvider> providers,
-        IOptions<CentralBankSettings> settings,
+        IOptions<CentralBankOptions> settings,
         ILogger<CurrencyRateImportService> logger)
     {
         _currencyQuery = currencyQuery;

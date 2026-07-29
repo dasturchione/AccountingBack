@@ -33,4 +33,7 @@ public partial class ContractType
     [ForeignKey("StateId")]
     [InverseProperty(nameof(State.ContractTypes))]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(ContractTypeTranslation.ContractType))]
+    public virtual ICollection<ContractTypeTranslation> ContractTypeTranslations { get; set; } = new List<ContractTypeTranslation>();
 }

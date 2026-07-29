@@ -94,6 +94,9 @@ public partial class AccChartAccount
     [InverseProperty("OffsetAccount")]
     public virtual ICollection<CashOperation> CashOperationOffsetAccounts { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("DebitAccount")]
+    public virtual ICollection<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; } = new List<InvOpeningInventoryProduct>();
+
     [InverseProperty("Parent")]
     public virtual ICollection<AccChartAccount> InverseParent { get; set; } = new List<AccChartAccount>();
 

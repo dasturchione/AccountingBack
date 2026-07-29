@@ -1,16 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_contract")]
-[Index("ContractDate", Name = "idx_cmn_contract_contract_date")]
-[Index("ContractTypeId", Name = "idx_cmn_contract_contract_type_id")]
-[Index("CounterpartyId", Name = "idx_cmn_contract_counterparty_id")]
-[Index("OrganizationId", "CounterpartyId", "ContractNumber", Name = "idx_cmn_contract_number", IsUnique = true)]
-[Index("OrganizationId", Name = "idx_cmn_contract_organization_id")]
-[Index("StateId", Name = "idx_cmn_contract_state_id")]
 public partial class Contract
 {
     [Key]
@@ -69,6 +62,9 @@ public partial class Contract
 
     [InverseProperty("Contract")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(OpeningInventory.Contract))]
+    public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
 
     [ForeignKey("StateId")]
     [InverseProperty("Contracts")]

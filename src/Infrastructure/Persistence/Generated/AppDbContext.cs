@@ -14,6 +14,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccAccountType> AccAccountTypes { get; set; }
 
+    public virtual DbSet<AccAccountTypeTranslation> AccAccountTypeTranslations { get; set; }
+
     public virtual DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
 
     public virtual DbSet<AccAccountingPolicy> AccAccountingPolicies { get; set; }
@@ -74,9 +76,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnContractType> CmnContractTypes { get; set; }
 
+    public virtual DbSet<CmnContractTypeTranslation> CmnContractTypeTranslations { get; set; }
+
     public virtual DbSet<CmnCostingMethod> CmnCostingMethods { get; set; }
 
+    public virtual DbSet<CmnCostingMethodTranslation> CmnCostingMethodTranslations { get; set; }
+
     public virtual DbSet<CmnCounterpartyType> CmnCounterpartyTypes { get; set; }
+
+    public virtual DbSet<CmnCounterpartyTypeTranslation> CmnCounterpartyTypeTranslations { get; set; }
 
     public virtual DbSet<CmnCurrency> CmnCurrencies { get; set; }
 
@@ -86,13 +94,19 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLines { get; set; }
 
+    public virtual DbSet<CmnCurrencyTranslation> CmnCurrencyTranslations { get; set; }
+
     public virtual DbSet<CmnDistrict> CmnDistricts { get; set; }
 
     public virtual DbSet<CmnDocumentSequence> CmnDocumentSequences { get; set; }
 
     public virtual DbSet<CmnDocumentStatus> CmnDocumentStatuses { get; set; }
 
+    public virtual DbSet<CmnDocumentStatusTranslation> CmnDocumentStatusTranslations { get; set; }
+
     public virtual DbSet<CmnDocumentType> CmnDocumentTypes { get; set; }
+
+    public virtual DbSet<CmnDocumentTypeTranslation> CmnDocumentTypeTranslations { get; set; }
 
     public virtual DbSet<CmnFaAssetStatus> CmnFaAssetStatuses { get; set; }
 
@@ -112,7 +126,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnOperationType> CmnOperationTypes { get; set; }
 
+    public virtual DbSet<CmnOperationTypeTranslation> CmnOperationTypeTranslations { get; set; }
+
     public virtual DbSet<CmnPaymentType> CmnPaymentTypes { get; set; }
+
+    public virtual DbSet<CmnPaymentTypeTranslation> CmnPaymentTypeTranslations { get; set; }
 
     public virtual DbSet<CmnPriceRoundingMethod> CmnPriceRoundingMethods { get; set; }
 
@@ -181,6 +199,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InvInventoryCountDocTable> InvInventoryCountDocTables { get; set; }
 
     public virtual DbSet<InvInventoryCountLine> InvInventoryCountLines { get; set; }
+
+    public virtual DbSet<InvOpeningInventory> InvOpeningInventories { get; set; }
+
+    public virtual DbSet<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; }
+
+    public virtual DbSet<InvOpeningInventoryTable> InvOpeningInventoryTables { get; set; }
 
     public virtual DbSet<InvProduct> InvProducts { get; set; }
 
@@ -306,6 +330,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.AccAccountTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("acc_account_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<AccAccountTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.AccountTypeId, e.LanguageId }).HasName("acc_account_type_translation_pkey");
+
+            entity.HasOne(d => d.AccountType).WithMany(p => p.AccAccountTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_account_type_translation_account_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.AccAccountTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("acc_account_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<AccAccountingPeriod>(entity =>
@@ -811,11 +848,37 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_contract_type_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnContractTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.ContractTypeId, e.LanguageId }).HasName("cmn_contract_type_translation_pkey");
+
+            entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContractTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_type_translation_contract_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnContractTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_contract_type_translation_language_id_fkey");
+        });
+
         modelBuilder.Entity<CmnCostingMethod>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_costing_method_pkey");
 
             entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<CmnCostingMethodTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.CostingMethodId, e.LanguageId }).HasName("cmn_costing_method_translation_pkey");
+
+            entity.HasOne(d => d.CostingMethod).WithMany(p => p.CmnCostingMethodTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_costing_method_translation_costing_method_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnCostingMethodTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_costing_method_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<CmnCounterpartyType>(entity =>
@@ -827,6 +890,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnCounterpartyTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_counterparty_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnCounterpartyTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.CounterpartyTypeId, e.LanguageId }).HasName("cmn_counterparty_type_translation_pkey");
+
+            entity.HasOne(d => d.CounterpartyType).WithMany(p => p.CmnCounterpartyTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_counterparty_type_translation_counterparty_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnCounterpartyTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_counterparty_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<CmnCurrency>(entity =>
@@ -899,6 +975,19 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_currency_revaluation_line_target_currency_id_fkey");
         });
 
+        modelBuilder.Entity<CmnCurrencyTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.CurrencyId, e.LanguageId }).HasName("cmn_currency_translation_pkey");
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.CmnCurrencyTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_currency_translation_currency_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnCurrencyTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_currency_translation_language_id_fkey");
+        });
+
         modelBuilder.Entity<CmnDistrict>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_district_pkey");
@@ -927,6 +1016,19 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_document_status_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnDocumentStatusTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.DocumentStatusId, e.LanguageId }).HasName("cmn_document_status_translation_pkey");
+
+            entity.HasOne(d => d.DocumentStatus).WithMany(p => p.CmnDocumentStatusTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_status_translation_document_status_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnDocumentStatusTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_status_translation_language_id_fkey");
+        });
+
         modelBuilder.Entity<CmnDocumentType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_document_type_pkey");
@@ -937,6 +1039,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnDocumentTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_document_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnDocumentTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.DocumentTypeId, e.LanguageId }).HasName("cmn_document_type_translation_pkey");
+
+            entity.HasOne(d => d.DocumentType).WithMany(p => p.CmnDocumentTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_type_translation_document_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnDocumentTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<CmnFaAssetStatus>(entity =>
@@ -1043,6 +1158,19 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_operation_type_state_id_fkey");
         });
 
+        modelBuilder.Entity<CmnOperationTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.OperationTypeId, e.LanguageId }).HasName("cmn_operation_type_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnOperationTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_operation_type_translation_language_id_fkey");
+
+            entity.HasOne(d => d.OperationType).WithMany(p => p.CmnOperationTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_operation_type_translation_operation_type_id_fkey");
+        });
+
         modelBuilder.Entity<CmnPaymentType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_payment_type_pkey");
@@ -1052,6 +1180,19 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnPaymentTypes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_payment_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnPaymentTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.PaymentTypeId, e.LanguageId }).HasName("cmn_payment_type_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnPaymentTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_payment_type_translation_language_id_fkey");
+
+            entity.HasOne(d => d.PaymentType).WithMany(p => p.CmnPaymentTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_payment_type_translation_payment_type_id_fkey");
         });
 
         modelBuilder.Entity<CmnPriceRoundingMethod>(entity =>
@@ -1669,6 +1810,73 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Unit).WithMany(p => p.InvInventoryCountLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_inventory_count_line_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.InvOpeningInventoryCancelledByUsers).HasConstraintName("inv_opening_inventory_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.Contract).WithMany(p => p.InvOpeningInventories).HasConstraintName("inv_opening_inventory_contract_id_fkey");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_counterparty_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.InvOpeningInventoryPostedByUsers).HasConstraintName("inv_opening_inventory_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_status_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvOpeningInventories)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventoryProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_product_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.DebitAccount).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_debit_account_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvOpeningInventoryProducts).HasConstraintName("inv_opening_inventory_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.InvOpeningInventoryProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_product_unit_id_fkey");
+        });
+
+        modelBuilder.Entity<InvOpeningInventoryTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("inv_opening_inventory_table_pkey");
+
+            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.InvOpeningInventoryTables).HasConstraintName("inv_opening_inventory_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvOpeningInventoryTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_opening_inventory_table_product_table_id_fkey");
         });
 
         modelBuilder.Entity<InvProduct>(entity =>

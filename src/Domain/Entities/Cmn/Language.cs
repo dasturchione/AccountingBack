@@ -43,6 +43,27 @@ public partial class Language
     [InverseProperty(nameof(DocumentAccountRoleTranslation.Language))]
     public virtual ICollection<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; } = new List<DocumentAccountRoleTranslation>();
 
+    [InverseProperty(nameof(AccountTypeTranslation.Language))]
+    public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
+
+    [InverseProperty(nameof(CurrencyTranslation.Language))]
+    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
+
+    [InverseProperty(nameof(DocumentStatusTranslation.Language))]
+    public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
+
+    [InverseProperty(nameof(DocumentTypeTranslation.Language))]
+    public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
+
+    [InverseProperty(nameof(OperationTypeTranslation.Language))]
+    public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
+
+    [InverseProperty(nameof(CostingMethodTranslation.Language))]
+    public virtual ICollection<CostingMethodTranslation> CostingMethodTranslations { get; set; } = new List<CostingMethodTranslation>();
+
+    [InverseProperty(nameof(ContractTypeTranslation.Language))]
+    public virtual ICollection<ContractTypeTranslation> ContractTypeTranslations { get; set; } = new List<ContractTypeTranslation>();
+
     [InverseProperty(nameof(DocumentAccountTypeTranslation.Language))]
     public virtual ICollection<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; } = new List<DocumentAccountTypeTranslation>();
 

@@ -27,6 +27,9 @@ public partial class OperationType
     [InverseProperty("OperationType")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
+    [InverseProperty(nameof(OperationTypeTranslation.OperationType))]
+    public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
+
     [InverseProperty("OperationType")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 

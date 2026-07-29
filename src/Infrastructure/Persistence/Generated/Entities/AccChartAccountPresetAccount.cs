@@ -63,6 +63,10 @@ public partial class AccChartAccountPresetAccount
     [Column("is_group")]
     public bool IsGroup { get; set; }
 
+    [Column("name")]
+    [StringLength(255)]
+    public string Name { get; set; } = null!;
+
     [ForeignKey("PresetId, ParentPresetAccountId")]
     [InverseProperty("InverseAccChartAccountPresetAccountNavigation")]
     public virtual AccChartAccountPresetAccount? AccChartAccountPresetAccountNavigation { get; set; }

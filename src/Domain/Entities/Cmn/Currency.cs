@@ -30,6 +30,9 @@ public partial class Currency
     [InverseProperty(nameof(OpeningBalanceAccountDetail.Currency))]
     public virtual ICollection<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; } = new List<OpeningBalanceAccountDetail>();
 
+    [InverseProperty(nameof(CurrencyTranslation.Currency))]
+    public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
+
     [InverseProperty("Currency")]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 

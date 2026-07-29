@@ -57,6 +57,9 @@ public partial class CmnCurrency
     public virtual ICollection<CmnCurrencyRevaluationLine> CmnCurrencyRevaluationLineTargetCurrencies { get; set; } = new List<CmnCurrencyRevaluationLine>();
 
     [InverseProperty("Currency")]
+    public virtual ICollection<CmnCurrencyTranslation> CmnCurrencyTranslations { get; set; } = new List<CmnCurrencyTranslation>();
+
+    [InverseProperty("Currency")]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
     [InverseProperty("Currency")]

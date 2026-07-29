@@ -175,6 +175,9 @@ public partial class CmnState
     public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocs { get; set; } = new List<InvInventoryCountDoc>();
 
     [InverseProperty("State")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
+
+    [InverseProperty("State")]
     public virtual ICollection<InvProductGroup> InvProductGroups { get; set; } = new List<InvProductGroup>();
 
     [InverseProperty("State")]

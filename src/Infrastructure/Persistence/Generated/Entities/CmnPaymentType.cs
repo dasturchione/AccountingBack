@@ -31,6 +31,9 @@ public partial class CmnPaymentType
     [InverseProperty("PaymentType")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("PaymentType")]
+    public virtual ICollection<CmnPaymentTypeTranslation> CmnPaymentTypeTranslations { get; set; } = new List<CmnPaymentTypeTranslation>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnPaymentTypes")]
     public virtual CmnState State { get; set; } = null!;

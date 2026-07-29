@@ -117,6 +117,9 @@ public partial class CounterpartyCard
     [InverseProperty("Counterparty")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 
+    [InverseProperty("Counterparty")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
+
     [InverseProperty("BuyerCounterparty")]
     public virtual ICollection<MarkingTransfer> MarkingTransferBuyerCounterparties { get; set; } = new List<MarkingTransfer>();
 

@@ -640,4 +640,33 @@ public static class PermissionCodeConst
     public const string UserUpdate     = "USER_UPDATE";
     public const string UserDelete     = "USER_DELETE";
     #endregion
+
+    #region Payroll
+    public const string PayrollView             = "PAYROLL_VIEW";
+    public const string PayrollEmployeeView     = "PAYROLL_EMPLOYEE_VIEW";
+    public const string PayrollEmployeeCreate   = "PAYROLL_EMPLOYEE_CREATE";
+    public const string PayrollEmployeeUpdate   = "PAYROLL_EMPLOYEE_UPDATE";
+    public const string PayrollEmployeeDelete   = "PAYROLL_EMPLOYEE_DELETE";
+    public const string PayrollComponentView    = "PAYROLL_COMPONENT_VIEW";
+    public const string PayrollComponentCreate  = "PAYROLL_COMPONENT_CREATE";
+    public const string PayrollComponentUpdate  = "PAYROLL_COMPONENT_UPDATE";
+    public const string PayrollComponentDelete  = "PAYROLL_COMPONENT_DELETE";
+    public const string PayrollPeriodView       = "PAYROLL_PERIOD_VIEW";
+    public const string PayrollPeriodManage     = "PAYROLL_PERIOD_MANAGE";
+    public const string PayrollTimesheetView    = "PAYROLL_TIMESHEET_VIEW";
+    public const string PayrollTimesheetCreate  = "PAYROLL_TIMESHEET_CREATE";
+    public const string PayrollTimesheetUpdate  = "PAYROLL_TIMESHEET_UPDATE";
+    public const string PayrollTimesheetConfirm = "PAYROLL_TIMESHEET_CONFIRM";
+    public const string PayrollTimesheetCancel  = "PAYROLL_TIMESHEET_CANCEL";
+    public const string PayrollDocumentView     = "PAYROLL_DOCUMENT_VIEW";
+    public const string PayrollDocumentCalculate = "PAYROLL_DOCUMENT_CALCULATE";
+    public const string PayrollDocumentConfirm  = "PAYROLL_DOCUMENT_CONFIRM";
+    public const string PayrollDocumentCancel   = "PAYROLL_DOCUMENT_CANCEL";
+    public const string PayrollDocumentDelete   = "PAYROLL_DOCUMENT_DELETE";
+    public const string PayrollPaymentView      = "PAYROLL_PAYMENT_VIEW";
+    public const string PayrollPaymentCreate    = "PAYROLL_PAYMENT_CREATE";
+    public const string PayrollPaymentConfirm   = "PAYROLL_PAYMENT_CONFIRM";
+    public const string PayrollPaymentCancel    = "PAYROLL_PAYMENT_CANCEL";
+    public const string PayrollReportView       = "PAYROLL_REPORT_VIEW";
+    #endregion
 }

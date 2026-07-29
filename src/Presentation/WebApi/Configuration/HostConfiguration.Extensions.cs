@@ -15,7 +15,6 @@ using Npgsql;
 using Quartz;
 using Serilog;
 using Serilog.Events;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -137,30 +136,23 @@ namespace WebApi.Configuration
             var isProduction = environment.IsProduction();
             if (isProduction)
             {
-                var productionKeyPath = RequiredExternalSetting(builder.Configuration, "DataProtection:KeysPath");
-                var certificatePath = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePath");
-                var certificatePassword = RequiredExternalSetting(builder.Configuration, "DataProtection:EncryptionCertificatePassword");
+                var productionKeyPath = RequiredProductionSetting(builder.Configuration, "DataProtection:KeysPath");
 
                 if (!Path.IsPathRooted(productionKeyPath))
                     throw new InvalidOperationException("DataProtection:KeysPath must be an absolute production path.");
 
                 try
                 {
-                    Directory.CreateDirectory(productionKeyPath);
-                    var certificate = X509CertificateLoader.LoadPkcs12FromFile(
-                        certificatePath,
-                        certificatePassword,
-                        X509KeyStorageFlags.EphemeralKeySet);
+                    var directoryInfo = EnsureDataProtectionKeyDirectory(productionKeyPath);
 
                     builder.Services.AddDataProtection()
-                        .PersistKeysToFileSystem(new DirectoryInfo(productionKeyPath))
-                        .ProtectKeysWithCertificate(certificate)
+                        .PersistKeysToFileSystem(directoryInfo)
                         .SetApplicationName("accounting-back");
                 }
                 catch (Exception)
                 {
-                    // Production must fail closed. Do not log paths, certificate details or
-                    // exception text because they can disclose deployment secrets.
+                    // Production must fail closed. Do not log the configured path or exception
+                    // text because they can disclose deployment details.
                     throw new InvalidOperationException("Production DataProtection key-ring initialization failed.");
                 }
 
@@ -186,12 +178,10 @@ namespace WebApi.Configuration
                     keyDirectory = Path.GetFullPath(Path.Combine(environment.ContentRootPath, keyDirectory));
                 }
 
-                Directory.CreateDirectory(keyDirectory);
-
-                var directoryInfo = new DirectoryInfo(keyDirectory);
+                var directoryInfo = EnsureDataProtectionKeyDirectory(keyDirectory);
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(directoryInfo)
-                .SetApplicationName("accounting-back");
+                    .SetApplicationName("accounting-back");
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
             {
@@ -199,6 +189,24 @@ namespace WebApi.Configuration
             }
 
             return builder;
+        }
+
+        private static DirectoryInfo EnsureDataProtectionKeyDirectory(string path)
+        {
+            const UnixFileMode ownerOnly =
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+
+            if (OperatingSystem.IsLinux())
+            {
+                Directory.CreateDirectory(path, ownerOnly);
+                File.SetUnixFileMode(path, ownerOnly);
+            }
+            else
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return new DirectoryInfo(path);
         }
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
@@ -409,8 +417,8 @@ namespace WebApi.Configuration
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
-                foreach (var key in ProductionExternalSecretKeys)
-                    _ = RequiredExternalSetting(configuration, key);
+                foreach (var key in ProductionRequiredSettingKeys)
+                    _ = RequiredProductionSetting(configuration, key);
 
                 foreach (var key in ForbiddenGlobalProviderSecretKeys)
                 {
@@ -423,7 +431,7 @@ namespace WebApi.Configuration
             }
         }
 
-        private static readonly string[] ProductionExternalSecretKeys =
+        private static readonly string[] ProductionRequiredSettingKeys =
         [
             "ConnectionStrings:Default",
             "Jwt:Key",
@@ -433,7 +441,8 @@ namespace WebApi.Configuration
             "Email:Password",
             "EImzo:CertificatePassword",
             "EImzo:CertificatePath",
-            "TaxIntegration:Didox:PartnerToken"
+            "TaxIntegration:Didox:PartnerToken",
+            "DataProtection:KeysPath"
         ];
 
         private static readonly string[] ForbiddenGlobalProviderSecretKeys =
@@ -468,37 +477,17 @@ namespace WebApi.Configuration
                 || value.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("YOUR-", StringComparison.OrdinalIgnoreCase)
+                || value.Contains("REAL_TOKEN", StringComparison.OrdinalIgnoreCase)
                 || value.Contains("EXAMPLE", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string RequiredExternalSetting(ConfigurationManager configuration, string key)
+        private static string RequiredProductionSetting(ConfigurationManager configuration, string key)
         {
             var value = configuration[key];
-            if (IsPlaceholderValue(value) || !IsExternalConfigurationValue(configuration, key))
-                throw new InvalidOperationException($"{key} must be supplied by the production environment or secret store.");
+            if (IsPlaceholderValue(value))
+                throw new InvalidOperationException($"{key} is not configured with a real value.");
 
             return value!.Trim();
-        }
-
-        private static bool IsExternalConfigurationValue(ConfigurationManager configuration, string key)
-        {
-            if (configuration is not IConfigurationRoot root)
-                return false;
-
-            foreach (var provider in root.Providers.Reverse())
-            {
-                if (!provider.TryGet(key, out var value) || string.IsNullOrWhiteSpace(value))
-                    continue;
-
-                var providerName = provider.GetType().FullName ?? provider.GetType().Name;
-                return providerName.Contains("EnvironmentVariables", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("UserSecrets", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("KeyVault", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("Vault", StringComparison.OrdinalIgnoreCase)
-                    || providerName.Contains("KeyPerFile", StringComparison.OrdinalIgnoreCase);
-            }
-
-            return false;
         }
 
         private static WebApplicationBuilder AddJwtToken(this WebApplicationBuilder builder)

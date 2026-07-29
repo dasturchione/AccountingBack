@@ -1,6 +1,7 @@
 ﻿using Application.Abstractions;
 using Application.Features.CashOperations;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Text.Json;
@@ -12,17 +13,20 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
+    private readonly IQueryRepository<PayPaymentBatch> _payrollPaymentQuery;
     private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
     public CashOperationContextBuilder(
         IQueryBuilder queryBuilder,
         IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
+        IQueryRepository<PayPaymentBatch> payrollPaymentQuery,
         IOrganizationAccountingPolicyResolver accountingPolicyResolver)
     {
         _queryBuilder = queryBuilder;
         _paymentTypeQuery = paymentTypeQuery;
         _counterpartyQuery = counterpartyQuery;
+        _payrollPaymentQuery = payrollPaymentQuery;
         _accountingPolicyResolver = accountingPolicyResolver;
     }
 
@@ -30,6 +34,10 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
     {
         var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
         var paymentMethod = await GetPaymentMethodAsync(document.PaymentTypeId);
+        var payrollPayment = await GetPayrollPaymentAsync(document.Id);
+        if (payrollPayment is not null)
+            return BuildPayrollPaymentContexts(document, payrollPayment, paymentMethod, accountingPolicyId);
+
         var context = new PostingContext
         {
             OrganizationId = document.OrganizationId,
@@ -53,34 +61,100 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
     }
 
     private static PostingEntryContext BuildEntry(CashOperation document, string paymentMethod) =>
+        BuildEntry(document, paymentMethod, document.Amount, null);
+
+    private static PostingEntryContext BuildEntry(
+        CashOperation document,
+        string paymentMethod,
+        decimal amount,
+        long? sourceLineId) =>
         document.OperationTypeId switch
         {
             OperationTypeIdConst.IN => new PostingEntryContext
             {
                 DebitAccountId = document.CashChartAccountId,
                 CreditAccountId = document.OffsetAccountId,
-                Amount = document.Amount,
-                Content = paymentMethod
+                Amount = amount,
+                Content = paymentMethod,
+                SourceLineId = sourceLineId
             },
             OperationTypeIdConst.OUT => new PostingEntryContext
             {
                 DebitAccountId = document.OffsetAccountId,
                 CreditAccountId = document.CashChartAccountId,
-                Amount = document.Amount,
-                Content = paymentMethod
+                Amount = amount,
+                Content = paymentMethod,
+                SourceLineId = sourceLineId
             },
             OperationTypeIdConst.TRANSFER => new PostingEntryContext
             {
                 DebitAccountId = document.OffsetAccountId,
                 CreditAccountId = document.CashChartAccountId,
-                Amount = document.Amount,
-                Content = RegisterDefaultsConst.CashOperation
+                Amount = amount,
+                Content = RegisterDefaultsConst.CashOperation,
+                SourceLineId = sourceLineId
             },
             _ => throw new ArgumentOutOfRangeException(
                 nameof(document.OperationTypeId),
                 document.OperationTypeId,
                 "Unsupported cash operation type for accounting posting.")
         };
+
+    private static List<PostingContext> BuildPayrollPaymentContexts(
+        CashOperation document,
+        PayPaymentBatch payment,
+        string paymentMethod,
+        short accountingPolicyId)
+    {
+        ValidatePayrollPayment(document, payment);
+
+        return payment.Lines
+            .Where(line => line.Amount != 0m)
+            .Select(line =>
+            {
+                var context = new PostingContext
+                {
+                    OrganizationId = document.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.CASHOPERATION,
+                    AccountingPolicyId = accountingPolicyId,
+                    DocumentId = document.Id,
+                    SourceLineId = line.Id,
+                    CurrencyId = document.CurrencyId,
+                    DocDate = document.DocDate,
+                    JournalNumber = document.DocNumber,
+                    Entries = new List<PostingEntryContext>
+                    {
+                        BuildEntry(document, paymentMethod, line.Amount, line.Id)
+                    },
+                    Subkontos = new List<SubkontoValue>()
+                };
+
+                AddAmountSubkonto(context, document);
+                context.Subkontos.Add(new SubkontoValue
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.OrganizationEmployees,
+                    EntityId = line.EmployeeId,
+                    DisplayValue = $"{line.Employee.EmployeeNumber} - {line.Employee.LastName} {line.Employee.FirstName}",
+                    SortOrder = 3,
+                    AppliesToAccountId = document.OffsetAccountId
+                });
+                return context;
+            })
+            .ToList();
+    }
+
+    private static void ValidatePayrollPayment(CashOperation operation, PayPaymentBatch payment)
+    {
+        if (payment.OrganizationId != operation.OrganizationId ||
+            payment.CurrencyId != operation.CurrencyId ||
+            payment.SourceType != PayrollPaymentSourceConst.Cash ||
+            payment.TotalAmount != operation.Amount ||
+            payment.Lines.Sum(line => line.Amount) != operation.Amount)
+        {
+            throw new InvalidOperationException(
+                $"Payroll payment {payment.Id} does not match cash operation {operation.Id}.");
+        }
+    }
 
     private static void AddAmountSubkonto(PostingContext context, CashOperation document)
     {
@@ -170,5 +244,16 @@ public class CashOperationContextBuilder : IPostingContextBuilder<CashOperation>
 
         var name = await _counterpartyQuery.GetAsync(query);
         return name ?? string.Empty;
+    }
+
+    private async Task<PayPaymentBatch?> GetPayrollPaymentAsync(long cashOperationId)
+    {
+        var query = _queryBuilder.For<PayPaymentBatch>()
+            .Where(payment =>
+                payment.CashOperationId == cashOperationId &&
+                payment.StateId == StateIdConst.ACTIVE)
+            .Build();
+        query.AddIncludes(x => x.Include(payment => payment.Lines).ThenInclude(line => line.Employee));
+        return await _payrollPaymentQuery.GetAsync(query);
     }
 }

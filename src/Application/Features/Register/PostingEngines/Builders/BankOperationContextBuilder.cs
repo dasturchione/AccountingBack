@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Text.Json;
@@ -15,6 +16,7 @@ public class BankOperationContextBuilder :
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
+    private readonly IQueryRepository<PayPaymentBatch> _payrollPaymentQuery;
     private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
     public BankOperationContextBuilder(
@@ -23,6 +25,7 @@ public class BankOperationContextBuilder :
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
+        IQueryRepository<PayPaymentBatch> payrollPaymentQuery,
         IOrganizationAccountingPolicyResolver accountingPolicyResolver)
     {
         _queryBuilder = queryBuilder;
@@ -30,6 +33,7 @@ public class BankOperationContextBuilder :
         _bankAccountQuery = bankAccountQuery;
         _paymentTypeQuery = paymentTypeQuery;
         _counterpartyQuery = counterpartyQuery;
+        _payrollPaymentQuery = payrollPaymentQuery;
         _accountingPolicyResolver = accountingPolicyResolver;
     }
 
@@ -65,6 +69,7 @@ public class BankOperationContextBuilder :
         var counterpartyMap = await GetCounterpartyMapAsync(counterpartyIds);
         var contractMap = await GetContractMapAsync(contractIds);
         var paymentTypeMap = await GetPaymentTypeMapAsync(paymentTypeIds);
+        var payrollPaymentMap = await GetPayrollPaymentMapAsync(documents.Select(x => x.Id).ToList());
         var accountingPolicyMap = new Dictionary<int, short>();
         foreach (var organizationId in documents.Select(operation => operation.OrganizationId).Distinct())
             accountingPolicyMap[organizationId] = await _accountingPolicyResolver.ResolveAsync(organizationId);
@@ -73,6 +78,19 @@ public class BankOperationContextBuilder :
         {
             if (operation.Amount == 0)
                 continue;
+
+            if (payrollPaymentMap.TryGetValue(operation.Id, out var payrollPayment))
+            {
+                result.AddRange(BuildPayrollPaymentContexts(
+                    operation,
+                    payrollPayment,
+                    paymentTypeMap,
+                    bankAccountMap,
+                    counterpartyMap,
+                    contractMap,
+                    accountingPolicyMap[operation.OrganizationId]));
+                continue;
+            }
 
             result.Add(new PostingContext
             {
@@ -96,6 +114,13 @@ public class BankOperationContextBuilder :
     }
 
     private static PostingEntryContext BuildEntry(BankOperation operation, Dictionary<short, string> paymentTypeMap)
+        => BuildEntry(operation, paymentTypeMap, operation.Amount, null);
+
+    private static PostingEntryContext BuildEntry(
+        BankOperation operation,
+        Dictionary<short, string> paymentTypeMap,
+        decimal amount,
+        long? sourceLineId)
     {
         var content = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap);
 
@@ -105,21 +130,81 @@ public class BankOperationContextBuilder :
             {
                 DebitAccountId = operation.BankChartAccountId,
                 CreditAccountId = operation.OffsetAccountId,
-                Amount = operation.Amount,
-                Content = content
+                Amount = amount,
+                Content = content,
+                SourceLineId = sourceLineId
             },
             OperationTypeIdConst.OUT => new PostingEntryContext
             {
                 DebitAccountId = operation.OffsetAccountId,
                 CreditAccountId = operation.BankChartAccountId,
-                Amount = operation.Amount,
-                Content = content
+                Amount = amount,
+                Content = content,
+                SourceLineId = sourceLineId
             },
             _ => throw new ArgumentOutOfRangeException(
                 nameof(operation.OperationTypeId),
                 operation.OperationTypeId,
                 "Unsupported bank operation type for accounting posting.")
         };
+    }
+
+    private static List<PostingContext> BuildPayrollPaymentContexts(
+        BankOperation operation,
+        PayPaymentBatch payment,
+        Dictionary<short, string> paymentTypeMap,
+        Dictionary<int, string> bankAccountMap,
+        Dictionary<int, string> counterpartyMap,
+        Dictionary<long, (string Number, DateTime Date)> contractMap,
+        short accountingPolicyId)
+    {
+        ValidatePayrollPayment(operation, payment);
+
+        return payment.Lines
+            .Where(line => line.Amount != 0m)
+            .Select(line =>
+            {
+                var subkontos = BuildSubkontos(operation, bankAccountMap, counterpartyMap, contractMap);
+                subkontos.Add(new SubkontoValue
+                {
+                    SubkontoTypeId = SubkontoTypeIdConst.OrganizationEmployees,
+                    EntityId = line.EmployeeId,
+                    DisplayValue = $"{line.Employee.EmployeeNumber} - {line.Employee.LastName} {line.Employee.FirstName}",
+                    SortOrder = 3,
+                    AppliesToAccountId = operation.OffsetAccountId
+                });
+
+                return new PostingContext
+                {
+                    OrganizationId = operation.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.BANKOPERATION,
+                    AccountingPolicyId = accountingPolicyId,
+                    DocumentId = operation.Id,
+                    SourceLineId = line.Id,
+                    DocDate = operation.DocDate,
+                    CurrencyId = operation.CurrencyId,
+                    JournalNumber = operation.DocNumber,
+                    Entries = new List<PostingEntryContext>
+                    {
+                        BuildEntry(operation, paymentTypeMap, line.Amount, line.Id)
+                    },
+                    Subkontos = subkontos
+                };
+            })
+            .ToList();
+    }
+
+    private static void ValidatePayrollPayment(BankOperation operation, PayPaymentBatch payment)
+    {
+        if (payment.OrganizationId != operation.OrganizationId ||
+            payment.CurrencyId != operation.CurrencyId ||
+            payment.SourceType != PayrollPaymentSourceConst.Bank ||
+            payment.TotalAmount != operation.Amount ||
+            payment.Lines.Sum(line => line.Amount) != operation.Amount)
+        {
+            throw new InvalidOperationException(
+                $"Payroll payment {payment.Id} does not match bank operation {operation.Id}.");
+        }
     }
 
     private static string ResolvePaymentMethod(short? paymentTypeId, Dictionary<short, string> paymentTypeMap) =>
@@ -257,6 +342,23 @@ public class BankOperationContextBuilder :
 
         var items = await _paymentTypeQuery.GetAllAsync(query);
         return items.ToDictionary(item => item.Id, item => item.Code);
+    }
+
+    private async Task<Dictionary<long, PayPaymentBatch>> GetPayrollPaymentMapAsync(List<long> bankOperationIds)
+    {
+        if (bankOperationIds.Count == 0)
+            return new Dictionary<long, PayPaymentBatch>();
+
+        var query = _queryBuilder.For<PayPaymentBatch>()
+            .Where(payment =>
+                payment.BankOperationId.HasValue &&
+                bankOperationIds.Contains(payment.BankOperationId.Value) &&
+                payment.StateId == StateIdConst.ACTIVE)
+            .Build();
+        query.AddIncludes(x => x.Include(payment => payment.Lines).ThenInclude(line => line.Employee));
+
+        var payments = await _payrollPaymentQuery.GetAllAsync(query);
+        return payments.ToDictionary(payment => payment.BankOperationId!.Value);
     }
 
     private sealed class ContractData

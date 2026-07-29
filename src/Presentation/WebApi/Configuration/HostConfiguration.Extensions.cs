@@ -15,7 +15,6 @@ using Npgsql;
 using Quartz;
 using Serilog;
 using Serilog.Events;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -138,29 +137,22 @@ namespace WebApi.Configuration
             if (isProduction)
             {
                 var productionKeyPath = RequiredProductionSetting(builder.Configuration, "DataProtection:KeysPath");
-                var certificatePath = RequiredProductionSetting(builder.Configuration, "DataProtection:EncryptionCertificatePath");
-                var certificatePassword = RequiredProductionSetting(builder.Configuration, "DataProtection:EncryptionCertificatePassword");
 
                 if (!Path.IsPathRooted(productionKeyPath))
                     throw new InvalidOperationException("DataProtection:KeysPath must be an absolute production path.");
 
                 try
                 {
-                    Directory.CreateDirectory(productionKeyPath);
-                    var certificate = X509CertificateLoader.LoadPkcs12FromFile(
-                        certificatePath,
-                        certificatePassword,
-                        X509KeyStorageFlags.EphemeralKeySet);
+                    var directoryInfo = EnsureDataProtectionKeyDirectory(productionKeyPath);
 
                     builder.Services.AddDataProtection()
-                        .PersistKeysToFileSystem(new DirectoryInfo(productionKeyPath))
-                        .ProtectKeysWithCertificate(certificate)
+                        .PersistKeysToFileSystem(directoryInfo)
                         .SetApplicationName("accounting-back");
                 }
                 catch (Exception)
                 {
-                    // Production must fail closed. Do not log paths, certificate details or
-                    // exception text because they can disclose deployment secrets.
+                    // Production must fail closed. Do not log the configured path or exception
+                    // text because they can disclose deployment details.
                     throw new InvalidOperationException("Production DataProtection key-ring initialization failed.");
                 }
 
@@ -186,12 +178,10 @@ namespace WebApi.Configuration
                     keyDirectory = Path.GetFullPath(Path.Combine(environment.ContentRootPath, keyDirectory));
                 }
 
-                Directory.CreateDirectory(keyDirectory);
-
-                var directoryInfo = new DirectoryInfo(keyDirectory);
+                var directoryInfo = EnsureDataProtectionKeyDirectory(keyDirectory);
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(directoryInfo)
-                .SetApplicationName("accounting-back");
+                    .SetApplicationName("accounting-back");
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException || ex is PathTooLongException)
             {
@@ -199,6 +189,24 @@ namespace WebApi.Configuration
             }
 
             return builder;
+        }
+
+        private static DirectoryInfo EnsureDataProtectionKeyDirectory(string path)
+        {
+            const UnixFileMode ownerOnly =
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+
+            if (OperatingSystem.IsLinux())
+            {
+                Directory.CreateDirectory(path, ownerOnly);
+                File.SetUnixFileMode(path, ownerOnly);
+            }
+            else
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return new DirectoryInfo(path);
         }
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
@@ -434,9 +442,7 @@ namespace WebApi.Configuration
             "EImzo:CertificatePassword",
             "EImzo:CertificatePath",
             "TaxIntegration:Didox:PartnerToken",
-            "DataProtection:KeysPath",
-            "DataProtection:EncryptionCertificatePath",
-            "DataProtection:EncryptionCertificatePassword"
+            "DataProtection:KeysPath"
         ];
 
         private static readonly string[] ForbiddenGlobalProviderSecretKeys =

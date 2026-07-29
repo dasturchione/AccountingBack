@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +10,7 @@ public partial class DocumentStatusTranslation
 {
     [Key]
     [Column("document_status_id")]
-    public short DocumentStatusId { get; set; }
+    public short StatusId { get; set; }
 
     [Key]
     [Column("language_id")]
@@ -21,10 +21,10 @@ public partial class DocumentStatusTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("DocumentStatusId")]
-    [InverseProperty(nameof(Entities.DocumentStatus.DocumentStatusTranslations))]
-    public virtual DocumentStatus DocumentStatus { get; set; } = null!;
+    [InverseProperty(nameof(DocumentStatus.DocumentStatusTranslations))]
+    public virtual DocumentStatus Status { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.DocumentStatusTranslations))]
+    [InverseProperty(nameof(Language.DocumentStatusTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

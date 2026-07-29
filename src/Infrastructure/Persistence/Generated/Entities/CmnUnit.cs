@@ -32,6 +32,9 @@ public partial class CmnUnit
     public virtual ICollection<InvInventoryCountLine> InvInventoryCountLines { get; set; } = new List<InvInventoryCountLine>();
 
     [InverseProperty("Unit")]
+    public virtual ICollection<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; } = new List<InvOpeningInventoryProduct>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
     [InverseProperty("Unit")]

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class CostingMethodTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("CostingMethodId")]
-    [InverseProperty(nameof(Entities.CostingMethod.CostingMethodTranslations))]
+    [InverseProperty(nameof(CostingMethod.CostingMethodTranslations))]
     public virtual CostingMethod CostingMethod { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.CostingMethodTranslations))]
+    [InverseProperty(nameof(Language.CostingMethodTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

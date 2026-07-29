@@ -27,6 +27,12 @@ public partial class DocumentStatus
     [InverseProperty(nameof(SaleShipmentDoc.Status))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
 
+    [InverseProperty(nameof(DocumentStatusTranslation.Status))]
+    public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
+
+    [InverseProperty(nameof(OpeningInventory.Status))]
+    public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
+
     [InverseProperty("Status")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
@@ -39,7 +45,4 @@ public partial class DocumentStatus
     [ForeignKey("StateId")]
     [InverseProperty("DocumentStatuses")]
     public virtual State State { get; set; } = null!;
-
-    [InverseProperty(nameof(DocumentStatusTranslation.DocumentStatus))]
-    public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
 }

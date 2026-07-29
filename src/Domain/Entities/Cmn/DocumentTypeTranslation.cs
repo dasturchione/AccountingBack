@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class DocumentTypeTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("DocumentTypeId")]
-    [InverseProperty(nameof(Entities.DocumentType.DocumentTypeTranslations))]
+    [InverseProperty(nameof(DocumentType.DocumentTypeTranslations))]
     public virtual DocumentType DocumentType { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.DocumentTypeTranslations))]
+    [InverseProperty(nameof(Language.DocumentTypeTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class OperationTypeTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.OperationTypeTranslations))]
+    [InverseProperty(nameof(Language.OperationTypeTranslations))]
     public virtual Language Language { get; set; } = null!;
 
     [ForeignKey("OperationTypeId")]
-    [InverseProperty(nameof(Entities.OperationType.OperationTypeTranslations))]
+    [InverseProperty(nameof(OperationType.OperationTypeTranslations))]
     public virtual OperationType OperationType { get; set; } = null!;
 }

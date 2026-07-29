@@ -30,6 +30,9 @@ public partial class ProductTable
     [InverseProperty(nameof(WarehouseProductBatchTable.ProductTable))]
     public virtual ICollection<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; } = new List<WarehouseProductBatchTable>();
 
+    [InverseProperty(nameof(OpeningInventoryTable.ProductTable))]
+    public virtual ICollection<OpeningInventoryTable> OpeningInventoryTables { get; set; } = new List<OpeningInventoryTable>();
+
     [ForeignKey("ProductId")]
     [InverseProperty("ProductTables")]
     public virtual Product Product { get; set; } = null!;

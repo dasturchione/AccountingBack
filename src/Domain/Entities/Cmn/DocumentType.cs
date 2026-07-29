@@ -33,6 +33,9 @@ public partial class DocumentType
     [InverseProperty(nameof(WarehouseProductMovement.DocumentType))]
     public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
 
+    [InverseProperty(nameof(DocumentTypeTranslation.DocumentType))]
+    public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
+
     [InverseProperty("DocumentType")]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
@@ -45,7 +48,4 @@ public partial class DocumentType
     [ForeignKey("StateId")]
     [InverseProperty("DocumentTypes")]
     public virtual State State { get; set; } = null!;
-
-    [InverseProperty(nameof(DocumentTypeTranslation.DocumentType))]
-    public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
 }

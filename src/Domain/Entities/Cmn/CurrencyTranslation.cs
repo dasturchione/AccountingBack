@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class CurrencyTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("CurrencyId")]
-    [InverseProperty(nameof(Entities.Currency.CurrencyTranslations))]
+    [InverseProperty(nameof(Currency.CurrencyTranslations))]
     public virtual Currency Currency { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.CurrencyTranslations))]
+    [InverseProperty(nameof(Language.CurrencyTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

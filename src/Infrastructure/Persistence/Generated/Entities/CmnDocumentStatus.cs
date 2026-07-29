@@ -56,6 +56,9 @@ public partial class CmnDocumentStatus
     public virtual ICollection<InvInventoryCountDoc> InvInventoryCountDocs { get; set; } = new List<InvInventoryCountDoc>();
 
     [InverseProperty("Status")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
+
+    [InverseProperty("Status")]
     public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("Status")]

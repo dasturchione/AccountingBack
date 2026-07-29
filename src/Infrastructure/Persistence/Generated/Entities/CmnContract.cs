@@ -62,6 +62,9 @@ public partial class CmnContract
     [InverseProperty("CmnContracts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
 
+    [InverseProperty("Contract")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("CmnContracts")]
     public virtual OrgOrganization Organization { get; set; } = null!;

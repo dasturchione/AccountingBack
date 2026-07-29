@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,10 @@ public partial class ContractTypeTranslation
     public string Name { get; set; } = null!;
 
     [ForeignKey("ContractTypeId")]
-    [InverseProperty(nameof(Entities.ContractType.ContractTypeTranslations))]
+    [InverseProperty(nameof(ContractType.ContractTypeTranslations))]
     public virtual ContractType ContractType { get; set; } = null!;
 
     [ForeignKey("LanguageId")]
-    [InverseProperty(nameof(Entities.Language.ContractTypeTranslations))]
+    [InverseProperty(nameof(Language.ContractTypeTranslations))]
     public virtual Language Language { get; set; } = null!;
 }

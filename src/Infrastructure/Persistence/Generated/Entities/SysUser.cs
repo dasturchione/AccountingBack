@@ -144,6 +144,12 @@ public partial class SysUser
     [InverseProperty("UpdatedByUser")]
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocUpdatedByUsers { get; set; } = new List<FaRevaluationDoc>();
 
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventoryCancelledByUsers { get; set; } = new List<InvOpeningInventory>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<InvOpeningInventory> InvOpeningInventoryPostedByUsers { get; set; } = new List<InvOpeningInventory>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 

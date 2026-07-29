@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -101,6 +100,12 @@ public partial class User
 
     [InverseProperty(nameof(SaleShipmentDoc.AcceptedUser))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty(nameof(OpeningInventory.CancelledByUser))]
+    public virtual ICollection<OpeningInventory> OpeningInventoryCancelledByUsers { get; set; } = new List<OpeningInventory>();
+
+    [InverseProperty(nameof(OpeningInventory.PostedByUser))]
+    public virtual ICollection<OpeningInventory> OpeningInventoryPostedByUsers { get; set; } = new List<OpeningInventory>();
 
     [InverseProperty(nameof(SaleShipmentDoc.CancelledUser))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocCancelledUsers { get; set; } = new List<SaleShipmentDoc>();

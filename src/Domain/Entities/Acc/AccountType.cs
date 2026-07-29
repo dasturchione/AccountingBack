@@ -33,10 +33,10 @@ public partial class AccountType
     [InverseProperty(nameof(ChartAccountPresetAccount.AccountType))]
     public virtual ICollection<ChartAccountPresetAccount> ChartAccountPresetAccounts { get; set; } = new List<ChartAccountPresetAccount>();
 
-    [ForeignKey("StateId")]
-    [InverseProperty("AccountTypes")]
-    public virtual State State { get; set; } = null!;
-
     [InverseProperty(nameof(AccountTypeTranslation.AccountType))]
     public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
+
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.AccountTypes))]
+    public virtual State State { get; set; } = null!;
 }

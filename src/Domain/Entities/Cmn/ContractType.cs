@@ -1,12 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_contract_type")]
-[Index("Code", Name = "idx_cmn_contract_type_code", IsUnique = true)]
-[Index("StateId", Name = "idx_cmn_contract_type_state_id")]
 public partial class ContractType
 {
     [Key]
@@ -27,13 +24,13 @@ public partial class ContractType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("ContractType")]
+    [InverseProperty(nameof(Contract.ContractType))]
     public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
-
-    [ForeignKey("StateId")]
-    [InverseProperty("ContractTypes")]
-    public virtual State State { get; set; } = null!;
 
     [InverseProperty(nameof(ContractTypeTranslation.ContractType))]
     public virtual ICollection<ContractTypeTranslation> ContractTypeTranslations { get; set; } = new List<ContractTypeTranslation>();
+
+    [ForeignKey("StateId")]
+    [InverseProperty(nameof(State.ContractTypes))]
+    public virtual State State { get; set; } = null!;
 }

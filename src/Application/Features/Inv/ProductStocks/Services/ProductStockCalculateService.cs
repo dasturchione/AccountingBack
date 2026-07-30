@@ -11,18 +11,30 @@ public class ProductStockCalculateService : IProductStockCalculateService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<WarehouseProduct> _warehouseProductQuery;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
-    private readonly IQueryRepository<RegisterBalance> _registerBalanceQuery;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
+    private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
+    private readonly IQueryRepository<SaleDocTable> _saleDocTableQuery;
+    private readonly IQueryRepository<WarehouseTransferDocTable> _warehouseTransferDocTableQuery;
+    private readonly IQueryRepository<InventoryAdjustmentDocTable> _inventoryAdjustmentDocTableQuery;
 
     public ProductStockCalculateService(
         IQueryBuilder queryBuilder,
         IQueryRepository<WarehouseProduct> warehouseProductQuery,
         IQueryRepository<ProductTable> productTableQuery,
-        IQueryRepository<RegisterBalance> registerBalanceQuery)
+        IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
+        IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
+        IQueryRepository<SaleDocTable> saleDocTableQuery,
+        IQueryRepository<WarehouseTransferDocTable> warehouseTransferDocTableQuery,
+        IQueryRepository<InventoryAdjustmentDocTable> inventoryAdjustmentDocTableQuery)
     {
         _queryBuilder = queryBuilder;
         _warehouseProductQuery = warehouseProductQuery;
         _productTableQuery = productTableQuery;
-        _registerBalanceQuery = registerBalanceQuery;
+        _warehouseMovementQuery = warehouseMovementQuery;
+        _purchaseDocTableQuery = purchaseDocTableQuery;
+        _saleDocTableQuery = saleDocTableQuery;
+        _warehouseTransferDocTableQuery = warehouseTransferDocTableQuery;
+        _inventoryAdjustmentDocTableQuery = inventoryAdjustmentDocTableQuery;
     }
 
     public Task<Result<Dictionary<int, (decimal Quantity, decimal Available, decimal Reserved, decimal Blocked)>>> GetProductGroupsAsync(
@@ -179,7 +191,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
     {
-        var rows = await GetHistoricalRegisterRowsAsync(organizationId, warehouseId, null, choosedDate, productIds, ct);
+        var rows = await GetHistoricalMovementRowsAsync(organizationId, warehouseId, null, choosedDate, productIds, ct);
         return Result.Success(rows
             .Where(x => x.ProductGroupId.HasValue)
             .GroupBy(x => x.ProductGroupId!.Value)
@@ -194,7 +206,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
     {
-        var rows = await GetHistoricalRegisterRowsAsync(organizationId, warehouseId, productGroupId, choosedDate, productIds, ct);
+        var rows = await GetHistoricalMovementRowsAsync(organizationId, warehouseId, productGroupId, choosedDate, productIds, ct);
         return Result.Success(rows
             .GroupBy(x => x.ProductId)
             .ToDictionary(x => x.Key, x => ToHistoricalBalance(x.Sum(r => r.QuantityDelta))));
@@ -208,14 +220,14 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IReadOnlyCollection<int> productIds,
         CancellationToken ct)
     {
-        var rows = await GetHistoricalRegisterRowsAsync(organizationId, warehouseId, productGroupId, choosedDate, productIds, ct);
+        var movements = await GetHistoricalMovementRowsAsync(organizationId, warehouseId, productGroupId, choosedDate, productIds, ct);
+        var rows = await ExpandProductTableMovementsAsync(movements, ct);
         return Result.Success(rows
-            .Where(x => x.ProductTableId.HasValue)
-            .GroupBy(x => x.ProductTableId!.Value)
+            .GroupBy(x => x.ProductTableId)
             .ToDictionary(x => x.Key, x => ToHistoricalBalance(x.Sum(r => r.QuantityDelta))));
     }
 
-    private async Task<List<HistoricalRegisterBalanceRow>> GetHistoricalRegisterRowsAsync(
+    private async Task<List<HistoricalMovementRow>> GetHistoricalMovementRowsAsync(
         int organizationId,
         int? warehouseId,
         int? productGroupId,
@@ -224,23 +236,83 @@ public class ProductStockCalculateService : IProductStockCalculateService
         CancellationToken ct)
     {
         var endDate = choosedDate.ToDateTime(TimeOnly.MaxValue);
-        var query = _queryBuilder.For<RegisterBalance>()
+        var query = _queryBuilder.For<WarehouseProductMovement>()
             .Where(x => x.Product.OrganizationId == organizationId &&
-                        x.DocDate <= endDate &&
+                        x.MovementDate <= endDate &&
                         (!warehouseId.HasValue || x.WarehouseId == warehouseId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)) &&
-                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) &&
-                        (x.OperationTypeId == OperationTypeIdConst.IN || x.OperationTypeId == OperationTypeIdConst.OUT))
-            .As(x => new HistoricalRegisterBalanceRow
+                        (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value))
+            .As(x => new HistoricalMovementRow
             {
+                DocumentTypeId = x.DocumentTypeId,
+                DocumentId = x.DocumentId,
                 ProductId = x.ProductId,
                 ProductGroupId = x.Product.ProductGroupId,
-                ProductTableId = x.ProductTableId,
-                QuantityDelta = x.OperationTypeId == OperationTypeIdConst.IN ? x.Quantity : -x.Quantity
+                QuantityDelta = x.MovementSign * x.Quantity
             })
             .Build();
 
-        return await _registerBalanceQuery.GetAllAsync(query, ct);
+        return await _warehouseMovementQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<List<HistoricalProductTableMovementRow>> ExpandProductTableMovementsAsync(
+        IReadOnlyCollection<HistoricalMovementRow> movements,
+        CancellationToken ct)
+    {
+        var documentIdsByType = movements
+            .GroupBy(x => x.DocumentTypeId)
+            .ToDictionary(x => x.Key, x => x.Select(row => row.DocumentId).Distinct().ToList());
+        var links = new List<DocumentProductTableLink>();
+
+        if (documentIdsByType.TryGetValue(DocumentTypeIdConst.PURCHASE, out var purchaseIds))
+        {
+            var query = _queryBuilder.For<PurchaseDocTable>()
+                .Where(x => purchaseIds.Contains(x.Owner.OwnerId))
+                .As(x => new DocumentProductTableLink(DocumentTypeIdConst.PURCHASE, x.Owner.OwnerId, x.Owner.ProductId, x.ProductTableId))
+                .Build();
+            links.AddRange(await _purchaseDocTableQuery.GetAllAsync(query, ct));
+        }
+
+        if (documentIdsByType.TryGetValue(DocumentTypeIdConst.SALE, out var saleIds))
+        {
+            var query = _queryBuilder.For<SaleDocTable>()
+                .Where(x => saleIds.Contains(x.Owner.OwnerId))
+                .As(x => new DocumentProductTableLink(DocumentTypeIdConst.SALE, x.Owner.OwnerId, x.Owner.ProductId, x.ProductTableId))
+                .Build();
+            links.AddRange(await _saleDocTableQuery.GetAllAsync(query, ct));
+        }
+
+        if (documentIdsByType.TryGetValue(DocumentTypeIdConst.WAREHOUSETRANSFER, out var transferIds))
+        {
+            var query = _queryBuilder.For<WarehouseTransferDocTable>()
+                .Where(x => transferIds.Contains(x.Owner.OwnerId))
+                .As(x => new DocumentProductTableLink(DocumentTypeIdConst.WAREHOUSETRANSFER, x.Owner.OwnerId, x.Owner.ProductId, x.ProductTableId))
+                .Build();
+            links.AddRange(await _warehouseTransferDocTableQuery.GetAllAsync(query, ct));
+        }
+
+        if (documentIdsByType.TryGetValue(DocumentTypeIdConst.INVENTORYADJUSTMENT, out var adjustmentIds))
+        {
+            var query = _queryBuilder.For<InventoryAdjustmentDocTable>()
+                .Where(x => adjustmentIds.Contains(x.Owner.OwnerId) && x.ProductTableId.HasValue)
+                .As(x => new DocumentProductTableLink(DocumentTypeIdConst.INVENTORYADJUSTMENT, x.Owner.OwnerId, x.Owner.ProductId, x.ProductTableId!.Value))
+                .Build();
+            links.AddRange(await _inventoryAdjustmentDocTableQuery.GetAllAsync(query, ct));
+        }
+
+        var productTableIdsByDocument = links
+            .GroupBy(x => (x.DocumentTypeId, x.DocumentId, x.ProductId))
+            .ToDictionary(x => x.Key, x => x.Select(link => link.ProductTableId).Distinct().ToList());
+
+        return movements
+            .SelectMany(movement => productTableIdsByDocument
+                .GetValueOrDefault((movement.DocumentTypeId, movement.DocumentId, movement.ProductId), [])
+                .Select(productTableId => new HistoricalProductTableMovementRow
+                {
+                    ProductTableId = productTableId,
+                    QuantityDelta = Math.Sign(movement.QuantityDelta)
+                }))
+            .ToList();
     }
 
     private static Dictionary<int, (decimal Quantity, decimal Available, decimal Reserved, decimal Blocked)> GroupBalances<T>(
@@ -295,11 +367,24 @@ public class ProductStockCalculateService : IProductStockCalculateService
         public short StatusId { get; set; }
     }
 
-    private sealed class HistoricalRegisterBalanceRow
+    private sealed class HistoricalMovementRow
     {
+        public short DocumentTypeId { get; set; }
+        public long DocumentId { get; set; }
         public int ProductId { get; set; }
         public int? ProductGroupId { get; set; }
-        public int? ProductTableId { get; set; }
         public decimal QuantityDelta { get; set; }
     }
+
+    private sealed class HistoricalProductTableMovementRow
+    {
+        public int ProductTableId { get; set; }
+        public decimal QuantityDelta { get; set; }
+    }
+
+    private sealed record DocumentProductTableLink(
+        short DocumentTypeId,
+        long DocumentId,
+        int ProductId,
+        int ProductTableId);
 }

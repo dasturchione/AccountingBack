@@ -2,35 +2,34 @@ using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
-namespace Application.Features.InventoryRegisterBalances;
+namespace Application.Features.InventoryMovements;
 
 public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<WarehouseTransferDoc>
 {
-    public Task<Result<List<RegisterBalance>>> HandleAsync(WarehouseTransferDoc document, CancellationToken ct = default)
+    public Task<Result<List<InventoryMovementEntry>>> HandleAsync(WarehouseTransferDoc document, CancellationToken ct = default)
     {
-        var now = DateTime.Now;
-        var entries = new List<RegisterBalance>();
+        var entries = new List<InventoryMovementEntry>();
 
         foreach (var line in document.WarehouseTransferLines.Where(line => !line.Product.IsService))
         {
             if (!line.Product.IsPieceTracked)
             {
-                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, null, line.Quantity, 0m, line.Id, now));
-                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, null, line.Quantity, 0m, line.Id, now));
+                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, null, line.Quantity, 0m, line.Id));
+                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, null, line.Quantity, 0m, line.Id));
                 continue;
             }
 
             foreach (var table in line.WarehouseTransferDocTables)
             {
-                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, table.ProductTableId, 1m, table.CostPrice, table.Id, now));
-                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, table.ProductTableId, 1m, table.CostPrice, table.Id, now));
+                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, table.ProductTableId, 1m, table.CostPrice, table.Id));
+                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, table.ProductTableId, 1m, table.CostPrice, table.Id));
             }
         }
 
         return Task.FromResult(Result.Success(entries));
     }
 
-    private static RegisterBalance CreateEntry(
+    private static InventoryMovementEntry CreateEntry(
         WarehouseTransferDoc document,
         WarehouseTransferLine line,
         int warehouseId,
@@ -38,8 +37,7 @@ public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<Wareh
         int? productTableId,
         decimal quantity,
         decimal amount,
-        long sourceLineId,
-        DateTime now) =>
+        long sourceLineId) =>
         new()
         {
             OrganizationId = document.OrganizationId,
@@ -52,7 +50,6 @@ public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<Wareh
             Quantity = quantity,
             Amount = amount,
             DocDate = document.DocDate,
-            CreatedDate = now,
             SourceLineId = sourceLineId
         };
 }

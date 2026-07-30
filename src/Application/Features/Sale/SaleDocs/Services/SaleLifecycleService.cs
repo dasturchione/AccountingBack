@@ -4,7 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryCounts;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -40,8 +40,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingRegisterQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
-    private readonly ICommandRepository<RegisterBalance> _inventoryRegisterCommand;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
     private readonly IQueryRepository<MoneyRegisterBalance> _moneyRegisterQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
@@ -67,8 +66,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                                 ICommandRepository<PostingBatch> postingBatchCommand,
                                 IQueryRepository<AccountingRegisterEntry> accountingRegisterQuery,
                                 ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
-                                IQueryRepository<RegisterBalance> inventoryRegisterQuery,
-                                ICommandRepository<RegisterBalance> inventoryRegisterCommand,
+                                IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
                                 IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
                                 IQueryRepository<MoneyRegisterBalance> moneyRegisterQuery,
                                 IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
@@ -97,8 +95,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         _postingBatchCommand = postingBatchCommand;
         _accountingRegisterQuery = accountingRegisterQuery;
         _accountingRegisterCommand = accountingRegisterCommand;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
-        _inventoryRegisterCommand = inventoryRegisterCommand;
+        _warehouseMovementQuery = warehouseMovementQuery;
         _counterpartyRegisterQuery = counterpartyRegisterQuery;
         _moneyRegisterQuery = moneyRegisterQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
@@ -544,10 +541,9 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         if (hasAccounting)
             return true;
 
-        var hasInventory = await _inventoryRegisterQuery.AnyAsync(x =>
+        var hasInventory = await _warehouseMovementQuery.AnyAsync(x =>
             x.DocumentTypeId == DocumentTypeIdConst.SALE &&
-            x.DocumentId == saleDocId &&
-            x.ReversalEntryId == null, ct);
+            x.DocumentId == saleDocId, ct);
 
         if (hasInventory)
             return true;
@@ -623,52 +619,8 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         return Result.Success();
     }
 
-    private async Task<Result> ReverseInventoryEntriesAsync(SaleDoc doc, long reversalBatchId, CancellationToken ct)
-    {
-        var expectedRows = doc.SaleDocProducts
-            .Where(x => !x.Product.IsService)
-            .Sum(x => x.Product.IsPieceTracked ? x.SaleDocTables.Count : 1);
-
-        var query = _queryBuilder.For<RegisterBalance>()
-            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.SALE &&
-                        x.DocumentId == doc.Id &&
-                        x.ReversalEntryId == null &&
-                        x.OperationTypeId == OperationTypeIdConst.OUT)
-            .Build();
-
-        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
-        if (entries.Count != expectedRows)
-            return Result.Failure(SaleDocErrors.MissingInventoryRegisterEntries(doc.Id, _userContext.LanguageId));
-
-        if (entries.Count == 0)
-            return Result.Success();
-
-        var now = DateTime.Now;
-        var reversalEntries = entries.Select(entry => new RegisterBalance
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            WarehouseId = entry.WarehouseId,
-            ProductId = entry.ProductId,
-            ProductTableId = entry.ProductTableId,
-            OperationTypeId = OperationTypeIdConst.IN,
-            Quantity = entry.Quantity,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id
-        }).ToList();
-
-        await _inventoryRegisterCommand.CreateAsync(reversalEntries, ct);
-        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversalEntries, ct);
-        if (!warehouseProductUpdate.IsSuccess)
-            return Result.Failure(warehouseProductUpdate.Error);
-
-        return Result.Success();
-    }
+    private Task<Result> ReverseInventoryEntriesAsync(SaleDoc doc, long reversalBatchId, CancellationToken ct) =>
+        _inventoryDispatcher.ReverseAsync(doc, ct);
 
     private void RecalculateDocumentTotals(SaleDoc doc)
     {

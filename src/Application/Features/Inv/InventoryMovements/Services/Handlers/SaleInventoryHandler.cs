@@ -2,16 +2,16 @@ using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
-namespace Application.Features.InventoryRegisterBalances;
+namespace Application.Features.InventoryMovements;
 
 public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
 {
-    public Task<Result<List<RegisterBalance>>> HandleAsync(SaleDoc sale, CancellationToken ct = default)
+    public Task<Result<List<InventoryMovementEntry>>> HandleAsync(SaleDoc sale, CancellationToken ct = default)
     {
         var trackedEntries = sale.SaleDocProducts
             .Where(p => !p.Product.IsService && p.Product.IsPieceTracked)
             .SelectMany(p => p.SaleDocTables)
-            .Select(line => new RegisterBalance
+            .Select(line => new InventoryMovementEntry
             {
                 OrganizationId  = sale.OrganizationId,
                 DocumentTypeId  = DocumentTypeIdConst.SALE,
@@ -23,13 +23,12 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
                 Quantity        = 1,
                 Amount          = line.CostPrice,
                 DocDate         = sale.DocDate,
-                CreatedDate     = DateTime.Now,
                 SourceLineId    = line.Id
             });
 
         var nonTrackedEntries = sale.SaleDocProducts
             .Where(p => !p.Product.IsService && !p.Product.IsPieceTracked)
-            .Select(line => new RegisterBalance
+            .Select(line => new InventoryMovementEntry
             {
                 OrganizationId  = sale.OrganizationId,
                 DocumentTypeId  = DocumentTypeIdConst.SALE,
@@ -41,7 +40,6 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
                 Quantity        = line.Quantity,
                 Amount          = line.CostPrice * line.Quantity,
                 DocDate         = sale.DocDate,
-                CreatedDate     = DateTime.Now,
                 SourceLineId    = line.Id
             });
 

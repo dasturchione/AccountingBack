@@ -58,9 +58,6 @@ public static class InventoryAdjustmentErrors
     public static Error MissingPostingBatch(long id, short? languageId = null) =>
         Error.Conflict("InventoryAdjustment.MissingPostingBatch", $"Posting batch was not found for inventory adjustment with id {id}.");
 
-    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.MissingInventoryRegisterEntries", $"Inventory register entries are missing or incomplete for inventory adjustment with id {id}.");
-
     public static Error ItemsRequired(int productId, short? languageId = null) =>
         Error.Business("InventoryAdjustment.ItemsRequired", $"Product {productId} must contain at least one product table item.");
 

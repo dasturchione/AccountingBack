@@ -138,7 +138,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountingRegisterEntry> AccountingRegisterEntries { get; set; }
     public virtual DbSet<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; }
     public virtual DbSet<MoneyRegisterBalance> MoneyRegisterBalances { get; set; }
-    public virtual DbSet<RegisterBalance> RegisterBalances { get; set; }
     public virtual DbSet<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; }
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }

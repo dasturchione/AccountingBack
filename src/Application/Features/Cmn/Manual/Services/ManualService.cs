@@ -584,7 +584,8 @@ public class ManualService : IManualService
                                              (isService == null || x.IsService == isService) &&
                                              (isSold == null || x.IsSold == isSold) &&
                                              (isPurchased == null || x.IsPurchased == isPurchased) &&
-                                             (warehouseId == null || x.RegisterBalances.Any(a => a.WarehouseId == warehouseId)))
+                                             (warehouseId == null || x.WarehouseProductMovements.Any(a =>
+                                                 a.WarehouseId == warehouseId)))
                                  .As(s => new ProductSelectListDto
                                  {
                                      Id = s.Id,

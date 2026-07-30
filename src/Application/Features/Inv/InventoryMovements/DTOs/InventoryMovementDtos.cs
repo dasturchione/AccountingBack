@@ -1,7 +1,8 @@
-namespace Application.Features.InventoryRegisterBalances;
+namespace Application.Features.InventoryMovements;
 
-public class InventoryRegisterBalanceBaseDto
+public sealed class InventoryMovementListDto
 {
+    public long Id { get; set; }
     public int OrganizationId { get; set; }
     public short DocumentTypeId { get; set; }
     public long DocumentId { get; set; }
@@ -15,12 +16,5 @@ public class InventoryRegisterBalanceBaseDto
     public long? PostingBatchId { get; set; }
     public long? SourceLineId { get; set; }
     public long? ReversalEntryId { get; set; }
-}
-
-public class InventoryRegisterBalanceDto : InventoryRegisterBalanceBaseDto
-{
-    public long Id { get; set; }
     public DateTime CreatedDate { get; set; }
 }
-
-public class InventoryRegisterBalanceListDto : InventoryRegisterBalanceDto { }

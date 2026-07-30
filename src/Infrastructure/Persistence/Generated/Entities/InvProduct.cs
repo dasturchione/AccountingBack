@@ -104,9 +104,6 @@ public partial class InvProduct
     public virtual ICollection<InvProductTable> InvProductTables { get; set; } = new List<InvProductTable>();
 
     [InverseProperty("Product")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("Product")]
     public virtual ICollection<InvTransferLine> InvTransferLines { get; set; } = new List<InvTransferLine>();
 
     [InverseProperty("Product")]

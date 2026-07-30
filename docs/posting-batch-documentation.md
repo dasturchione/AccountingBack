@@ -10,7 +10,7 @@
 Она не является самой проводкой. Она является **контейнером/маркером**, который связывает все эффекты одного проведения:
 
 - бухгалтерские проводки `AccountingRegisterEntry`;
-- складские движения `RegisterBalance`;
+- складские движения `WarehouseProductMovement`;
 - денежные движения `MoneyRegisterBalance`;
 - движения по контрагентам `CounterpartyRegisterBalance`;
 - reversal-записи при отмене.
@@ -141,14 +141,12 @@ Reversal-записи обычно:
 | Регистр | Entity | Поле | Роль batch |
 |---|---|---|---|
 | Бухгалтерский регистр | `AccountingRegisterEntry` | `PostingBatchId` | Группирует проводки одного проведения/отмены. |
-| Складской регистр | `RegisterBalance` | `PostingBatchId` | Группирует складские IN/OUT движения. |
 | Контрагенты | `CounterpartyRegisterBalance` | `PostingBatchId` | Группирует дебиторку/кредиторку. |
 | Деньги | `MoneyRegisterBalance` | `PostingBatchId` | Группирует денежные движения. |
 
 ```mermaid
 flowchart LR
     Batch["acc_posting_batch"] --> Acc["acc_reg_entry\nAccountingRegisterEntry"]
-    Batch --> Inv["inv_reg_balance\nRegisterBalance"]
     Batch --> Cnt["counterparty_reg_balance\nCounterpartyRegisterBalance"]
     Batch --> Money["money_reg_balance\nMoneyRegisterBalance"]
 ```
@@ -180,7 +178,7 @@ if (postingBatchId.HasValue)
 
 ### `InventoryDispatcher`
 
-Файл: `src/Application/Features/Register/InventoryRegisterBalances/Services/InventoryDispatcher.cs`
+Файл: `src/Application/Features/Inv/InventoryMovements/Services/InventoryDispatcher.cs`
 
 Что делает:
 
@@ -189,9 +187,9 @@ if (postingBatchId.HasValue)
    - `SaleDoc`;
    - `WarehouseTransferDoc`;
    - `InventoryAdjustmentDoc`.
-2. Handler создает список `RegisterBalance`.
+2. Handler создает список `WarehouseProductMovement`.
 3. Если `postingBatchId` передан — записывает его во все складские entries.
-4. Сохраняет `RegisterBalance`.
+4. Сохраняет `WarehouseProductMovement`.
 5. Обновляет `WarehouseProduct` через `WarehouseProductBalanceService`.
 
 ## 9. Сервисы, которые создают `PostingBatch`
@@ -426,7 +424,7 @@ flowchart TD
 
 ### 13.1. В регистровых entity нет navigation на `PostingBatch`
 
-`AccountingRegisterEntry`, `RegisterBalance`, `CounterpartyRegisterBalance`, `MoneyRegisterBalance` имеют `PostingBatchId`, но нет navigation property `PostingBatch`.
+`AccountingRegisterEntry`, `CounterpartyRegisterBalance`, `MoneyRegisterBalance` имеют `PostingBatchId`, но нет navigation property `PostingBatch`. Складские движения `WarehouseProductMovement` не хранят ссылку на posting batch и связываются с документом через `DocumentTypeId + DocumentId`.
 
 Это нормально, если связь используется как audit/reference id. Но если фронту часто нужно показывать batch metadata рядом с register entries, придется делать join/projection вручную.
 

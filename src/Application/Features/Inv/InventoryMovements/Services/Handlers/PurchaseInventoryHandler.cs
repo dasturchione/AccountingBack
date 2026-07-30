@@ -1,17 +1,16 @@
-using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 
-namespace Application.Features.InventoryRegisterBalances;
+namespace Application.Features.InventoryMovements;
 
 public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
 {
-    public Task<Result<List<RegisterBalance>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
+    public Task<Result<List<InventoryMovementEntry>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
     {
         var trackedEntries = purchase.PurchaseDocProducts
             .Where(line => !line.Product.IsService && line.Product.IsPieceTracked)
-            .SelectMany(line => line.PurchaseDocTables.Select(table => new RegisterBalance
+            .SelectMany(line => line.PurchaseDocTables.Select(table => new InventoryMovementEntry
             {
                 OrganizationId = purchase.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.PURCHASE,
@@ -23,13 +22,12 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
                 Quantity = 1m,
                 Amount = table.TotalAmount,
                 DocDate = purchase.DocDate,
-                CreatedDate = DateTime.Now,
                 SourceLineId = table.Id
             }));
 
         var nonTrackedEntries = purchase.PurchaseDocProducts
             .Where(line => !line.Product.IsService && !line.Product.IsPieceTracked)
-            .Select(line => new RegisterBalance
+            .Select(line => new InventoryMovementEntry
             {
                 OrganizationId = purchase.OrganizationId,
                 DocumentTypeId = DocumentTypeIdConst.PURCHASE,
@@ -41,7 +39,6 @@ public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
                 Quantity = line.Quantity,
                 Amount = line.TotalAmount,
                 DocDate = purchase.DocDate,
-                CreatedDate = DateTime.Now,
                 SourceLineId = line.Id
             });
 

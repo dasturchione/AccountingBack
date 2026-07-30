@@ -1,4 +1,4 @@
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Application.Common.Pagination;
 using SharedKernel.Results;
 
@@ -14,5 +14,5 @@ public interface IWarehouseTransferService
     Task<Result> ConfirmAsync(long id, CancellationToken ct = default);
     Task<Result> CancelAsync(long id, CancellationToken ct = default);
     Task<Result<List<WarehouseTransferPostingBatchDto>>> GetPostingBatchesAsync(long id, CancellationToken ct = default);
-    Task<Result<List<InventoryRegisterBalanceListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default);
+    Task<Result<List<InventoryMovementListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default);
 }

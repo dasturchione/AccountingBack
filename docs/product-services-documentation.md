@@ -1,7 +1,7 @@
 # Документация по сервисам товаров, партий и складских остатков
 
-Дата анализа: 2026-07-14  
-Область анализа: сервисы `src/Application` и `src/Infrastructure`, связанные с `Product`, `ProductTable`, `WarehouseProduct`, `RegisterBalance`.  
+Дата анализа: 2026-07-14
+Область анализа: сервисы `src/Application` и `src/Infrastructure`, связанные с `Product`, `ProductTable`, `WarehouseProduct`, `WarehouseProductMovement`.
 Не запускались: build, tests, миграции, тяжелые full-scan операции.
 
 ## 1. Главная картина
@@ -13,7 +13,7 @@
 | Номенклатура | `Product` / `inv_product` | Карточка товара или услуги. |
 | Конкретная партия/единица | `ProductTable` / `inv_product_table` | Физическая единица на складе: склад, статус, маркировка, серийник. |
 | Текущий агрегированный остаток | `WarehouseProduct` / `inv_warehouse_product` | Остаток по `warehouse + product`: quantity/reserved/blocked/available. |
-| История движений | `RegisterBalance` / `inv_reg_balance` | Журнал приходов/расходов по складу, товару и иногда партии. |
+| История движений | `WarehouseProductMovement` / `inv_warehouse_product_movement` | Журнал приходов/расходов по складу и товару; партии связаны через batch/allocation таблицы. |
 
 ```mermaid
 flowchart TD
@@ -32,8 +32,8 @@ flowchart TD
     Transfer --> InventoryDispatcher
     Adjustment --> InventoryDispatcher
 
-    InventoryDispatcher --> RegisterBalance["RegisterBalance\nистория движений"]
     InventoryDispatcher --> WarehouseProductBalanceService["WarehouseProductBalanceService"]
+    WarehouseProductBalanceService --> WarehouseProductMovement["WarehouseProductMovement\nистория движений"]
     WarehouseProductBalanceService --> WarehouseProduct
 ```
 
@@ -46,7 +46,7 @@ flowchart TD
 | `ProductPriceService` | `src/Application/Features/Inv/ProductPrices/Services/ProductPriceService.cs` | CRUD цен и API-детали `sale/cost` по товару. |
 | `ProductPriceCalculateService` | `src/Application/Features/Inv/ProductPrices/Services/ProductPriceCalculateService.cs` | Расчет цены продажи, себестоимости и выбор партий FIFO/LIFO/average. |
 | `ProductStockService` | `src/Application/Features/Inv/ProductStocks/Services/ProductTableService.cs` | Чтение остатков через `ProductTable`, группировки и список партий. |
-| `ProductStockCalculateService` | `src/Application/Features/Inv/ProductStocks/Services/ProductStockCalculateService.cs` | Новый расчет балансов: current/future из `WarehouseProduct`, historical из `RegisterBalance`. |
+| `ProductStockCalculateService` | `src/Application/Features/Inv/ProductStocks/Services/ProductStockCalculateService.cs` | Новый расчет балансов: current/future из `WarehouseProduct`, historical из `WarehouseProductMovement`. |
 | `WarehouseProductBalanceService` | `src/Infrastructure/Repositories/WarehouseProductBalanceService.cs` | Обновление агрегированных остатков и резервов. |
 | `ProductTableReservationService` | `src/Infrastructure/Repositories/ProductTableReservationService.cs` | Атомарный резерв выбранных `ProductTable`. |
 | `PurchaseDocService` | `src/Application/Features/Pur/PurchaseDocs/Services/PurchaseDocService.cs` | Создание/обновление закупки и draft `ProductTable`. |
@@ -60,14 +60,13 @@ flowchart TD
 | `InventoryCountService` | `src/Application/Features/Inv/InventoryCounts/Services/InventoryCountService.cs` | Создание инвентаризации, расчет расхождений. |
 | `InventoryCountLifecycleService` | `src/Application/Features/Inv/InventoryCounts/Services/InventoryCountLifecycleService.cs` | Confirm/cancel инвентаризации через auto-generated корректировки. |
 | `ActiveInventoryCountGuardService` | `src/Application/Features/Inv/InventoryCounts/Services/ActiveInventoryCountGuardService.cs` | Блокирует складские операции, если по складу идет draft/pending инвентаризация. |
-| `InventoryDispatcher` | `src/Application/Features/Register/InventoryRegisterBalances/Services/InventoryDispatcher.cs` | Создает `RegisterBalance` через handlers и обновляет `WarehouseProduct`. |
-| `PurchaseInventoryHandler` | `src/Application/Features/Register/InventoryRegisterBalances/Services/Handlers/PurchaseInventoryHandler.cs` | Register IN для закупки. |
-| `SaleInventoryHandler` | `src/Application/Features/Register/InventoryRegisterBalances/Services/Handlers/SaleInventoryHandler.cs` | Register OUT для продажи. |
-| `WarehouseTransferInventoryHandler` | `src/Application/Features/Register/InventoryRegisterBalances/Services/Handlers/WarehouseTransferInventoryHandler.cs` | Register OUT+IN для перемещения. |
-| `InventoryAdjustmentInventoryHandler` | `src/Application/Features/Register/InventoryRegisterBalances/Services/Handlers/InventoryAdjustmentInventoryHandler.cs` | Register IN/OUT для корректировки. |
+| `InventoryDispatcher` | `src/Application/Features/Inv/InventoryMovements/Services/InventoryDispatcher.cs` | Строит внутренние движения через handlers и передает их сервису складских остатков. |
+| `PurchaseInventoryHandler` | `src/Application/Features/Inv/InventoryMovements/Services/Handlers/PurchaseInventoryHandler.cs` | Register IN для закупки. |
+| `SaleInventoryHandler` | `src/Application/Features/Inv/InventoryMovements/Services/Handlers/SaleInventoryHandler.cs` | Register OUT для продажи. |
+| `WarehouseTransferInventoryHandler` | `src/Application/Features/Inv/InventoryMovements/Services/Handlers/WarehouseTransferInventoryHandler.cs` | Register OUT+IN для перемещения. |
+| `InventoryAdjustmentInventoryHandler` | `src/Application/Features/Inv/InventoryMovements/Services/Handlers/InventoryAdjustmentInventoryHandler.cs` | Register IN/OUT для корректировки. |
 | `ManualService` | `src/Application/Features/Cmn/Manual/Services/ManualService.cs` | Select-list товаров, групп, типов, source product tables. |
 | `FaAssetService` | `src/Application/Features/Fa/FaAssets/Services/FaAssetService.cs` | Проверяет `SourceProductTableId` для основных средств. |
-| `InventoryRegisterBalanceService` | `src/Application/Features/Register/InventoryRegisterBalances/Services/InventoryRegisterBalanceService.cs` | Чтение складского регистра. |
 
 ## 3. Жизненный цикл `ProductTable`
 
@@ -329,7 +328,7 @@ flowchart LR
 
 | Метод | Назначение |
 |---|---|
-| `ApplyInventoryEntriesAsync(entries)` | Переводит `RegisterBalance` IN/OUT в изменения `WarehouseProduct.Quantity`. |
+| `ApplyInventoryEntriesAsync(entries)` | Переводит `WarehouseProductMovement` IN/OUT в изменения `WarehouseProduct.Quantity`. |
 | `ReserveAsync(warehouseId, items)` | Увеличивает `ReservedQuantity`. |
 | `ReleaseReservedAsync(warehouseId, items)` | Уменьшает `ReservedQuantity`. |
 
@@ -337,7 +336,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Reg["RegisterBalance entries"] --> Apply["ApplyInventoryEntriesAsync"]
+    Reg["WarehouseProductMovement entries"] --> Apply["ApplyInventoryEntriesAsync"]
     Apply --> Normalize["Group by WarehouseId + ProductId"]
     Normalize --> Load["Load Product unit + WarehouseProduct"]
     Load --> Missing{"WarehouseProduct exists?"}
@@ -352,7 +351,7 @@ flowchart TD
 
 ## 8. Складской регистр и `InventoryDispatcher`
 
-`InventoryDispatcher` — единая точка создания складского регистра.
+`InventoryDispatcher` — единая точка построения и применения складских движений.
 
 ```mermaid
 flowchart TD
@@ -362,23 +361,23 @@ flowchart TD
     Dispatch -->|WarehouseTransferDoc| TH["WarehouseTransferInventoryHandler"]
     Dispatch -->|InventoryAdjustmentDoc| AH["InventoryAdjustmentInventoryHandler"]
 
-    PH --> Entries["RegisterBalance entries"]
+    PH --> Entries["InventoryMovementEntry"]
     SH --> Entries
     TH --> Entries
     AH --> Entries
 
-    Entries --> Save["ICommandRepository<RegisterBalance>.CreateAsync"]
-    Save --> WP["WarehouseProductBalanceService.ApplyInventoryEntriesAsync"]
+    Entries --> WP["WarehouseProductBalanceService.ApplyInventoryEntriesAsync"]
+    WP --> Save["WarehouseProductMovement + batches + allocations + WarehouseProduct"]
 ```
 
 ### Handlers
 
 | Handler | Как пишет регистр |
 |---|---|
-| `PurchaseInventoryHandler` | Для каждой `PurchaseDocTable` пишет `IN`, `Quantity = 1`, `ProductTableId` заполнен. |
-| `SaleInventoryHandler` | Для piece-tracked пишет по `SaleDocTable` `OUT`, `Quantity = 1`; для `!IsPieceTracked` пишет одну строку `OUT`, `ProductTableId = null`, `Quantity = line.Quantity`. |
-| `WarehouseTransferInventoryHandler` | Для каждой партии пишет две строки: `OUT` со склада-источника и `IN` на склад-получатель. |
-| `InventoryAdjustmentInventoryHandler` | Пишет `IN` для положительных типов и `OUT` для отрицательных типов. |
+| `PurchaseInventoryHandler` | Для каждой `PurchaseDocTable` строит `IN`, `Quantity = 1`, `ProductTableId` заполнен. |
+| `SaleInventoryHandler` | Для piece-tracked строит по `SaleDocTable` `OUT`, `Quantity = 1`; для `!IsPieceTracked` строит одну строку `OUT`, `ProductTableId = null`, `Quantity = line.Quantity`. |
+| `WarehouseTransferInventoryHandler` | Для каждой партии строит две строки: `OUT` со склада-источника и `IN` на склад-получатель. |
+| `InventoryAdjustmentInventoryHandler` | Строит `IN` для положительных типов и `OUT` для отрицательных типов. |
 
 ## 9. Остатки для чтения
 
@@ -404,9 +403,9 @@ flowchart TD
 | Дата | Источник | Логика |
 |---|---|---|
 | `choosedDate == null`, today или future | `WarehouseProduct` | Берет текущие агрегированные `Quantity/Available/Reserved/Blocked`. |
-| historical date | `RegisterBalance` | Суммирует IN/OUT до даты; `Available = Quantity`, reserved/blocked = 0. |
+| historical date | `WarehouseProductMovement` | Суммирует IN/OUT до даты; `Available = Quantity`, reserved/blocked = 0. |
 | product tables current | `ProductTable` | `IN_STOCK => available`, `RESERVED => reserved`, `BLOCKED => blocked`. |
-| product tables historical | `RegisterBalance.ProductTableId` | Сумма historical movement по конкретной партии. |
+| product tables historical | `WarehouseProductMovement` + строки исходных документов | Движение связывается с `ProductTable` через detail-строки документа. |
 
 ```mermaid
 flowchart TD
@@ -415,7 +414,7 @@ flowchart TD
     Date -->|Нет| Historical["Historical mode"]
     Current -->|groups/products| WP["WarehouseProduct"]
     Current -->|productTables| PT["ProductTable status"]
-    Historical --> RB["RegisterBalance IN/OUT"]
+    Historical --> RB["WarehouseProductMovement IN/OUT"]
 ```
 
 ## 10. Перемещение склада
@@ -526,7 +525,7 @@ flowchart TD
 
 Особенность:
 
-- `GetProductsAsync(warehouseId)` фильтрует по `x.RegisterBalances.Any(a => a.WarehouseId == warehouseId)`, то есть по факту наличия движения на складе, а не по текущему остатку.
+- `GetProductsAsync(warehouseId)` сохраняет прежнюю семантику: фильтрует товары по наличию складского движения на выбранном складе.
 
 ### `FaAssetService`
 
@@ -535,16 +534,9 @@ flowchart TD
 - при create/update принимает `SourceProductTableId`;
 - валидирует, что такой `ProductTable` есть в текущей организации.
 
-### `InventoryRegisterBalanceService`
-
-Сервис только читает `RegisterBalance`:
-
-- `GetAllAsync`;
-- `GetByIdAsync`.
-
 ## 14. Матрица документов и эффектов
 
-| Документ | Создает/меняет `ProductTable` | Пишет `RegisterBalance` | Меняет `WarehouseProduct` | Особенность |
+| Документ | Создает/меняет `ProductTable` | Пишет `WarehouseProductMovement` | Меняет `WarehouseProduct` | Особенность |
 |---|---:|---:|---:|---|
 | Purchase | Да: draft `RESERVED`, confirm `IN_STOCK` | Да, через `PurchaseInventoryHandler` | Да, через dispatcher | Создает партии при приходе. |
 | Sale | Да: assembly `RESERVED`, confirm `SOLD` | Да, через `SaleInventoryHandler` | Да: reserve/release + register OUT | Выбор партий идет через `SelectInventoryAsync`. |
@@ -560,7 +552,7 @@ flowchart TD
 
 - `PurchaseDocService` для `!IsPieceTracked` запрещает `Items`, поэтому `PurchaseDocTables` не создаются.
 - `PurchaseInventoryHandler` пишет регистр только из `PurchaseDocTables`.
-- Значит, приход `!IsPieceTracked` товара может не создать `RegisterBalance IN` и не увеличить `WarehouseProduct`.
+- Значит, приход `!IsPieceTracked` товара может не создать `WarehouseProductMovement IN` и не увеличить `WarehouseProduct`.
 - `SaleInventoryHandler`, наоборот, умеет продавать `!IsPieceTracked`: пишет одну строку `OUT` с `ProductTableId = null` и `Quantity = line.Quantity`.
 
 Это главная потенциальная дырка в складском контуре: расход непоштучного товара поддержан, а приход через текущий handler может не увеличивать остаток.
@@ -592,7 +584,7 @@ flowchart TD
 
 ### 15.7. Manual products by warehouse ищет по движениям, не по остатку
 
-`ManualService.GetProductsAsync(warehouseId)` смотрит `RegisterBalances.Any(warehouseId)`. Это означает: товар попадет в список, если по нему когда-либо было движение на складе, даже если текущий остаток ноль.
+`ManualService.GetProductsAsync(warehouseId)` смотрит `WarehouseProductMovements.Any(warehouseId)`. Это сохраняет прежнее поведение: товар попадает в список, если по нему когда-либо было движение на складе, даже если текущий остаток равен нулю.
 
 ## 16. Рекомендуемая целевая логика
 
@@ -601,10 +593,10 @@ flowchart TD
 ```mermaid
 flowchart TD
     Goods{"Product.IsService?"}
-    Goods -->|Да| NoStock["Нет ProductTable\nНет RegisterBalance\nТолько бухгалтерия/доход/затраты"]
+    Goods -->|Да| NoStock["Нет ProductTable\nНет WarehouseProductMovement\nТолько бухгалтерия/доход/затраты"]
     Goods -->|Нет| Piece{"IsPieceTracked?"}
     Piece -->|Да| PieceFlow["ProductTable обязательны\nдвижение по партиям"]
-    Piece -->|Нет| AggregateFlow["ProductTable не нужны\nдвижение через RegisterBalance.ProductTableId = null\nWarehouseProduct агрегатно"]
+    Piece -->|Нет| AggregateFlow["ProductTable не нужны\nагрегированное складское движение\nWarehouseProduct агрегатно"]
 ```
 
 Для этого стоит явно решить:

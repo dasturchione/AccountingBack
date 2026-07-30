@@ -40,9 +40,6 @@ public partial class DocumentType
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
     [InverseProperty("DocumentType")]
-    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
-
-    [InverseProperty("DocumentType")]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
     [ForeignKey("StateId")]

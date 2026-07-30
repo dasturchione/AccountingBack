@@ -479,11 +479,6 @@ public static class PermissionCodeConst
     public const string CounterpartyRegBalanceDelete     = "COUNTERPARTY_REG_BALANCE_DELETE";
     #endregion
 
-    #region InventoryRegisterBalance
-    public const string InventoryRegBalanceView       = "INVENTORY_REG_BALANCE_VIEW";
-    public const string InventoryRegBalanceViewDetail = "INVENTORY_REG_BALANCE_VIEW_DETAIL";
-    #endregion
-
     #region Ledger
     public const string LedgerGet = "LEDGER_GET";
     #endregion

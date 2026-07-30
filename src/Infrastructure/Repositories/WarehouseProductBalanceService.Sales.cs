@@ -1,4 +1,5 @@
 ﻿using Application.Features.Inv.WarehouseProducts;
+using Application.Features.InventoryMovements;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Results;
@@ -9,7 +10,7 @@ public partial class WarehouseProductBalanceService
 {
     public async Task<Result> ApplySaleInventoryEntriesAsync(
         SaleDoc sale,
-        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
         CancellationToken ct = default)
     {
         var allocationPlan = await BuildSaleAllocationPlanAsync(sale, entries, ct);
@@ -31,14 +32,14 @@ public partial class WarehouseProductBalanceService
     }
 
     private async Task<Result> CreateWarehouseMovementsAsync(
-        IReadOnlyCollection<RegisterBalance> entries,
-        IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>> allocations,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        IReadOnlyDictionary<InventoryMovementEntry, IReadOnlyList<ProductBatchAllocation>> allocations,
         CancellationToken ct) =>
         await ApplyInventoryEntriesAsync(entries, allocations, ct);
 
     private async Task<Result<SaleInventoryAllocationPlan>> BuildSaleAllocationPlanAsync(
         SaleDoc sale,
-        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
         CancellationToken ct)
     {
         if (entries.Any(entry => entry.DocumentTypeId != DocumentTypeIdConst.SALE || entry.DocumentId != sale.Id))
@@ -101,7 +102,7 @@ public partial class WarehouseProductBalanceService
     private Task<Result> ValidateSaleProductAsync(
         SaleDoc sale,
         SaleDocProduct productLine,
-        ILookup<long, RegisterBalance> entriesBySourceLineId,
+        ILookup<long, InventoryMovementEntry> entriesBySourceLineId,
         CancellationToken ct)
     {
         if (productLine.Quantity <= 0m ||
@@ -435,13 +436,13 @@ public partial class WarehouseProductBalanceService
     }
 
     private async Task<Result> ApplySaleIssueMovementAsync(
-        RegisterBalance entry,
+        InventoryMovementEntry entry,
         WarehouseProductMovement issueMovement,
         IReadOnlyList<ProductBatchAllocation> allocations,
         CancellationToken ct)
     {
         if (allocations.Count == 0 || allocations.Sum(allocation => allocation.Quantity) != entry.Quantity)
-            return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.Id, _userContext.LanguageId));
+            return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.DocumentId, _userContext.LanguageId));
 
         var batchIds = allocations.Select(allocation => allocation.BatchId).Distinct().ToList();
         var batchesById = (await _warehouseProductBatchQuery.GetAllAsync(
@@ -451,7 +452,7 @@ public partial class WarehouseProductBalanceService
                 ct))
             .ToDictionary(batch => batch.Id);
         if (batchesById.Count != batchIds.Count)
-            return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.Id, _userContext.LanguageId));
+            return Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(entry.SourceLineId ?? entry.DocumentId, _userContext.LanguageId));
 
         foreach (var allocation in allocations)
         {
@@ -531,7 +532,7 @@ public partial class WarehouseProductBalanceService
 
     private sealed class SaleInventoryAllocationPlan
     {
-        public Dictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>> EntryAllocations { get; } = new();
+        public Dictionary<InventoryMovementEntry, IReadOnlyList<ProductBatchAllocation>> EntryAllocations { get; } = new();
     }
 
     private sealed class SaleProductAllocation

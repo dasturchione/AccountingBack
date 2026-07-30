@@ -2,7 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,7 +35,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
     private readonly ICommandRepository<InventoryAdjustmentLine> _lineCommand;
     private readonly ICommandRepository<InventoryAdjustmentDocTable> _tableCommand;
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<Product> _productQuery;
@@ -53,7 +53,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         ICommandRepository<InventoryAdjustmentLine> lineCommand,
         ICommandRepository<InventoryAdjustmentDocTable> tableCommand,
         IQueryRepository<PostingBatch> postingBatchQuery,
-        IQueryRepository<RegisterBalance> inventoryRegisterQuery,
+        IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<Product> productQuery,
@@ -73,7 +73,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         _lineCommand = lineCommand;
         _tableCommand = tableCommand;
         _postingBatchQuery = postingBatchQuery;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
+        _warehouseMovementQuery = warehouseMovementQuery;
         _organizationQuery = organizationQuery;
         _warehouseQuery = warehouseQuery;
         _productQuery = productQuery;
@@ -270,21 +270,21 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             return Result.Success(await _postingBatchQuery.GetAllAsync(query, ct));
         });
 
-    public Task<Result<List<InventoryRegisterBalanceListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default) =>
+    public Task<Result<List<InventoryMovementListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetInventoryMovementsAsync), async () =>
         {
             if (_userContext.OrganizationId is null)
-                return Result.Failure<List<InventoryRegisterBalanceListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+                return Result.Failure<List<InventoryMovementListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             if (!await _query.AnyAsync(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId.Value, ct))
-                return Result.Failure<List<InventoryRegisterBalanceListDto>>(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
+                return Result.Failure<List<InventoryMovementListDto>>(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
 
-            var query = _queryBuilder.For<RegisterBalance>()
+            var query = _queryBuilder.For<WarehouseProductMovement>()
                 .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT && x.DocumentId == id)
-                .As<InventoryRegisterBalanceListDto>()
+                .As<InventoryMovementListDto>()
                 .Build();
 
-            return Result.Success(await _inventoryRegisterQuery.GetAllAsync(query, ct));
+            return Result.Success(await _warehouseMovementQuery.GetAllAsync(query, ct));
         });
 
     private async Task<InventoryAdjustmentDto?> GetByIdInternalAsync(long id, CancellationToken ct)

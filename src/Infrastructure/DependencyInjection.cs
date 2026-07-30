@@ -49,7 +49,7 @@ using Application.Features.FaDisposals;
 using Application.Features.FaRevaluations;
 using Application.Features.FaMovements;
 using Application.Features.FaReceipts;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Application.Features.Imports;
 using Application.Features.Inv;
 using Application.Features.InventoryCounts;
@@ -272,7 +272,6 @@ namespace Infrastructure
             services.AddScoped<IBankCounterpartyRegisterService, BankCounterpartyRegisterService>();
             services.AddScoped<IPurchaseCounterpartyRegisterService, PurchaseCounterpartyRegisterService>();
             services.AddScoped<ISaleCounterpartyRegisterService, SaleCounterpartyRegisterService>();
-            services.AddScoped<IInventoryRegisterBalanceService, InventoryRegisterBalanceService>();
             services.AddScoped<IMoneyRegisterBalanceService, MoneyRegisterBalanceService>();
             services.AddScoped<IBankMoneyRegisterService, BankMoneyRegisterService>();
             services.AddScoped<ISaleMoneyRegisterService, SaleMoneyRegisterService>();

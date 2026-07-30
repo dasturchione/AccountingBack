@@ -29,7 +29,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
     private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentQuery;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
+    private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
 
     public InventoryCountLifecycleService(
         IUserContext userContext,
@@ -47,7 +47,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentQuery,
         ICommandRepository<ProductTable> productTableCommand,
         IQueryRepository<ProductTable> productTableQuery,
-        IQueryRepository<RegisterBalance> inventoryRegisterQuery,
+        IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
         ILogger<InventoryCountLifecycleService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -67,7 +67,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         _inventoryAdjustmentQuery = inventoryAdjustmentQuery;
         _productTableCommand = productTableCommand;
         _productTableQuery = productTableQuery;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
+        _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
     }
 
     public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
@@ -451,16 +451,24 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         if (productTableIds.Count == 0)
             return new Dictionary<int, decimal>();
 
-        var query = _queryBuilder.For<RegisterBalance>()
-            .Where(x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value) && x.ReversalEntryId == null)
+        var query = _queryBuilder.For<WarehouseProductBatchTable>()
+            .Where(x => productTableIds.Contains(x.ProductTableId))
+            .As(x => new InventoryCountBatchCostRow(
+                x.ProductTableId,
+                x.BatchId,
+                x.Batch.ReceivedDate,
+                x.Batch.UnitCost))
             .Build();
-        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
+        var batchLinks = await _warehouseProductBatchTableQuery.GetAllAsync(query, ct);
 
-        return entries
-            .GroupBy(x => x.ProductTableId!.Value)
+        return batchLinks
+            .GroupBy(x => x.ProductTableId)
             .ToDictionary(
                 x => x.Key,
-                x => x.OrderByDescending(e => e.CreatedDate).ThenByDescending(e => e.Id).First().Amount);
+                x => x.OrderByDescending(e => e.ReceivedDate)
+                    .ThenByDescending(e => e.BatchId)
+                    .First()
+                    .UnitCost ?? 0m);
     }
 
     private async Task<InventoryAdjustmentDoc?> GetInventoryAdjustmentAsync(long id, CancellationToken ct)
@@ -483,6 +491,12 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         public short UnitId { get; set; }
         public string UnitName { get; set; } = null!;
     }
+
+    private sealed record InventoryCountBatchCostRow(
+        int ProductTableId,
+        long BatchId,
+        DateTime ReceivedDate,
+        decimal? UnitCost);
 
     private async Task<PostingBatch> CreatePostingBatchAsync(InventoryCountDoc doc, string status, string comment, CancellationToken ct)
     {

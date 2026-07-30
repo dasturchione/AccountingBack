@@ -179,9 +179,6 @@ public partial class OrgOrganization
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<InvTransferDoc> InvTransferDocs { get; set; } = new List<InvTransferDoc>();
 
     [InverseProperty("Organization")]

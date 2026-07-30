@@ -2,6 +2,6 @@
 {
     public class OpeningInventoryUpdateDto : OpeningInventoryBaseDto
     {
-
+        public List<OpeningInventoryProductCreateDto> Lines { get; set; } = new();
     }
 }

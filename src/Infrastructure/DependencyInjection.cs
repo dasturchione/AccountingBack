@@ -54,6 +54,7 @@ using Application.Features.Imports;
 using Application.Features.Inv;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryAdjustments;
+using Application.Features.Inv.OpeningInventories;
 using Application.Features.Inv.ProductPrices;
 using Application.Features.WarehouseTransfers;
 using Application.Features.Manual;
@@ -210,6 +211,7 @@ namespace Infrastructure
             services.AddScoped<IWarehouseTransferLifecycleService, WarehouseTransferLifecycleService>();
             services.AddScoped<IInventoryAdjustmentLifecycleService, InventoryAdjustmentLifecycleService>();
             services.AddScoped<IInventoryCountLifecycleService, InventoryCountLifecycleService>();
+            services.AddScoped<IOpeningInventoryService, OpeningInventoryService>();
             services.AddScoped<IProductStockService, ProductStockService>();
             services.AddScoped<IProductStockCalculateService, ProductStockCalculateService>();
             services.AddScoped<IProductPriceCalculateService, ProductPriceCalculateService>();
@@ -300,6 +302,7 @@ namespace Infrastructure
             services.AddScoped<IInventoryDocumentHandler<SaleDoc>, SaleInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<WarehouseTransferDoc>, WarehouseTransferInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();
 
             services.Scan(scan => scan
                 .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

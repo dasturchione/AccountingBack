@@ -16,6 +16,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
     private readonly IQueryRepository<SaleDocTable> _saleDocTableQuery;
     private readonly IQueryRepository<WarehouseTransferDocTable> _warehouseTransferDocTableQuery;
     private readonly IQueryRepository<InventoryAdjustmentDocTable> _inventoryAdjustmentDocTableQuery;
+    private readonly IQueryRepository<OpeningInventoryTable> _openingInventoryTableQuery;
 
     public ProductStockCalculateService(
         IQueryBuilder queryBuilder,
@@ -25,7 +26,8 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
         IQueryRepository<SaleDocTable> saleDocTableQuery,
         IQueryRepository<WarehouseTransferDocTable> warehouseTransferDocTableQuery,
-        IQueryRepository<InventoryAdjustmentDocTable> inventoryAdjustmentDocTableQuery)
+        IQueryRepository<InventoryAdjustmentDocTable> inventoryAdjustmentDocTableQuery,
+        IQueryRepository<OpeningInventoryTable> openingInventoryTableQuery)
     {
         _queryBuilder = queryBuilder;
         _warehouseProductQuery = warehouseProductQuery;
@@ -35,6 +37,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         _saleDocTableQuery = saleDocTableQuery;
         _warehouseTransferDocTableQuery = warehouseTransferDocTableQuery;
         _inventoryAdjustmentDocTableQuery = inventoryAdjustmentDocTableQuery;
+        _openingInventoryTableQuery = openingInventoryTableQuery;
     }
 
     public Task<Result<Dictionary<int, (decimal Quantity, decimal Available, decimal Reserved, decimal Blocked)>>> GetProductGroupsAsync(
@@ -298,6 +301,19 @@ public class ProductStockCalculateService : IProductStockCalculateService
                 .As(x => new DocumentProductTableLink(DocumentTypeIdConst.INVENTORYADJUSTMENT, x.Owner.OwnerId, x.Owner.ProductId, x.ProductTableId!.Value))
                 .Build();
             links.AddRange(await _inventoryAdjustmentDocTableQuery.GetAllAsync(query, ct));
+        }
+
+        if (documentIdsByType.TryGetValue(DocumentTypeIdConst.OPENINGINVENTORY, out var openingInventoryIds))
+        {
+            var query = _queryBuilder.For<OpeningInventoryTable>()
+                .Where(x => openingInventoryIds.Contains(x.Owner.OwnerId))
+                .As(x => new DocumentProductTableLink(
+                    DocumentTypeIdConst.OPENINGINVENTORY,
+                    x.Owner.OwnerId,
+                    x.Owner.ProductId,
+                    x.ProductTableId))
+                .Build();
+            links.AddRange(await _openingInventoryTableQuery.GetAllAsync(query, ct));
         }
 
         var productTableIdsByDocument = links

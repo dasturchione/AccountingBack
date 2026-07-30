@@ -13,6 +13,7 @@ public class InventoryDispatcher : IInventoryDispatcher
     private readonly IInventoryDocumentHandler<SaleDoc> _saleHandler;
     private readonly IInventoryDocumentHandler<WarehouseTransferDoc> _warehouseTransferHandler;
     private readonly IInventoryDocumentHandler<InventoryAdjustmentDoc> _inventoryAdjustmentHandler;
+    private readonly IInventoryDocumentHandler<OpeningInventory> _openingInventoryHandler;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<WarehouseProductMovement> _movementQuery;
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
@@ -21,6 +22,7 @@ public class InventoryDispatcher : IInventoryDispatcher
                                IInventoryDocumentHandler<SaleDoc> saleHandler,
                                IInventoryDocumentHandler<WarehouseTransferDoc> warehouseTransferHandler,
                                IInventoryDocumentHandler<InventoryAdjustmentDoc> inventoryAdjustmentHandler,
+                               IInventoryDocumentHandler<OpeningInventory> openingInventoryHandler,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<WarehouseProductMovement> movementQuery,
                                IWarehouseProductBalanceService warehouseProductBalanceService)
@@ -29,6 +31,7 @@ public class InventoryDispatcher : IInventoryDispatcher
         _saleHandler = saleHandler;
         _warehouseTransferHandler = warehouseTransferHandler;
         _inventoryAdjustmentHandler = inventoryAdjustmentHandler;
+        _openingInventoryHandler = openingInventoryHandler;
         _queryBuilder = queryBuilder;
         _movementQuery = movementQuery;
         _warehouseProductBalanceService = warehouseProductBalanceService;
@@ -112,6 +115,7 @@ public class InventoryDispatcher : IInventoryDispatcher
             SaleDoc sale => _saleHandler.HandleAsync(sale, ct),
             WarehouseTransferDoc transfer => _warehouseTransferHandler.HandleAsync(transfer, ct),
             InventoryAdjustmentDoc adjustment => _inventoryAdjustmentHandler.HandleAsync(adjustment, ct),
+            OpeningInventory openingInventory => _openingInventoryHandler.HandleAsync(openingInventory, ct),
             _ => Task.FromResult(Result.Failure<List<InventoryMovementEntry>>(InventoryMovementErrors.UnsupportedDocumentType()))
         };
 

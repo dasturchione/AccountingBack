@@ -25,6 +25,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private readonly IQueryRepository<PurchaseDoc> _purchaseDocQuery;
     private readonly IQueryRepository<WarehouseTransferDoc> _warehouseTransferDocQuery;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentDocQuery;
+    private readonly IQueryRepository<OpeningInventory> _openingInventoryQuery;
     private readonly ICommandRepository<WarehouseProduct> _warehouseProductCommand;
     private readonly ICommandRepository<WarehouseProductTable> _warehouseProductTableCommand;
     private readonly ICommandRepository<WarehouseProductMovement> _warehouseProductMovementCommand;
@@ -50,6 +51,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         IQueryRepository<PurchaseDoc> purchaseDocQuery,
         IQueryRepository<WarehouseTransferDoc> warehouseTransferDocQuery,
         IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentDocQuery,
+        IQueryRepository<OpeningInventory> openingInventoryQuery,
         ICommandRepository<WarehouseProduct> warehouseProductCommand,
         ICommandRepository<WarehouseProductTable> warehouseProductTableCommand,
         ICommandRepository<WarehouseProductMovement> warehouseProductMovementCommand,
@@ -74,6 +76,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         _purchaseDocQuery = purchaseDocQuery;
         _warehouseTransferDocQuery = warehouseTransferDocQuery;
         _inventoryAdjustmentDocQuery = inventoryAdjustmentDocQuery;
+        _openingInventoryQuery = openingInventoryQuery;
         _warehouseProductCommand = warehouseProductCommand;
         _warehouseProductTableCommand = warehouseProductTableCommand;
         _warehouseProductMovementCommand = warehouseProductMovementCommand;
@@ -1041,6 +1044,22 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 ct);
             foreach (var document in documents)
                 result[(DocumentTypeIdConst.INVENTORYADJUSTMENT, document.Id)] = document.DocNumber;
+        }
+
+        var openingInventoryIds = documentKeys
+            .Where(key => key.DocumentTypeId == DocumentTypeIdConst.OPENINGINVENTORY)
+            .Select(key => key.DocumentId)
+            .ToList();
+        if (openingInventoryIds.Count > 0)
+        {
+            var documents = await _openingInventoryQuery.GetAllAsync(
+                _queryBuilder.For<OpeningInventory>()
+                    .Where(document => openingInventoryIds.Contains(document.Id))
+                    .As(document => new DocumentNumber(document.Id, document.DocNumber))
+                    .Build(),
+                ct);
+            foreach (var document in documents)
+                result[(DocumentTypeIdConst.OPENINGINVENTORY, document.Id)] = document.DocNumber;
         }
 
         return result;

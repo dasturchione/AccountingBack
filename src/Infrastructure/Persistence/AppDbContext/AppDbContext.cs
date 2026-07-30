@@ -100,6 +100,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InventoryCountDoc> InventoryCountDocs { get; set; }
     public virtual DbSet<InventoryCountLine> InventoryCountLines { get; set; }
     public virtual DbSet<InventoryCountDocTable> InventoryCountDocTables { get; set; }
+    public virtual DbSet<OpeningInventory> OpeningInventories { get; set; }
+    public virtual DbSet<OpeningInventoryProduct> OpeningInventoryProducts { get; set; }
+    public virtual DbSet<OpeningInventoryTable> OpeningInventoryTables { get; set; }
     public virtual DbSet<WarehouseTransferDoc> WarehouseTransferDocs { get; set; }
     public virtual DbSet<WarehouseTransferLine> WarehouseTransferLines { get; set; }
     public virtual DbSet<WarehouseTransferDocTable> WarehouseTransferDocTables { get; set; }
@@ -325,6 +328,11 @@ public partial class AppDbContext : DbContext
             .HasIndex(x => new { x.OrganizationId, x.DocNumber })
             .HasDatabaseName("ux_inv_inventory_adjustment_doc_org_doc_number")
             .IsUnique();
+
+        modelBuilder.Entity<OpeningBalanceAccountDetail>()
+            .HasIndex(x => new { x.SourceDocumentTypeId, x.SourceDocumentId })
+            .HasDatabaseName("ix_acc_opening_balance_detail_source_document")
+            .HasFilter("source_document_type_id IS NOT NULL AND source_document_id IS NOT NULL");
 
         modelBuilder.Entity<InventoryAdjustmentLine>()
             .ToTable(t => t.HasCheckConstraint(

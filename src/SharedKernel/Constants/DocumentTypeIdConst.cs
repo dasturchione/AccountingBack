@@ -80,5 +80,11 @@
         /// Fixed asset revaluation document.
         /// </summary>
         public const short FAREVALUATION = 15;
+
+        /// <summary>
+        /// Opening inventory receipt. It affects warehouse stock and opening
+        /// balances, but never creates accounting postings.
+        /// </summary>
+        public const short OPENINGINVENTORY = 16;
     }
 }

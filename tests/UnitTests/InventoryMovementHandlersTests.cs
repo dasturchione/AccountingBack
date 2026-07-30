@@ -155,6 +155,99 @@ public sealed class InventoryMovementHandlersTests
         Assert.Equal(2m, entry.Quantity);
     }
 
+    [Fact]
+    public async Task OpeningInventoryHandler_CreatesAggregateReceiptWithoutPosting()
+    {
+        var document = new OpeningInventory
+        {
+            Id = 50,
+            OrganizationId = 1,
+            WarehouseId = 2,
+            DocDate = new DateTime(2026, 7, 30),
+            OpeningInventoryProducts =
+            [
+                new OpeningInventoryProduct
+                {
+                    Id = 500,
+                    ProductId = 3,
+                    Quantity = 6m,
+                    Amount = 90m,
+                    Product = Product(isPieceTracked: false)
+                }
+            ]
+        };
+
+        var result = await new OpeningInventoryHandler().HandleAsync(document);
+
+        Assert.True(result.IsSuccess);
+        var entry = Assert.Single(result.Value);
+        Assert.Equal(DocumentTypeIdConst.OPENINGINVENTORY, entry.DocumentTypeId);
+        Assert.Equal(OperationTypeIdConst.IN, entry.OperationTypeId);
+        Assert.Equal(6m, entry.Quantity);
+        Assert.Equal(90m, entry.Amount);
+        Assert.Equal(500, entry.SourceLineId);
+        Assert.Null(entry.ProductTableId);
+    }
+
+    [Fact]
+    public async Task OpeningInventoryHandler_CreatesOneReceiptPerTrackedItem()
+    {
+        var product = Product(isPieceTracked: true);
+        var document = new OpeningInventory
+        {
+            Id = 51,
+            OrganizationId = 1,
+            WarehouseId = 2,
+            DocDate = new DateTime(2026, 7, 30),
+            OpeningInventoryProducts =
+            [
+                new OpeningInventoryProduct
+                {
+                    Id = 510,
+                    ProductId = 3,
+                    Quantity = 2m,
+                    Amount = 40m,
+                    Product = product,
+                    OpeningInventoryTables =
+                    [
+                        new OpeningInventoryTable
+                        {
+                            Id = 511,
+                            ProductTableId = 31,
+                            Amount = 20m
+                        },
+                        new OpeningInventoryTable
+                        {
+                            Id = 512,
+                            ProductTableId = 32,
+                            Amount = 20m
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var result = await new OpeningInventoryHandler().HandleAsync(document);
+
+        Assert.True(result.IsSuccess);
+        Assert.Collection(
+            result.Value.OrderBy(x => x.ProductTableId),
+            entry =>
+            {
+                Assert.Equal(31, entry.ProductTableId);
+                Assert.Equal(511, entry.SourceLineId);
+                Assert.Equal(1m, entry.Quantity);
+                Assert.Equal(20m, entry.Amount);
+            },
+            entry =>
+            {
+                Assert.Equal(32, entry.ProductTableId);
+                Assert.Equal(512, entry.SourceLineId);
+                Assert.Equal(1m, entry.Quantity);
+                Assert.Equal(20m, entry.Amount);
+            });
+    }
+
     private static Product Product(bool isPieceTracked) =>
         new()
         {

@@ -636,6 +636,14 @@ public static class PermissionCodeConst
     public const string UserDelete     = "USER_DELETE";
     #endregion
 
+    #region OpeningInventory
+    public const string OpeningInventoryView       = "OPENING_INVENTORY_VIEW";
+    public const string OpeningInventoryViewDetail = "OPENING_INVENTORY_VIEW_DETAIL";
+    public const string OpeningInventoryCreate     = "OPENING_INVENTORY_CREATE";
+    public const string OpeningInventoryUpdate     = "OPENING_INVENTORY_UPDATE";
+    public const string OpeningInventoryDelete     = "OPENING_INVENTORY_DELETE";
+    #endregion
+
     #region Payroll
     public const string PayrollView             = "PAYROLL_VIEW";
     public const string PayrollEmployeeView     = "PAYROLL_EMPLOYEE_VIEW";

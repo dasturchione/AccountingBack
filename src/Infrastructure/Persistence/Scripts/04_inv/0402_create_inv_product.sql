@@ -19,6 +19,7 @@ create table inv_product
     article character varying(100),
     default_vat_rate_id smallint,
     min_stock numeric(18,3),
+    gtin character varying(14),
     constraint ck_inv_product_mxik CHECK (((mxik IS null) OR ((mxik)::text ~ '^[A-Za-z0-9]{17}$'::text))),
     constraint chk_inv_product_sale_purchase_flags CHECK ((is_sold OR is_purchased)),
     constraint inv_product_pkey primary key (id),
@@ -39,6 +40,7 @@ create index idx_inv_product_code on inv_product using btree (code);
 create index idx_inv_product_sku on inv_product using btree (sku);
 create index idx_inv_product_article on inv_product using btree (article);
 create index idx_inv_product_default_vat_rate_id on inv_product using btree (default_vat_rate_id);
+create index idx_inv_product_gtin on inv_product using btree (gtin) WHERE (gtin IS not null);
 create unique index uidx_inv_product_org_code on inv_product using btree (organization_id, code) WHERE (code IS not null);
 
 

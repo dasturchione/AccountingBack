@@ -85,6 +85,10 @@ public partial class InvProduct
     [Column("is_purchased")]
     public bool IsPurchased { get; set; }
 
+    [Column("gtin")]
+    [StringLength(14)]
+    public string? Gtin { get; set; }
+
     [InverseProperty("SourceProduct")]
     public virtual ICollection<FaReceiptDocLine> FaReceiptDocLines { get; set; } = new List<FaReceiptDocLine>();
 
@@ -117,6 +121,12 @@ public partial class InvProduct
 
     [InverseProperty("Product")]
     public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<MarkingCode> MarkingCodes { get; set; } = new List<MarkingCode>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<MarkingOrder> MarkingOrders { get; set; } = new List<MarkingOrder>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvProducts")]

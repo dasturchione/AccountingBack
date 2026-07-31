@@ -10,11 +10,13 @@ create table inv_warehouse
     code character varying(100),
     address character varying(1000),
     is_main boolean default false not null,
+    business_place_id integer,
     constraint inv_warehouse_pkey primary key (id),
     constraint inv_warehouse_branch_id_fkey foreign key (branch_id) references org_branch(id),
     constraint inv_warehouse_organization_id_fkey foreign key (organization_id) references org_organization(id),
     constraint inv_warehouse_responsible_user_id_fkey foreign key (responsible_user_id) references sys_user(id),
-    constraint inv_warehouse_state_id_fkey foreign key (state_id) references cmn_state(id)
+    constraint inv_warehouse_state_id_fkey foreign key (state_id) references cmn_state(id),
+    constraint inv_warehouse_business_place_id_fkey foreign key (business_place_id) references marking_business_place(id)
 );
 
 create index idx_inv_warehouse_branch_id 
@@ -35,5 +37,8 @@ create index idx_inv_warehouse_code
 create index idx_inv_warehouse_is_main 
     on inv_warehouse using btree (is_main);
     
-create unique index uidx_inv_warehouse_org_code 
+create unique index uidx_inv_warehouse_org_code
     on inv_warehouse using btree (organization_id, code) WHERE (code IS not null);
+
+create index idx_inv_warehouse_business_place_id
+    on inv_warehouse using btree (business_place_id);

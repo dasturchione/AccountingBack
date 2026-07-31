@@ -7,7 +7,10 @@ namespace Infrastructure.Persistence.Generated;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
     public virtual DbSet<AccAccountType> AccAccountTypes { get; set; }
 
@@ -185,6 +188,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
 
+    public virtual DbSet<IntegrationCredential> IntegrationCredentials { get; set; }
+
     public virtual DbSet<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; }
 
     public virtual DbSet<InvInventoryAdjustmentDocTable> InvInventoryAdjustmentDocTables { get; set; }
@@ -233,9 +238,25 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvWarehouseProductTable> InvWarehouseProductTables { get; set; }
 
+    public virtual DbSet<MarkingAggregation> MarkingAggregations { get; set; }
+
+    public virtual DbSet<MarkingAslbelgiDocument> MarkingAslbelgiDocuments { get; set; }
+
+    public virtual DbSet<MarkingBusinessPlace> MarkingBusinessPlaces { get; set; }
+
+    public virtual DbSet<MarkingCode> MarkingCodes { get; set; }
+
+    public virtual DbSet<MarkingDidoxDocument> MarkingDidoxDocuments { get; set; }
+
+    public virtual DbSet<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; }
+
+    public virtual DbSet<MarkingOrder> MarkingOrders { get; set; }
+
     public virtual DbSet<MarkingTransfer> MarkingTransfers { get; set; }
 
     public virtual DbSet<MarkingTransferCode> MarkingTransferCodes { get; set; }
+
+    public virtual DbSet<MarkingUtilization> MarkingUtilizations { get; set; }
 
     public virtual DbSet<MoneyRegBalance> MoneyRegBalances { get; set; }
 
@@ -260,6 +281,30 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OrgTaxSetting> OrgTaxSettings { get; set; }
 
     public virtual DbSet<OrgUserInvitation> OrgUserInvitations { get; set; }
+
+    public virtual DbSet<PayComponent> PayComponents { get; set; }
+
+    public virtual DbSet<PayEmployee> PayEmployees { get; set; }
+
+    public virtual DbSet<PayEmployeeComponent> PayEmployeeComponents { get; set; }
+
+    public virtual DbSet<PayEmployment> PayEmployments { get; set; }
+
+    public virtual DbSet<PayPaymentBatch> PayPaymentBatches { get; set; }
+
+    public virtual DbSet<PayPaymentLine> PayPaymentLines { get; set; }
+
+    public virtual DbSet<PayPayrollCalcLine> PayPayrollCalcLines { get; set; }
+
+    public virtual DbSet<PayPayrollDoc> PayPayrollDocs { get; set; }
+
+    public virtual DbSet<PayPayrollLine> PayPayrollLines { get; set; }
+
+    public virtual DbSet<PayPeriod> PayPeriods { get; set; }
+
+    public virtual DbSet<PayTimesheet> PayTimesheets { get; set; }
+
+    public virtual DbSet<PayTimesheetLine> PayTimesheetLines { get; set; }
 
     public virtual DbSet<PlatformTenant> PlatformTenants { get; set; }
 
@@ -1711,6 +1756,18 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("idempotency_record_organization_id_fkey");
         });
 
+        modelBuilder.Entity<IntegrationCredential>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("integration_credential_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.IntegrationCredentials)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("integration_credential_organization_id_fkey");
+        });
+
         modelBuilder.Entity<InvInventoryAdjustmentDoc>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_inventory_adjustment_doc_pkey");
@@ -1879,6 +1936,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<InvProduct>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("inv_product_pkey");
+
+            entity.HasIndex(e => e.Gtin, "idx_inv_product_gtin").HasFilter("(gtin IS NOT NULL)");
 
             entity.HasIndex(e => e.Mxik, "ix_inv_product_mxik").HasFilter("(mxik IS NOT NULL)");
 
@@ -2061,6 +2120,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Branch).WithMany(p => p.InvWarehouses).HasConstraintName("inv_warehouse_branch_id_fkey");
 
+            entity.HasOne(d => d.BusinessPlace).WithMany(p => p.InvWarehouses).HasConstraintName("inv_warehouse_business_place_id_fkey");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.InvWarehouses)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_warehouse_organization_id_fkey");
@@ -2187,6 +2248,134 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("inv_warehouse_product_table_warehouse_id_fkey");
         });
 
+        modelBuilder.Entity<MarkingAggregation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_aggregation_pkey");
+
+            entity.HasIndex(e => e.CrptDocumentId, "ux_marking_aggregation_crpt_document_id")
+                .IsUnique()
+                .HasFilter("(crpt_document_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.BusinessPlace).WithMany(p => p.MarkingAggregations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_business_place_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingAggregations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_organization_id_fkey");
+
+            entity.HasOne(d => d.ParentMarkingCode).WithMany(p => p.MarkingAggregations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_parent_marking_code_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingAslbelgiDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_aslbelgi_document_pkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId, "ux_marking_aslbelgi_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("(provider_document_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingAslbelgiDocuments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aslbelgi_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingBusinessPlace>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_business_place_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingBusinessPlaces)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_business_place_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_code_pkey");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.MarkingCodes).HasConstraintName("marking_code_order_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingCodes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_organization_id_fkey");
+
+            entity.HasOne(d => d.OwnerCounterparty).WithMany(p => p.MarkingCodes).HasConstraintName("marking_code_owner_counterparty_id_fkey");
+
+            entity.HasOne(d => d.ParentMarkingCode).WithMany(p => p.InverseParentMarkingCode).HasConstraintName("marking_code_parent_marking_code_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.MarkingCodes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_product_id_fkey");
+
+            entity.HasOne(d => d.Utilization).WithMany(p => p.MarkingCodes).HasConstraintName("marking_code_utilization_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.MarkingCodes).HasConstraintName("marking_code_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingDidoxDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_didox_document_pkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId, "ux_marking_didox_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("(provider_document_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingDidoxDocuments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_didox_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingEdocsDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_edocs_document_pkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId, "ux_marking_edocs_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("(provider_document_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingEdocsDocuments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_edocs_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_order_pkey");
+
+            entity.HasIndex(e => e.CrptOrderId, "ux_marking_order_crpt_order_id")
+                .IsUnique()
+                .HasFilter("(crpt_order_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.BusinessPlace).WithMany(p => p.MarkingOrders)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_business_place_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingOrders)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_organization_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.MarkingOrders)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_product_id_fkey");
+        });
+
         modelBuilder.Entity<MarkingTransfer>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("marking_transfer_pkey");
@@ -2221,6 +2410,25 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.MarkingTransferCodes)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("marking_transfer_code_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingUtilization>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_utilization_pkey");
+
+            entity.HasIndex(e => e.CrptDocumentId, "ux_marking_utilization_crpt_document_id")
+                .IsUnique()
+                .HasFilter("(crpt_document_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.BusinessPlace).WithMany(p => p.MarkingUtilizations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_utilization_business_place_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingUtilizations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_utilization_organization_id_fkey");
         });
 
         modelBuilder.Entity<MoneyRegBalance>(entity =>
@@ -2396,6 +2604,325 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
+        });
+
+        modelBuilder.Entity<PayComponent>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_component_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.ExpenseAccount).WithMany(p => p.PayComponentExpenseAccounts).HasConstraintName("pay_component_expense_account_id_fkey");
+
+            entity.HasOne(d => d.LiabilityAccount).WithMany(p => p.PayComponentLiabilityAccounts).HasConstraintName("pay_component_liability_account_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_component_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_component_state_id_fkey");
+        });
+
+        modelBuilder.Entity<PayEmployee>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_employee_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Pinfl }, "ux_pay_employee_org_pinfl")
+                .IsUnique()
+                .HasFilter("(pinfl IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.PayEmployeeCreatedByUsers).HasConstraintName("pay_employee_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayEmployees)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayEmployees)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_state_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.PayEmployeeUpdatedByUsers).HasConstraintName("pay_employee_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<PayEmployeeComponent>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_employee_component_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.Component).WithMany(p => p.PayEmployeeComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_component_component_id_fkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayEmployeeComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_component_employee_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayEmployeeComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_component_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayEmployeeComponents)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employee_component_state_id_fkey");
+        });
+
+        modelBuilder.Entity<PayEmployment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_employment_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.EmploymentRate).HasDefaultValue(1m);
+            entity.Property(e => e.EmploymentType).HasDefaultValueSql("'PRIMARY'::character varying");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+            entity.Property(e => e.WeeklyHours).HasDefaultValue(40m);
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.PayEmployments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employment_currency_id_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.PayEmployments).HasConstraintName("pay_employment_department_id_fkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayEmployments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employment_employee_id_fkey");
+
+            entity.HasOne(d => d.ExpenseAccount).WithMany(p => p.PayEmployments).HasConstraintName("pay_employment_expense_account_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayEmployments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employment_organization_id_fkey");
+
+            entity.HasOne(d => d.Position).WithMany(p => p.PayEmployments).HasConstraintName("pay_employment_position_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayEmployments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_employment_state_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPaymentBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_payment_batch_pkey");
+
+            entity.HasIndex(e => e.BankOperationId, "ux_pay_payment_batch_bank_operation_id")
+                .IsUnique()
+                .HasFilter("(bank_operation_id IS NOT NULL)");
+
+            entity.HasIndex(e => e.CashOperationId, "ux_pay_payment_batch_cash_operation_id")
+                .IsUnique()
+                .HasFilter("(cash_operation_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.BankAccount).WithMany(p => p.PayPaymentBatches).HasConstraintName("pay_payment_batch_bank_account_id_fkey");
+
+            entity.HasOne(d => d.BankOperation).WithOne(p => p.PayPaymentBatch).HasConstraintName("pay_payment_batch_bank_operation_id_fkey");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.PayPaymentBatchCancelledByUsers).HasConstraintName("pay_payment_batch_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CashBox).WithMany(p => p.PayPaymentBatches).HasConstraintName("pay_payment_batch_cash_box_id_fkey");
+
+            entity.HasOne(d => d.CashOperation).WithOne(p => p.PayPaymentBatch).HasConstraintName("pay_payment_batch_cash_operation_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.PayPaymentBatchCreatedByUsers).HasConstraintName("pay_payment_batch_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.PayPaymentBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_currency_id_fkey");
+
+            entity.HasOne(d => d.OffsetAccount).WithMany(p => p.PayPaymentBatchOffsetAccounts).HasConstraintName("pay_payment_batch_offset_account_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPaymentBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_organization_id_fkey");
+
+            entity.HasOne(d => d.PayrollDoc).WithMany(p => p.PayPaymentBatches).HasConstraintName("pay_payment_batch_payroll_doc_id_fkey");
+
+            entity.HasOne(d => d.Period).WithMany(p => p.PayPaymentBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_period_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.PayPaymentBatchPostedByUsers).HasConstraintName("pay_payment_batch_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.SourceChartAccount).WithMany(p => p.PayPaymentBatchSourceChartAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_source_chart_account_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayPaymentBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.PayPaymentBatches)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_batch_status_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPaymentLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_payment_line_pkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayPaymentLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_line_employee_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPaymentLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payment_line_organization_id_fkey");
+
+            entity.HasOne(d => d.PaymentBatch).WithMany(p => p.PayPaymentLines).HasConstraintName("pay_payment_line_payment_batch_id_fkey");
+
+            entity.HasOne(d => d.PayrollLine).WithMany(p => p.PayPaymentLines).HasConstraintName("pay_payment_line_payroll_line_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPayrollCalcLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_payroll_calc_line_pkey");
+
+            entity.HasOne(d => d.Component).WithMany(p => p.PayPayrollCalcLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_calc_line_component_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPayrollCalcLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_calc_line_organization_id_fkey");
+
+            entity.HasOne(d => d.PayrollLine).WithMany(p => p.PayPayrollCalcLines).HasConstraintName("pay_payroll_calc_line_payroll_line_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPayrollDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_payroll_doc_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.PeriodId }, "ux_pay_payroll_doc_regular_period")
+                .IsUnique()
+                .HasFilter("(((document_kind)::text = 'REGULAR'::text) AND (status_id <> 3) AND (state_id = 1))");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.DocumentKind).HasDefaultValueSql("'REGULAR'::character varying");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.PayPayrollDocCancelledByUsers).HasConstraintName("pay_payroll_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CorrectionOfDoc).WithMany(p => p.InverseCorrectionOfDoc).HasConstraintName("pay_payroll_doc_correction_of_doc_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.PayPayrollDocCreatedByUsers).HasConstraintName("pay_payroll_doc_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.PayPayrollDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_doc_currency_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPayrollDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.Period).WithMany(p => p.PayPayrollDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_doc_period_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.PayPayrollDocPostedByUsers).HasConstraintName("pay_payroll_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayPayrollDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.PayPayrollDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_doc_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.PayPayrollDocUpdatedByUsers).HasConstraintName("pay_payroll_doc_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPayrollLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_payroll_line_pkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayPayrollLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_line_employee_id_fkey");
+
+            entity.HasOne(d => d.Employment).WithMany(p => p.PayPayrollLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_line_employment_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPayrollLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_payroll_line_organization_id_fkey");
+
+            entity.HasOne(d => d.PayrollDoc).WithMany(p => p.PayPayrollLines).HasConstraintName("pay_payroll_line_payroll_doc_id_fkey");
+        });
+
+        modelBuilder.Entity<PayPeriod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_period_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.Status).HasDefaultValueSql("'OPEN'::character varying");
+
+            entity.HasOne(d => d.ClosedByUser).WithMany(p => p.PayPeriods).HasConstraintName("pay_period_closed_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayPeriods)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_period_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<PayTimesheet>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_timesheet_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.PeriodId }, "ux_pay_timesheet_active_period")
+                .IsUnique()
+                .HasFilter("((status_id <> 3) AND (state_id = 1))");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.PayTimesheetCancelledByUsers).HasConstraintName("pay_timesheet_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.PayTimesheetCreatedByUsers).HasConstraintName("pay_timesheet_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayTimesheets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_organization_id_fkey");
+
+            entity.HasOne(d => d.Period).WithMany(p => p.PayTimesheets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_period_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.PayTimesheetPostedByUsers).HasConstraintName("pay_timesheet_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.PayTimesheets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.PayTimesheets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.PayTimesheetUpdatedByUsers).HasConstraintName("pay_timesheet_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<PayTimesheetLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pay_timesheet_line_pkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayTimesheetLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_line_employee_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.PayTimesheetLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("pay_timesheet_line_organization_id_fkey");
+
+            entity.HasOne(d => d.Timesheet).WithMany(p => p.PayTimesheetLines).HasConstraintName("pay_timesheet_line_timesheet_id_fkey");
         });
 
         modelBuilder.Entity<PlatformTenant>(entity =>

@@ -208,6 +208,27 @@ public partial class CmnState
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
 
     [InverseProperty("State")]
+    public virtual ICollection<PayComponent> PayComponents { get; set; } = new List<PayComponent>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayEmployeeComponent> PayEmployeeComponents { get; set; } = new List<PayEmployeeComponent>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayEmployee> PayEmployees { get; set; } = new List<PayEmployee>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayEmployment> PayEmployments { get; set; } = new List<PayEmployment>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatches { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocs { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<PayTimesheet> PayTimesheets { get; set; } = new List<PayTimesheet>();
+
+    [InverseProperty("State")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("State")]

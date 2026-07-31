@@ -40,6 +40,12 @@ public partial class Warehouse
     [Column("is_main")]
     public bool IsMain { get; set; }
 
+    [Column("business_place_id")]
+    public int? BusinessPlaceId { get; set; }
+
+    [ForeignKey(nameof(BusinessPlaceId))]
+    public virtual MarkingBusinessPlace? BusinessPlace { get; set; }
+
     [ForeignKey("BranchId")]
     [InverseProperty("Warehouses")]
     public virtual Branch? Branch { get; set; }

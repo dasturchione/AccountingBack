@@ -124,6 +124,9 @@ public partial class CashOperation
     [InverseProperty("CashOperations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("CashOperation")]
+    public virtual PayPaymentBatch? PayPaymentBatch { get; set; }
+
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("CashOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }

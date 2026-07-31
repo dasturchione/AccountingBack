@@ -8,6 +8,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_warehouse")]
 [Index("BranchId", Name = "idx_inv_warehouse_branch_id")]
+[Index("BusinessPlaceId", Name = "idx_inv_warehouse_business_place_id")]
 [Index("Code", Name = "idx_inv_warehouse_code")]
 [Index("IsMain", Name = "idx_inv_warehouse_is_main")]
 [Index("OrganizationId", Name = "idx_inv_warehouse_organization_id")]
@@ -49,9 +50,16 @@ public partial class InvWarehouse
     [Column("is_main")]
     public bool IsMain { get; set; }
 
+    [Column("business_place_id")]
+    public int? BusinessPlaceId { get; set; }
+
     [ForeignKey("BranchId")]
     [InverseProperty("InvWarehouses")]
     public virtual OrgBranch? Branch { get; set; }
+
+    [ForeignKey("BusinessPlaceId")]
+    [InverseProperty("InvWarehouses")]
+    public virtual MarkingBusinessPlace? BusinessPlace { get; set; }
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
@@ -85,6 +93,9 @@ public partial class InvWarehouse
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<InvWarehouseProduct> InvWarehouseProducts { get; set; } = new List<InvWarehouseProduct>();
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<MarkingCode> MarkingCodes { get; set; } = new List<MarkingCode>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvWarehouses")]

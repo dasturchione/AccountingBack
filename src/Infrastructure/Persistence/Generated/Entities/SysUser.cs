@@ -157,6 +157,48 @@ public partial class SysUser
     [InverseProperty("SysUsers")]
     public virtual CmnLanguage? Language { get; set; }
 
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<PayEmployee> PayEmployeeCreatedByUsers { get; set; } = new List<PayEmployee>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<PayEmployee> PayEmployeeUpdatedByUsers { get; set; } = new List<PayEmployee>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatchCancelledByUsers { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatchCreatedByUsers { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatchPostedByUsers { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocCancelledByUsers { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocCreatedByUsers { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocPostedByUsers { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocUpdatedByUsers { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("ClosedByUser")]
+    public virtual ICollection<PayPeriod> PayPeriods { get; set; } = new List<PayPeriod>();
+
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<PayTimesheet> PayTimesheetCancelledByUsers { get; set; } = new List<PayTimesheet>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<PayTimesheet> PayTimesheetCreatedByUsers { get; set; } = new List<PayTimesheet>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<PayTimesheet> PayTimesheetPostedByUsers { get; set; } = new List<PayTimesheet>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<PayTimesheet> PayTimesheetUpdatedByUsers { get; set; } = new List<PayTimesheet>();
+
     [ForeignKey("RoleId")]
     [InverseProperty("SysUsers")]
     public virtual SysRole Role { get; set; } = null!;

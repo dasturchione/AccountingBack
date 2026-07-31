@@ -161,6 +161,9 @@ public partial class OrgOrganization
     public virtual ICollection<IdempotencyRecord> IdempotencyRecords { get; set; } = new List<IdempotencyRecord>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<IntegrationCredential> IntegrationCredentials { get; set; } = new List<IntegrationCredential>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
 
     [InverseProperty("Organization")]
@@ -194,10 +197,34 @@ public partial class OrgOrganization
     public virtual ICollection<InvWarehouse> InvWarehouses { get; set; } = new List<InvWarehouse>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<MarkingAggregation> MarkingAggregations { get; set; } = new List<MarkingAggregation>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingAslbelgiDocument> MarkingAslbelgiDocuments { get; set; } = new List<MarkingAslbelgiDocument>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingBusinessPlace> MarkingBusinessPlaces { get; set; } = new List<MarkingBusinessPlace>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingCode> MarkingCodes { get; set; } = new List<MarkingCode>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingDidoxDocument> MarkingDidoxDocuments { get; set; } = new List<MarkingDidoxDocument>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; } = new List<MarkingEdocsDocument>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingOrder> MarkingOrders { get; set; } = new List<MarkingOrder>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<MarkingTransferCode> MarkingTransferCodes { get; set; } = new List<MarkingTransferCode>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<MarkingTransfer> MarkingTransfers { get; set; } = new List<MarkingTransfer>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<MarkingUtilization> MarkingUtilizations { get; set; } = new List<MarkingUtilization>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
@@ -216,6 +243,42 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayComponent> PayComponents { get; set; } = new List<PayComponent>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayEmployeeComponent> PayEmployeeComponents { get; set; } = new List<PayEmployeeComponent>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayEmployee> PayEmployees { get; set; } = new List<PayEmployee>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayEmployment> PayEmployments { get; set; } = new List<PayEmployment>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatches { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPaymentLine> PayPaymentLines { get; set; } = new List<PayPaymentLine>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPayrollCalcLine> PayPayrollCalcLines { get; set; } = new List<PayPayrollCalcLine>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocs { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPayrollLine> PayPayrollLines { get; set; } = new List<PayPayrollLine>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayPeriod> PayPeriods { get; set; } = new List<PayPeriod>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayTimesheetLine> PayTimesheetLines { get; set; } = new List<PayTimesheetLine>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<PayTimesheet> PayTimesheets { get; set; } = new List<PayTimesheet>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();

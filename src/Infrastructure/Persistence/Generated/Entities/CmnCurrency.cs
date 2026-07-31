@@ -78,6 +78,15 @@ public partial class CmnCurrency
     public virtual ICollection<OrgBankAccount> OrgBankAccounts { get; set; } = new List<OrgBankAccount>();
 
     [InverseProperty("Currency")]
+    public virtual ICollection<PayEmployment> PayEmployments { get; set; } = new List<PayEmployment>();
+
+    [InverseProperty("Currency")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatches { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("Currency")]
+    public virtual ICollection<PayPayrollDoc> PayPayrollDocs { get; set; } = new List<PayPayrollDoc>();
+
+    [InverseProperty("Currency")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("Currency")]

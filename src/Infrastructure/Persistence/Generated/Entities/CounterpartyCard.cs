@@ -120,6 +120,9 @@ public partial class CounterpartyCard
     [InverseProperty("Counterparty")]
     public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
 
+    [InverseProperty("OwnerCounterparty")]
+    public virtual ICollection<MarkingCode> MarkingCodes { get; set; } = new List<MarkingCode>();
+
     [InverseProperty("BuyerCounterparty")]
     public virtual ICollection<MarkingTransfer> MarkingTransferBuyerCounterparties { get; set; } = new List<MarkingTransfer>();
 

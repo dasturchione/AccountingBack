@@ -74,6 +74,9 @@ public partial class CashBox
     [InverseProperty("CashBoxes")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("CashBox")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatches { get; set; } = new List<PayPaymentBatch>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CashBoxes")]
     public virtual CmnState State { get; set; } = null!;

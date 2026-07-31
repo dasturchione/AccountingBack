@@ -167,64 +167,18 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<NotificationRead> NotificationReads { get; set; }
     public virtual DbSet<NotificationDelivery> NotificationDeliveries { get; set; }
-    public virtual DbSet<MarkingTransfer> MarkingTransfers { get; set; }
-    public virtual DbSet<MarkingTransferCode> MarkingTransferCodes { get; set; }
     public virtual DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
+    public virtual DbSet<MarkingBusinessPlace> MarkingBusinessPlaces { get; set; }
+    public virtual DbSet<MarkingOrder> MarkingOrders { get; set; }
+    public virtual DbSet<MarkingUtilization> MarkingUtilizations { get; set; }
+    public virtual DbSet<MarkingCode> MarkingCodes { get; set; }
+    public virtual DbSet<MarkingAggregation> MarkingAggregations { get; set; }
+    public virtual DbSet<MarkingAslBelgiDocument> MarkingAslBelgiDocuments { get; set; }
+    public virtual DbSet<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; }
+    public virtual DbSet<MarkingDidoxDocument> MarkingDidoxDocuments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<MarkingTransfer>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_pkey");
-
-            entity.HasIndex(e => e.DocumentId)
-                .HasDatabaseName("idx_marking_transfer_document_id")
-                .HasFilter("document_id IS NOT NULL");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(e => e.Organization)
-                .WithMany()
-                .HasForeignKey(e => e.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_organization_id_fkey");
-
-            entity.HasOne(e => e.SellerCounterparty)
-                .WithMany()
-                .HasForeignKey(e => e.SellerCounterpartyId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_seller_counterparty_id_fkey");
-
-            entity.HasOne(e => e.BuyerCounterparty)
-                .WithMany()
-                .HasForeignKey(e => e.BuyerCounterpartyId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_buyer_counterparty_id_fkey");
-        });
-
-        modelBuilder.Entity<MarkingTransferCode>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_code_pkey");
-
-            entity.HasIndex(e => e.Gtin)
-                .HasDatabaseName("idx_marking_transfer_code_gtin")
-                .HasFilter("gtin IS NOT NULL");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(e => e.Organization)
-                .WithMany()
-                .HasForeignKey(e => e.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_code_organization_id_fkey");
-
-            entity.HasOne(e => e.MarkingTransfer)
-                .WithMany(e => e.MarkingTransferCodes)
-                .HasForeignKey(e => e.MarkingTransferId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("marking_transfer_code_marking_transfer_id_fkey");
-        });
-
         modelBuilder.Entity<IdempotencyRecord>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("idempotency_record_pkey");
@@ -236,6 +190,205 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("idempotency_record_organization_id_fkey");
         });
+
+        modelBuilder.Entity<MarkingBusinessPlace>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_business_place_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_business_place_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_order_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_organization_id_fkey");
+
+            entity.HasOne(e => e.BusinessPlace)
+                .WithMany()
+                .HasForeignKey(e => e.BusinessPlaceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_business_place_id_fkey");
+
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_order_product_id_fkey");
+
+            entity.HasIndex(e => e.CrptOrderId)
+                .HasDatabaseName("ux_marking_order_crpt_order_id")
+                .IsUnique()
+                .HasFilter("crpt_order_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MarkingUtilization>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_utilization_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_utilization_organization_id_fkey");
+
+            entity.HasOne(e => e.BusinessPlace)
+                .WithMany()
+                .HasForeignKey(e => e.BusinessPlaceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_utilization_business_place_id_fkey");
+
+            entity.HasIndex(e => e.CrptDocumentId)
+                .HasDatabaseName("ux_marking_utilization_crpt_document_id")
+                .IsUnique()
+                .HasFilter("crpt_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MarkingCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_code_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_organization_id_fkey");
+
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_product_id_fkey");
+
+            entity.HasOne(e => e.OwnerCounterparty)
+                .WithMany()
+                .HasForeignKey(e => e.OwnerCounterpartyId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_owner_counterparty_id_fkey");
+
+            entity.HasOne(e => e.Warehouse)
+                .WithMany()
+                .HasForeignKey(e => e.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_warehouse_id_fkey");
+
+            entity.HasOne(e => e.ParentMarkingCode)
+                .WithMany()
+                .HasForeignKey(e => e.ParentMarkingCodeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_parent_marking_code_id_fkey");
+
+            entity.HasOne(e => e.Order)
+                .WithMany()
+                .HasForeignKey(e => e.OrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_order_id_fkey");
+
+            entity.HasOne(e => e.Utilization)
+                .WithMany()
+                .HasForeignKey(e => e.UtilizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_code_utilization_id_fkey");
+        });
+
+        modelBuilder.Entity<MarkingAggregation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_aggregation_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_organization_id_fkey");
+
+            entity.HasOne(e => e.BusinessPlace)
+                .WithMany()
+                .HasForeignKey(e => e.BusinessPlaceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_business_place_id_fkey");
+
+            entity.HasOne(e => e.ParentMarkingCode)
+                .WithMany()
+                .HasForeignKey(e => e.ParentMarkingCodeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aggregation_parent_marking_code_id_fkey");
+
+            entity.HasIndex(e => e.CrptDocumentId)
+                .HasDatabaseName("ux_marking_aggregation_crpt_document_id")
+                .IsUnique()
+                .HasFilter("crpt_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MarkingAslBelgiDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_aslbelgi_document_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_aslbelgi_document_organization_id_fkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId)
+                .HasDatabaseName("ux_marking_aslbelgi_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("provider_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MarkingEdocsDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_edocs_document_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_edocs_document_organization_id_fkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId)
+                .HasDatabaseName("ux_marking_edocs_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("provider_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MarkingDidoxDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("marking_didox_document_pkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("marking_didox_document_organization_id_fkey");
+
+            entity.HasIndex(e => e.ProviderDocumentId)
+                .HasDatabaseName("ux_marking_didox_document_provider_document_id")
+                .IsUnique()
+                .HasFilter("provider_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<Warehouse>()
+            .HasOne(e => e.BusinessPlace)
+            .WithMany()
+            .HasForeignKey(e => e.BusinessPlaceId)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("inv_warehouse_business_place_id_fkey");
 
         modelBuilder.Entity<PostingBatch>()
             .HasIndex(x => new { x.DocumentTypeId, x.DocumentId })

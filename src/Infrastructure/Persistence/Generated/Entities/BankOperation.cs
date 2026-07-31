@@ -130,6 +130,9 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("BankOperation")]
+    public virtual PayPaymentBatch? PayPaymentBatch { get; set; }
+
     [ForeignKey("PaymentTypeId")]
     [InverseProperty("BankOperations")]
     public virtual CmnPaymentType? PaymentType { get; set; }

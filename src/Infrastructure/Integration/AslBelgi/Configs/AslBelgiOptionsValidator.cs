@@ -34,6 +34,9 @@ public sealed partial class AslBelgiOptionsValidator : IValidateOptions<AslBelgi
         if (options.TimeoutSeconds <= 0)
             failures.Add("AslBelgi:TimeoutSeconds must be greater than zero.");
 
+        if (string.IsNullOrWhiteSpace(options.ProductGroup))
+            failures.Add("AslBelgi:ProductGroup is required.");
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

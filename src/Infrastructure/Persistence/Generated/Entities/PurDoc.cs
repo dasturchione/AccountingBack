@@ -11,6 +11,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("ContractId", Name = "idx_pur_doc_contract_id")]
 [Index("CounterpartyId", Name = "idx_pur_doc_counterparty_id")]
 [Index("DocDate", Name = "idx_pur_doc_doc_date")]
+[Index("ExternalDocNumber", Name = "idx_pur_doc_external_doc_number")]
 [Index("OrganizationId", Name = "idx_pur_doc_organization_id")]
 [Index("PostedByUserId", Name = "idx_pur_doc_posted_by_user_id")]
 [Index("StateId", Name = "idx_pur_doc_state_id")]
@@ -88,6 +89,10 @@ public partial class PurDoc
 
     [Column("supplier_account_id")]
     public int? SupplierAccountId { get; set; }
+
+    [Column("external_doc_number")]
+    [StringLength(100)]
+    public string? ExternalDocNumber { get; set; }
 
     [ForeignKey("ContractId")]
     [InverseProperty("PurDocs")]

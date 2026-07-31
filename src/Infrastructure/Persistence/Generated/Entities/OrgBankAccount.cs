@@ -71,6 +71,9 @@ public partial class OrgBankAccount
     [InverseProperty("OrgBankAccounts")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("BankAccount")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatches { get; set; } = new List<PayPaymentBatch>();
+
     [ForeignKey("StateId")]
     [InverseProperty("OrgBankAccounts")]
     public virtual CmnState State { get; set; } = null!;

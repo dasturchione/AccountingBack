@@ -83,9 +83,15 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
             ApplyScopedFilter<FaMovementDoc>(modelBuilder);
-            ApplyScopedFilter<MarkingTransfer>(modelBuilder);
-            ApplyScopedFilter<MarkingTransferCode>(modelBuilder);
             ApplyScopedFilter<IdempotencyRecord>(modelBuilder);
+            ApplyScopedFilter<MarkingBusinessPlace>(modelBuilder);
+            ApplyScopedFilter<MarkingOrder>(modelBuilder);
+            ApplyScopedFilter<MarkingUtilization>(modelBuilder);
+            ApplyScopedFilter<MarkingCode>(modelBuilder);
+            ApplyScopedFilter<MarkingAggregation>(modelBuilder);
+            ApplyScopedFilter<MarkingAslBelgiDocument>(modelBuilder);
+            ApplyScopedFilter<MarkingEdocsDocument>(modelBuilder);
+            ApplyScopedFilter<MarkingDidoxDocument>(modelBuilder);
             ApplyScopedFilter<PayEmployee>(modelBuilder);
             ApplyScopedFilter<PayEmployment>(modelBuilder);
             ApplyScopedFilter<PayComponent>(modelBuilder);

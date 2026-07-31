@@ -108,6 +108,21 @@ public partial class AccChartAccount
     [InverseProperty("InverseParent")]
     public virtual AccChartAccount? Parent { get; set; }
 
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<PayComponent> PayComponentExpenseAccounts { get; set; } = new List<PayComponent>();
+
+    [InverseProperty("LiabilityAccount")]
+    public virtual ICollection<PayComponent> PayComponentLiabilityAccounts { get; set; } = new List<PayComponent>();
+
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<PayEmployment> PayEmployments { get; set; } = new List<PayEmployment>();
+
+    [InverseProperty("OffsetAccount")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatchOffsetAccounts { get; set; } = new List<PayPaymentBatch>();
+
+    [InverseProperty("SourceChartAccount")]
+    public virtual ICollection<PayPaymentBatch> PayPaymentBatchSourceChartAccounts { get; set; } = new List<PayPaymentBatch>();
+
     [InverseProperty("DebitAccount")]
     public virtual ICollection<PurDocProduct> PurDocProductDebitAccounts { get; set; } = new List<PurDocProduct>();
 

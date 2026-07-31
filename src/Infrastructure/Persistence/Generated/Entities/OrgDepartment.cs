@@ -57,6 +57,9 @@ public partial class OrgDepartment
     [InverseProperty("OrgDepartments")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("Department")]
+    public virtual ICollection<PayEmployment> PayEmployments { get; set; } = new List<PayEmployment>();
+
     [ForeignKey("StateId")]
     [InverseProperty("OrgDepartments")]
     public virtual CmnState State { get; set; } = null!;

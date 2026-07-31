@@ -87,9 +87,6 @@ public partial class Product
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
     [InverseProperty("Product")]
-    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
-
-    [InverseProperty("Product")]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
     [InverseProperty(nameof(WarehouseProductMovement.Product))]

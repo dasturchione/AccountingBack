@@ -216,8 +216,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvProductTable> InvProductTables { get; set; }
 
-    public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
-
     public virtual DbSet<InvTransferDoc> InvTransferDocs { get; set; }
 
     public virtual DbSet<InvTransferDocTable> InvTransferDocTables { get; set; }
@@ -2024,35 +2022,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_table_product_id_fkey");
-        });
-
-        modelBuilder.Entity<InvRegBalance>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.DocumentType).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_operation_type_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_organization_id_fkey");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_product_id_fkey");
-
-            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvRegBalances).HasConstraintName("inv_reg_balance_product_table_id_fkey");
-
-            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
         });
 
         modelBuilder.Entity<InvTransferDoc>(entity =>

@@ -1,5 +1,5 @@
 using Application.Common.Pagination;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using SharedKernel.Results;
 
 namespace Application.Features.InventoryAdjustments;
@@ -14,5 +14,5 @@ public interface IInventoryAdjustmentService
     Task<Result> ConfirmAsync(long id, CancellationToken ct = default);
     Task<Result> CancelAsync(long id, CancellationToken ct = default);
     Task<Result<List<InventoryAdjustmentPostingBatchDto>>> GetPostingBatchesAsync(long id, CancellationToken ct = default);
-    Task<Result<List<InventoryRegisterBalanceListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default);
+    Task<Result<List<InventoryMovementListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default);
 }

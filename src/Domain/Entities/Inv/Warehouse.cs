@@ -51,9 +51,6 @@ public partial class Warehouse
     public virtual Branch? Branch { get; set; }
 
     [InverseProperty("Warehouse")]
-    public virtual ICollection<RegisterBalance> RegisterBalances { get; set; } = new List<RegisterBalance>();
-
-    [InverseProperty("Warehouse")]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
     [InverseProperty(nameof(WarehouseProductTable.Warehouse))]

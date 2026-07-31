@@ -225,13 +225,6 @@ public static partial class SaleDocErrors
             _ => $"Accounting register entries were not found for sale document with id {id}."
         });
 
-    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
-        Error.Conflict("SaleDoc.MissingInventoryRegisterEntries", languageId switch
-        {
-            LanguageIdConst.UZ => $"Id-si {id} bo'lgan sotuv hujjati uchun ombor registr yozuvlari to'liq emas.",
-            _ => $"Inventory register entries are missing or incomplete for sale document with id {id}."
-        });
-
     public static Error MissingCounterpartyRegisterEntries(long id, short? languageId = null) =>
         Error.Conflict("SaleDoc.MissingCounterpartyRegisterEntries", languageId switch
         {

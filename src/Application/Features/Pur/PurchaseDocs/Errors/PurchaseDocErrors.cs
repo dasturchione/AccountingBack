@@ -137,13 +137,6 @@ public static class PurchaseDocErrors
             _ => $"Accounting register entries were not found for purchase document with id {id}."
         });
 
-    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
-        Error.Conflict("PurchaseDoc.MissingInventoryRegisterEntries", languageId switch
-        {
-            LanguageIdConst.UZ => $"Id-si {id} bo'lgan xarid hujjati uchun ombor registr yozuvlari to'liq emas.",
-            _ => $"Inventory register entries are missing or incomplete for purchase document with id {id}."
-        });
-
     public static Error MissingCounterpartyRegisterEntries(long id, short? languageId = null) =>
         Error.Conflict("PurchaseDoc.MissingCounterpartyRegisterEntries", languageId switch
         {

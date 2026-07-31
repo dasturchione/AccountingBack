@@ -3,8 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryCounts;
-using Application.Features.InventoryRegisterBalances;
-using Application.Features.Inv.WarehouseProducts;
+using Application.Features.InventoryMovements;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -23,15 +22,13 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryDispatcher _inventoryDispatcher;
-    private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _query;
     private readonly ICommandRepository<InventoryAdjustmentDoc> _command;
     private readonly ICommandRepository<InventoryAdjustmentDocTable> _tableCommand;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
-    private readonly ICommandRepository<RegisterBalance> _inventoryRegisterCommand;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
 
     public InventoryAdjustmentLifecycleService(
         IUserContext userContext,
@@ -41,15 +38,13 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
         IActiveInventoryCountGuardService activeInventoryCountGuardService,
         IAuditLogService auditLogService,
         IInventoryDispatcher inventoryDispatcher,
-        IWarehouseProductBalanceService warehouseProductBalanceService,
         IQueryRepository<InventoryAdjustmentDoc> query,
         ICommandRepository<InventoryAdjustmentDoc> command,
         ICommandRepository<InventoryAdjustmentDocTable> tableCommand,
         ICommandRepository<ProductTable> productTableCommand,
         IQueryRepository<PostingBatch> postingBatchQuery,
         ICommandRepository<PostingBatch> postingBatchCommand,
-        IQueryRepository<RegisterBalance> inventoryRegisterQuery,
-        ICommandRepository<RegisterBalance> inventoryRegisterCommand,
+        IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
         ILogger<InventoryAdjustmentLifecycleService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -61,15 +56,13 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _auditLogService = auditLogService;
         _inventoryDispatcher = inventoryDispatcher;
-        _warehouseProductBalanceService = warehouseProductBalanceService;
         _query = query;
         _command = command;
         _tableCommand = tableCommand;
         _productTableCommand = productTableCommand;
         _postingBatchQuery = postingBatchQuery;
         _postingBatchCommand = postingBatchCommand;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
-        _inventoryRegisterCommand = inventoryRegisterCommand;
+        _warehouseMovementQuery = warehouseMovementQuery;
     }
 
     public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
@@ -408,53 +401,12 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
     }
 
     private async Task<bool> HasBusinessEffectsAsync(long docId, CancellationToken ct) =>
-        await _inventoryRegisterQuery.AnyAsync(x =>
+        await _warehouseMovementQuery.AnyAsync(x =>
             x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
-            x.DocumentId == docId &&
-            x.ReversalEntryId == null, ct);
+            x.DocumentId == docId, ct);
 
-    private async Task<Result> ReverseInventoryEntriesAsync(InventoryAdjustmentDoc doc, long reversalBatchId, CancellationToken ct)
-    {
-        var expectedRows = doc.InventoryAdjustmentLines
-            .Where(x => !x.Product.IsService)
-            .Sum(x => x.Product.IsPieceTracked ? x.InventoryAdjustmentDocTables.Count : 1);
-
-        var query = _queryBuilder.For<RegisterBalance>()
-            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
-                        x.DocumentId == doc.Id &&
-                        x.ReversalEntryId == null)
-            .Build();
-
-        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
-        if (entries.Count != expectedRows)
-            return Result.Failure(InventoryAdjustmentErrors.MissingInventoryRegisterEntries(doc.Id, _userContext.LanguageId));
-
-        var now = DateTime.Now;
-        var reversals = entries.Select(entry => new RegisterBalance
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            WarehouseId = entry.WarehouseId,
-            ProductId = entry.ProductId,
-            ProductTableId = entry.ProductTableId,
-            OperationTypeId = entry.OperationTypeId == OperationTypeIdConst.OUT ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT,
-            Quantity = entry.Quantity,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id
-        }).ToList();
-
-        await _inventoryRegisterCommand.CreateAsync(reversals, ct);
-        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversals, ct);
-        if (!warehouseProductUpdate.IsSuccess)
-            return Result.Failure(warehouseProductUpdate.Error);
-
-        return Result.Success();
-    }
+    private Task<Result> ReverseInventoryEntriesAsync(InventoryAdjustmentDoc doc, long reversalBatchId, CancellationToken ct) =>
+        _inventoryDispatcher.ReverseAsync(doc, ct);
 
     private static bool IsPositiveFlow(string adjustmentType) =>
         adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";

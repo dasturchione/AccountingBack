@@ -44,6 +44,15 @@ public partial class OpeningBalanceAccountDetail
     [Column("sort_order")]
     public int SortOrder { get; set; }
 
+    [Column("source_document_type_id")]
+    public short? SourceDocumentTypeId { get; set; }
+
+    [Column("source_document_id")]
+    public long? SourceDocumentId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 

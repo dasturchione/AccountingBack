@@ -4,6 +4,7 @@ public static class AuditLogTableConst
 {
     public const string AccountingPeriod = "acc_accounting_period";
     public const string PurchaseDoc = "pur_doc";
+    public const string OpeningInventory = "inv_opening_inventory";
     public const string SaleDoc = "sale_doc";
     public const string BankOperation = "bank_operation";
     public const string CashOperation = "cash_operation";

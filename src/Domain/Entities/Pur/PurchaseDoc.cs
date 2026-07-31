@@ -18,6 +18,10 @@ public partial class PurchaseDoc
     [StringLength(100)]
     public string DocNumber { get; set; } = null!;
 
+    [Column("external_doc_number")]
+    [StringLength(100)]
+    public string? ExternalDocNumber { get; set; } 
+
     [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
 

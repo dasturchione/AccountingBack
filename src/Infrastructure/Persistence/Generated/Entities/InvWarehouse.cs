@@ -73,9 +73,6 @@ public partial class InvWarehouse
     [InverseProperty("Warehouse")]
     public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
 
-    [InverseProperty("Warehouse")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
     [InverseProperty("DestinationWarehouse")]
     public virtual ICollection<InvTransferDoc> InvTransferDocDestinationWarehouses { get; set; } = new List<InvTransferDoc>();
 

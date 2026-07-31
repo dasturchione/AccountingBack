@@ -479,11 +479,6 @@ public static class PermissionCodeConst
     public const string CounterpartyRegBalanceDelete     = "COUNTERPARTY_REG_BALANCE_DELETE";
     #endregion
 
-    #region InventoryRegisterBalance
-    public const string InventoryRegBalanceView       = "INVENTORY_REG_BALANCE_VIEW";
-    public const string InventoryRegBalanceViewDetail = "INVENTORY_REG_BALANCE_VIEW_DETAIL";
-    #endregion
-
     #region Ledger
     public const string LedgerGet = "LEDGER_GET";
     #endregion
@@ -639,6 +634,14 @@ public static class PermissionCodeConst
     public const string UserCreate     = "USER_CREATE";
     public const string UserUpdate     = "USER_UPDATE";
     public const string UserDelete     = "USER_DELETE";
+    #endregion
+
+    #region OpeningInventory
+    public const string OpeningInventoryView       = "OPENING_INVENTORY_VIEW";
+    public const string OpeningInventoryViewDetail = "OPENING_INVENTORY_VIEW_DETAIL";
+    public const string OpeningInventoryCreate     = "OPENING_INVENTORY_CREATE";
+    public const string OpeningInventoryUpdate     = "OPENING_INVENTORY_UPDATE";
+    public const string OpeningInventoryDelete     = "OPENING_INVENTORY_DELETE";
     #endregion
 
     #region Payroll

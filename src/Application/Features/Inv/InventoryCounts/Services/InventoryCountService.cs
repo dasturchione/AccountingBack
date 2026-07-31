@@ -3,7 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.InventoryAdjustments;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,7 +25,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
     private readonly ICommandRepository<InventoryCountLine> _lineCommand;
     private readonly ICommandRepository<InventoryCountDocTable> _tableCommand;
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<Product> _productQuery;
@@ -44,7 +44,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
         ICommandRepository<InventoryCountLine> lineCommand,
         ICommandRepository<InventoryCountDocTable> tableCommand,
         IQueryRepository<PostingBatch> postingBatchQuery,
-        IQueryRepository<RegisterBalance> inventoryRegisterQuery,
+        IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<Product> productQuery,
@@ -65,7 +65,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
         _lineCommand = lineCommand;
         _tableCommand = tableCommand;
         _postingBatchQuery = postingBatchQuery;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
+        _warehouseMovementQuery = warehouseMovementQuery;
         _organizationQuery = organizationQuery;
         _warehouseQuery = warehouseQuery;
         _productQuery = productQuery;
@@ -260,12 +260,12 @@ public class InventoryCountService : BaseService, IInventoryCountService
             return Result.Success(await _postingBatchQuery.GetAllAsync(query, ct));
         });
 
-    public Task<Result<List<InventoryRegisterBalanceListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default) =>
+    public Task<Result<List<InventoryMovementListDto>>> GetInventoryMovementsAsync(long id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetInventoryMovementsAsync), async () =>
         {
             var doc = await GetForDetailsAsync(id, ct);
             if (doc == null)
-                return Result.Failure<List<InventoryRegisterBalanceListDto>>(InventoryCountErrors.NotFound(id, _userContext.LanguageId));
+                return Result.Failure<List<InventoryMovementListDto>>(InventoryCountErrors.NotFound(id, _userContext.LanguageId));
 
             var adjustmentIds = new List<long>();
             if (doc.PositiveAdjustmentDocId.HasValue)
@@ -274,13 +274,13 @@ public class InventoryCountService : BaseService, IInventoryCountService
                 adjustmentIds.Add(doc.NegativeAdjustmentDocId.Value);
 
             if (adjustmentIds.Count == 0)
-                return Result.Success(new List<InventoryRegisterBalanceListDto>());
+                return Result.Success(new List<InventoryMovementListDto>());
 
-            var query = _queryBuilder.For<RegisterBalance>()
+            var query = _queryBuilder.For<WarehouseProductMovement>()
                 .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT && adjustmentIds.Contains(x.DocumentId))
-                .As<InventoryRegisterBalanceListDto>()
+                .As<InventoryMovementListDto>()
                 .Build();
-            return Result.Success(await _inventoryRegisterQuery.GetAllAsync(query, ct));
+            return Result.Success(await _warehouseMovementQuery.GetAllAsync(query, ct));
         });
 
     public Task<Result<List<InventoryCountDifferenceDto>>> GetDifferencesAsync(long id, CancellationToken ct = default) =>

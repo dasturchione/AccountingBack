@@ -39,7 +39,7 @@ flowchart LR
     SaleLine --> SaleItem["sale_doc_table"]
     ProductTable --> SaleItem
 
-    Product --> Register["inv_reg_balance"]
+    Product --> Register["inv_warehouse_product_movement"]
     ProductTable --> Register
     Warehouse --> Register
 ```
@@ -89,7 +89,7 @@ flowchart LR
 | `Product.ProductTables` | `inv_product_table` / `ProductTable` | one-to-many | Конкретные складские единицы/партии товара. |
 | `Product.PurchaseDocProducts` | `pur_doc_product` / `PurchaseDocProduct` | one-to-many | Строки документов закупки по этому товару. |
 | `Product.SaleDocProducts` | `sale_doc_product` / `SaleDocProduct` | one-to-many | Строки документов продажи по этому товару. |
-| `Product.RegisterBalances` | `inv_reg_balance` / `RegisterBalance` | one-to-many | Движения складского регистра по товару. |
+| `Product.WarehouseProductMovements` | `inv_warehouse_product_movement` / `WarehouseProductMovement` | one-to-many | Движения складского журнала по товару. |
 | `Product.WarehouseProducts` | `inv_warehouse_product` / `WarehouseProduct` | one-to-many | Агрегированные остатки товара по складам. |
 
 ### Важное по модели
@@ -149,7 +149,7 @@ flowchart LR
 
 | Таблица | Entity | FK | Роль |
 |---|---|---|---|
-| `inv_reg_balance` | `RegisterBalance` | `product_table_id` nullable | Движение складского регистра может быть связано с конкретной партией. |
+| `inv_warehouse_product_movement` | `WarehouseProductMovement` | `product_table_id` nullable | Движение складского регистра может быть связано с конкретной партией. |
 | `inv_transfer_doc_table` | `WarehouseTransferDocTable` | `product_table_id` | Перемещаемая конкретная складская единица. |
 | `inv_inventory_adjustment_doc_table` | `InventoryAdjustmentDocTable` | `product_table_id` nullable | Корректируемая или создаваемая складская единица. |
 | `inv_inventory_count_doc_table` | `InventoryCountDocTable` | `product_table_id` nullable | Посчитанная/найденная складская единица при инвентаризации. |
@@ -526,9 +526,9 @@ flowchart LR
 
 ## 11. Складской регистр
 
-### `inv_reg_balance` / `RegisterBalance`
+### `inv_warehouse_product_movement` / `WarehouseProductMovement`
 
-Источник: `src/Domain/Entities/Register/RegisterBalance.cs`
+Источник: `src/Domain/Entities/Inv/WarehouseProductMovement.cs`
 
 Роль: журнал/регистр складских движений.
 
@@ -537,22 +537,19 @@ flowchart LR
 | `organization_id -> org_organization.id` | Организация движения. |
 | `document_type_id -> cmn_document_type.id` | Тип документа-источника. |
 | `document_id` | ID документа-источника. |
+| `document_line_id` | Строка документа-источника, если движение агрегировано по строке. |
 | `warehouse_id -> inv_warehouse.id` | Склад движения. |
 | `product_id -> inv_product.id` | Товар движения. |
-| `product_table_id -> inv_product_table.id`, nullable | Конкретная партия/единица, если движение партионное/поштучное. |
-| `operation_type_id -> cmn_operation_type.id` | Тип операции: приход/расход и т.п. |
 | `quantity` | Количество движения. |
-| `amount` | Сумма движения. |
-| `doc_date` | Дата движения. |
-| `posting_batch_id` | Пачка проведения. |
-| `source_line_id` | Строка-источник. |
-| `reversal_entry_id` | Ссылка на отменяемую запись регистра. |
+| `movement_sign` | Направление движения: `1` для прихода и `-1` для расхода. |
+| `movement_date` | Дата движения. |
+| `created_date` | Дата создания записи. |
 
 Особенность:
 
 - `ProductId` обязателен всегда.
-- `ProductTableId` nullable. Это поддерживает два режима: движение просто по товару и движение по конкретной партии/единице.
-- В `Domain.Entities` нет явной проверки, что если `ProductTableId` указан, то `RegisterBalance.ProductId == RegisterBalance.ProductTable.ProductId`.
+- Прямой ссылки на `ProductTable` нет. Связь движения с партиями хранится через `WarehouseProductBatch` и `WarehouseProductBatchAllocation`.
+- Направление задается знаком движения, а тип операции используется только во внутренней модели проведения.
 
 ## 12. Склад и организация
 
@@ -566,7 +563,7 @@ flowchart LR
 
 | Связь | Роль |
 |---|---|
-| `Warehouse.RegisterBalances` | Движения регистра по складу. |
+| `Warehouse.WarehouseProductMovements` | Движения складского журнала по складу. |
 | `Warehouse.WarehouseProducts` | Агрегированные остатки товаров на складе. |
 | `Warehouse.CurrentProductTables` | Текущие партии/единицы, находящиеся на складе. |
 | `Warehouse.PurDocs` | Приходные документы на склад. |
@@ -588,7 +585,7 @@ flowchart LR
 | `Organization.ProductGroups` | Группы товаров организации. |
 | `Organization.ProductPrices` | Цены товаров организации. |
 | `Organization.ProductTables` | Партии/единицы товаров организации. |
-| `Organization.RegisterBalances` | Складской регистр организации. |
+| `Organization.WarehouseProductMovements` | Складской журнал организации. |
 | `Organization.Warehouses` | Склады организации. |
 | `Organization.PurchaseDocs` | Документы закупки. |
 | `Organization.SaleDocs` | Документы продажи. |
@@ -676,19 +673,7 @@ flowchart LR
 
 | Связь | Роль |
 |---|---|
-| `RegisterBalance.DocumentTypeId` | Указывает, каким видом документа создано складское движение. |
-
-### `cmn_operation_type` / `OperationType`
-
-Источник: `src/Domain/Entities/Cmn/OperationType.cs`
-
-Роль: тип операции регистра.
-
-Связь:
-
-| Связь | Роль |
-|---|---|
-| `RegisterBalance.OperationTypeId` | Указывает направление/тип складского движения. |
+| `WarehouseProductMovement.DocumentTypeId` | Указывает, каким видом документа создано складское движение. |
 
 ## 14. Основные средства
 
@@ -737,7 +722,7 @@ flowchart LR
 | `inv_inventory_adjustment_doc_table` | `InventoryAdjustmentDocTable` | через owner `InventoryAdjustmentLine` | `product_table_id` nullable | Конкретная или создаваемая партия в корректировке. |
 | `inv_inventory_count_line` | `InventoryCountLine` | `product_id` | через `InventoryCountDocTables` | Строка инвентаризации по товару. |
 | `inv_inventory_count_doc_table` | `InventoryCountDocTable` | через owner `InventoryCountLine` | `product_table_id` nullable | Конкретная или найденная партия при подсчете. |
-| `inv_reg_balance` | `RegisterBalance` | `product_id` | `product_table_id` nullable | Складской регистр движений. |
+| `inv_warehouse_product_movement` | `WarehouseProductMovement` | `product_id` | нет прямой ссылки | Складской журнал движений; связь с партиями хранится отдельно. |
 | `inv_warehouse` | `Warehouse` | через документы/остатки | `CurrentProductTables` | Склад, где находятся партии и остатки. |
 | `org_organization` | `Organization` | `Products` | `ProductTables` | Владелец данных. |
 | `fa_receipt_doc_line` | `FaReceiptDocLine` | `source_product_id` nullable | нет | Исходный товар для поступления ОС. |
@@ -746,18 +731,17 @@ flowchart LR
 ## 16. Основные выводы
 
 1. `Product` — центральная номенклатура. Почти все товарные документы сначала ссылаются на `ProductId` в строке документа.
-2. `ProductTable` — детализация конкретных складских единиц/партий. Она используется там, где нужно знать не просто товар, а конкретную единицу: приход, продажа, перемещение, корректировка, инвентаризация, ОС, складской регистр.
+2. `ProductTable` — детализация конкретных складских единиц/партий. Она используется там, где нужно знать не просто товар, а конкретную единицу: приход, продажа, перемещение, корректировка, инвентаризация и ОС.
 3. `WarehouseProduct` — не заменяет `ProductTable`; это агрегированный остаток по `Warehouse + Product`.
-4. `RegisterBalance` — самая универсальная таблица складского движения: всегда хранит `ProductId`, а `ProductTableId` может быть null.
+4. `WarehouseProductMovement` — журнал складских движений по товару и складу; партионная стоимость и распределение расхода хранятся в batch/allocation таблицах.
 5. Приход и продажа имеют одинаковую двухуровневую структуру:
    - header document;
    - product line с `ProductId`;
    - table/detail line с `ProductTableId`.
 6. Перемещение, корректировка и инвентаризация тоже разделяют агрегированную строку товара и конкретные `ProductTable`-детали.
-7. Nullable `ProductTableId` встречается в корректировке, инвентаризации, регистре и основных средствах. Это важно: не вся продуктовая операция обязана быть привязана к конкретной партии.
+7. Nullable `ProductTableId` встречается в строках корректировки, инвентаризации и основных средствах. Это важно: не вся продуктовая операция обязана быть привязана к конкретной партии.
 8. В `Domain.Entities` нет жестких модельных проверок для некоторых бизнес-инвариантов:
    - `Product.OrganizationId` должен совпадать с `ProductTable.OrganizationId`;
-   - `RegisterBalance.ProductId` должен совпадать с `RegisterBalance.ProductTable.ProductId`, если `ProductTableId` указан;
    - `Product.IsService` должен совпадать по смыслу с `ProductType.IsService`;
    - `Product.IsPieceTracked` должен определять, нужны ли строки `ProductTable`.
 
@@ -768,6 +752,6 @@ flowchart LR
 - `inv_product` отвечает на вопрос: **что это за товар/услуга?**
 - `inv_product_table` отвечает на вопрос: **какая именно физическая единица/партия этого товара?**
 - `inv_warehouse_product` отвечает на вопрос: **сколько этого товара сейчас числится на складе агрегированно?**
-- `inv_reg_balance` отвечает на вопрос: **какие движения сформировали остаток?**
+- `inv_warehouse_product_movement` отвечает на вопрос: **какие движения сформировали остаток?**
 - `pur_doc_*`, `sale_doc_*`, `inv_transfer_*`, `inv_inventory_adjustment_*`, `inv_inventory_count_*` отвечают на вопрос: **каким документом и в каком контексте товар/партия участвовали в операции?**
 

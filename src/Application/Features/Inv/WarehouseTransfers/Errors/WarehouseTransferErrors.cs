@@ -85,6 +85,4 @@ public static class WarehouseTransferErrors
     public static Error ProductTableWarehouseMismatch(int productTableId, int warehouseId, short? languageId = null) =>
         Error.Business("WarehouseTransfer.ProductTableWarehouseMismatch", $"Product table {productTableId} is not located in warehouse {warehouseId}.");
 
-    public static Error MissingInventoryRegisterEntries(long id, short? languageId = null) =>
-        Error.Conflict("WarehouseTransfer.MissingInventoryRegisterEntries", $"Inventory register entries are missing or incomplete for warehouse transfer with id {id}.");
 }

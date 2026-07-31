@@ -4,7 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.InventoryCounts;
-using Application.Features.InventoryRegisterBalances;
+using Application.Features.InventoryMovements;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Register.AccountingRegisterEntries;
@@ -40,8 +40,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingRegisterQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
-    private readonly IQueryRepository<RegisterBalance> _inventoryRegisterQuery;
-    private readonly ICommandRepository<RegisterBalance> _inventoryRegisterCommand;
+    private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
     private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
 
@@ -67,8 +66,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                                     ICommandRepository<PostingBatch> postingBatchCommand,
                                     IQueryRepository<AccountingRegisterEntry> accountingRegisterQuery,
                                     ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
-                                    IQueryRepository<RegisterBalance> inventoryRegisterQuery,
-                                    ICommandRepository<RegisterBalance> inventoryRegisterCommand,
+                                    IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
                                     IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
                                     IQueryRepository<SaleCondition> saleConditionQuery,
                                     ILogger<PurchaseLifecycleService> logger,
@@ -97,8 +95,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         _postingBatchCommand = postingBatchCommand;
         _accountingRegisterQuery = accountingRegisterQuery;
         _accountingRegisterCommand = accountingRegisterCommand;
-        _inventoryRegisterQuery = inventoryRegisterQuery;
-        _inventoryRegisterCommand = inventoryRegisterCommand;
+        _warehouseMovementQuery = warehouseMovementQuery;
         _counterpartyRegisterQuery = counterpartyRegisterQuery;
         _saleConditionQuery = saleConditionQuery;
     }
@@ -384,10 +381,9 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         if (hasAccounting)
             return true;
 
-        var hasInventory = await _inventoryRegisterQuery.AnyAsync(x =>
+        var hasInventory = await _warehouseMovementQuery.AnyAsync(x =>
             x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
-            x.DocumentId == purchaseDocId &&
-            x.ReversalEntryId == null, ct);
+            x.DocumentId == purchaseDocId, ct);
 
         if (hasInventory)
             return true;
@@ -461,52 +457,8 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
         return Result.Success();
     }
 
-    private async Task<Result> ReverseInventoryEntriesAsync(PurchaseDoc doc, long reversalBatchId, CancellationToken ct)
-    {
-        var expectedRows = doc.PurchaseDocProducts
-            .Where(x => !x.Product.IsService)
-            .Sum(x => x.Product.IsPieceTracked ? x.PurchaseDocTables.Count : 1);
-
-        var query = _queryBuilder.For<RegisterBalance>()
-            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.PURCHASE &&
-                        x.DocumentId == doc.Id &&
-                        x.ReversalEntryId == null &&
-                        x.OperationTypeId == OperationTypeIdConst.IN)
-            .Build();
-
-        var entries = await _inventoryRegisterQuery.GetAllAsync(query, ct);
-        if (entries.Count != expectedRows)
-            return Result.Failure(PurchaseDocErrors.MissingInventoryRegisterEntries(doc.Id, _userContext.LanguageId));
-
-        if (entries.Count == 0)
-            return Result.Success();
-
-        var now = DateTime.Now;
-        var reversalEntries = entries.Select(entry => new RegisterBalance
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            WarehouseId = entry.WarehouseId,
-            ProductId = entry.ProductId,
-            ProductTableId = entry.ProductTableId,
-            OperationTypeId = OperationTypeIdConst.OUT,
-            Quantity = entry.Quantity,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id
-        }).ToList();
-
-        await _inventoryRegisterCommand.CreateAsync(reversalEntries, ct);
-        var warehouseProductUpdate = await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(reversalEntries, ct);
-        if (!warehouseProductUpdate.IsSuccess)
-            return Result.Failure(warehouseProductUpdate.Error);
-
-        return Result.Success();
-    }
+    private Task<Result> ReverseInventoryEntriesAsync(PurchaseDoc doc, long reversalBatchId, CancellationToken ct) =>
+        _inventoryDispatcher.ReverseAsync(doc, ct);
 
     private async Task UpdateProductCostPricesAsync(PurchaseDoc doc, CancellationToken ct)
     {

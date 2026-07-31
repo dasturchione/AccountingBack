@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.InventoryMovements;
 using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -21,17 +22,16 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
     private readonly IQueryRepository<WarehouseProductBatchAllocation> _warehouseProductBatchAllocationQuery;
     private readonly IQueryRepository<OrganizationConfig> _organizationConfigQuery;
-    private readonly IQueryRepository<RegisterBalance> _registerBalanceQuery;
     private readonly IQueryRepository<PurchaseDoc> _purchaseDocQuery;
     private readonly IQueryRepository<WarehouseTransferDoc> _warehouseTransferDocQuery;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentDocQuery;
+    private readonly IQueryRepository<OpeningInventory> _openingInventoryQuery;
     private readonly ICommandRepository<WarehouseProduct> _warehouseProductCommand;
     private readonly ICommandRepository<WarehouseProductTable> _warehouseProductTableCommand;
     private readonly ICommandRepository<WarehouseProductMovement> _warehouseProductMovementCommand;
     private readonly ICommandRepository<WarehouseProductBatch> _warehouseProductBatchCommand;
     private readonly ICommandRepository<WarehouseProductBatchTable> _warehouseProductBatchTableCommand;
     private readonly ICommandRepository<WarehouseProductBatchAllocation> _warehouseProductBatchAllocationCommand;
-    private readonly ICommandRepository<RegisterBalance> _registerBalanceCommand;
     private readonly ICommandRepository<SaleDocProduct> _saleDocProductCommand;
     private readonly ICommandRepository<SaleDocTable> _saleDocTableCommand;
     private readonly ICommandRepository<SaleDocProductBatch> _saleDocProductBatchCommand;
@@ -48,17 +48,16 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
         IQueryRepository<WarehouseProductBatchAllocation> warehouseProductBatchAllocationQuery,
         IQueryRepository<OrganizationConfig> organizationConfigQuery,
-        IQueryRepository<RegisterBalance> registerBalanceQuery,
         IQueryRepository<PurchaseDoc> purchaseDocQuery,
         IQueryRepository<WarehouseTransferDoc> warehouseTransferDocQuery,
         IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentDocQuery,
+        IQueryRepository<OpeningInventory> openingInventoryQuery,
         ICommandRepository<WarehouseProduct> warehouseProductCommand,
         ICommandRepository<WarehouseProductTable> warehouseProductTableCommand,
         ICommandRepository<WarehouseProductMovement> warehouseProductMovementCommand,
         ICommandRepository<WarehouseProductBatch> warehouseProductBatchCommand,
         ICommandRepository<WarehouseProductBatchTable> warehouseProductBatchTableCommand,
         ICommandRepository<WarehouseProductBatchAllocation> warehouseProductBatchAllocationCommand,
-        ICommandRepository<RegisterBalance> registerBalanceCommand,
         ICommandRepository<SaleDocProduct> saleDocProductCommand,
         ICommandRepository<SaleDocTable> saleDocTableCommand,
         ICommandRepository<SaleDocProductBatch> saleDocProductBatchCommand)
@@ -74,28 +73,27 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
         _warehouseProductBatchAllocationQuery = warehouseProductBatchAllocationQuery;
         _organizationConfigQuery = organizationConfigQuery;
-        _registerBalanceQuery = registerBalanceQuery;
         _purchaseDocQuery = purchaseDocQuery;
         _warehouseTransferDocQuery = warehouseTransferDocQuery;
         _inventoryAdjustmentDocQuery = inventoryAdjustmentDocQuery;
+        _openingInventoryQuery = openingInventoryQuery;
         _warehouseProductCommand = warehouseProductCommand;
         _warehouseProductTableCommand = warehouseProductTableCommand;
         _warehouseProductMovementCommand = warehouseProductMovementCommand;
         _warehouseProductBatchCommand = warehouseProductBatchCommand;
         _warehouseProductBatchTableCommand = warehouseProductBatchTableCommand;
         _warehouseProductBatchAllocationCommand = warehouseProductBatchAllocationCommand;
-        _registerBalanceCommand = registerBalanceCommand;
         _saleDocProductCommand = saleDocProductCommand;
         _saleDocTableCommand = saleDocTableCommand;
         _saleDocProductBatchCommand = saleDocProductBatchCommand;
     }
 
-    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<RegisterBalance> entries, CancellationToken ct = default) =>
+    public Task<Result> ApplyInventoryEntriesAsync(IReadOnlyCollection<InventoryMovementEntry> entries, CancellationToken ct = default) =>
         ApplyInventoryEntriesAsync(entries, null, ct);
 
     private async Task<Result> ApplyInventoryEntriesAsync(
-        IReadOnlyCollection<RegisterBalance> entries,
-        IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        IReadOnlyDictionary<InventoryMovementEntry, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
         CancellationToken ct)
     {
         if (entries.Count == 0)
@@ -127,7 +125,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         var updatedWarehouseProductTables = new HashSet<WarehouseProductTable>();
         var deletedWarehouseProductTables = new List<WarehouseProductTable>();
         var changes = new List<WarehouseProductBalanceChange>();
-        var processedEntries = new HashSet<RegisterBalance>();
+        var processedEntries = new HashSet<InventoryMovementEntry>();
 
         foreach (var group in GetTransferGroups(productTableEntries))
         {
@@ -158,7 +156,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var receivedDates = await GetReceivedDatesAsync(
             productTableEntries
-                .Where(x => x.OperationTypeId == OperationTypeIdConst.IN && x.ReversalEntryId.HasValue)
+                .Where(x => x.OperationTypeId == OperationTypeIdConst.IN && x.OriginalMovementId.HasValue)
                 .Select(x => x.ProductTableId!.Value),
             ct);
 
@@ -226,7 +224,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         if (deletedWarehouseProductTables.Count > 0)
             await _warehouseProductTableCommand.DeleteAsync(deletedWarehouseProductTables, ct);
 
-        await _registerBalanceCommand.UpdateAsync(entryList, ct);
         return Result.Success();
     }
 
@@ -349,7 +346,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         return Result.Success();
     }
 
-    private Result ValidateOperations(IReadOnlyCollection<RegisterBalance> entries)
+    private Result ValidateOperations(IReadOnlyCollection<InventoryMovementEntry> entries)
     {
         foreach (var entry in entries)
         {
@@ -364,8 +361,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private async Task<Result> ApplyMovementsAndBatchesAsync(
-        IReadOnlyCollection<RegisterBalance> entries,
-        IReadOnlyDictionary<RegisterBalance, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        IReadOnlyDictionary<InventoryMovementEntry, IReadOnlyList<ProductBatchAllocation>>? saleAllocations,
         CancellationToken ct)
     {
         var movementGroups = BuildWarehouseMovementGroups(entries);
@@ -390,11 +387,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         var valuationMethods = await GetInventoryValuationMethodsAsync(
             batchEntries.Select(entry => entry.OrganizationId),
             ct);
-        var originalEntries = await GetOriginalEntriesAsync(
-            batchEntries.Where(entry => entry.ReversalEntryId.HasValue)
-                .Select(entry => entry.ReversalEntryId!.Value),
-            ct);
-        var processedEntries = new HashSet<RegisterBalance>();
+        var processedEntries = new HashSet<InventoryMovementEntry>();
 
         foreach (var transferGroup in GetBatchTransferGroups(batchEntries))
         {
@@ -411,7 +404,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     sourceEntry,
                     movementsByEntry[sourceEntry],
                     valuationMethods[sourceEntry.OrganizationId],
-                    originalEntries,
                     ct);
                 if (!issueResult.IsSuccess)
                     return issueResult;
@@ -426,21 +418,35 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 ? 0m
                 : sourceAmount / destinationMovement.Quantity;
 
-            foreach (var destinationEntry in destinationEntries)
+            if (destinationEntries.Count > 1 &&
+                destinationEntries.All(entry => entry.OriginalMovementId.HasValue))
             {
-                destinationEntry.Amount = destinationEntry.ProductTableId.HasValue
-                    ? sourceAmountByProductTableId[destinationEntry.ProductTableId.Value]
-                    : sourceAmount;
-
                 var receiptResult = await ApplyReceiptMovementAsync(
-                    destinationEntry,
+                    CreateAggregatedEntry(destinationEntries),
                     destinationMovement,
                     receiptUnitCostsByMovement[destinationMovement],
-                    originalEntries,
                     receiptDocumentNumbers,
                     ct);
                 if (!receiptResult.IsSuccess)
                     return receiptResult;
+            }
+            else
+            {
+                foreach (var destinationEntry in destinationEntries)
+                {
+                    destinationEntry.Amount = destinationEntry.ProductTableId.HasValue
+                        ? sourceAmountByProductTableId[destinationEntry.ProductTableId.Value]
+                        : sourceAmount;
+
+                    var receiptResult = await ApplyReceiptMovementAsync(
+                        destinationEntry,
+                        destinationMovement,
+                        receiptUnitCostsByMovement[destinationMovement],
+                        receiptDocumentNumbers,
+                        ct);
+                    if (!receiptResult.IsSuccess)
+                        return receiptResult;
+                }
             }
 
             processedEntries.UnionWith(sourceEntries);
@@ -459,7 +465,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 result = await ApplySaleIssueMovementAsync(entry, movement, plannedAllocations, ct);
             }
             else if (entry.OperationTypeId == OperationTypeIdConst.IN &&
-                     entry.ReversalEntryId.HasValue &&
+                      entry.OriginalMovementId.HasValue &&
                      entriesByMovement[movement].Count > 1)
             {
                 if (!processedIssueReversalMovements.Add(movement))
@@ -469,15 +475,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     CreateAggregatedEntry(entriesByMovement[movement]),
                     movement,
                     receiptUnitCostsByMovement[movement],
-                    originalEntries,
                     receiptDocumentNumbers,
                     ct);
             }
             else
             {
                 result = entry.OperationTypeId == OperationTypeIdConst.OUT
-                    ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], originalEntries, ct)
-                    : await ApplyReceiptMovementAsync(entry, movement, receiptUnitCostsByMovement[movement], originalEntries,
+                    ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], ct)
+                    : await ApplyReceiptMovementAsync(entry, movement, receiptUnitCostsByMovement[movement],
                         receiptDocumentNumbers,
                         ct);
             }
@@ -492,7 +497,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private static List<WarehouseMovementGroup> BuildWarehouseMovementGroups(
-        IReadOnlyCollection<RegisterBalance> entries)
+        IReadOnlyCollection<InventoryMovementEntry> entries)
     {
         var now = DateTime.Now;
         return entries
@@ -533,10 +538,10 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .ToList();
     }
 
-    private static RegisterBalance CreateAggregatedEntry(IReadOnlyCollection<RegisterBalance> entries)
+    private static InventoryMovementEntry CreateAggregatedEntry(IReadOnlyCollection<InventoryMovementEntry> entries)
     {
         var firstEntry = entries.First();
-        return new RegisterBalance
+        return new InventoryMovementEntry
         {
             OrganizationId = firstEntry.OrganizationId,
             DocumentTypeId = firstEntry.DocumentTypeId,
@@ -547,21 +552,18 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             Quantity = entries.Sum(entry => entry.Quantity),
             Amount = entries.Sum(entry => entry.Amount),
             DocDate = firstEntry.DocDate,
-            CreatedDate = firstEntry.CreatedDate,
-            PostingBatchId = firstEntry.PostingBatchId,
-            ReversalEntryId = firstEntry.ReversalEntryId
+            OriginalMovementId = firstEntry.OriginalMovementId
         };
     }
 
     private async Task<Result> ApplyIssueMovementAsync(
-        RegisterBalance entry,
+        InventoryMovementEntry entry,
         WarehouseProductMovement issueMovement,
         string valuationMethod,
-        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
         CancellationToken ct)
     {
-        if (entry.ReversalEntryId.HasValue)
-            return await ApplyReceiptReversalAsync(entry, issueMovement, originalEntries, ct);
+        if (entry.OriginalMovementId.HasValue)
+            return await ApplyReceiptReversalAsync(entry, issueMovement, ct);
 
         var batches = await GetAvailableBatchesAsync(
             entry.OrganizationId,
@@ -607,15 +609,14 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private async Task<Result> ApplyReceiptMovementAsync(
-        RegisterBalance entry,
+        InventoryMovementEntry entry,
         WarehouseProductMovement receiptMovement,
         decimal? receiptUnitCost,
-        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
         IReadOnlyDictionary<(short DocumentTypeId, long DocumentId), string> receiptDocumentNumbers,
         CancellationToken ct)
     {
-        if (entry.ReversalEntryId.HasValue)
-            return await ApplyIssueReversalAsync(entry, originalEntries, ct);
+        if (entry.OriginalMovementId.HasValue)
+            return await ApplyIssueReversalAsync(entry, ct);
 
         var batch = await _warehouseProductBatchQuery.GetAsync(
             _queryBuilder.For<WarehouseProductBatch>()
@@ -679,17 +680,18 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         return Result.Success();
     }
     private async Task<Result> ApplyReceiptReversalAsync(
-        RegisterBalance reversalEntry,
+        InventoryMovementEntry reversalEntry,
         WarehouseProductMovement issueMovement,
-        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
         CancellationToken ct)
     {
-        if (!originalEntries.TryGetValue(reversalEntry.ReversalEntryId!.Value, out var originalEntry))
-            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(reversalEntry.ReversalEntryId.Value, _userContext.LanguageId));
-
-        var originalMovement = await FindMovementAsync(originalEntry, ct);
+        var originalMovementId = reversalEntry.OriginalMovementId.GetValueOrDefault();
+        var originalMovement = await _warehouseProductMovementQuery.GetAsync(
+            _queryBuilder.For<WarehouseProductMovement>()
+                .Where(item => item.Id == originalMovementId)
+                .Build(),
+            ct);
         if (originalMovement == null)
-            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalMovementId, _userContext.LanguageId));
 
         var batch = await _warehouseProductBatchQuery.GetAsync(
             _queryBuilder.For<WarehouseProductBatch>()
@@ -716,16 +718,17 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private async Task<Result> ApplyIssueReversalAsync(
-        RegisterBalance reversalEntry,
-        IReadOnlyDictionary<long, RegisterBalance> originalEntries,
+        InventoryMovementEntry reversalEntry,
         CancellationToken ct)
     {
-        if (!originalEntries.TryGetValue(reversalEntry.ReversalEntryId!.Value, out var originalEntry))
-            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(reversalEntry.ReversalEntryId.Value, _userContext.LanguageId));
-
-        var originalMovement = await FindMovementAsync(originalEntry, ct);
+        var originalMovementId = reversalEntry.OriginalMovementId.GetValueOrDefault();
+        var originalMovement = await _warehouseProductMovementQuery.GetAsync(
+            _queryBuilder.For<WarehouseProductMovement>()
+                .Where(item => item.Id == originalMovementId)
+                .Build(),
+            ct);
         if (originalMovement == null)
-            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalEntry.Id, _userContext.LanguageId));
+            return Result.Failure(WarehouseProductErrors.OriginalMovementNotFound(originalMovementId, _userContext.LanguageId));
 
         var allocations = await _warehouseProductBatchAllocationQuery.GetAllAsync(
             _queryBuilder.For<WarehouseProductBatchAllocation>()
@@ -755,26 +758,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         await _warehouseProductBatchCommand.UpdateAsync(batchesById.Values, ct);
         reversalEntry.Amount = allocations.Sum(item => item.Quantity * (item.UnitCost ?? 0m));
         return Result.Success();
-    }
-
-    private async Task<WarehouseProductMovement?> FindMovementAsync(RegisterBalance entry, CancellationToken ct)
-    {
-        var movements = await _warehouseProductMovementQuery.GetAllAsync(
-            _queryBuilder.For<WarehouseProductMovement>()
-                .Where(item => item.OrganizationId == entry.OrganizationId &&
-                               item.WarehouseId == entry.WarehouseId &&
-                               item.ProductId == entry.ProductId &&
-                               item.DocumentTypeId == entry.DocumentTypeId &&
-                               item.DocumentId == entry.DocumentId &&
-                               (item.DocumentLineId == entry.SourceLineId ||
-                                (entry.ProductTableId.HasValue && item.DocumentLineId == null)) &&
-                               item.MovementSign == ToMovementSign(entry.OperationTypeId))
-                .OrderBy(item => item.Id)
-                .Desc()
-                .Build(),
-            ct);
-
-        return movements.FirstOrDefault();
     }
 
     private async Task<List<WarehouseProductBatch>> GetAvailableBatchesAsync(
@@ -849,20 +832,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             id => NormalizeInventoryValuationMethod(configuredByOrganization.GetValueOrDefault(id)));
     }
 
-    private async Task<Dictionary<long, RegisterBalance>> GetOriginalEntriesAsync(IEnumerable<long> entryIds, CancellationToken ct)
-    {
-        var ids = entryIds.Distinct().ToList();
-        if (ids.Count == 0)
-            return new Dictionary<long, RegisterBalance>();
-
-        var entries = await _registerBalanceQuery.GetAllAsync(
-            _queryBuilder.For<RegisterBalance>()
-                .Where(entry => ids.Contains(entry.Id))
-                .Build(),
-            ct);
-        return entries.ToDictionary(entry => entry.Id);
-    }
-
     private async Task AddBatchAllocationAsync(
         WarehouseProductMovement issueMovement,
         WarehouseProductBatch batch,
@@ -894,7 +863,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         }, ct);
     }
 
-    private static IEnumerable<IGrouping<string, RegisterBalance>> GetBatchTransferGroups(IEnumerable<RegisterBalance> entries) =>
+    private static IEnumerable<IGrouping<string, InventoryMovementEntry>> GetBatchTransferGroups(IEnumerable<InventoryMovementEntry> entries) =>
         entries
             .Where(entry => entry.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
             .GroupBy(entry => $"{entry.DocumentId}:{entry.ProductId}")
@@ -937,7 +906,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         return products.ToDictionary(product => product.Id);
     }
     private async Task<Result<Dictionary<int, int>>> GetProductTablesAsync(
-        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
         CancellationToken ct)
     {
         var productTableIds = entries.Select(x => x.ProductTableId!.Value).Distinct().ToList();
@@ -959,7 +928,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private async Task<List<WarehouseProductTable>> GetWarehouseProductTablesAsync(
-        IReadOnlyCollection<RegisterBalance> entries,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
         CancellationToken ct)
     {
         var productTableIds = entries.Select(x => x.ProductTableId!.Value).Distinct().ToList();
@@ -1077,9 +1046,25 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 result[(DocumentTypeIdConst.INVENTORYADJUSTMENT, document.Id)] = document.DocNumber;
         }
 
+        var openingInventoryIds = documentKeys
+            .Where(key => key.DocumentTypeId == DocumentTypeIdConst.OPENINGINVENTORY)
+            .Select(key => key.DocumentId)
+            .ToList();
+        if (openingInventoryIds.Count > 0)
+        {
+            var documents = await _openingInventoryQuery.GetAllAsync(
+                _queryBuilder.For<OpeningInventory>()
+                    .Where(document => openingInventoryIds.Contains(document.Id))
+                    .As(document => new DocumentNumber(document.Id, document.DocNumber))
+                    .Build(),
+                ct);
+            foreach (var document in documents)
+                result[(DocumentTypeIdConst.OPENINGINVENTORY, document.Id)] = document.DocNumber;
+        }
+
         return result;
     }
-    private static IEnumerable<IGrouping<int, RegisterBalance>> GetTransferGroups(IReadOnlyCollection<RegisterBalance> entries) =>
+    private static IEnumerable<IGrouping<int, InventoryMovementEntry>> GetTransferGroups(IReadOnlyCollection<InventoryMovementEntry> entries) =>
         entries
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
             .GroupBy(x => x.ProductTableId!.Value)
@@ -1103,7 +1088,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         return Result.Success();
     }
 
-    private static WarehouseProductBalanceChange ToQuantityChange(RegisterBalance entry, decimal reservedQuantityDelta = 0m) =>
+    private static WarehouseProductBalanceChange ToQuantityChange(InventoryMovementEntry entry, decimal reservedQuantityDelta = 0m) =>
         new(
             entry.WarehouseId,
             entry.ProductId,
@@ -1293,7 +1278,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     }
 
     private sealed record WarehouseMovementGroup(
-        IReadOnlyList<RegisterBalance> Entries,
+        IReadOnlyList<InventoryMovementEntry> Entries,
         WarehouseProductMovement Movement,
         decimal? UnitCost);
     private sealed record WarehouseMovementGroupKey(

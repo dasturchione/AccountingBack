@@ -62,6 +62,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<Product>(modelBuilder);
             ApplyScopedFilter<InventoryAdjustmentDoc>(modelBuilder);
             ApplyScopedFilter<InventoryCountDoc>(modelBuilder);
+            ApplyScopedFilter<OpeningInventory>(modelBuilder);
             ApplyScopedFilter<SaleDoc>(modelBuilder);
             ApplyScopedFilter<WarehouseTransferDoc>(modelBuilder);
             ApplyScopedFilter<Branch>(modelBuilder);
@@ -73,7 +74,6 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<AccountingRegisterEntry>(modelBuilder);
             ApplyScopedFilter<DocumentAccountSetting>(modelBuilder);
             ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
-            ApplyScopedFilter<RegisterBalance>(modelBuilder);
             ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
             ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
             ApplyScopedFilter<CashOperation>(modelBuilder);
@@ -119,6 +119,20 @@ namespace Infrastructure.Persistence
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<OpeningInventoryProduct>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+            modelBuilder.Entity<OpeningInventoryTable>()
+                .HasQueryFilter(e => HasGlobalAccess
+                                  || (AllowedOrgIds.Count > 0
+                                  && (CurrentOrganizationId != 0
+                                      ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                      : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<PurchaseDocTable>()
                 .HasQueryFilter(e => HasGlobalAccess

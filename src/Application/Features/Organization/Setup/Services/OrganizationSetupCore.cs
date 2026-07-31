@@ -112,7 +112,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
             && setup.TaxCompleted
             && setup.AccountingCompleted
             && setup.DefaultsCompleted
-            && setup.UsersCompleted
             && setup.IsCompleted;
 
         if (!setup.IsCompleted)
@@ -224,8 +223,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
             return "accounting-policy";
         if (!setup.DefaultsCompleted)
             return "defaults";
-        if (!setup.UsersCompleted)
-            return "users";
         return "complete";
     }
 
@@ -234,7 +231,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         bool taxCompleted,
         bool accountingCompleted,
         bool defaultsCompleted,
-        bool usersCompleted,
         bool isCompleted)
     {
         if (isCompleted)
@@ -247,8 +243,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
             return "accounting-policy";
         if (!defaultsCompleted)
             return "defaults";
-        if (!usersCompleted)
-            return "users";
         return "complete";
     }
 
@@ -262,8 +256,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
             return "accounting-policy";
         if (!setup.DefaultsCompleted)
             return "defaults";
-        if (!setup.UsersCompleted)
-            return "users";
         return null;
     }
 }

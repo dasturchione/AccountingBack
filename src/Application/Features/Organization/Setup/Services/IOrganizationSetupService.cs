@@ -9,6 +9,5 @@ public interface IOrganizationSetupService
     Task<Result> UpdateTaxSettingsAsync(OrganizationSetupTaxSettingsDto dto, CancellationToken ct = default);
     Task<Result> UpdateAccountingPolicyAsync(OrganizationSetupAccountingPolicyDto dto, CancellationToken ct = default);
     Task<Result> UpdateDefaultsAsync(OrganizationSetupDefaultsDto dto, CancellationToken ct = default);
-    Task<Result> UpdateUsersAsync(OrganizationSetupUsersDto dto, CancellationToken ct = default);
     Task<Result> CompleteAsync(CancellationToken ct = default);
 }

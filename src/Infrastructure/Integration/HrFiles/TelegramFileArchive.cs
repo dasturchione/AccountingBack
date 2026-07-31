@@ -104,8 +104,33 @@ public sealed class TelegramFileArchive : ITelegramFileArchive
         if (response.IsSuccessStatusCode)
             return;
 
-        _ = await response.Content.ReadAsStringAsync(ct);
+        var responseBody = await response.Content.ReadAsStringAsync(ct);
+        var description = TryReadErrorDescription(responseBody);
         throw new InvalidOperationException(
-            $"Telegram fayl arxivi HTTP {(int)response.StatusCode} xatosini qaytardi.");
+            string.IsNullOrWhiteSpace(description)
+                ? $"Telegram fayl arxivi HTTP {(int)response.StatusCode} xatosini qaytardi."
+                : $"Telegram fayl arxivi HTTP {(int)response.StatusCode} xatosini qaytardi: {description}");
+    }
+
+    private static string? TryReadErrorDescription(string responseBody)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return null;
+
+        try
+        {
+            using var json = JsonDocument.Parse(responseBody);
+            if (!json.RootElement.TryGetProperty("description", out var description))
+                return null;
+
+            var value = description.GetString()?.Replace('\r', ' ').Replace('\n', ' ').Trim();
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value[..Math.Min(value.Length, 500)];
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

@@ -1,16 +1,15 @@
 using Microsoft.Extensions.Logging;
 
-namespace Integration.Edocs.Http;
+namespace Integration.Didox.Http;
 
-public sealed class EdocsGetRetryHandler : DelegatingHandler
+public sealed class DidoxGetRetryHandler : DelegatingHandler
 {
-    // Retry siyosati loyiha bo'ylab bir xil; konfiguratsiyaga chiqarilmaydi.
     private const int MaxAttempts = 3;
     private static readonly TimeSpan InitialRetryDelay = TimeSpan.FromMilliseconds(200);
 
-    private readonly ILogger<EdocsGetRetryHandler> _logger;
+    private readonly ILogger<DidoxGetRetryHandler> _logger;
 
-    public EdocsGetRetryHandler(ILogger<EdocsGetRetryHandler> logger)
+    public DidoxGetRetryHandler(ILogger<DidoxGetRetryHandler> logger)
     {
         _logger = logger;
     }
@@ -32,7 +31,7 @@ public sealed class EdocsGetRetryHandler : DelegatingHandler
                     return response;
 
                 _logger.LogWarning(
-                    "Edocs GET request returned transient status {StatusCode} on attempt {Attempt}/{Attempts}.",
+                    "Didox GET request returned transient status {StatusCode} on attempt {Attempt}/{Attempts}.",
                     (int)response.StatusCode,
                     attempt,
                     MaxAttempts);
@@ -46,7 +45,7 @@ public sealed class EdocsGetRetryHandler : DelegatingHandler
             catch (HttpRequestException) when (attempt < MaxAttempts)
             {
                 _logger.LogWarning(
-                    "Edocs GET request failed with a transient network error on attempt {Attempt}/{Attempts}.",
+                    "Didox GET request failed with a transient network error on attempt {Attempt}/{Attempts}.",
                     attempt,
                     MaxAttempts);
             }
@@ -55,7 +54,7 @@ public sealed class EdocsGetRetryHandler : DelegatingHandler
             retryRequest = CloneGetRequest(request);
         }
 
-        throw new HttpRequestException("Edocs GET request failed after retry attempts.");
+        throw new HttpRequestException("Didox GET request failed after retry attempts.");
     }
 
     private static bool IsTransient(HttpResponseMessage response)

@@ -14,6 +14,7 @@ public sealed class EdocsAuthService : IEdocsAuthService
     // Hujjat: "После успешной авторизации возвращается токен. Срок действия токена
     // 24 часа." Xavfsizlik zaxirasi sifatida biroz oldin yangilanadi (login/parol
     // yo'lida ham xuddi shu qiymat ishlatilgan edi).
+    // Edocs tokenining 24 soatlik muddati shartnoma qiymati; konfiguratsiyaga chiqarilmaydi.
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(24) - TimeSpan.FromMinutes(5);
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

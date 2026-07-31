@@ -403,17 +403,13 @@ namespace WebApi.Configuration
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailUsername))
                 throw new InvalidOperationException("Email:Username is not configured with a real value.");
 
-            var eImzoCertificatePassword = configuration["EImzo:CertificatePassword"];
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(eImzoCertificatePassword))
-                throw new InvalidOperationException("EImzo:CertificatePassword is not configured with a real secret value.");
-
             var emailPassword = configuration["Email:Password"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(emailPassword))
                 throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
 
-            var didoxPartnerToken = configuration["TaxIntegration:Didox:PartnerToken"];
+            var didoxPartnerToken = configuration["Didox:PartnerToken"];
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
-                throw new InvalidOperationException("TaxIntegration:Didox:PartnerToken is not configured with a real secret value.");
+                throw new InvalidOperationException("Didox:PartnerToken is not configured with a real secret value.");
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
@@ -439,9 +435,7 @@ namespace WebApi.Configuration
             "FakturaAuthSettings:ClientSecret",
             "FakturaAuthSettings:Password",
             "Email:Password",
-            "EImzo:CertificatePassword",
-            "EImzo:CertificatePath",
-            "TaxIntegration:Didox:PartnerToken",
+            "Didox:PartnerToken",
             "DataProtection:KeysPath"
         ];
 

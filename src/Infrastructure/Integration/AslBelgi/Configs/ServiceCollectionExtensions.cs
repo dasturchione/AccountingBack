@@ -28,7 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(AslBelgiHttpClientNames.Client, (serviceProvider, client) =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AslBelgiOptions>>().Value;
-                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
                 client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
             })
             // Tartib: auth tashqarida, retry ichkarida. Authorization sarlavhasi

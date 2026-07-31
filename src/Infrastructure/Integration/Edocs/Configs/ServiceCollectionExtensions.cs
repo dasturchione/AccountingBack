@@ -32,14 +32,14 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(EdocsHttpClientNames.AuthClient, (serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<EdocsOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
             client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
         });
 
         services.AddHttpClient(EdocsHttpClientNames.Client, (serviceProvider, client) =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<EdocsOptions>>().Value;
-                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
                 client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
             })
             // Tartib: auth tashqarida, retry ichkarida — AslBelgi bilan bir xil.

@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(CentralBankHttpClientNames.Client, (serviceProvider, client) =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<CentralBankOptions>>().Value;
-                client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
                 client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
             })
             .AddHttpMessageHandler<CentralBankRetryHandler>();

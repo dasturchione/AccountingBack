@@ -644,6 +644,21 @@ public static class PermissionCodeConst
     public const string OpeningInventoryDelete     = "OPENING_INVENTORY_DELETE";
     #endregion
 
+    #region HR
+    public const string HrView             = "HR_VIEW";
+    public const string HrEmployeeView     = "HR_EMPLOYEE_VIEW";
+    public const string HrEmployeeCreate   = "HR_EMPLOYEE_CREATE";
+    public const string HrEmployeeUpdate   = "HR_EMPLOYEE_UPDATE";
+    public const string HrEmployeeDelete   = "HR_EMPLOYEE_DELETE";
+    public const string HrScheduleView     = "HR_SCHEDULE_VIEW";
+    public const string HrScheduleManage   = "HR_SCHEDULE_MANAGE";
+    public const string HrAbsenceView      = "HR_ABSENCE_VIEW";
+    public const string HrAbsenceCreate    = "HR_ABSENCE_CREATE";
+    public const string HrAbsenceUpdate    = "HR_ABSENCE_UPDATE";
+    public const string HrAbsenceDelete    = "HR_ABSENCE_DELETE";
+    public const string HrCalendarView     = "HR_CALENDAR_VIEW";
+    #endregion
+
     #region Payroll
     public const string PayrollView             = "PAYROLL_VIEW";
     public const string PayrollEmployeeView     = "PAYROLL_EMPLOYEE_VIEW";

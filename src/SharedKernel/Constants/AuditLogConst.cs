@@ -22,6 +22,8 @@ public static class AuditLogTableConst
     public const string PayTimesheet = "pay_timesheet";
     public const string PayPayrollDoc = "pay_payroll_doc";
     public const string PayPaymentBatch = "pay_payment_batch";
+    public const string HrEmployeeWorkSchedule = "hr_employee_work_schedule";
+    public const string HrAbsence = "hr_absence";
     public const string AuthorizationBypass = "sys_authorization_bypass";
 }
 

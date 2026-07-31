@@ -49,6 +49,10 @@ using Application.Features.FaDisposals;
 using Application.Features.FaRevaluations;
 using Application.Features.FaMovements;
 using Application.Features.FaReceipts;
+using Application.Features.Hr.Absences;
+using Application.Features.Hr.Calendar;
+using Application.Features.Hr.Files;
+using Application.Features.Hr.Schedules;
 using Application.Features.InventoryMovements;
 using Application.Features.Imports;
 using Application.Features.Inv;
@@ -97,6 +101,8 @@ using Application.Features.Inv.ProductStocks;
 using Domain.Entities;
 using Infrastructure.Authentication;
 using Infrastructure.Context;
+using Infrastructure.Integration.HrFiles;
+using Infrastructure.Options;
 using Infrastructure.Query;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
@@ -146,6 +152,13 @@ namespace Infrastructure
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
 
             services.AddMemoryCache();
+            services.Configure<HrFileStorageOptions>(config.GetSection("HrFileStorage"));
+            services.Configure<TelegramFileStorageOptions>(config.GetSection("TelegramFileStorage"));
+            services.AddScoped<IHrFileStorage, HrFileStorage>();
+            services.AddHttpClient<ITelegramFileArchive, TelegramFileArchive>(client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(2);
+            });
 
             services.AddFaktura(config);
             services.AddAslBelgiConfiguration(config);
@@ -173,6 +186,9 @@ namespace Infrastructure
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IPositionService, PositionService>();
+            services.AddScoped<IHrWorkScheduleService, HrWorkScheduleService>();
+            services.AddScoped<IHrEmployeeCalendarService, HrEmployeeCalendarService>();
+            services.AddScoped<IHrAbsenceService, HrAbsenceService>();
             services.AddScoped<IPayrollEmployeeService, PayrollEmployeeService>();
             services.AddScoped<IPayrollComponentService, PayrollComponentService>();
             services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();

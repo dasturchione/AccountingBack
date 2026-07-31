@@ -31,6 +31,14 @@ public partial class PayTimesheetLine
     [Precision(8, 2)]
     public decimal WorkedHours { get; set; }
 
+    [Column("norm_work_days")]
+    [Precision(6, 2)]
+    public decimal NormWorkDays { get; set; }
+
+    [Column("norm_work_hours")]
+    [Precision(8, 2)]
+    public decimal NormWorkHours { get; set; }
+
     [Column("leave_days")]
     [Precision(6, 2)]
     public decimal LeaveDays { get; set; }

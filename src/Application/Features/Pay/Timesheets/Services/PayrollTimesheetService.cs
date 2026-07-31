@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.Hr.Calendar;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
     private readonly IQueryRepository<PayPeriod> _periodQuery;
     private readonly IQueryRepository<PayEmployee> _employeeQuery;
     private readonly IQueryRepository<PayPayrollDoc> _payrollQuery;
+    private readonly IHrEmployeeCalendarService _calendarService;
 
     public PayrollTimesheetService(
         IUserContext userContext,
@@ -36,6 +38,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         IQueryRepository<PayPeriod> periodQuery,
         IQueryRepository<PayEmployee> employeeQuery,
         IQueryRepository<PayPayrollDoc> payrollQuery,
+        IHrEmployeeCalendarService calendarService,
         ILogger<PayrollTimesheetService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -50,6 +53,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         _periodQuery = periodQuery;
         _employeeQuery = employeeQuery;
         _payrollQuery = payrollQuery;
+        _calendarService = calendarService;
     }
 
     public Task<Result<PagedResponse<PayrollTimesheetListDto>>> GetAllAsync(
@@ -96,6 +100,20 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             return dto is null
                 ? Result.Failure<PayrollTimesheetDto>(PayrollErrors.NotFound("Timesheet", id, _userContext.LanguageId))
                 : Result.Success(dto);
+        });
+
+    public Task<Result<HrEmployeeCalendarDto>> GetEmployeeCalendarAsync(
+        long periodId,
+        long employeeId,
+        CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetEmployeeCalendarAsync), async () =>
+        {
+            var period = await GetPeriodAsync(periodId, ct);
+            if (period is null)
+                return Result.Failure<HrEmployeeCalendarDto>(
+                    PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
+
+            return await _calendarService.GetAsync(employeeId, period.StartDate, period.EndDate, ct);
         });
 
     public Task<Result<long>> CreateAsync(PayrollTimesheetCreateDto dto, CancellationToken ct = default) =>
@@ -251,13 +269,6 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         if (duplicateEmployee is not null)
             return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Conflict("DuplicateTimesheetEmployee", $"Employee {duplicateEmployee.Key} is duplicated in the timesheet."));
 
-        foreach (var dto in dtos)
-        {
-            var totalDays = dto.WorkedDays + dto.LeaveDays + dto.SickDays + dto.AbsentDays;
-            if (totalDays > period.NormWorkDays)
-                return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business("TimesheetDaysExceeded", $"Employee {dto.EmployeeId} has {totalDays} days while period norm is {period.NormWorkDays}."));
-        }
-
         var employeeIds = dtos.Select(x => x.EmployeeId).Distinct().ToList();
         var employeesQuery = _queryBuilder.For<PayEmployee>()
             .Where(x =>
@@ -275,17 +286,51 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         if (missingEmployeeId > 0)
             return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.NoActiveEmployment(missingEmployeeId));
 
-        return Result.Success(dtos.Select(dto => new PayTimesheetLine
+        var summariesResult = await _calendarService.GetSummariesAsync(
+            employeeIds,
+            period.StartDate,
+            period.EndDate,
+            ct);
+        if (!summariesResult.IsSuccess)
+            return Result.Failure<List<PayTimesheetLine>>(summariesResult.Error);
+
+        foreach (var dto in dtos)
         {
-            OrganizationId = organizationId,
-            EmployeeId = dto.EmployeeId,
-            WorkedDays = dto.WorkedDays,
-            WorkedHours = dto.WorkedHours,
-            LeaveDays = dto.LeaveDays,
-            SickDays = dto.SickDays,
-            AbsentDays = dto.AbsentDays,
-            OvertimeHours = dto.OvertimeHours,
-            Note = dto.Note
+            var summary = summariesResult.Value[dto.EmployeeId];
+            var totalDays = dto.WorkedDays + dto.LeaveDays + dto.SickDays + dto.AbsentDays;
+            if (totalDays > summary.NormWorkDays)
+                return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
+                    "TimesheetDaysExceeded",
+                    $"Employee {dto.EmployeeId} has {totalDays} days while the personal schedule norm is {summary.NormWorkDays}."));
+            if (dto.WorkedHours > summary.NormWorkHours)
+                return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
+                    "TimesheetHoursExceeded",
+                    $"Employee {dto.EmployeeId} has {dto.WorkedHours} regular hours while the personal schedule norm is {summary.NormWorkHours}."));
+            if (dto.LeaveDays != summary.LeaveDays ||
+                dto.SickDays != summary.SickDays ||
+                dto.AbsentDays != summary.AbsentDays)
+                return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
+                    "TimesheetAbsenceMismatch",
+                    $"Employee {dto.EmployeeId} absence totals must match HR calendar: leave={summary.LeaveDays}, sick={summary.SickDays}, absent={summary.AbsentDays}."));
+        }
+
+        return Result.Success(dtos.Select(dto =>
+        {
+            var summary = summariesResult.Value[dto.EmployeeId];
+            return new PayTimesheetLine
+            {
+                OrganizationId = organizationId,
+                EmployeeId = dto.EmployeeId,
+                WorkedDays = dto.WorkedDays,
+                WorkedHours = dto.WorkedHours,
+                NormWorkDays = summary.NormWorkDays,
+                NormWorkHours = summary.NormWorkHours,
+                LeaveDays = summary.LeaveDays,
+                SickDays = summary.SickDays,
+                AbsentDays = summary.AbsentDays,
+                OvertimeHours = dto.OvertimeHours,
+                Note = dto.Note
+            };
         }).ToList());
     }
 
@@ -294,6 +339,12 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         var query = _queryBuilder.For<PayPeriod>()
             .Where(x => x.Id == id && x.Status == PayrollPeriodStatusConst.Open)
             .Build();
+        return await _periodQuery.GetAsync(query, ct);
+    }
+
+    private async Task<PayPeriod?> GetPeriodAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayPeriod>().Where(x => x.Id == id).Build();
         return await _periodQuery.GetAsync(query, ct);
     }
 
@@ -336,6 +387,8 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                         EmployeeName = line.Employee.LastName + " " + line.Employee.FirstName,
                         WorkedDays = line.WorkedDays,
                         WorkedHours = line.WorkedHours,
+                        NormWorkDays = line.NormWorkDays,
+                        NormWorkHours = line.NormWorkHours,
                         LeaveDays = line.LeaveDays,
                         SickDays = line.SickDays,
                         AbsentDays = line.AbsentDays,

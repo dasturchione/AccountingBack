@@ -37,7 +37,7 @@ public sealed class PayrollEmployeeController : ControllerBase
     }
 
     [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeCreate)]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeCreate)]
     public async Task<IResult> CreateAsync([FromBody] PayrollEmployeeCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
@@ -45,7 +45,7 @@ public sealed class PayrollEmployeeController : ControllerBase
     }
 
     [HttpPut("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
     public async Task<IResult> UpdateAsync(
         [FromRoute] long id,
         [FromBody] PayrollEmployeeUpdateDto dto,
@@ -56,7 +56,7 @@ public sealed class PayrollEmployeeController : ControllerBase
     }
 
     [HttpDelete("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeDelete)]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeDelete)]
     public async Task<IResult> DeleteAsync([FromRoute] long id, CancellationToken ct = default)
     {
         var result = await _service.DeleteAsync(id, ct);
@@ -64,7 +64,7 @@ public sealed class PayrollEmployeeController : ControllerBase
     }
 
     [HttpPost("{employeeId:long}/employments")]
-    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
     public async Task<IResult> AddEmploymentAsync(
         [FromRoute] long employeeId,
         [FromBody] PayrollEmploymentSaveDto dto,
@@ -75,7 +75,7 @@ public sealed class PayrollEmployeeController : ControllerBase
     }
 
     [HttpPut("{employeeId:long}/employments/{employmentId:long}")]
-    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
     public async Task<IResult> UpdateEmploymentAsync(
         [FromRoute] long employeeId,
         [FromRoute] long employmentId,

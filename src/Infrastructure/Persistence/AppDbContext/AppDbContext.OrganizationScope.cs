@@ -98,6 +98,10 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<PayPayrollCalcLine>(modelBuilder);
             ApplyScopedFilter<PayPaymentBatch>(modelBuilder);
             ApplyScopedFilter<PayPaymentLine>(modelBuilder);
+            ApplyScopedFilter<HrEmployeeWorkSchedule>(modelBuilder);
+            ApplyScopedFilter<HrEmployeeWorkScheduleDay>(modelBuilder);
+            ApplyScopedFilter<HrAbsence>(modelBuilder);
+            ApplyScopedFilter<HrAbsenceAttachment>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(e => HasGlobalAccess

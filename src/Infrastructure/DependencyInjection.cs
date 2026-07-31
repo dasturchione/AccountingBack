@@ -142,6 +142,7 @@ namespace Infrastructure
             services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
             services.AddScoped(typeof(ITrackingRepository<>), typeof(TrackingRepository<>));
             services.AddScoped<IOrganizationSourceReader, OrganizationSourceReader>();
+            services.AddScoped<IIntegrationCredentialProvider, IntegrationCredentialProvider>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IDocumentPostingLock, DocumentPostingLock>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

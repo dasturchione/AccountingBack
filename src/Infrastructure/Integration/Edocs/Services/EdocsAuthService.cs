@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Application.Features.Integration.Edocs.Services;
 using Integration.Edocs.Http;
 using SharedKernel.Exceptions;
@@ -18,11 +19,13 @@ public sealed class EdocsAuthService : IEdocsAuthService
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly EdocsTokenCache _tokenCache;
+    private readonly IUserContext _userContext;
 
-    public EdocsAuthService(IHttpClientFactory httpClientFactory, EdocsTokenCache tokenCache)
+    public EdocsAuthService(IHttpClientFactory httpClientFactory, EdocsTokenCache tokenCache, IUserContext userContext)
     {
         _httpClientFactory = httpClientFactory;
         _tokenCache = tokenCache;
+        _userContext = userContext;
     }
 
     public async Task<JsonElement> GetProfileAsync(CancellationToken ct = default)
@@ -98,9 +101,12 @@ public sealed class EdocsAuthService : IEdocsAuthService
         if (string.IsNullOrWhiteSpace(token))
             throw new IntegrationHttpException("Edocs login javobida token topilmadi.", 502);
 
-        _tokenCache.Set(token, TokenLifetime);
+        _tokenCache.Set(RequireOrganization(), token, TokenLifetime);
         return new EdocsAuthCompleteResultDto { Success = true };
     }
+
+    private int RequireOrganization() => _userContext.OrganizationId
+        ?? throw new InvalidOperationException("An active organization is required to complete Edocs authentication.");
 
     // ESLATMA: hujjatda /login javobining aniq JSON shakli ko'rsatilmagan (faqat
     // "токен qaytariladi" deyilgan) — login/parol yo'lidagi (6.1-bosqich, endi

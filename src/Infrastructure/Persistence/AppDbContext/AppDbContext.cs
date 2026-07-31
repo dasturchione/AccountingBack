@@ -183,6 +183,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MarkingAslBelgiDocument> MarkingAslBelgiDocuments { get; set; }
     public virtual DbSet<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; }
     public virtual DbSet<MarkingDidoxDocument> MarkingDidoxDocuments { get; set; }
+    public virtual DbSet<IntegrationCredential> IntegrationCredentials { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -388,6 +389,18 @@ public partial class AppDbContext : DbContext
                 .HasDatabaseName("ux_marking_didox_document_provider_document_id")
                 .IsUnique()
                 .HasFilter("provider_document_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<IntegrationCredential>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("integration_credential_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("integration_credential_organization_id_fkey");
         });
 
         modelBuilder.Entity<Warehouse>()

@@ -1,4 +1,5 @@
 using Integration.Edocs.Configs;
+using Integration.Shared.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
@@ -39,7 +40,14 @@ public sealed class EdocsAuthorizationHandler : DelegatingHandler
             throw new InvalidOperationException("Edocs BaseUrl must use HTTPS.");
         }
 
-        if (!_tokenCache.TryGet(out var token))
+        // 6.5.6-bosqich (poydevor): chaqiruvchi hali request.Options ga organizationId
+        // qo'ymaydi (bu — keyingi bosqichda, servis darajasidagi Option A ulanishi bilan
+        // birga qilinadi). Shu bosqichgacha 0 — "hali tashkilot bo'yicha ajratilmagan"
+        // bucket'ini bildiradi; kesh imzosi tayyor, lekin haqiqiy ko'p-tashkilotli
+        // ishlash keyingi bosqichda boshlanadi.
+        var organizationId = request.Options.TryGetValue(IntegrationHttpRequestOptions.OrganizationId, out var orgId) ? orgId : 0;
+
+        if (!_tokenCache.TryGet(organizationId, out var token))
         {
             throw new EdocsAuthenticationRequiredException(
                 "Edocs uchun qayta autentifikatsiya kerak — /auth/challenge va /auth/complete orqali.");

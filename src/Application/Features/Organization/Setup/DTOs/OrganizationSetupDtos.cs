@@ -9,14 +9,14 @@ public sealed class OrganizationSetupDto
     public bool TaxCompleted { get; set; }
     public bool AccountingCompleted { get; set; }
     public bool DefaultsCompleted { get; set; }
-    public bool UsersCompleted { get; set; }
     public bool IsCompleted { get; set; }
     public DateTime? CompletedAt { get; set; }
     public OrganizationSetupCompanyProfileDto CompanyProfile { get; set; } = null!;
     public OrganizationSetupTaxSettingsDto? TaxSettings { get; set; }
     public OrganizationSetupAccountingPolicyDto? AccountingPolicy { get; set; }
+    public OrganizationSetupCostingConditionDto? CostingCondition { get; set; }
+    public OrganizationSetupPricingConditionDto? PricingCondition { get; set; }
     public OrganizationSetupDefaultsDto? Defaults { get; set; }
-    public List<OrganizationSetupUserDto> Users { get; set; } = [];
 }
 
 public sealed class OrganizationSetupCompanyProfileDto
@@ -54,6 +54,26 @@ public sealed class OrganizationSetupAccountingPolicyDto
     public short FiscalYearStartMonth { get; set; } = 1;
 }
 
+public sealed class OrganizationSetupCostingConditionDto
+{
+    public string InventoryValuationMethod { get; set; } = null!;
+}
+
+public sealed class OrganizationSetupPricingConditionDto
+{
+    public long Id { get; set; }
+    public short PricingMethodId { get; set; }
+    public string PricingMethodName { get; set; } = null!;
+    public string PricingMethodCode { get; set; } = null!;
+    public decimal PricingValue { get; set; }
+    public short RoundingMethodId { get; set; }
+    public string RoundingMethodName { get; set; } = null!;
+    public string RoundingMethodCode { get; set; } = null!;
+    public decimal RoundingPrecision { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+}
+
 public sealed class OrganizationSetupDefaultsDto
 {
     public int? BranchId { get; set; }
@@ -68,21 +88,4 @@ public sealed class OrganizationSetupDefaultsDto
     public int? RevenueAccountId { get; set; }
     public int? ExpenseAccountId { get; set; }
     public int? CogsAccountId { get; set; }
-}
-
-public sealed class OrganizationSetupUsersDto
-{
-    public bool UsersCompleted { get; set; } = true;
-}
-
-public sealed class OrganizationSetupUserDto
-{
-    public int UserId { get; set; }
-    public string UserName { get; set; } = null!;
-    public string FullName { get; set; } = null!;
-    public int? RoleId { get; set; }
-    public string? RoleName { get; set; }
-    public bool IsOwner { get; set; }
-    public bool IsDefault { get; set; }
-    public short StateId { get; set; }
 }

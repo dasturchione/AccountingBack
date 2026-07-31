@@ -26,6 +26,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private readonly IQueryRepository<OrganizationConfig> _configQuery;
     private readonly IQueryRepository<OrganizationDefault> _defaultQuery;
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
+    private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
@@ -45,6 +46,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         IQueryRepository<OrganizationConfig> configQuery,
         IQueryRepository<OrganizationDefault> defaultQuery,
         IQueryRepository<UserOrganization> userOrganizationQuery,
+        IQueryRepository<PricingCondition> pricingConditionQuery,
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<AccountingPolicy> accountingPolicyQuery,
         IQueryRepository<Currency> currencyQuery,
@@ -65,6 +67,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         _configQuery = configQuery;
         _defaultQuery = defaultQuery;
         _userOrganizationQuery = userOrganizationQuery;
+        _pricingConditionQuery = pricingConditionQuery;
         _taxTypeQuery = taxTypeQuery;
         _accountingPolicyQuery = accountingPolicyQuery;
         _currencyQuery = currencyQuery;
@@ -91,7 +94,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             var tax = await GetCurrentTaxSettingAsync(organization.Id, ct);
             var config = await GetConfigAsync(organization.Id, ct);
             var defaults = await GetDefaultsAsync(organization.Id, ct);
-            var users = await GetUsersAsync(organization.Id, ct);
+            var pricingCondition = await GetCurrentPricingConditionAsync(organization.Id, ct);
 
             return new OrganizationSetupDto
             {
@@ -102,14 +105,14 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 TaxCompleted = setup?.TaxCompleted ?? false,
                 AccountingCompleted = setup?.AccountingCompleted ?? false,
                 DefaultsCompleted = setup?.DefaultsCompleted ?? false,
-                UsersCompleted = setup?.UsersCompleted ?? false,
                 IsCompleted = setup?.IsCompleted ?? false,
                 CompletedAt = setup?.CompletedAt,
                 CompanyProfile = MapCompanyProfile(organization),
                 TaxSettings = tax is null ? null : MapTaxSettings(tax),
                 AccountingPolicy = config is null ? null : MapAccountingPolicy(config),
-                Defaults = defaults is null ? null : MapDefaults(defaults),
-                Users = users
+                CostingCondition = config is null ? null : MapCostingCondition(config),
+                PricingCondition = pricingCondition,
+                Defaults = defaults is null ? null : MapDefaults(defaults)
             };
         });
 
@@ -255,26 +258,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             return Result.Success();
         }, ct);
 
-    public Task<Result> UpdateUsersAsync(OrganizationSetupUsersDto dto, CancellationToken ct = default) =>
-        ExecuteInTransactionAsync(nameof(UpdateUsersAsync), async () =>
-        {
-            var orgIdResult = await ResolveOrganizationIdAsync(ct);
-            if (!orgIdResult.IsSuccess)
-                return Result.Failure(orgIdResult.Error);
-
-            var hasActiveUser = await _userOrganizationQuery.AnyAsync(x =>
-                x.OrganizationId == orgIdResult.Value && x.StateId == StateIdConst.ACTIVE, ct);
-
-            if (dto.UsersCompleted && !hasActiveUser)
-                return Result.Failure(OrganizationSetupErrors.SetupNotReady("users"));
-
-            await _organizationSetupCore.UpdateSetupStateAsync(
-                orgIdResult.Value,
-                setup => setup.UsersCompleted = dto.UsersCompleted,
-                ct);
-            return Result.Success();
-        }, ct);
-
     public Task<Result> CompleteAsync(CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CompleteAsync), async () =>
         {
@@ -338,23 +321,34 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<OrganizationDefault?> GetDefaultsAsync(int organizationId, CancellationToken ct) =>
         await _defaultQuery.GetAsync(new QuerySpecification<OrganizationDefault> { Criteria = x => x.OrganizationId == organizationId }, ct);
 
-    private async Task<List<OrganizationSetupUserDto>> GetUsersAsync(int organizationId, CancellationToken ct) =>
-        await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization, OrganizationSetupUserDto>
+    private async Task<OrganizationSetupPricingConditionDto?> GetCurrentPricingConditionAsync(int organizationId, CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        var conditions = await _pricingConditionQuery.GetAllAsync(new QuerySpecification<PricingCondition, OrganizationSetupPricingConditionDto>
         {
-            Criteria = x => x.OrganizationId == organizationId,
-            OrderBy = query => query.OrderByDescending(x => x.IsOwner).ThenBy(x => x.UserId),
-            Selector = x => new OrganizationSetupUserDto
+            Criteria = x => x.OrganizationId == organizationId &&
+                            x.StateId == StateIdConst.ACTIVE &&
+                            x.StartDate <= now &&
+                            (x.EndDate == null || x.EndDate >= now),
+            OrderBy = query => query.OrderByDescending(x => x.StartDate),
+            Selector = x => new OrganizationSetupPricingConditionDto
             {
-                UserId = x.UserId,
-                UserName = x.User.UserName,
-                FullName = x.User.FirstName + " " + x.User.LastName,
-                RoleId = x.RoleId,
-                RoleName = x.Role != null ? x.Role.FullName : null,
-                IsOwner = x.IsOwner,
-                IsDefault = x.IsDefault,
-                StateId = x.StateId
+                Id = x.Id,
+                PricingMethodId = x.PricingMethodId,
+                PricingMethodName = x.PricingMethod.Name,
+                PricingMethodCode = x.PricingMethod.Code,
+                PricingValue = x.PricingValue,
+                RoundingMethodId = x.RoundingMethodId,
+                RoundingMethodName = x.RoundingMethod.Name,
+                RoundingMethodCode = x.RoundingMethod.Code,
+                RoundingPrecision = x.RoundingPrecision,
+                StartDate = x.StartDate,
+                EndDate = x.EndDate
             }
         }, ct);
+
+        return conditions.FirstOrDefault();
+    }
 
     private async Task<Error?> ValidateAccountingReferencesAsync(short? accountingPolicyId, short? baseCurrencyId, CancellationToken ct)
     {
@@ -447,6 +441,12 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             BaseCurrencyId = config.BaseCurrencyId,
             AccountingStartDate = config.AccountingStartDate,
             FiscalYearStartMonth = config.FiscalYearStartMonth
+        };
+
+    private static OrganizationSetupCostingConditionDto MapCostingCondition(OrganizationConfig config) =>
+        new()
+        {
+            InventoryValuationMethod = config.InventoryValuationMethod
         };
 
     private static OrganizationSetupDefaultsDto MapDefaults(OrganizationDefault defaults) =>

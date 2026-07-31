@@ -60,14 +60,6 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.SetupUpdateUsers)]
-    [HttpPut("users")]
-    public async Task<IResult> UpdateUsersAsync([FromBody] OrganizationSetupUsersDto dto, CancellationToken ct = default)
-    {
-        var response = await _setupService.UpdateUsersAsync(dto, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
     [ModuleAuthorize(PermissionCodeConst.SetupComplete)]
     [HttpPost("complete")]
     public async Task<IResult> CompleteAsync(CancellationToken ct = default)

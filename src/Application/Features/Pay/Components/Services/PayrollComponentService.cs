@@ -163,7 +163,7 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
                 x.Id != currentId &&
                 x.Code == code &&
                 x.EffectiveFrom == dto.EffectiveFrom, ct))
-            return Result.Failure(PayrollErrors.Conflict("ComponentConflict", $"Component '{code}' already exists for {dto.EffectiveFrom}."));
+            return Result.Failure(PayrollErrors.Conflict("ComponentConflict", $"'{code}' hisoblash komponenti {dto.EffectiveFrom} sanasi uchun allaqachon mavjud."));
 
         var accountIds = new[] { dto.ExpenseAccountId, dto.LiabilityAccountId }
             .Where(x => x.HasValue)

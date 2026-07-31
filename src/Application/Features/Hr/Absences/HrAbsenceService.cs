@@ -196,7 +196,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "The absence is used by a posted timesheet and cannot be changed."));
+                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘zgartirib bo‘lmaydi."));
 
             var validation = await ValidateAsync(dto, id, ct);
             if (!validation.IsSuccess)
@@ -231,7 +231,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "The absence is used by a posted timesheet and cannot be deleted."));
+                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘chirib bo‘lmaydi."));
 
             _auditLogService.SetOldValues((await GetDtoInternalAsync(id, ct))!);
             await _absenceCommand.DeleteAsync(entity, ct);
@@ -251,7 +251,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             if (files.Count == 0)
                 return Result.Failure<List<HrAbsenceAttachmentDto>>(
-                    HrErrors.Business("EmptyAttachments", "At least one file is required."));
+                    HrErrors.Business("EmptyAttachments", "Kamida bitta fayl tanlanishi kerak."));
 
             var entity = await GetEntityAsync(id, includeAttachments: false, ct);
             if (entity is null)
@@ -259,7 +259,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure<List<HrAbsenceAttachmentDto>>(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Attachments cannot be changed after the absence is used by a posted timesheet."));
+                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi."));
 
             return await AddAttachmentsCoreAsync(entity, files, ct);
         }, ct);
@@ -286,12 +286,12 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 catch
                 {
                     return Result.Failure<HrAttachmentDownload>(
-                        HrErrors.FileStorage("The file is unavailable both on the server and in the Telegram archive."));
+                        HrErrors.FileStorage("Fayl serverda ham, Telegram arxivida ham topilmadi."));
                 }
             }
 
             return local is null
-                ? Result.Failure<HrAttachmentDownload>(HrErrors.FileStorage("The attachment could not be restored."))
+                ? Result.Failure<HrAttachmentDownload>(HrErrors.FileStorage("Faylni qayta tiklab bo‘lmadi."))
                 : Result.Success(new HrAttachmentDownload(local, attachment.ContentType, attachment.OriginalFileName));
         });
 
@@ -310,7 +310,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             if (await IsLockedByPostedTimesheetAsync(absence.EmployeeId, absence.StartDate, absence.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Attachments cannot be changed after the absence is used by a posted timesheet."));
+                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi."));
 
             await _attachmentCommand.DeleteAsync(attachment, ct);
             await CleanupFilesAsync([attachment], CancellationToken.None);
@@ -332,7 +332,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 var stored = await _fileStorage.SaveAsync(absence.OrganizationId, absence.Id, file, ct);
                 localPaths.Add(stored.RelativePath);
                 await using var local = await _fileStorage.OpenAsync(stored.RelativePath, ct)
-                    ?? throw new IOException("Saved file could not be reopened.");
+                    ?? throw new IOException("Saqlangan faylni qayta ochib bo‘lmadi.");
                 var telegram = await _telegramArchive.UploadAsync(
                     local,
                     file.FileName,
@@ -365,7 +365,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             await CleanupArtifactsAsync(localPaths, telegramMessageIds, CancellationToken.None);
             return Result.Failure<List<HrAbsenceAttachmentDto>>(
-                HrErrors.FileStorage("The attachment could not be saved to both AppData and Telegram."));
+                HrErrors.FileStorage("Faylni AppData va Telegram arxiviga saqlab bo‘lmadi."));
         }
     }
 
@@ -374,11 +374,11 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         if (_userContext.OrganizationId is null)
             return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
         if (dto.EndDate < dto.StartDate)
-            return Result.Failure(HrErrors.Business("InvalidAbsenceDates", "EndDate must be on or after StartDate."));
+            return Result.Failure(HrErrors.Business("InvalidAbsenceDates", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas."));
         if (dto.EndDate.DayNumber - dto.StartDate.DayNumber > 731)
-            return Result.Failure(HrErrors.Business("AbsenceRangeTooLarge", "A single absence must not exceed two years."));
+            return Result.Failure(HrErrors.Business("AbsenceRangeTooLarge", "Bitta yo‘qlik hujjati davri ikki yildan oshmasligi kerak."));
         if (dto.Note?.Length > 1000)
-            return Result.Failure(HrErrors.Business("AbsenceNoteTooLong", "Note must not exceed 1000 characters."));
+            return Result.Failure(HrErrors.Business("AbsenceNoteTooLong", "Izoh 1000 ta belgidan oshmasligi kerak."));
 
         if (!await _employeeQuery.AnyAsync(x =>
                 x.Id == dto.EmployeeId &&
@@ -394,7 +394,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 (!x.EndDate.HasValue || x.EndDate.Value >= dto.EndDate), ct))
             return Result.Failure(HrErrors.Business(
                 "AbsenceOutsideEmployment",
-                "The absence period must be fully covered by an active employment."));
+                "Yo‘qlik davri xodimning amaldagi ishga qabul davri ichida bo‘lishi kerak."));
         if (await _absenceQuery.AnyAsync(x =>
                 x.EmployeeId == dto.EmployeeId &&
                 x.StateId == StateIdConst.ACTIVE &&
@@ -403,11 +403,11 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 x.EndDate >= dto.StartDate, ct))
             return Result.Failure(HrErrors.Conflict(
                 "AbsenceOverlap",
-                "The employee already has another absence overlapping this period."));
+                "Tanlangan davrda xodim uchun boshqa yo‘qlik hujjati mavjud."));
         if (await IsLockedByPostedTimesheetAsync(dto.EmployeeId, dto.StartDate, dto.EndDate, ct))
             return Result.Failure(HrErrors.Conflict(
                 "PostedTimesheet",
-                "An absence cannot be created or changed for a period that already has a posted timesheet."));
+                "Tasdiqlangan tabel mavjud bo‘lgan davr uchun yo‘qlik hujjatini yaratish yoki o‘zgartirish mumkin emas."));
 
         return Result.Success();
     }

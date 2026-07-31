@@ -170,9 +170,9 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
     private static Result ValidateRange(DateOnly dateFrom, DateOnly dateTo)
     {
         if (dateTo < dateFrom)
-            return Result.Failure(HrErrors.Business("InvalidCalendarRange", "DateTo must be on or after DateFrom."));
+            return Result.Failure(HrErrors.Business("InvalidCalendarRange", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas."));
         if (dateTo.DayNumber - dateFrom.DayNumber > 731)
-            return Result.Failure(HrErrors.Business("CalendarRangeTooLarge", "Calendar range must not exceed two years."));
+            return Result.Failure(HrErrors.Business("CalendarRangeTooLarge", "Kalendar davri ikki yildan oshmasligi kerak."));
         return Result.Success();
     }
 

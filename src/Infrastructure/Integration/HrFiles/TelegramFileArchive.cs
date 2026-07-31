@@ -46,7 +46,7 @@ public sealed class TelegramFileArchive : ITelegramFileArchive
         var messageId = result.GetProperty("message_id").GetInt32();
         var fileId = result.GetProperty("document").GetProperty("file_id").GetString();
         if (string.IsNullOrWhiteSpace(fileId))
-            throw new InvalidOperationException("Telegram did not return a document file_id.");
+            throw new InvalidOperationException("Telegram fayl identifikatorini qaytarmadi.");
 
         return new TelegramArchivedFile(fileId, messageId);
     }
@@ -63,7 +63,7 @@ public sealed class TelegramFileArchive : ITelegramFileArchive
         using var json = await JsonDocument.ParseAsync(infoStream, cancellationToken: ct);
         var filePath = json.RootElement.GetProperty("result").GetProperty("file_path").GetString();
         if (string.IsNullOrWhiteSpace(filePath))
-            throw new InvalidOperationException("Telegram did not return a file path.");
+            throw new InvalidOperationException("Telegram fayl manzilini qaytarmadi.");
 
         using var downloadResponse = await _httpClient.GetAsync(
             $"https://api.telegram.org/file/bot{_options.BotToken}/{filePath}",
@@ -93,7 +93,7 @@ public sealed class TelegramFileArchive : ITelegramFileArchive
     {
         if (string.IsNullOrWhiteSpace(_options.BotToken) || _options.ChatId == 0)
             throw new InvalidOperationException(
-                "TelegramFileStorage:BotToken and TelegramFileStorage:ChatId must be configured.");
+                "Telegram fayl arxivi sozlanmagan: BotToken va ChatId kiritilishi kerak.");
     }
 
     private string GetBotUrl(string method) =>
@@ -106,6 +106,6 @@ public sealed class TelegramFileArchive : ITelegramFileArchive
 
         _ = await response.Content.ReadAsStringAsync(ct);
         throw new InvalidOperationException(
-            $"Telegram file archive returned HTTP {(int)response.StatusCode}.");
+            $"Telegram fayl arxivi HTTP {(int)response.StatusCode} xatosini qaytardi.");
     }
 }

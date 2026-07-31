@@ -156,7 +156,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
 
             var duplicateEmployee = dto.Lines.GroupBy(x => x.EmployeeId).FirstOrDefault(x => x.Count() > 1);
             if (duplicateEmployee is not null)
-                return Result.Failure<long>(PayrollErrors.Conflict("DuplicatePaymentEmployee", $"Employee {duplicateEmployee.Key} is duplicated in the payment batch."));
+                return Result.Failure<long>(PayrollErrors.Conflict("DuplicatePaymentEmployee", $"Xodim to‘lov hujjatida takroran kiritilgan (xodim ID: {duplicateEmployee.Key})."));
 
             var employeeIds = dto.Lines.Select(x => x.EmployeeId).Distinct().ToList();
             var employeeQuery = _queryBuilder.For<PayEmployee>()
@@ -174,7 +174,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (dto.PaymentKind == PayrollPaymentKindConst.Final)
             {
                 if (!dto.PayrollDocId.HasValue)
-                    return Result.Failure<long>(PayrollErrors.Business("PayrollDocumentRequired", "A posted payroll document is required for final payment."));
+                    return Result.Failure<long>(PayrollErrors.Business("PayrollDocumentRequired", "Yakuniy to‘lov uchun tasdiqlangan oylik hisoblash hujjati kerak."));
 
                 var docQuery = _queryBuilder.For<PayPayrollDoc>()
                     .Where(x =>
@@ -188,7 +188,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 if (payrollDoc.CurrencyId != dto.CurrencyId)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "PaymentCurrencyMismatch",
-                        $"Payment currency {dto.CurrencyId} does not match payroll currency {payrollDoc.CurrencyId}."));
+                        $"To‘lov valyutasi (ID: {dto.CurrencyId}) oylik hisoblash valyutasiga (ID: {payrollDoc.CurrencyId}) mos kelmaydi."));
 
                 payrollLineIdByEmployee = await GetPayrollLineIdsAsync(payrollDoc.Id, employeeIds, ct);
                 var missingPayrollLine = employeeIds
@@ -196,7 +196,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 if (missingPayrollLine > 0)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "EmployeeMissingFromPayroll",
-                        $"Employee {missingPayrollLine} is not included in payroll document {payrollDoc.Id}."));
+                        $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {missingPayrollLine}, hujjat ID: {payrollDoc.Id})."));
 
                 var outstanding = await GetOutstandingByEmployeeAsync(period.Id, employeeIds, ct);
                 foreach (var line in dto.Lines)
@@ -223,7 +223,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 if (currencyMismatchEmployee > 0)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "AdvanceCurrencyMismatch",
-                        $"Employee {currencyMismatchEmployee} has no active employment in payment currency {dto.CurrencyId}."));
+                        $"Xodimda to‘lov valyutasiga mos amaldagi ishga qabul yozuvi mavjud emas (xodim ID: {currencyMismatchEmployee}, valyuta ID: {dto.CurrencyId})."));
             }
 
             var now = DateTime.Now;

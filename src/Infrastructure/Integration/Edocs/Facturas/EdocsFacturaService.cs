@@ -7,10 +7,10 @@ using Domain.Entities;
 using Infrastructure.Persistence;
 using Integration.Edocs.Configs;
 using Integration.Edocs.Http;
+using Integration.Shared.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SharedKernel.Constants;
 using SharedKernel.Exceptions;
 using System.Net;
@@ -41,7 +41,6 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
     private readonly IAuditLogService _auditLogService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<EdocsFacturaService> _logger;
-    private readonly EdocsOptions _options;
 
     public EdocsFacturaService(
         AppDbContext context,
@@ -49,8 +48,7 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
         IHttpClientFactory httpClientFactory,
         IAuditLogService auditLogService,
         IUnitOfWork unitOfWork,
-        ILogger<EdocsFacturaService> logger,
-        IOptions<EdocsOptions> options)
+        ILogger<EdocsFacturaService> logger)
     {
         _context = context;
         _userContext = userContext;
@@ -58,7 +56,6 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
         _auditLogService = auditLogService;
         _unitOfWork = unitOfWork;
         _logger = logger;
-        _options = options.Value;
     }
 
     public async Task<EdocsFacturaCreateResultDto> CreateFacturaDocumentAsync(EdocsFacturaCreateRequestDto request, CancellationToken ct = default)
@@ -106,7 +103,7 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
         try
         {
             var payload = BuildPayload(request, markingCodesById);
-            response = await SendJsonAsync(HttpMethod.Post, "documents/factura", payload, ct);
+            response = await SendJsonAsync(organizationId, HttpMethod.Post, "documents/factura", payload, ct);
         }
         catch (Exception ex)
         {
@@ -193,7 +190,7 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
         try
         {
             var payload = new EdocsSignPayload { Pkcs7 = request.Pkcs7 };
-            await SendSignRequestAsync($"documents/factura/{Uri.EscapeDataString(document.ProviderDocumentId)}/sign", payload, ct);
+            await SendSignRequestAsync(organizationId, $"documents/factura/{Uri.EscapeDataString(document.ProviderDocumentId)}/sign", payload, ct);
         }
         catch (Exception ex)
         {
@@ -524,20 +521,14 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
     private int RequireOrganization() => _userContext.OrganizationId
         ?? throw new InvalidOperationException("An active organization is required for Edocs factura operations.");
 
-    private async Task<JsonElement> SendJsonAsync(HttpMethod method, string path, object body, CancellationToken ct)
+    private async Task<JsonElement> SendJsonAsync(int organizationId, HttpMethod method, string path, object body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(method, path)
         {
             Content = JsonContent.Create(body, options: JsonOptions)
         };
 
-        // 6.3-bosqichda aniqlangan, E-DOCS.pdf da qayd etilmagan sarlavhalar.
-        if (!string.IsNullOrWhiteSpace(_options.Product))
-            request.Headers.TryAddWithoutValidation("x-product", _options.Product);
-        if (!string.IsNullOrWhiteSpace(_options.PartnerId))
-            request.Headers.TryAddWithoutValidation("x-partner", _options.PartnerId);
-
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
@@ -547,24 +538,23 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
     // Imzolash javobining JSON shakli E-DOCS.pdf'da ko'rsatilmagan (faqat so'rov namunasi
     // bor) — shuning uchun bu chaqiruv javob tanasini majburan JSON sifatida tahlil
     // qilmaydi, faqat HTTP status muvaffaqiyatli ekanligini tekshiradi.
-    private async Task SendSignRequestAsync(string path, object body, CancellationToken ct)
+    private async Task SendSignRequestAsync(int organizationId, string path, object body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = JsonContent.Create(body, options: JsonOptions)
         };
 
-        if (!string.IsNullOrWhiteSpace(_options.Product))
-            request.Headers.TryAddWithoutValidation("x-product", _options.Product);
-        if (!string.IsNullOrWhiteSpace(_options.PartnerId))
-            request.Headers.TryAddWithoutValidation("x-partner", _options.PartnerId);
-
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
         await EnsureSuccessStatusOrThrowAsync(response);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(int organizationId, HttpRequestMessage request, CancellationToken ct)
     {
+        // x-product/x-partner sarlavhalari endi EdocsAuthorizationHandler ichida,
+        // markazlashgan tarzda qo'shiladi (6.5.7-bosqich) — bu yerda emas.
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
+
         try
         {
             var client = _httpClientFactory.CreateClient(EdocsHttpClientNames.Client);

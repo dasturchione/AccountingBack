@@ -1,7 +1,7 @@
+using Application.Abstractions.Authentication;
 using Application.Features.Integration.Edocs.Services;
-using Integration.Edocs.Configs;
 using Integration.Edocs.Http;
-using Microsoft.Extensions.Options;
+using Integration.Shared.Http;
 using SharedKernel.Exceptions;
 using System.Net;
 using System.Text.Json;
@@ -13,12 +13,12 @@ namespace Integration.Edocs.Services;
 public sealed class EdocsDebugService : IEdocsDebugService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IOptions<EdocsOptions> _options;
+    private readonly IUserContext _userContext;
 
-    public EdocsDebugService(IHttpClientFactory httpClientFactory, IOptions<EdocsOptions> options)
+    public EdocsDebugService(IHttpClientFactory httpClientFactory, IUserContext userContext)
     {
         _httpClientFactory = httpClientFactory;
-        _options = options;
+        _userContext = userContext;
     }
 
     public async Task<JsonElement> GetDocumentAsync(string type, string id, CancellationToken ct = default)
@@ -28,20 +28,16 @@ public sealed class EdocsDebugService : IEdocsDebugService
         if (string.IsNullOrWhiteSpace(id))
             throw new InvalidOperationException("id is required.");
 
+        var organizationId = RequireOrganization();
         var client = _httpClientFactory.CreateClient(EdocsHttpClientNames.Client);
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             $"documents/{Uri.EscapeDataString(type)}/{Uri.EscapeDataString(id)}");
 
-        // doc.edocs.uz frontend bundle'idan (index-H5tLYbOJ.js.download) aniqlandi:
-        // barcha /documents/ so'rovlariga bu ikkita sarlavha qo'shiladi — E-DOCS.pdf
-        // (rasmiy hujjat) bularni umuman qayd etmaydi. Ularsiz so'rov rad etilishi mumkin.
-        var options = _options.Value;
-        if (!string.IsNullOrWhiteSpace(options.Product))
-            request.Headers.TryAddWithoutValidation("x-product", options.Product);
-        if (!string.IsNullOrWhiteSpace(options.PartnerId))
-            request.Headers.TryAddWithoutValidation("x-partner", options.PartnerId);
+        // x-product/x-partner sarlavhalari endi EdocsAuthorizationHandler ichida,
+        // markazlashgan tarzda qo'shiladi (6.5.7-bosqich) — bu yerda emas.
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
@@ -65,4 +61,7 @@ public sealed class EdocsDebugService : IEdocsDebugService
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         return document.RootElement.Clone();
     }
+
+    private int RequireOrganization() => _userContext.OrganizationId
+        ?? throw new InvalidOperationException("An active organization is required for Edocs debug operations.");
 }

@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Options;
-using System.Text.RegularExpressions;
 
 namespace Integration.AslBelgi.Configs;
 
-public sealed partial class AslBelgiOptionsValidator : IValidateOptions<AslBelgiOptions>
+public sealed class AslBelgiOptionsValidator : IValidateOptions<AslBelgiOptions>
 {
     public ValidateOptionsResult Validate(string? name, AslBelgiOptions options)
     {
@@ -19,18 +18,6 @@ public sealed partial class AslBelgiOptionsValidator : IValidateOptions<AslBelgi
             failures.Add("AslBelgi:BaseUrl must be an absolute HTTPS URL.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.ApiKey))
-            failures.Add("AslBelgi:ApiKey is required.");
-
-        if (string.IsNullOrWhiteSpace(options.Tin))
-        {
-            failures.Add("AslBelgi:Tin is required.");
-        }
-        else if (!TinPattern().IsMatch(options.Tin))
-        {
-            failures.Add("AslBelgi:Tin must contain either 9-digit TIN or 14-digit PINFL.");
-        }
-
         if (options.TimeoutSeconds <= 0)
             failures.Add("AslBelgi:TimeoutSeconds must be greater than zero.");
 
@@ -41,7 +28,4 @@ public sealed partial class AslBelgiOptionsValidator : IValidateOptions<AslBelgi
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
     }
-
-    [GeneratedRegex("^(?:\\d{9}|\\d{14})$")]
-    private static partial Regex TinPattern();
 }

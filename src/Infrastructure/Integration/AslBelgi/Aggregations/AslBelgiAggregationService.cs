@@ -5,13 +5,12 @@ using Application.Features.Integration.AslBelgi.Aggregations;
 using Application.Features.Integration.AslBelgi.Parsing;
 using Domain.Entities;
 using Infrastructure.Persistence;
-using Integration.AslBelgi.Configs;
 using Integration.AslBelgi.Http;
+using Integration.Shared.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SharedKernel.Constants;
 using SharedKernel.Exceptions;
 using SharedKernel.Security;
@@ -45,7 +44,6 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AslBelgiAggregationService> _logger;
     private readonly IHostEnvironment? _environment;
-    private readonly string? _apiKey;
 
     public AslBelgiAggregationService(
         AppDbContext context,
@@ -54,8 +52,7 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
         IAuditLogService auditLogService,
         IUnitOfWork unitOfWork,
         ILogger<AslBelgiAggregationService> logger,
-        IHostEnvironment? environment = null,
-        IOptions<AslBelgiOptions>? options = null)
+        IHostEnvironment? environment = null)
     {
         _context = context;
         _userContext = userContext;
@@ -64,7 +61,6 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _environment = environment;
-        _apiKey = options?.Value.ApiKey;
     }
 
     public async Task<MarkingAggregationCreateResultDto> CreateAggregationAsync(MarkingAggregationCreateRequestDto request, CancellationToken ct = default)
@@ -211,7 +207,7 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
             var documentJson = JsonSerializer.Serialize(document, JsonOptions);
             var documentBody = Convert.ToBase64String(Encoding.UTF8.GetBytes(documentJson));
 
-            response = await SendJsonAsync(HttpMethod.Post, "public/api/v1/doc/aggregation", new { documentBody }, ct);
+            response = await SendJsonAsync(organizationId, HttpMethod.Post, "public/api/v1/doc/aggregation", new { documentBody }, ct);
         }
         catch (Exception ex)
         {
@@ -469,21 +465,23 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
     private int RequireOrganization() => _userContext.OrganizationId
         ?? throw new InvalidOperationException("An active organization is required for CRPT aggregation operations.");
 
-    private async Task<JsonElement> SendJsonAsync(HttpMethod method, string path, object? body, CancellationToken ct)
+    private async Task<JsonElement> SendJsonAsync(int organizationId, HttpMethod method, string path, object? body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
             request.Content = JsonContent.Create(body, options: JsonOptions);
 
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         return document.RootElement.Clone();
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(int organizationId, HttpRequestMessage request, CancellationToken ct)
     {
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
+
         try
         {
             var client = _httpClientFactory.CreateClient(AslBelgiHttpClientNames.Client);
@@ -506,7 +504,7 @@ public sealed class AslBelgiAggregationService : IAslBelgiAggregationService
 
         if (response.StatusCode == HttpStatusCode.BadRequest && _environment?.IsDevelopment() == true)
         {
-            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync(), _apiKey);
+            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync());
             throw new IntegrationHttpException($"CRPT request failed with HTTP status 400. Detail: {detail}", 400);
         }
 

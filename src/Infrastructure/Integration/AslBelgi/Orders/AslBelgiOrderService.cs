@@ -7,6 +7,7 @@ using Domain.Entities;
 using Infrastructure.Persistence;
 using Integration.AslBelgi.Configs;
 using Integration.AslBelgi.Http;
+using Integration.Shared.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -50,7 +51,6 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
     private readonly ILogger<AslBelgiOrderService> _logger;
     private readonly IHostEnvironment? _environment;
     private readonly AslBelgiOptions? _options;
-    private readonly string? _apiKey;
 
     public AslBelgiOrderService(
         AppDbContext context,
@@ -70,7 +70,6 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
         _logger = logger;
         _environment = environment;
         _options = options?.Value;
-        _apiKey = options?.Value.ApiKey;
     }
 
     public async Task<MarkingOrderCreateResultDto> CreateOrderAsync(MarkingOrderCreateRequestDto request, CancellationToken ct = default)
@@ -147,7 +146,7 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
                 }]
             };
 
-            response = await SendJsonAsync(HttpMethod.Post, "api/orders", payload, ct);
+            response = await SendJsonAsync(organizationId, HttpMethod.Post, "api/orders", payload, ct);
         }
         catch (Exception ex)
         {
@@ -241,7 +240,7 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
         JsonElement response;
         try
         {
-            response = await SendJsonAsync(HttpMethod.Get, path, body: null, ct);
+            response = await SendJsonAsync(organizationId, HttpMethod.Get, path, body: null, ct);
         }
         catch (Exception ex)
         {
@@ -627,21 +626,23 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
     private int RequireOrganization() => _userContext.OrganizationId
         ?? throw new InvalidOperationException("An active organization is required for CRPT order operations.");
 
-    private async Task<JsonElement> SendJsonAsync(HttpMethod method, string path, object? body, CancellationToken ct)
+    private async Task<JsonElement> SendJsonAsync(int organizationId, HttpMethod method, string path, object? body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
             request.Content = JsonContent.Create(body, options: JsonOptions);
 
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         return document.RootElement.Clone();
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(int organizationId, HttpRequestMessage request, CancellationToken ct)
     {
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
+
         try
         {
             var client = _httpClientFactory.CreateClient(AslBelgiHttpClientNames.Client);
@@ -664,7 +665,7 @@ public sealed class AslBelgiOrderService : IAslBelgiOrderService
 
         if (response.StatusCode == HttpStatusCode.BadRequest && _environment?.IsDevelopment() == true)
         {
-            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync(), _apiKey);
+            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync());
             throw new IntegrationHttpException($"CRPT request failed with HTTP status 400. Detail: {detail}", 400);
         }
 

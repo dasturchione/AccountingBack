@@ -1,6 +1,7 @@
 using Application.Abstractions.Authentication;
 using Application.Features.Integration.Edocs.Services;
 using Integration.Edocs.Http;
+using Integration.Shared.Http;
 using SharedKernel.Exceptions;
 using System.Net;
 using System.Net.Http.Json;
@@ -30,9 +31,13 @@ public sealed class EdocsAuthService : IEdocsAuthService
 
     public async Task<JsonElement> GetProfileAsync(CancellationToken ct = default)
     {
+        // EdocsAuthorizationHandler'ning o'qiydigan bucket'i bilan bir xil manba
+        // (RequireOrganization → IUserContext.OrganizationId) — CompleteAuthAsync
+        // yozgan bucket bilan mos kelishi SHART (6.5.7-bosqich).
         var client = _httpClientFactory.CreateClient(EdocsHttpClientNames.Client);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "profile");
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, RequireOrganization());
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (!response.IsSuccessStatusCode)

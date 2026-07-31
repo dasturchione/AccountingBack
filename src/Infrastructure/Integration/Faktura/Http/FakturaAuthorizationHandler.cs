@@ -1,6 +1,5 @@
 using Integration.Faktura.Configs;
 using Integration.Faktura.Dtos;
-using Integration.Shared.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,9 +8,15 @@ using System.Net.Http.Json;
 
 namespace Integration.Faktura.Http;
 
+// 6.5.7-bosqichda tasdiqlandi: Faktura kredensiali (Username/Password/ClientId/ClientSecret)
+// tashkilotga tegishli EMAS — bu integratsiyaning yagona chaqiruvchisi
+// (OrganizationService.GetByInnAsync, [AllowAnonymous] "by-inn" endpoint) tashkilot hali
+// yaratilmasdan turib ishlaydi. Shuning uchun bu handler organizationId/
+// IIntegrationCredentialProvider dan FOYDALANMAYDI — kredensial platforma darajasida,
+// IOptions<FakturaOptions> orqali, bitta umumiy token keshi bilan qoladi.
 public sealed class FakturaAuthorizationHandler : DelegatingHandler
 {
-    private const string CacheKeyPrefix = "FakturaAccessToken";
+    private const string CacheKey = "FakturaAccessToken";
     private const int TokenExpiryLeewaySeconds = 60;
     private const int MinimumTokenLifetimeSeconds = 30;
 
@@ -38,13 +43,7 @@ public sealed class FakturaAuthorizationHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // 6.5.6-bosqich (poydevor): chaqiruvchi hali request.Options ga organizationId
-        // qo'ymaydi (keyingi bosqichda, servis darajasidagi Option A ulanishi bilan birga
-        // qilinadi). Shu bosqichgacha 0 — "hali tashkilot bo'yicha ajratilmagan" bucket'ini
-        // bildiradi; kredensial manbai (IOptions<FakturaOptions>) bu bosqichda o'zgarmaydi.
-        var organizationId = request.Options.TryGetValue(IntegrationHttpRequestOptions.OrganizationId, out var orgId) ? orgId : 0;
-
-        var token = await GetTokenAsync(organizationId, cancellationToken);
+        var token = await GetTokenAsync(cancellationToken);
 
         // Token faqat shu so'rovga qo'yiladi; DefaultRequestHeaders'ga tegilmaydi.
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -57,17 +56,15 @@ public sealed class FakturaAuthorizationHandler : DelegatingHandler
         return await base.SendAsync(request, cancellationToken);
     }
 
-    private async Task<string> GetTokenAsync(int organizationId, CancellationToken cancellationToken)
+    private async Task<string> GetTokenAsync(CancellationToken cancellationToken)
     {
-        var cacheKey = $"{CacheKeyPrefix}:{organizationId}";
-
-        if (TryGetCachedToken(cacheKey, out var cached))
+        if (TryGetCachedToken(out var cached))
             return cached;
 
         await TokenLock.WaitAsync(cancellationToken);
         try
         {
-            if (TryGetCachedToken(cacheKey, out cached))
+            if (TryGetCachedToken(out cached))
                 return cached;
 
             var options = _options.Value;
@@ -105,7 +102,7 @@ public sealed class FakturaAuthorizationHandler : DelegatingHandler
                 MinimumTokenLifetimeSeconds,
                 tokenResponse.ExpiresIn - TokenExpiryLeewaySeconds);
 
-            _cache.Set(cacheKey, tokenResponse.AccessToken, TimeSpan.FromSeconds(lifetimeSeconds));
+            _cache.Set(CacheKey, tokenResponse.AccessToken, TimeSpan.FromSeconds(lifetimeSeconds));
 
             return tokenResponse.AccessToken;
         }
@@ -115,9 +112,9 @@ public sealed class FakturaAuthorizationHandler : DelegatingHandler
         }
     }
 
-    private bool TryGetCachedToken(string cacheKey, out string token)
+    private bool TryGetCachedToken(out string token)
     {
-        if (_cache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrWhiteSpace(cached))
+        if (_cache.TryGetValue(CacheKey, out string? cached) && !string.IsNullOrWhiteSpace(cached))
         {
             token = cached;
             return true;

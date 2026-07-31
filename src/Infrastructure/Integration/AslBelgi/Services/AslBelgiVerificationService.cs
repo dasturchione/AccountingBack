@@ -6,12 +6,11 @@ using Application.Features.Integration.AslBelgi.Services;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Integration.AslBelgi.Http;
-using Integration.AslBelgi.Configs;
+using Integration.Shared.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using SharedKernel.Exceptions;
 using SharedKernel.Security;
 using System.Net;
@@ -29,7 +28,6 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AslBelgiVerificationService> _logger;
     private readonly IHostEnvironment? _environment;
-    private readonly string? _apiKey;
 
     public AslBelgiVerificationService(
         IHttpClientFactory httpClientFactory,
@@ -37,8 +35,7 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
         IUserContext userContext,
         IUnitOfWork unitOfWork,
         ILogger<AslBelgiVerificationService> logger,
-        IHostEnvironment? environment = null,
-        IOptions<AslBelgiOptions>? options = null)
+        IHostEnvironment? environment = null)
     {
         _httpClientFactory = httpClientFactory;
         _context = context;
@@ -46,35 +43,38 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _environment = environment;
-        _apiKey = options?.Value.ApiKey;
     }
 
     public async Task<JsonElement> GetPublicCodeInformationAsync(MarkingCodeCheckRequestDto request, CancellationToken ct = default)
     {
-        var response = await SendJsonAsync(HttpMethod.Post, "public/api/cod/public/codes", request, ct);
+        var organizationId = RequireOrganization();
+        var response = await SendJsonAsync(organizationId, HttpMethod.Post, "public/api/cod/public/codes", request, ct);
         await PersistCodeResultsAsync(response);
         return response;
     }
 
     public async Task<JsonElement> GetPrivateCodeInformationAsync(MarkingCodeCheckRequestDto request, CancellationToken ct = default)
     {
-        var response = await SendJsonAsync(HttpMethod.Post, "public/api/cod/private/codes", request, ct);
+        var organizationId = RequireOrganization();
+        var response = await SendJsonAsync(organizationId, HttpMethod.Post, "public/api/cod/private/codes", request, ct);
         await PersistCodeResultsAsync(response);
         return response;
     }
 
     public Task<JsonElement> GetProductsByGtinAsync(ProductRegistryByGtinRequestDto request, CancellationToken ct = default)
     {
+        var organizationId = RequireOrganization();
         var path = $"public/api/v1/product-registry/product?productGroup={Uri.EscapeDataString(request.ProductGroup)}&gtin={Uri.EscapeDataString(request.Gtin)}";
-        return SendJsonAsync(HttpMethod.Get, path, body: null, ct);
+        return SendJsonAsync(organizationId, HttpMethod.Get, path, body: null, ct);
     }
 
     public async Task<CounterpartyStatusResponseDto?> GetCounterpartyStatusAsync(string tin, CancellationToken ct = default)
     {
+        var organizationId = RequireOrganization();
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             $"public/api/v1/party/parties/{Uri.EscapeDataString(tin)}/status");
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
 
         if (response.StatusCode == HttpStatusCode.NoContent)
             return null;
@@ -248,21 +248,26 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
         }
     }
 
-    private async Task<JsonElement> SendJsonAsync(HttpMethod method, string path, object? body, CancellationToken ct)
+    private int RequireOrganization() => _userContext.OrganizationId
+        ?? throw new InvalidOperationException("An active organization is required for CRPT verification operations.");
+
+    private async Task<JsonElement> SendJsonAsync(int organizationId, HttpMethod method, string path, object? body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(method, path);
         if (body is not null)
             request.Content = JsonContent.Create(body, options: JsonOptions);
 
-        using var response = await SendAsync(request, ct);
+        using var response = await SendAsync(organizationId, request, ct);
         await EnsureSuccessStatusOrThrowAsync(response);
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         return document.RootElement.Clone();
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(int organizationId, HttpRequestMessage request, CancellationToken ct)
     {
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
+
         try
         {
             var client = _httpClientFactory.CreateClient(AslBelgiHttpClientNames.Client);
@@ -285,7 +290,7 @@ public sealed class AslBelgiVerificationService : IAslBelgiVerificationService
 
         if (response.StatusCode == HttpStatusCode.BadRequest && _environment?.IsDevelopment() == true)
         {
-            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync(), _apiKey);
+            var detail = SensitiveDataRedactor.Redact(await response.Content.ReadAsStringAsync());
             throw new IntegrationHttpException($"CRPT request failed with HTTP status 400. Detail: {detail}", 400);
         }
 

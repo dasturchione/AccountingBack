@@ -544,9 +544,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 case PayrollCalculationMethodConst.SalaryProrated:
                     baseAmount = employment.MonthlySalary * employment.EmploymentRate;
                     quantity = time.WorkedDays;
-                    amount = period.NormWorkDays == 0m
+                    var employeeNormDays = time.NormWorkDays > 0m
+                        ? time.NormWorkDays
+                        : period.NormWorkDays;
+                    amount = employeeNormDays == 0m
                         ? 0m
-                        : baseAmount * time.WorkedDays / period.NormWorkDays;
+                        : baseAmount * time.WorkedDays / employeeNormDays;
                     break;
                 case PayrollCalculationMethodConst.Fixed:
                     baseAmount = assignment?.Amount ?? component.DefaultAmount ?? 0m;

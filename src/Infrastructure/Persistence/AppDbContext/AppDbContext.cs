@@ -128,6 +128,11 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PayPayrollCalcLine> PayPayrollCalcLines { get; set; }
     public virtual DbSet<PayPaymentBatch> PayPaymentBatches { get; set; }
     public virtual DbSet<PayPaymentLine> PayPaymentLines { get; set; }
+    public virtual DbSet<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; }
+    public virtual DbSet<HrEmployeeWorkScheduleDay> HrEmployeeWorkScheduleDays { get; set; }
+    public virtual DbSet<HrAbsenceType> HrAbsenceTypes { get; set; }
+    public virtual DbSet<HrAbsence> HrAbsences { get; set; }
+    public virtual DbSet<HrAbsenceAttachment> HrAbsenceAttachments { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
     public virtual DbSet<OrganizationClaimRequest> OrganizationClaimRequests { get; set; }
     public virtual DbSet<OrganizationDefault> OrganizationDefaults { get; set; }

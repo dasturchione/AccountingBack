@@ -62,4 +62,6 @@ public sealed class PayrollTimesheetLineDto : PayrollTimesheetLineSaveDto
     public long Id { get; set; }
     public string EmployeeNumber { get; set; } = null!;
     public string EmployeeName { get; set; } = null!;
+    public decimal NormWorkDays { get; set; }
+    public decimal NormWorkHours { get; set; }
 }

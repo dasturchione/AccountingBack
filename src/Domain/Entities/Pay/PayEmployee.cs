@@ -88,4 +88,6 @@ public partial class PayEmployee
     public virtual ICollection<PayTimesheetLine> TimesheetLines { get; set; } = new List<PayTimesheetLine>();
     public virtual ICollection<PayPayrollLine> PayrollLines { get; set; } = new List<PayPayrollLine>();
     public virtual ICollection<PayPaymentLine> PaymentLines { get; set; } = new List<PayPaymentLine>();
+    public virtual ICollection<HrEmployeeWorkSchedule> WorkSchedules { get; set; } = new List<HrEmployeeWorkSchedule>();
+    public virtual ICollection<HrAbsence> Absences { get; set; } = new List<HrAbsence>();
 }

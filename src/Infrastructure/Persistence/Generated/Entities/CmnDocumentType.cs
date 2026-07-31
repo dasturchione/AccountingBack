@@ -39,6 +39,9 @@ public partial class CmnDocumentType
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
 
     [InverseProperty("DocumentType")]
+    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [InverseProperty("DocumentType")]
     public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
 
     [InverseProperty("DocumentType")]

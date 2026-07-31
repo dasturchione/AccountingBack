@@ -16,8 +16,6 @@
     <None Remove="Persistence\Migrations\**" />
   </ItemGroup>
 
-
-
   <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.70.0.3834" />

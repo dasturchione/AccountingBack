@@ -45,6 +45,9 @@ public partial class CmnOperationType
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
 
     [InverseProperty("OperationType")]
+    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
+
+    [InverseProperty("OperationType")]
     public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
 
     [ForeignKey("StateId")]

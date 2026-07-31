@@ -86,7 +86,7 @@ public sealed class PayrollPeriodService : BaseService, IPayrollPeriodService
                     x.OrganizationId == organizationId &&
                     x.PeriodYear == dto.Year &&
                     x.PeriodMonth == dto.Month, ct))
-                return Result.Failure<long>(PayrollErrors.Conflict("PeriodConflict", $"Payroll period {dto.Year:D4}-{dto.Month:D2} already exists."));
+                return Result.Failure<long>(PayrollErrors.Conflict("PeriodConflict", $"{dto.Year:D4}-{dto.Month:D2} uchun oylik hisoblash davri allaqachon mavjud."));
 
             var start = new DateOnly(dto.Year, dto.Month, 1);
             var entity = new PayPeriod
@@ -117,7 +117,7 @@ public sealed class PayrollPeriodService : BaseService, IPayrollPeriodService
                 return Result.Success();
 
             if (await HasUnfinishedDocumentsAsync(id, ct))
-                return Result.Failure(PayrollErrors.Business("PeriodHasDraftDocuments", "The payroll period has unfinished timesheets, payroll documents, or payment batches."));
+                return Result.Failure(PayrollErrors.Business("PeriodHasDraftDocuments", "Oylik davrida yakunlanmagan tabel, oylik hisoblash yoki to‘lov hujjatlari mavjud."));
 
             _auditLogService.SetOldValues(MapDto(entity));
             entity.Status = PayrollPeriodStatusConst.Closed;

@@ -131,7 +131,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     x.PeriodId == dto.PeriodId &&
                     x.StateId == StateIdConst.ACTIVE &&
                     x.StatusId != DocumentStatusIdConst.CANCELLED, ct))
-                return Result.Failure<long>(PayrollErrors.Conflict("TimesheetConflict", $"An active timesheet already exists for period {dto.PeriodId}."));
+                return Result.Failure<long>(PayrollErrors.Conflict("TimesheetConflict", $"Ushbu davr uchun faol tabel allaqachon mavjud (davr ID: {dto.PeriodId})."));
 
             var linesResult = await BuildLinesAsync(dto.Lines, period, organizationId, ct);
             if (!linesResult.IsSuccess)
@@ -180,7 +180,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     x.PeriodId == dto.PeriodId &&
                     x.StateId == StateIdConst.ACTIVE &&
                     x.StatusId != DocumentStatusIdConst.CANCELLED, ct))
-                return Result.Failure(PayrollErrors.Conflict("TimesheetConflict", $"An active timesheet already exists for period {dto.PeriodId}."));
+                return Result.Failure(PayrollErrors.Conflict("TimesheetConflict", $"Ushbu davr uchun faol tabel allaqachon mavjud (davr ID: {dto.PeriodId})."));
 
             var linesResult = await BuildLinesAsync(dto.Lines, period, entity.OrganizationId, ct);
             if (!linesResult.IsSuccess)
@@ -217,7 +217,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             if (entity.Period.Status != PayrollPeriodStatusConst.Open)
                 return Result.Failure(PayrollErrors.PeriodClosed(entity.PeriodId));
             if (entity.Lines.Count == 0)
-                return Result.Failure(PayrollErrors.Business("EmptyTimesheet", "Timesheet must contain at least one employee."));
+                return Result.Failure(PayrollErrors.Business("EmptyTimesheet", "Tabelda kamida bitta xodim bo‘lishi kerak."));
 
             _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
             entity.StatusId = DocumentStatusIdConst.POSTED;
@@ -245,7 +245,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     x.PeriodId == entity.PeriodId &&
                     x.StateId == StateIdConst.ACTIVE &&
                     x.StatusId != DocumentStatusIdConst.CANCELLED, ct))
-                return Result.Failure(PayrollErrors.Conflict("TimesheetUsedByPayroll", "Timesheet cannot be cancelled while an active payroll document exists for the period."));
+                return Result.Failure(PayrollErrors.Conflict("TimesheetUsedByPayroll", "Ushbu davr uchun faol oylik hisoblash hujjati mavjudligi sababli tabelni bekor qilib bo‘lmaydi."));
 
             _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
             entity.StatusId = DocumentStatusIdConst.CANCELLED;
@@ -267,7 +267,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
     {
         var duplicateEmployee = dtos.GroupBy(x => x.EmployeeId).FirstOrDefault(x => x.Count() > 1);
         if (duplicateEmployee is not null)
-            return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Conflict("DuplicateTimesheetEmployee", $"Employee {duplicateEmployee.Key} is duplicated in the timesheet."));
+            return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Conflict("DuplicateTimesheetEmployee", $"Xodim tabelda takroran kiritilgan (xodim ID: {duplicateEmployee.Key})."));
 
         var employeeIds = dtos.Select(x => x.EmployeeId).Distinct().ToList();
         var employeesQuery = _queryBuilder.For<PayEmployee>()
@@ -301,17 +301,17 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             if (totalDays > summary.NormWorkDays)
                 return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
                     "TimesheetDaysExceeded",
-                    $"Employee {dto.EmployeeId} has {totalDays} days while the personal schedule norm is {summary.NormWorkDays}."));
+                    $"Xodimning jami kunlari ({totalDays}) shaxsiy grafik me’yoridan ({summary.NormWorkDays}) oshib ketdi (xodim ID: {dto.EmployeeId})."));
             if (dto.WorkedHours > summary.NormWorkHours)
                 return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
                     "TimesheetHoursExceeded",
-                    $"Employee {dto.EmployeeId} has {dto.WorkedHours} regular hours while the personal schedule norm is {summary.NormWorkHours}."));
+                    $"Xodimning ish soati ({dto.WorkedHours}) shaxsiy grafik me’yoridan ({summary.NormWorkHours}) oshib ketdi (xodim ID: {dto.EmployeeId})."));
             if (dto.LeaveDays != summary.LeaveDays ||
                 dto.SickDays != summary.SickDays ||
                 dto.AbsentDays != summary.AbsentDays)
                 return Result.Failure<List<PayTimesheetLine>>(PayrollErrors.Business(
                     "TimesheetAbsenceMismatch",
-                    $"Employee {dto.EmployeeId} absence totals must match HR calendar: leave={summary.LeaveDays}, sick={summary.SickDays}, absent={summary.AbsentDays}."));
+                    $"Xodimning tabeldagi yo‘qlik kunlari HR kalendariga mos kelishi kerak: ta’til={summary.LeaveDays}, kasallik={summary.SickDays}, boshqa yo‘qlik={summary.AbsentDays} (xodim ID: {dto.EmployeeId})."));
         }
 
         return Result.Success(dtos.Select(dto =>

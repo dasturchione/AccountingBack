@@ -276,7 +276,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
             if (await _payrollLineQuery.AnyAsync(x =>
                     x.EmploymentId == employmentId &&
                     x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED, ct))
-                return Result.Failure(PayrollErrors.Conflict("EmploymentLocked", "Employment used by posted payroll cannot be edited; close it and add a new employment record."));
+                return Result.Failure(PayrollErrors.Conflict("EmploymentLocked", "Ushbu ishga qabul yozuvi tasdiqlangan oylik hujjatida ishlatilgan. Uni yoping va yangi ishga qabul yozuvini yarating."));
 
             var validation = await ValidateEmploymentAsync(employeeId, dto, entity.OrganizationId, employmentId, ct);
             if (!validation.IsSuccess)
@@ -313,7 +313,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                     x.StateId == StateIdConst.ACTIVE &&
                     (!dto.EffectiveTo.HasValue || x.EffectiveFrom <= dto.EffectiveTo.Value) &&
                     (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= dto.EffectiveFrom), ct))
-                return Result.Failure<long>(PayrollErrors.Conflict("EmployeeComponentOverlap", "The employee already has this component for an overlapping period."));
+                return Result.Failure<long>(PayrollErrors.Conflict("EmployeeComponentOverlap", "Tanlangan davrda xodim uchun ushbu hisoblash komponenti allaqachon mavjud."));
 
             _auditLogService.SetOldValues(await GetDtoInternalAsync(employeeId, ct));
             var entity = new PayEmployeeComponent

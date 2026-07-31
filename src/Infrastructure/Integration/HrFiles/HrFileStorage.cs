@@ -100,15 +100,15 @@ public sealed class HrFileStorage : IHrFileStorage
     private void Validate(HrFileUpload file)
     {
         if (file.Length <= 0)
-            throw new InvalidOperationException("An empty file cannot be uploaded.");
+            throw new InvalidOperationException("Bo‘sh faylni yuklab bo‘lmaydi.");
 
         var maxBytes = Math.Max(_options.MaxFileSizeMb, 1) * 1024L * 1024L;
         if (file.Length > maxBytes)
-            throw new InvalidOperationException($"File size exceeds the configured {_options.MaxFileSizeMb} MB limit.");
+            throw new InvalidOperationException($"Fayl hajmi ruxsat etilgan {_options.MaxFileSizeMb} MB limitdan oshib ketdi.");
 
         var extension = NormalizeExtension(Path.GetExtension(Path.GetFileName(file.FileName)));
         if (string.IsNullOrWhiteSpace(extension) || !_allowedExtensions.Contains(extension))
-            throw new InvalidOperationException("This file extension is not allowed for HR attachments.");
+            throw new InvalidOperationException("Ushbu fayl turi kadrlar hujjatlariga biriktirish uchun ruxsat etilmagan.");
     }
 
     private string ResolveDirectory(int organizationId, long absenceId)
@@ -124,7 +124,7 @@ public sealed class HrFileStorage : IHrFileStorage
     private string ResolveExistingRelativePath(string relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath))
-            throw new InvalidOperationException("Invalid relative HR attachment path.");
+            throw new InvalidOperationException("Kadrlar faylining nisbiy manzili noto‘g‘ri.");
 
         var path = Path.GetFullPath(Path.Combine(_contentRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
         EnsureInsideStorageRoot(path);
@@ -137,7 +137,7 @@ public sealed class HrFileStorage : IHrFileStorage
                                 + Path.DirectorySeparatorChar;
         if (!path.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(path, _storageRoot, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("HR attachment path escapes the configured AppData directory.");
+            throw new InvalidOperationException("Kadrlar faylining manzili belgilangan AppData katalogidan tashqariga chiqmoqda.");
     }
 
     private static async Task SaveNewFileAsync(

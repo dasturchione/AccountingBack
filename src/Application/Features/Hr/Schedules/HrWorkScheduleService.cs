@@ -130,7 +130,7 @@ public sealed class HrWorkScheduleService : BaseService, IHrWorkScheduleService
             if (await IsLockedByPostedTimesheetAsync(employeeId, entity.EffectiveFrom, entity.EffectiveTo, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "ScheduleLocked",
-                    "The work schedule is used by a posted timesheet. Close it and create a new effective schedule."));
+                    "Ushbu ish grafigi tasdiqlangan tabelda ishlatilgan. Amaldagi grafikni yoping va yangi sanadan boshlanadigan grafik yarating."));
 
             var validation = await ValidateAsync(employeeId, dto, scheduleId, ct);
             if (!validation.IsSuccess)
@@ -174,7 +174,7 @@ public sealed class HrWorkScheduleService : BaseService, IHrWorkScheduleService
             if (await IsLockedByPostedTimesheetAsync(employeeId, entity.EffectiveFrom, entity.EffectiveTo, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "ScheduleLocked",
-                    "The work schedule is used by a posted timesheet and cannot be deleted."));
+                    "Ushbu ish grafigi tasdiqlangan tabelda ishlatilgani uchun uni o‘chirib bo‘lmaydi."));
 
             _auditLogService.SetOldValues(Map(entity));
             await _scheduleCommand.DeleteAsync(entity, ct);
@@ -201,17 +201,17 @@ public sealed class HrWorkScheduleService : BaseService, IHrWorkScheduleService
             return Result.Failure(HrErrors.NotFound("Employee", employeeId));
 
         if (string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Trim().Length > 200)
-            return Result.Failure(HrErrors.Business("InvalidScheduleName", "Schedule name is required and must not exceed 200 characters."));
+            return Result.Failure(HrErrors.Business("InvalidScheduleName", "Grafik nomi kiritilishi shart va 200 ta belgidan oshmasligi kerak."));
         if (dto.EffectiveTo.HasValue && dto.EffectiveTo.Value < dto.EffectiveFrom)
-            return Result.Failure(HrErrors.Business("InvalidScheduleDates", "EffectiveTo must be on or after EffectiveFrom."));
+            return Result.Failure(HrErrors.Business("InvalidScheduleDates", "Grafikning tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas."));
         if (dto.Days.Count == 0)
-            return Result.Failure(HrErrors.Business("EmptySchedule", "At least one working day is required."));
+            return Result.Failure(HrErrors.Business("EmptySchedule", "Kamida bitta ish kuni kiritilishi kerak."));
         if (dto.Days.Any(x => x.DayOfWeek is < 1 or > 7 || x.WorkHours is <= 0m or > 24m))
-            return Result.Failure(HrErrors.Business("InvalidScheduleDay", "DayOfWeek must be 1..7 and WorkHours must be greater than 0 and not exceed 24."));
+            return Result.Failure(HrErrors.Business("InvalidScheduleDay", "Hafta kuni 1 dan 7 gacha, ish soati esa 0 dan katta va 24 dan oshmagan bo‘lishi kerak."));
         if (dto.Days.GroupBy(x => x.DayOfWeek).Any(group => group.Count() > 1))
-            return Result.Failure(HrErrors.Conflict("DuplicateScheduleDay", "A day of week can occur only once in a schedule."));
+            return Result.Failure(HrErrors.Conflict("DuplicateScheduleDay", "Grafikda bir hafta kuni faqat bir marta kiritilishi mumkin."));
         if (dto.Days.Sum(x => x.WorkHours) > 168m)
-            return Result.Failure(HrErrors.Business("InvalidWeeklyHours", "Weekly work hours must not exceed 168."));
+            return Result.Failure(HrErrors.Business("InvalidWeeklyHours", "Haftalik ish soati 168 soatdan oshmasligi kerak."));
 
         var endDate = dto.EffectiveTo ?? DateOnly.MaxValue;
         if (await _scheduleQuery.AnyAsync(x =>
@@ -222,7 +222,7 @@ public sealed class HrWorkScheduleService : BaseService, IHrWorkScheduleService
                 (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= dto.EffectiveFrom), ct))
             return Result.Failure(HrErrors.Conflict(
                 "ScheduleOverlap",
-                "The employee already has a work schedule covering part of this period."));
+                "Tanlangan davrning bir qismi uchun xodimda boshqa ish grafigi mavjud."));
 
         var employmentsQuery = _queryBuilder.For<PayEmployment>()
             .Where(x =>
@@ -236,12 +236,12 @@ public sealed class HrWorkScheduleService : BaseService, IHrWorkScheduleService
         if (employmentWeeklyHours.Count == 0)
             return Result.Failure(HrErrors.Business(
                 "NoEmployment",
-                "The employee has no active employment covering the schedule period."));
+                "Tanlangan grafik davrida xodimning amaldagi ishga qabul yozuvi mavjud emas."));
         var scheduleWeeklyHours = dto.Days.Sum(x => x.WorkHours);
         if (employmentWeeklyHours.Any(hours => Math.Abs(hours - scheduleWeeklyHours) > 0.01m))
             return Result.Failure(HrErrors.Business(
                 "WeeklyHoursMismatch",
-                $"Schedule weekly hours ({scheduleWeeklyHours}) must match employment weekly hours."));
+                $"Grafikdagi haftalik soat ({scheduleWeeklyHours}) ishga qabul ma’lumotidagi haftalik soatga mos kelishi kerak."));
 
         return Result.Success();
     }

@@ -40,7 +40,7 @@ public static class HrEmployeeCalendarCalculator
                 Date = date,
                 DayOfWeek = dayOfWeek,
                 StatusCode = HrCalendarStatusConst.NotEmployed,
-                StatusName = "Not employed"
+                StatusName = "Ishga qabul qilinmagan"
             };
 
             if (employment is null)
@@ -66,7 +66,7 @@ public static class HrEmployeeCalendarCalculator
             if (plannedHours <= 0m)
             {
                 day.StatusCode = HrCalendarStatusConst.DayOff;
-                day.StatusName = "Day off";
+                day.StatusName = "Dam olish kuni";
                 result.Days.Add(day);
                 continue;
             }
@@ -109,7 +109,7 @@ public static class HrEmployeeCalendarCalculator
                 day.StatusCode = date <= today
                     ? HrCalendarStatusConst.Worked
                     : HrCalendarStatusConst.PlannedWork;
-                day.StatusName = date <= today ? "Worked" : "Planned work";
+                day.StatusName = date <= today ? "Ishlagan" : "Rejalashtirilgan ish kuni";
                 if (date <= today)
                 {
                     day.WorkedHours = plannedHours;

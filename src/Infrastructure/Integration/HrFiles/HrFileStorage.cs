@@ -36,7 +36,7 @@ public sealed class HrFileStorage : IHrFileStorage
 
         var extension = NormalizeExtension(Path.GetExtension(Path.GetFileName(file.FileName)));
         var storedName = $"{Guid.NewGuid():N}{extension}";
-        var directory = ResolveDirectory(organizationId, absenceId);
+        var directory = ResolveDirectory(organizationId);
         EnsureDirectory(directory);
 
         var absolutePath = Path.Combine(directory, storedName);
@@ -111,12 +111,11 @@ public sealed class HrFileStorage : IHrFileStorage
             throw new InvalidOperationException("Ushbu fayl turi kadrlar hujjatlariga biriktirish uchun ruxsat etilmagan.");
     }
 
-    private string ResolveDirectory(int organizationId, long absenceId)
+    private string ResolveDirectory(int organizationId)
     {
         var path = Path.GetFullPath(Path.Combine(
             _storageRoot,
-            organizationId.ToString(),
-            absenceId.ToString()));
+            organizationId.ToString()));
         EnsureInsideStorageRoot(path);
         return path;
     }
@@ -133,11 +132,16 @@ public sealed class HrFileStorage : IHrFileStorage
 
     private void EnsureInsideStorageRoot(string path)
     {
-        var rootWithSeparator = _storageRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                                + Path.DirectorySeparatorChar;
-        if (!path.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(path, _storageRoot, StringComparison.OrdinalIgnoreCase))
+        if (!IsInsideStorageRoot(path, _storageRoot))
             throw new InvalidOperationException("Kadrlar faylining manzili belgilangan AppData katalogidan tashqariga chiqmoqda.");
+    }
+
+    private static bool IsInsideStorageRoot(string path, string storageRoot)
+    {
+        var rootWithSeparator = storageRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                                + Path.DirectorySeparatorChar;
+        return path.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(path, storageRoot, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task SaveNewFileAsync(

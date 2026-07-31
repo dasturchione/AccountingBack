@@ -10,11 +10,13 @@ using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
+using System.Text.RegularExpressions;
 
 namespace Application.Features.Hr.Absences;
 
 public sealed class HrAbsenceService : BaseService, IHrAbsenceService
 {
+    private readonly ILogger<HrAbsenceService> _logger;
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
@@ -49,6 +51,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
     {
+        _logger = logger;
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
@@ -325,14 +328,20 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         var created = new List<HrAbsenceAttachment>();
         var localPaths = new List<string>();
         var telegramMessageIds = new List<int>();
+        var stage = "LocalFileSave";
+        HrFileUpload? currentFile = null;
         try
         {
             foreach (var file in files)
             {
+                currentFile = file;
+                stage = "LocalFileSave";
                 var stored = await _fileStorage.SaveAsync(absence.OrganizationId, absence.Id, file, ct);
                 localPaths.Add(stored.RelativePath);
+                stage = "LocalFileOpen";
                 await using var local = await _fileStorage.OpenAsync(stored.RelativePath, ct)
                     ?? throw new IOException("Saqlangan faylni qayta ochib bo‘lmadi.");
+                stage = "TelegramUpload";
                 var telegram = await _telegramArchive.UploadAsync(
                     local,
                     file.FileName,
@@ -358,11 +367,45 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 });
             }
 
+            currentFile = null;
+            stage = "AttachmentDatabaseSave";
             await _attachmentCommand.CreateAsync(created, ct);
             return Result.Success(created.Select(MapAttachment).ToList());
         }
-        catch
+        catch (Exception ex)
         {
+            var extension = currentFile is null
+                ? null
+                : Path.GetExtension(Path.GetFileName(currentFile.FileName));
+            if (stage == "TelegramUpload")
+            {
+                _logger.LogError(
+                    "HR attachment save failed; Stage={Stage}; OrganizationId={OrganizationId}; AbsenceId={AbsenceId}; " +
+                    "FileExtension={FileExtension}; FileSize={FileSize}; FileCount={FileCount}; " +
+                    "ExceptionType={ExceptionType}; Error={Error}",
+                    stage,
+                    absence.OrganizationId,
+                    absence.Id,
+                    extension,
+                    currentFile?.Length,
+                    files.Count,
+                    ex.GetType().Name,
+                    SanitizeTelegramLogMessage(ex.Message));
+            }
+            else
+            {
+                _logger.LogError(
+                    ex,
+                    "HR attachment save failed; Stage={Stage}; OrganizationId={OrganizationId}; AbsenceId={AbsenceId}; " +
+                    "FileExtension={FileExtension}; FileSize={FileSize}; FileCount={FileCount}",
+                    stage,
+                    absence.OrganizationId,
+                    absence.Id,
+                    extension,
+                    currentFile?.Length,
+                    files.Count);
+            }
+
             await CleanupArtifactsAsync(localPaths, telegramMessageIds, CancellationToken.None);
             return Result.Failure<List<HrAbsenceAttachmentDto>>(
                 HrErrors.FileStorage("Faylni AppData va Telegram arxiviga saqlab bo‘lmadi."));
@@ -510,8 +553,12 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             {
                 await _fileStorage.DeleteAsync(path, ct);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(
+                    ex,
+                    "HR attachment local cleanup failed; FilePath={FilePath}",
+                    path);
                 // Database consistency has priority; an orphaned local file is recoverable.
             }
         }
@@ -522,12 +569,25 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             {
                 await _telegramArchive.DeleteMessageAsync(messageId, ct);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(
+                    "HR attachment Telegram cleanup failed; MessageId={MessageId}; ExceptionType={ExceptionType}; Error={Error}",
+                    messageId,
+                    ex.GetType().Name,
+                    SanitizeTelegramLogMessage(ex.Message));
                 // Telegram cleanup failure must not corrupt the HR transaction.
             }
         }
     }
+
+    private static string SanitizeTelegramLogMessage(string message) =>
+        Regex.Replace(
+            message,
+            @"\d{5,}:[A-Za-z0-9_-]{10,}",
+            "[REDACTED]",
+            RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(100));
 
     private static HrAbsenceAttachmentDto MapAttachment(HrAbsenceAttachment x) =>
         new()

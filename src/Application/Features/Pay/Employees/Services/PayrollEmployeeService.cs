@@ -75,7 +75,6 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
             var page = Math.Max(filter.Page, 1);
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
-            var today = DateOnly.FromDateTime(DateTime.Today);
 
             var specification = new PagedQuerySpecification<PayEmployee, PayrollEmployeeListDto>
             {
@@ -97,37 +96,27 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                     FullName = x.LastName + " " + x.FirstName + (x.MiddleName != null ? " " + x.MiddleName : ""),
                     Pinfl = x.Pinfl,
                     DepartmentId = x.Employments
-                        .Where(e => e.StateId == StateIdConst.ACTIVE &&
-                                    e.StartDate <= today &&
-                                    (!e.EndDate.HasValue || e.EndDate.Value >= today))
+                        .Where(e => e.StateId == StateIdConst.ACTIVE)
                         .OrderByDescending(e => e.StartDate)
                         .Select(e => e.DepartmentId)
                         .FirstOrDefault(),
                     DepartmentName = x.Employments
-                        .Where(e => e.StateId == StateIdConst.ACTIVE &&
-                                    e.StartDate <= today &&
-                                    (!e.EndDate.HasValue || e.EndDate.Value >= today))
+                        .Where(e => e.StateId == StateIdConst.ACTIVE)
                         .OrderByDescending(e => e.StartDate)
                         .Select(e => e.Department != null ? e.Department.Name : null)
                         .FirstOrDefault(),
                     PositionId = x.Employments
-                        .Where(e => e.StateId == StateIdConst.ACTIVE &&
-                                    e.StartDate <= today &&
-                                    (!e.EndDate.HasValue || e.EndDate.Value >= today))
+                        .Where(e => e.StateId == StateIdConst.ACTIVE)
                         .OrderByDescending(e => e.StartDate)
                         .Select(e => e.PositionId)
                         .FirstOrDefault(),
                     PositionName = x.Employments
-                        .Where(e => e.StateId == StateIdConst.ACTIVE &&
-                                    e.StartDate <= today &&
-                                    (!e.EndDate.HasValue || e.EndDate.Value >= today))
+                        .Where(e => e.StateId == StateIdConst.ACTIVE)
                         .OrderByDescending(e => e.StartDate)
                         .Select(e => e.Position != null ? e.Position.Name : null)
                         .FirstOrDefault(),
                     MonthlySalary = x.Employments
-                        .Where(e => e.StateId == StateIdConst.ACTIVE &&
-                                    e.StartDate <= today &&
-                                    (!e.EndDate.HasValue || e.EndDate.Value >= today))
+                        .Where(e => e.StateId == StateIdConst.ACTIVE)
                         .OrderByDescending(e => e.StartDate)
                         .Select(e => (decimal?)e.MonthlySalary)
                         .FirstOrDefault(),

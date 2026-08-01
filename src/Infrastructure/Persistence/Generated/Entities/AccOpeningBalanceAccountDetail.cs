@@ -50,6 +50,15 @@ public partial class AccOpeningBalanceAccountDetail
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
+    [Column("source_document_type_id")]
+    public short? SourceDocumentTypeId { get; set; }
+
+    [Column("source_document_id")]
+    public long? SourceDocumentId { get; set; }
+
+    [Column("source_line_id")]
+    public long? SourceLineId { get; set; }
+
     [InverseProperty("OpeningBalanceAccountDetail")]
     public virtual ICollection<AccOpeningBalanceAccountDetailSubkonto> AccOpeningBalanceAccountDetailSubkontos { get; set; } = new List<AccOpeningBalanceAccountDetailSubkonto>();
 

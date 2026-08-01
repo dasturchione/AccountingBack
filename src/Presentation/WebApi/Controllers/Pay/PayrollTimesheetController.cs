@@ -47,6 +47,26 @@ public sealed class PayrollTimesheetController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("calendar/table")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetView)]
+    public async Task<IResult> GetCalendarTableAsync(
+        [FromQuery] long periodId,
+        CancellationToken ct = default)
+    {
+        var result = await _service.GetCalendarTableAsync(periodId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("{id:long}/calendar")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetView)]
+    public async Task<IResult> GetDocumentCalendarAsync(
+        [FromRoute] long id,
+        CancellationToken ct = default)
+    {
+        var result = await _service.GetDocumentCalendarAsync(id, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetCreate)]
     public async Task<IResult> CreateAsync([FromBody] PayrollTimesheetCreateDto dto, CancellationToken ct = default)

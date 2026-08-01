@@ -23,6 +23,9 @@ public class FaAssetListDtoProjection : IProjectionBuilder<FaAsset, FaAssetListD
             DepartmentId = x.DepartmentId,
             DepartmentName = x.Department != null ? x.Department.Name : null,
             ResponsibleUserId = x.ResponsibleUserId,
+            AssetAccountId = x.AssetAccountId,
+            AccumulatedDepreciationAccountId = x.AccumulatedDepreciationAccountId,
+            DepreciationExpenseAccountId = x.DepreciationExpenseAccountId,
             ResponsibleUserName = x.ResponsibleUser != null
                 ? x.ResponsibleUser.FirstName + " " + x.ResponsibleUser.LastName
                 : null,

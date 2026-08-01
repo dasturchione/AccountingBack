@@ -1,15 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("fa_disposal_doc")]
-[Index("OrganizationId", "DocNumber", Name = "ux_fa_disposal_doc_org_doc_number", IsUnique = true)]
-[Index("StateId", Name = "idx_fa_disposal_doc_state_id")]
-[Index("StatusId", Name = "idx_fa_disposal_doc_status_id")]
-[Index("DisposalDate", Name = "idx_fa_disposal_doc_date")]
-[Index("DisposalType", Name = "idx_fa_disposal_doc_type")]
 public partial class FaDisposalDoc
 {
     [Key]
@@ -40,6 +34,21 @@ public partial class FaDisposalDoc
     [StringLength(500)]
     public string? Reason { get; set; }
 
+    [Column("disposal_account_id")]
+    public int? DisposalAccountId { get; set; }
+
+    [Column("customer_account_id")]
+    public int? CustomerAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [Column("gain_account_id")]
+    public int? GainAccountId { get; set; }
+
+    [Column("loss_account_id")]
+    public int? LossAccountId { get; set; }
+
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
@@ -63,6 +72,26 @@ public partial class FaDisposalDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [ForeignKey(nameof(DisposalAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaDisposalDocDisposalAccounts))]
+    public virtual ChartAccount? DisposalAccount { get; set; }
+
+    [ForeignKey(nameof(CustomerAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaDisposalDocCustomerAccounts))]
+    public virtual ChartAccount? CustomerAccount { get; set; }
+
+    [ForeignKey(nameof(VatAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaDisposalDocVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
+
+    [ForeignKey(nameof(GainAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaDisposalDocGainAccounts))]
+    public virtual ChartAccount? GainAccount { get; set; }
+
+    [ForeignKey(nameof(LossAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaDisposalDocLossAccounts))]
+    public virtual ChartAccount? LossAccount { get; set; }
 
     [ForeignKey("CreatedByUserId")]
     public virtual User? CreatedByUser { get; set; }

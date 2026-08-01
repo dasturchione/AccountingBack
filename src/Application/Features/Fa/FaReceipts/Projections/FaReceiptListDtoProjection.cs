@@ -26,6 +26,7 @@ public class FaReceiptListDtoProjection : IProjectionBuilder<FaReceiptDoc, FaRec
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             ReceiptType = x.ReceiptType,
+            SupplierAccountId = x.SupplierAccountId,
             StateId = x.StateId,
             StateName = x.State.FullName,
             UpdatedDate = x.UpdatedDate

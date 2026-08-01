@@ -18,6 +18,11 @@ public class FaDisposalDtoProjection : IProjectionBuilder<FaDisposalDoc, FaDispo
             StatusName = x.Status.Name,
             DisposalType = x.DisposalType,
             Reason = x.Reason,
+            DisposalAccountId = x.DisposalAccountId,
+            CustomerAccountId = x.CustomerAccountId,
+            VatAccountId = x.VatAccountId,
+            GainAccountId = x.GainAccountId,
+            LossAccountId = x.LossAccountId,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,
@@ -41,7 +46,9 @@ public class FaDisposalDtoProjection : IProjectionBuilder<FaDisposalDoc, FaDispo
                 BookValue = line.BookValue,
                 SaleAmount = line.SaleAmount,
                 GainLoss = line.GainLoss,
-                Note = line.Note
+                Note = line.Note,
+                AssetAccountId = line.AssetAccountId,
+                AccumulatedDepreciationAccountId = line.AccumulatedDepreciationAccountId
             }).ToList()
         };
 }

@@ -270,6 +270,8 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
             result.Add(new FaDepreciationRunLine
             {
                 FaAssetId = asset.Id,
+                ExpenseAccountId = asset.DepreciationExpenseAccountId,
+                AccumulatedDepreciationAccountId = asset.AccumulatedDepreciationAccountId,
                 Amount = amount,
                 Note = asset.DepreciationMethod.Code == FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION
                     ? "Units-of-production fallback: equal monthly amount"

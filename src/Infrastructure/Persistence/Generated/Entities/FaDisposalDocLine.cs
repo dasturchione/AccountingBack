@@ -9,6 +9,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("fa_disposal_doc_line")]
 [Index("DisposalDocId", Name = "idx_fa_disposal_doc_line_doc_id")]
 [Index("FaAssetId", Name = "idx_fa_disposal_doc_line_fa_asset_id")]
+[Index("AccumulatedDepreciationAccountId", Name = "ix_fa_disposal_line_accum_depr_account")]
+[Index("AssetAccountId", Name = "ix_fa_disposal_line_asset_account")]
 [Index("DisposalDocId", "FaAssetId", Name = "ux_fa_disposal_doc_line_doc_asset", IsUnique = true)]
 public partial class FaDisposalDocLine
 {
@@ -37,6 +39,20 @@ public partial class FaDisposalDocLine
     [Column("note")]
     [StringLength(500)]
     public string? Note { get; set; }
+
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [ForeignKey("AccumulatedDepreciationAccountId")]
+    [InverseProperty("FaDisposalDocLineAccumulatedDepreciationAccounts")]
+    public virtual AccChartAccount? AccumulatedDepreciationAccount { get; set; }
+
+    [ForeignKey("AssetAccountId")]
+    [InverseProperty("FaDisposalDocLineAssetAccounts")]
+    public virtual AccChartAccount? AssetAccount { get; set; }
 
     [ForeignKey("DisposalDocId")]
     [InverseProperty("FaDisposalDocLines")]

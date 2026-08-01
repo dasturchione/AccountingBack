@@ -10,6 +10,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("OwnerId", Name = "idx_fa_receipt_doc_line_owner_id")]
 [Index("SourceProductId", Name = "idx_fa_receipt_doc_line_source_product_id")]
 [Index("VatRateId", Name = "idx_fa_receipt_doc_line_vat_rate_id")]
+[Index("CapitalInvestmentAccountId", Name = "ix_fa_receipt_line_capital_account")]
+[Index("VatAccountId", Name = "ix_fa_receipt_line_vat_account")]
 public partial class FaReceiptDocLine
 {
     [Key]
@@ -49,6 +51,16 @@ public partial class FaReceiptDocLine
     [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 
+    [Column("capital_investment_account_id")]
+    public int? CapitalInvestmentAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [ForeignKey("CapitalInvestmentAccountId")]
+    [InverseProperty("FaReceiptDocLineCapitalInvestmentAccounts")]
+    public virtual AccChartAccount? CapitalInvestmentAccount { get; set; }
+
     [InverseProperty("Owner")]
     public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
 
@@ -59,6 +71,10 @@ public partial class FaReceiptDocLine
     [ForeignKey("SourceProductId")]
     [InverseProperty("FaReceiptDocLines")]
     public virtual InvProduct? SourceProduct { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty("FaReceiptDocLineVatAccounts")]
+    public virtual AccChartAccount? VatAccount { get; set; }
 
     [ForeignKey("VatRateId")]
     [InverseProperty("FaReceiptDocLines")]

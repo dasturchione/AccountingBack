@@ -1,6 +1,6 @@
 namespace Application.Features.FaReceipts;
 
-public class FaReceiptBaseDto
+public partial class FaReceiptBaseDto
 {
     public DateTime DocDate { get; set; }
     public int? CounterpartyId { get; set; }
@@ -10,7 +10,7 @@ public class FaReceiptBaseDto
     public List<FaReceiptLineWriteDto> Lines { get; set; } = new();
 }
 
-public class FaReceiptLineWriteDto
+public partial class FaReceiptLineWriteDto
 {
     public int? SourceProductId { get; set; }
     public string Name { get; set; } = null!;
@@ -20,7 +20,7 @@ public class FaReceiptLineWriteDto
     public List<FaReceiptAssetWriteDto> Assets { get; set; } = new();
 }
 
-public class FaReceiptAssetWriteDto
+public partial class FaReceiptAssetWriteDto
 {
     public string InventoryNumber { get; set; } = null!;
     public string Name { get; set; } = null!;

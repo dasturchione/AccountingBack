@@ -1,6 +1,6 @@
 namespace Application.Features.FaAssets;
 
-public class FaAssetBaseDto
+public partial class FaAssetBaseDto
 {
     public string InventoryNumber { get; set; } = null!;
     public string Name { get; set; } = null!;

@@ -28,6 +28,17 @@ public class FaDepreciationRunContextBuilder : IPostingContextBuilder<FaDeprecia
             JournalNumber = document.DocNumber,
             SourceLineId = line.Id,
             FixedAssetId = (int)line.FaAssetId,
+            Entries = new List<PostingEntryContext>
+            {
+                new()
+                {
+                    DebitAccountId = line.ExpenseAccountId,
+                    CreditAccountId = line.AccumulatedDepreciationAccountId,
+                    Amount = line.Amount,
+                    Content = "Fixed asset depreciation",
+                    SourceLineId = line.Id
+                }
+            },
             Subkontos = new List<SubkontoValue>
             {
                 new()
@@ -41,4 +52,3 @@ public class FaDepreciationRunContextBuilder : IPostingContextBuilder<FaDeprecia
         }).ToList();
     }
 }
-

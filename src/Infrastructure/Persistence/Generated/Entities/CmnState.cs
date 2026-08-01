@@ -169,6 +169,15 @@ public partial class CmnState
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("State")]
+    public virtual ICollection<HrAbsenceType> HrAbsenceTypes { get; set; } = new List<HrAbsenceType>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<HrAbsence> HrAbsences { get; set; } = new List<HrAbsence>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; } = new List<HrEmployeeWorkSchedule>();
+
+    [InverseProperty("State")]
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
 
     [InverseProperty("State")]

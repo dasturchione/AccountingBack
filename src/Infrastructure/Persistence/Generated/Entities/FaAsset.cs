@@ -16,6 +16,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("SourceProductTableId", Name = "idx_fa_asset_source_product_table_id")]
 [Index("StateId", Name = "idx_fa_asset_state_id")]
 [Index("StatusId", Name = "idx_fa_asset_status_id")]
+[Index("AccumulatedDepreciationAccountId", Name = "ix_fa_asset_accum_depr_account")]
+[Index("AssetAccountId", Name = "ix_fa_asset_asset_account")]
+[Index("DepreciationExpenseAccountId", Name = "ix_fa_asset_depr_exp_account")]
 [Index("OrganizationId", "InventoryNumber", Name = "uidx_fa_asset_org_inventory_number", IsUnique = true)]
 public partial class FaAsset
 {
@@ -85,9 +88,30 @@ public partial class FaAsset
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime UpdatedDate { get; set; }
 
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [Column("depreciation_expense_account_id")]
+    public int? DepreciationExpenseAccountId { get; set; }
+
+    [ForeignKey("AccumulatedDepreciationAccountId")]
+    [InverseProperty("FaAssetAccumulatedDepreciationAccounts")]
+    public virtual AccChartAccount? AccumulatedDepreciationAccount { get; set; }
+
+    [ForeignKey("AssetAccountId")]
+    [InverseProperty("FaAssetAssetAccounts")]
+    public virtual AccChartAccount? AssetAccount { get; set; }
+
     [ForeignKey("DepartmentId")]
     [InverseProperty("FaAssets")]
     public virtual OrgDepartment? Department { get; set; }
+
+    [ForeignKey("DepreciationExpenseAccountId")]
+    [InverseProperty("FaAssetDepreciationExpenseAccounts")]
+    public virtual AccChartAccount? DepreciationExpenseAccount { get; set; }
 
     [ForeignKey("DepreciationMethodId")]
     [InverseProperty("FaAssets")]

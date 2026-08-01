@@ -17,6 +17,8 @@ public class FaRevaluationDtoProjection : IProjectionBuilder<FaRevaluationDoc, F
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             Reason = x.Reason,
+            RevaluationReserveAccountId = x.RevaluationReserveAccountId,
+            RevaluationLossAccountId = x.RevaluationLossAccountId,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,
@@ -38,7 +40,9 @@ public class FaRevaluationDtoProjection : IProjectionBuilder<FaRevaluationDoc, F
                 OldValue = line.OldValue,
                 NewValue = line.NewValue,
                 RevaluationAmount = line.RevaluationAmount,
-                Note = line.Note
+                Note = line.Note,
+                AssetAccountId = line.AssetAccountId,
+                AccumulatedDepreciationAccountId = line.AccumulatedDepreciationAccountId
             }).ToList()
         };
 }

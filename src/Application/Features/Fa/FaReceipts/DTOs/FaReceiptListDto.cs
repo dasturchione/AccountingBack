@@ -1,6 +1,6 @@
 namespace Application.Features.FaReceipts;
 
-public class FaReceiptListDto
+public partial class FaReceiptListDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }

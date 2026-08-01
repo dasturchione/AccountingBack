@@ -5,9 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("fa_receipt_doc_line")]
-[Index("OwnerId", Name = "idx_fa_receipt_doc_line_owner_id")]
-[Index("SourceProductId", Name = "idx_fa_receipt_doc_line_source_product_id")]
-[Index("VatRateId", Name = "idx_fa_receipt_doc_line_vat_rate_id")]
 public partial class FaReceiptDocLine
 {
     [Key]
@@ -46,6 +43,20 @@ public partial class FaReceiptDocLine
     [Column("total_amount")]
     [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
+
+    [Column("capital_investment_account_id")]
+    public int? CapitalInvestmentAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [ForeignKey(nameof(CapitalInvestmentAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocLineCapitalInvestmentAccounts))]
+    public virtual ChartAccount? CapitalInvestmentAccount { get; set; }
+
+    [ForeignKey(nameof(VatAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocLineVatAccounts))]
+    public virtual ChartAccount? VatAccount { get; set; }
 
     [InverseProperty("Owner")]
     public virtual ICollection<FaReceiptDocAsset> Assets { get; set; } = new List<FaReceiptDocAsset>();

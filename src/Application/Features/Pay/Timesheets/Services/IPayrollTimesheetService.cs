@@ -9,6 +9,8 @@ public interface IPayrollTimesheetService
     Task<Result<PagedResponse<PayrollTimesheetListDto>>> GetAllAsync(PayrollTimesheetListFilter filter, CancellationToken ct = default);
     Task<Result<PayrollTimesheetDto>> GetByIdAsync(long id, CancellationToken ct = default);
     Task<Result<HrEmployeeCalendarDto>> GetEmployeeCalendarAsync(long periodId, long employeeId, CancellationToken ct = default);
+    Task<Result<PayrollTimesheetCalendarDto>> GetCalendarTableAsync(long periodId, CancellationToken ct = default);
+    Task<Result<PayrollTimesheetCalendarDto>> GetDocumentCalendarAsync(long id, CancellationToken ct = default);
     Task<Result<long>> CreateAsync(PayrollTimesheetCreateDto dto, CancellationToken ct = default);
     Task<Result> UpdateAsync(long id, PayrollTimesheetUpdateDto dto, CancellationToken ct = default);
     Task<Result> ConfirmAsync(long id, CancellationToken ct = default);

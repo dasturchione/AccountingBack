@@ -97,9 +97,16 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
             var dto = await GetDtoInternalAsync(id, ct);
-            return dto is null
-                ? Result.Failure<PayrollTimesheetDto>(PayrollErrors.NotFound("Timesheet", id, _userContext.LanguageId))
-                : Result.Success(dto);
+            if (dto is null)
+                return Result.Failure<PayrollTimesheetDto>(
+                    PayrollErrors.NotFound("Timesheet", id, _userContext.LanguageId));
+
+            var calendarResult = await BuildDocumentCalendarAsync(dto, ct);
+            if (!calendarResult.IsSuccess)
+                return Result.Failure<PayrollTimesheetDto>(calendarResult.Error);
+
+            dto.Calendar = calendarResult.Value;
+            return Result.Success(dto);
         });
 
     public Task<Result<HrEmployeeCalendarDto>> GetEmployeeCalendarAsync(
@@ -114,6 +121,54 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
 
             return await _calendarService.GetAsync(employeeId, period.StartDate, period.EndDate, ct);
+        });
+
+    public Task<Result<PayrollTimesheetCalendarDto>> GetCalendarTableAsync(
+        long periodId,
+        CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetCalendarTableAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<PayrollTimesheetCalendarDto>(
+                    CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var period = await GetPeriodAsync(periodId, ct);
+            if (period is null)
+                return Result.Failure<PayrollTimesheetCalendarDto>(
+                    PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
+
+            var employeeIds = await GetActiveEmployeeIdsAsync(
+                _userContext.OrganizationId.Value,
+                period,
+                ct);
+            var calendarsResult = await _calendarService.GetManyAsync(
+                employeeIds,
+                period.StartDate,
+                period.EndDate,
+                ct);
+            if (!calendarsResult.IsSuccess)
+                return Result.Failure<PayrollTimesheetCalendarDto>(calendarsResult.Error);
+
+            return Result.Success(PayrollTimesheetCalendarBuilder.Build(
+                null,
+                period.Id,
+                GetPeriodName(period),
+                period.StartDate,
+                period.EndDate,
+                calendarsResult.Value));
+        });
+
+    public Task<Result<PayrollTimesheetCalendarDto>> GetDocumentCalendarAsync(
+        long id,
+        CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetDocumentCalendarAsync), async () =>
+        {
+            var dto = await GetDtoInternalAsync(id, ct);
+            if (dto is null)
+                return Result.Failure<PayrollTimesheetCalendarDto>(
+                    PayrollErrors.NotFound("Timesheet", id, _userContext.LanguageId));
+
+            return await BuildDocumentCalendarAsync(dto, ct);
         });
 
     public Task<Result<long>> CreateAsync(PayrollTimesheetCreateDto dto, CancellationToken ct = default) =>
@@ -347,6 +402,56 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         var query = _queryBuilder.For<PayPeriod>().Where(x => x.Id == id).Build();
         return await _periodQuery.GetAsync(query, ct);
     }
+
+    private async Task<List<long>> GetActiveEmployeeIdsAsync(
+        int organizationId,
+        PayPeriod period,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayEmployee>()
+            .Where(x =>
+                x.OrganizationId == organizationId &&
+                x.StateId == StateIdConst.ACTIVE &&
+                x.Employments.Any(employment =>
+                    employment.StateId == StateIdConst.ACTIVE &&
+                    employment.StartDate <= period.EndDate &&
+                    (!employment.EndDate.HasValue || employment.EndDate.Value >= period.StartDate)))
+            .As(x => x.Id)
+            .Build();
+        return await _employeeQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<Result<PayrollTimesheetCalendarDto>> BuildDocumentCalendarAsync(
+        PayrollTimesheetDto dto,
+        CancellationToken ct)
+    {
+        var period = await GetPeriodAsync(dto.PeriodId, ct);
+        if (period is null)
+            return Result.Failure<PayrollTimesheetCalendarDto>(
+                PayrollErrors.NotFound("Period", dto.PeriodId, _userContext.LanguageId));
+
+        var employeeIds = dto.Lines.Select(x => x.EmployeeId).Distinct().ToList();
+        var calendarsResult = await _calendarService.GetManyAsync(
+            employeeIds,
+            period.StartDate,
+            period.EndDate,
+            ct);
+        if (!calendarsResult.IsSuccess)
+            return Result.Failure<PayrollTimesheetCalendarDto>(calendarsResult.Error);
+
+        var lines = dto.Lines.ToDictionary(x => x.EmployeeId);
+        return Result.Success(PayrollTimesheetCalendarBuilder.Build(
+            dto.Id,
+            period.Id,
+            dto.PeriodName,
+            period.StartDate,
+            period.EndDate,
+            calendarsResult.Value,
+            lines));
+    }
+
+    private static string GetPeriodName(PayPeriod period) =>
+        period.PeriodYear + "-" + period.PeriodMonth;
 
     private async Task<PayTimesheet?> GetAggregateAsync(long id, CancellationToken ct)
     {

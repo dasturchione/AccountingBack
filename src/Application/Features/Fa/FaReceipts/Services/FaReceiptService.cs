@@ -124,6 +124,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 FinalAmount = lines.Sum(x => x.TotalAmount),
                 StatusId = DocumentStatusIdConst.DRAFT,
                 ReceiptType = NormalizeReceiptType(dto.ReceiptType),
+                SupplierAccountId = dto.SupplierAccountId,
                 CreatedDate = now,
                 UpdatedDate = now,
                 Lines = lines
@@ -185,6 +186,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             doc.VatAmount = doc.Lines.Sum(x => x.VatAmount);
             doc.FinalAmount = doc.Lines.Sum(x => x.TotalAmount);
             doc.ReceiptType = NormalizeReceiptType(dto.ReceiptType);
+            doc.SupplierAccountId = dto.SupplierAccountId;
             doc.UpdatedDate = DateTime.Now;
 
             await _command.UpdateAsync(doc, ct);
@@ -383,7 +385,10 @@ public class FaReceiptService : BaseService, IFaReceiptService
                     DeprStartDate = NormalizeDateTime(assetDto.DeprStartDate),
                     PlannedUnitsTotal = assetDto.PlannedUnitsTotal,
                     DepartmentId = assetDto.DepartmentId,
-                    ResponsibleUserId = assetDto.ResponsibleUserId
+                    ResponsibleUserId = assetDto.ResponsibleUserId,
+                    AssetAccountId = assetDto.AssetAccountId,
+                    AccumulatedDepreciationAccountId = assetDto.AccumulatedDepreciationAccountId,
+                    DepreciationExpenseAccountId = assetDto.DepreciationExpenseAccountId
                 });
             }
 
@@ -404,6 +409,8 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 VatRateId = lineDto.VatRateId,
                 VatAmount = vatAmount,
                 TotalAmount = amount + vatAmount,
+                CapitalInvestmentAccountId = lineDto.CapitalInvestmentAccountId,
+                VatAccountId = lineDto.VatAccountId,
                 Assets = assets
             });
         }

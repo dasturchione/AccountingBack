@@ -82,6 +82,8 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
                 DocNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "FARV", dto.RevaluationDate, ct),
                 RevaluationDate = NormalizeDateTime(dto.RevaluationDate),
                 Reason = dto.Reason?.Trim(),
+                RevaluationReserveAccountId = dto.RevaluationReserveAccountId,
+                RevaluationLossAccountId = dto.RevaluationLossAccountId,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 CreatedDate = now,
                 CreatedByUserId = _userContext.Id,
@@ -135,6 +137,8 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
 
             doc.RevaluationDate = NormalizeDateTime(dto.RevaluationDate);
             doc.Reason = dto.Reason?.Trim();
+            doc.RevaluationReserveAccountId = dto.RevaluationReserveAccountId;
+            doc.RevaluationLossAccountId = dto.RevaluationLossAccountId;
             doc.StateId = dto.StateId;
             doc.UpdatedDate = DateTime.Now;
             doc.UpdatedByUserId = _userContext.Id;
@@ -191,7 +195,9 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
             {
                 FaAssetId = asset.Id,
                 NewValue = lineDto.NewValue,
-                Note = lineDto.Note?.Trim()
+                Note = lineDto.Note?.Trim(),
+                AssetAccountId = lineDto.AssetAccountId,
+                AccumulatedDepreciationAccountId = lineDto.AccumulatedDepreciationAccountId
             });
         }
 

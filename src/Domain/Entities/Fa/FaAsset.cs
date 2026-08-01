@@ -1,20 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("fa_asset")]
-[Index("OrganizationId", "InventoryNumber", Name = "uidx_fa_asset_org_inventory_number", IsUnique = true)]
-[Index("StateId", Name = "idx_fa_asset_state_id")]
-[Index("StatusId", Name = "idx_fa_asset_status_id")]
-[Index("FaGroupId", Name = "idx_fa_asset_fa_group_id")]
-[Index("OkofId", Name = "idx_fa_asset_okof_id")]
-[Index("DepreciationMethodId", Name = "idx_fa_asset_depreciation_method_id")]
-[Index("DepartmentId", Name = "idx_fa_asset_department_id")]
-[Index("ResponsibleUserId", Name = "idx_fa_asset_responsible_user_id")]
-[Index("SourceProductTableId", Name = "idx_fa_asset_source_product_table_id")]
-[Index("CommissioningDate", Name = "idx_fa_asset_commissioning_date")]
 public partial class FaAsset
 {
     [Key]
@@ -74,11 +63,32 @@ public partial class FaAsset
     [Column("status_id")]
     public short StatusId { get; set; }
 
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [Column("depreciation_expense_account_id")]
+    public int? DepreciationExpenseAccountId { get; set; }
+
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime UpdatedDate { get; set; }
+
+    [ForeignKey(nameof(AssetAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaAssetAssetAccounts))]
+    public virtual ChartAccount? AssetAccount { get; set; }
+
+    [ForeignKey(nameof(AccumulatedDepreciationAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaAssetAccumulatedDepreciationAccounts))]
+    public virtual ChartAccount? AccumulatedDepreciationAccount { get; set; }
+
+    [ForeignKey(nameof(DepreciationExpenseAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaAssetDepreciationExpenseAccounts))]
+    public virtual ChartAccount? DepreciationExpenseAccount { get; set; }
 
     [ForeignKey("DepartmentId")]
     [InverseProperty("FaAssets")]

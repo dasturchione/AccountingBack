@@ -10,6 +10,12 @@ public interface IHrEmployeeCalendarService
         DateOnly dateTo,
         CancellationToken ct = default);
 
+    Task<Result<List<HrEmployeeCalendarDto>>> GetManyAsync(
+        IReadOnlyCollection<long> employeeIds,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken ct = default);
+
     Task<Result<Dictionary<long, HrEmployeeCalendarSummaryDto>>> GetSummariesAsync(
         IReadOnlyCollection<long> employeeIds,
         DateOnly dateFrom,

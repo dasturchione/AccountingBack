@@ -1,17 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("fa_receipt_doc_asset")]
-[Index("OwnerId", Name = "idx_fa_receipt_doc_asset_owner_id")]
-[Index("FaAssetId", Name = "idx_fa_receipt_doc_asset_fa_asset_id")]
-[Index("FaGroupId", Name = "idx_fa_receipt_doc_asset_fa_group_id")]
-[Index("OkofId", Name = "idx_fa_receipt_doc_asset_okof_id")]
-[Index("DepreciationMethodId", Name = "idx_fa_receipt_doc_asset_depreciation_method_id")]
-[Index("DepartmentId", Name = "idx_fa_receipt_doc_asset_department_id")]
-[Index("ResponsibleUserId", Name = "idx_fa_receipt_doc_asset_responsible_user_id")]
 public partial class FaReceiptDocAsset
 {
     [Key]
@@ -64,6 +56,27 @@ public partial class FaReceiptDocAsset
 
     [Column("responsible_user_id")]
     public int? ResponsibleUserId { get; set; }
+
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [Column("depreciation_expense_account_id")]
+    public int? DepreciationExpenseAccountId { get; set; }
+
+    [ForeignKey(nameof(AssetAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocAssetAssetAccounts))]
+    public virtual ChartAccount? AssetAccount { get; set; }
+
+    [ForeignKey(nameof(AccumulatedDepreciationAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocAssetAccumulatedDepreciationAccounts))]
+    public virtual ChartAccount? AccumulatedDepreciationAccount { get; set; }
+
+    [ForeignKey(nameof(DepreciationExpenseAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocAssetDepreciationExpenseAccounts))]
+    public virtual ChartAccount? DepreciationExpenseAccount { get; set; }
 
     [ForeignKey("DepartmentId")]
     public virtual Department? Department { get; set; }

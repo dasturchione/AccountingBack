@@ -54,6 +54,14 @@ public partial class PayTimesheetLine
     [StringLength(500)]
     public string? Note { get; set; }
 
+    [Column("norm_work_days")]
+    [Precision(6, 2)]
+    public decimal NormWorkDays { get; set; }
+
+    [Column("norm_work_hours")]
+    [Precision(8, 2)]
+    public decimal NormWorkHours { get; set; }
+
     [ForeignKey("EmployeeId")]
     [InverseProperty("PayTimesheetLines")]
     public virtual PayEmployee Employee { get; set; } = null!;

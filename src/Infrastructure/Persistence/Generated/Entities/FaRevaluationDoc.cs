@@ -10,6 +10,8 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("RevaluationDate", Name = "idx_fa_revaluation_doc_date")]
 [Index("StateId", Name = "idx_fa_revaluation_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_revaluation_doc_status_id")]
+[Index("RevaluationLossAccountId", Name = "ix_fa_reval_doc_loss_account")]
+[Index("RevaluationReserveAccountId", Name = "ix_fa_reval_doc_reserve_account")]
 [Index("OrganizationId", "DocNumber", Name = "ux_fa_revaluation_doc_org_doc_number", IsUnique = true)]
 public partial class FaRevaluationDoc
 {
@@ -61,6 +63,12 @@ public partial class FaRevaluationDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("revaluation_reserve_account_id")]
+    public int? RevaluationReserveAccountId { get; set; }
+
+    [Column("revaluation_loss_account_id")]
+    public int? RevaluationLossAccountId { get; set; }
+
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("FaRevaluationDocCancelledByUsers")]
     public virtual SysUser? CancelledByUser { get; set; }
@@ -79,6 +87,14 @@ public partial class FaRevaluationDoc
     [ForeignKey("PostedByUserId")]
     [InverseProperty("FaRevaluationDocPostedByUsers")]
     public virtual SysUser? PostedByUser { get; set; }
+
+    [ForeignKey("RevaluationLossAccountId")]
+    [InverseProperty("FaRevaluationDocRevaluationLossAccounts")]
+    public virtual AccChartAccount? RevaluationLossAccount { get; set; }
+
+    [ForeignKey("RevaluationReserveAccountId")]
+    [InverseProperty("FaRevaluationDocRevaluationReserveAccounts")]
+    public virtual AccChartAccount? RevaluationReserveAccount { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("FaRevaluationDocs")]

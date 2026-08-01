@@ -5,13 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("fa_receipt_doc")]
-[Index("OrganizationId", "DocNumber", Name = "ux_fa_receipt_doc_org_doc_number", IsUnique = true)]
-[Index("CounterpartyId", Name = "idx_fa_receipt_doc_counterparty_id")]
-[Index("WarehouseId", Name = "idx_fa_receipt_doc_warehouse_id")]
-[Index("CurrencyId", Name = "idx_fa_receipt_doc_currency_id")]
-[Index("StatusId", Name = "idx_fa_receipt_doc_status_id")]
-[Index("StateId", Name = "idx_fa_receipt_doc_state_id")]
-[Index("DocDate", Name = "idx_fa_receipt_doc_doc_date")]
 public partial class FaReceiptDoc
 {
     [Key]
@@ -76,6 +69,13 @@ public partial class FaReceiptDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [Column("supplier_account_id")]
+    public int? SupplierAccountId { get; set; }
+
+    [ForeignKey(nameof(SupplierAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocs))]
+    public virtual ChartAccount? SupplierAccount { get; set; }
 
     [ForeignKey("CounterpartyId")]
     public virtual CounterpartyCard? Counterparty { get; set; }

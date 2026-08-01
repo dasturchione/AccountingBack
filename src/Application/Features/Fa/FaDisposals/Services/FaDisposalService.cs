@@ -83,6 +83,11 @@ public class FaDisposalService : BaseService, IFaDisposalService
                 DisposalDate = NormalizeDateTime(dto.DisposalDate),
                 DisposalType = dto.DisposalType.Trim().ToUpperInvariant(),
                 Reason = dto.Reason?.Trim(),
+                DisposalAccountId = dto.DisposalAccountId,
+                CustomerAccountId = dto.CustomerAccountId,
+                VatAccountId = dto.VatAccountId,
+                GainAccountId = dto.GainAccountId,
+                LossAccountId = dto.LossAccountId,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 CreatedDate = now,
                 CreatedByUserId = _userContext.Id,
@@ -137,6 +142,11 @@ public class FaDisposalService : BaseService, IFaDisposalService
             doc.DisposalDate = NormalizeDateTime(dto.DisposalDate);
             doc.DisposalType = dto.DisposalType.Trim().ToUpperInvariant();
             doc.Reason = dto.Reason?.Trim();
+            doc.DisposalAccountId = dto.DisposalAccountId;
+            doc.CustomerAccountId = dto.CustomerAccountId;
+            doc.VatAccountId = dto.VatAccountId;
+            doc.GainAccountId = dto.GainAccountId;
+            doc.LossAccountId = dto.LossAccountId;
             doc.StateId = dto.StateId;
             doc.UpdatedDate = DateTime.Now;
             doc.UpdatedByUserId = _userContext.Id;
@@ -203,7 +213,9 @@ public class FaDisposalService : BaseService, IFaDisposalService
             {
                 FaAssetId = asset.Id,
                 SaleAmount = lineDto.SaleAmount,
-                Note = lineDto.Note?.Trim()
+                Note = lineDto.Note?.Trim(),
+                AssetAccountId = lineDto.AssetAccountId,
+                AccumulatedDepreciationAccountId = lineDto.AccumulatedDepreciationAccountId
             });
         }
 

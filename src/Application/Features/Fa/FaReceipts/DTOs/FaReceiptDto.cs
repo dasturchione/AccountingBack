@@ -1,6 +1,6 @@
 namespace Application.Features.FaReceipts;
 
-public class FaReceiptDto
+public partial class FaReceiptDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -30,7 +30,7 @@ public class FaReceiptDto
     public List<FaReceiptLineDto> Lines { get; set; } = new();
 }
 
-public class FaReceiptLineDto
+public partial class FaReceiptLineDto
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
@@ -47,7 +47,7 @@ public class FaReceiptLineDto
     public List<FaReceiptAssetDto> Assets { get; set; } = new();
 }
 
-public class FaReceiptAssetDto
+public partial class FaReceiptAssetDto
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }

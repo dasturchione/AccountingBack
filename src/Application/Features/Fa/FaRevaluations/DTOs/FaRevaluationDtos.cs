@@ -1,6 +1,6 @@
 namespace Application.Features.FaRevaluations;
 
-public class FaRevaluationBaseDto
+public partial class FaRevaluationBaseDto
 {
     public DateTime RevaluationDate { get; set; }
     public string? Reason { get; set; }
@@ -11,14 +11,14 @@ public class FaRevaluationBaseDto
 public sealed class FaRevaluationCreateDto : FaRevaluationBaseDto;
 public sealed class FaRevaluationUpdateDto : FaRevaluationBaseDto;
 
-public class FaRevaluationLineWriteDto
+public partial class FaRevaluationLineWriteDto
 {
     public long FaAssetId { get; set; }
     public decimal NewValue { get; set; }
     public string? Note { get; set; }
 }
 
-public class FaRevaluationDto
+public partial class FaRevaluationDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -44,7 +44,7 @@ public class FaRevaluationDto
 
 public sealed class FaRevaluationListDto : FaRevaluationDto;
 
-public class FaRevaluationLineDto
+public partial class FaRevaluationLineDto
 {
     public long Id { get; set; }
     public long RevaluationDocId { get; set; }

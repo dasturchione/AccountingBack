@@ -1,6 +1,6 @@
 namespace Application.Features.FaDisposals;
 
-public class FaDisposalBaseDto
+public partial class FaDisposalBaseDto
 {
     public DateTime DisposalDate { get; set; }
     public string DisposalType { get; set; } = null!;
@@ -12,14 +12,14 @@ public class FaDisposalBaseDto
 public sealed class FaDisposalCreateDto : FaDisposalBaseDto;
 public sealed class FaDisposalUpdateDto : FaDisposalBaseDto;
 
-public class FaDisposalLineWriteDto
+public partial class FaDisposalLineWriteDto
 {
     public long FaAssetId { get; set; }
     public decimal SaleAmount { get; set; }
     public string? Note { get; set; }
 }
 
-public class FaDisposalDto
+public partial class FaDisposalDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -48,7 +48,7 @@ public class FaDisposalDto
 
 public sealed class FaDisposalListDto : FaDisposalDto;
 
-public class FaDisposalLineDto
+public partial class FaDisposalLineDto
 {
     public long Id { get; set; }
     public long DisposalDocId { get; set; }

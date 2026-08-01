@@ -39,6 +39,8 @@ public class FaDepreciationRunDtoProjection : IProjectionBuilder<FaDepreciationR
                 DepreciationMethodCode = line.FaAsset.DepreciationMethod.Code,
                 DepreciationMethodName = line.FaAsset.DepreciationMethod.Name,
                 Amount = line.Amount,
+                ExpenseAccountId = line.ExpenseAccountId,
+                AccumulatedDepreciationAccountId = line.AccumulatedDepreciationAccountId,
                 Note = line.Note
             }).ToList()
         };

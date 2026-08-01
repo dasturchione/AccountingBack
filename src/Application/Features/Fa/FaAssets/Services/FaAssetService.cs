@@ -84,6 +84,9 @@ public class FaAssetService : BaseService, IFaAssetService
                 SourceProductTableId = dto.SourceProductTableId,
                 DepartmentId = dto.DepartmentId,
                 ResponsibleUserId = dto.ResponsibleUserId,
+                AssetAccountId = dto.AssetAccountId,
+                AccumulatedDepreciationAccountId = dto.AccumulatedDepreciationAccountId,
+                DepreciationExpenseAccountId = dto.DepreciationExpenseAccountId,
                 StatusId = FaAssetStatusIdConst.DRAFT,
                 CreatedDate = DateTime.Now,
                 UpdatedDate = DateTime.Now
@@ -126,6 +129,9 @@ public class FaAssetService : BaseService, IFaAssetService
             entity.SourceProductTableId = dto.SourceProductTableId;
             entity.DepartmentId = dto.DepartmentId;
             entity.ResponsibleUserId = dto.ResponsibleUserId;
+            entity.AssetAccountId = dto.AssetAccountId;
+            entity.AccumulatedDepreciationAccountId = dto.AccumulatedDepreciationAccountId;
+            entity.DepreciationExpenseAccountId = dto.DepreciationExpenseAccountId;
             entity.StateId = dto.StateId;
             entity.StatusId = dto.StatusId;
             entity.UpdatedDate = DateTime.Now;

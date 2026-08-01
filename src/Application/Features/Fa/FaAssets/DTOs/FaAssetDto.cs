@@ -1,6 +1,6 @@
 namespace Application.Features.FaAssets;
 
-public class FaAssetDto
+public partial class FaAssetDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }

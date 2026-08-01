@@ -31,7 +31,7 @@ public class FaDepreciationRunDto
 
 public sealed class FaDepreciationRunListDto : FaDepreciationRunDto;
 
-public class FaDepreciationRunLineDto
+public partial class FaDepreciationRunLineDto
 {
     public long Id { get; set; }
     public long DepreciationRunId { get; set; }

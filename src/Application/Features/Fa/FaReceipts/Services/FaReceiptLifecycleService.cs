@@ -119,6 +119,9 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                         PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal,
                         DepartmentId = receiptAsset.DepartmentId,
                         ResponsibleUserId = receiptAsset.ResponsibleUserId,
+                        AssetAccountId = receiptAsset.AssetAccountId,
+                        AccumulatedDepreciationAccountId = receiptAsset.AccumulatedDepreciationAccountId,
+                        DepreciationExpenseAccountId = receiptAsset.DepreciationExpenseAccountId,
                         StatusId = FaAssetStatusIdConst.ACTIVE,
                         CreatedDate = now,
                         UpdatedDate = now
@@ -144,6 +147,9 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                     asset.PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal;
                     asset.DepartmentId = receiptAsset.DepartmentId;
                     asset.ResponsibleUserId = receiptAsset.ResponsibleUserId;
+                    asset.AssetAccountId = receiptAsset.AssetAccountId;
+                    asset.AccumulatedDepreciationAccountId = receiptAsset.AccumulatedDepreciationAccountId;
+                    asset.DepreciationExpenseAccountId = receiptAsset.DepreciationExpenseAccountId;
                     asset.StatusId = FaAssetStatusIdConst.ACTIVE;
                     asset.UpdatedDate = now;
 

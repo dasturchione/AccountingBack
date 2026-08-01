@@ -26,6 +26,7 @@ public class FaReceiptDtoProjection : IProjectionBuilder<FaReceiptDoc, FaReceipt
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             ReceiptType = x.ReceiptType,
+            SupplierAccountId = x.SupplierAccountId,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,
@@ -48,6 +49,8 @@ public class FaReceiptDtoProjection : IProjectionBuilder<FaReceiptDoc, FaReceipt
                 VatRateName = line.VatRate != null ? line.VatRate.Name : null,
                 VatAmount = line.VatAmount,
                 TotalAmount = line.TotalAmount,
+                CapitalInvestmentAccountId = line.CapitalInvestmentAccountId,
+                VatAccountId = line.VatAccountId,
                 Assets = line.Assets.Select(asset => new FaReceiptAssetDto
                 {
                     Id = asset.Id,
@@ -73,6 +76,9 @@ public class FaReceiptDtoProjection : IProjectionBuilder<FaReceiptDoc, FaReceipt
                     DepartmentId = asset.DepartmentId,
                     DepartmentName = asset.Department != null ? asset.Department.Name : null,
                     ResponsibleUserId = asset.ResponsibleUserId,
+                    AssetAccountId = asset.AssetAccountId,
+                    AccumulatedDepreciationAccountId = asset.AccumulatedDepreciationAccountId,
+                    DepreciationExpenseAccountId = asset.DepreciationExpenseAccountId,
                     ResponsibleUserName = asset.ResponsibleUser != null
                         ? asset.ResponsibleUser.FirstName + " " + asset.ResponsibleUser.LastName
                         : null

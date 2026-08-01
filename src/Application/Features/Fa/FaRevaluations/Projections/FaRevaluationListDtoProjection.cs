@@ -17,6 +17,8 @@ public class FaRevaluationListDtoProjection : IProjectionBuilder<FaRevaluationDo
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             Reason = x.Reason,
+            RevaluationReserveAccountId = x.RevaluationReserveAccountId,
+            RevaluationLossAccountId = x.RevaluationLossAccountId,
             StateId = x.StateId,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate,

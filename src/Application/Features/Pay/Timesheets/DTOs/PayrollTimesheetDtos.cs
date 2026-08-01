@@ -55,6 +55,7 @@ public sealed class PayrollTimesheetDto : PayrollTimesheetListDto
     public DateTime? PostedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
     public List<PayrollTimesheetLineDto> Lines { get; set; } = [];
+    public PayrollTimesheetCalendarDto? Calendar { get; set; }
 }
 
 public sealed class PayrollTimesheetLineDto : PayrollTimesheetLineSaveDto

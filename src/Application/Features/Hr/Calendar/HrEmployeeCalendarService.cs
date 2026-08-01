@@ -89,6 +89,38 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
             return Result.Success(result);
         });
 
+    public Task<Result<List<HrEmployeeCalendarDto>>> GetManyAsync(
+        IReadOnlyCollection<long> employeeIds,
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetManyAsync), async () =>
+        {
+            var rangeValidation = ValidateRange(dateFrom, dateTo);
+            if (!rangeValidation.IsSuccess)
+                return Result.Failure<List<HrEmployeeCalendarDto>>(rangeValidation.Error);
+
+            var ids = employeeIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return Result.Success(new List<HrEmployeeCalendarDto>());
+
+            var sourcesResult = await LoadSourcesAsync(ids, dateFrom, dateTo, ct);
+            if (!sourcesResult.IsSuccess)
+                return Result.Failure<List<HrEmployeeCalendarDto>>(sourcesResult.Error);
+
+            var sources = sourcesResult.Value;
+            var missingId = ids.FirstOrDefault(id => !sources.Employees.ContainsKey(id));
+            if (missingId > 0)
+                return Result.Failure<List<HrEmployeeCalendarDto>>(HrErrors.NotFound("Employee", missingId));
+
+            var result = ids
+                .Select(id => Build(sources.Employees[id], sources, dateFrom, dateTo))
+                .OrderBy(x => x.EmployeeName)
+                .ThenBy(x => x.EmployeeNumber)
+                .ToList();
+            return Result.Success(result);
+        });
+
     private async Task<Result<CalendarSources>> LoadSourcesAsync(
         IReadOnlyCollection<long> employeeIds,
         DateOnly dateFrom,

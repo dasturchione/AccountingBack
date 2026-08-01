@@ -1,14 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("fa_revaluation_doc")]
-[Index("OrganizationId", "DocNumber", Name = "ux_fa_revaluation_doc_org_doc_number", IsUnique = true)]
-[Index("StateId", Name = "idx_fa_revaluation_doc_state_id")]
-[Index("StatusId", Name = "idx_fa_revaluation_doc_status_id")]
-[Index("RevaluationDate", Name = "idx_fa_revaluation_doc_date")]
 public partial class FaRevaluationDoc
 {
     [Key]
@@ -58,6 +53,20 @@ public partial class FaRevaluationDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [Column("revaluation_reserve_account_id")]
+    public int? RevaluationReserveAccountId { get; set; }
+
+    [Column("revaluation_loss_account_id")]
+    public int? RevaluationLossAccountId { get; set; }
+
+    [ForeignKey(nameof(RevaluationReserveAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaRevaluationDocRevaluationReserveAccounts))]
+    public virtual ChartAccount? RevaluationReserveAccount { get; set; }
+
+    [ForeignKey(nameof(RevaluationLossAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaRevaluationDocRevaluationLossAccounts))]
+    public virtual ChartAccount? RevaluationLossAccount { get; set; }
 
     [ForeignKey("CreatedByUserId")]
     public virtual User? CreatedByUser { get; set; }

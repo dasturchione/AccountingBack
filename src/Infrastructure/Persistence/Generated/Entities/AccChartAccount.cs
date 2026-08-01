@@ -94,6 +94,72 @@ public partial class AccChartAccount
     [InverseProperty("OffsetAccount")]
     public virtual ICollection<CashOperation> CashOperationOffsetAccounts { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("AccumulatedDepreciationAccount")]
+    public virtual ICollection<FaAsset> FaAssetAccumulatedDepreciationAccounts { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("AssetAccount")]
+    public virtual ICollection<FaAsset> FaAssetAssetAccounts { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("DepreciationExpenseAccount")]
+    public virtual ICollection<FaAsset> FaAssetDepreciationExpenseAccounts { get; set; } = new List<FaAsset>();
+
+    [InverseProperty("AccumulatedDepreciationAccount")]
+    public virtual ICollection<FaDepreciationRunLine> FaDepreciationRunLineAccumulatedDepreciationAccounts { get; set; } = new List<FaDepreciationRunLine>();
+
+    [InverseProperty("ExpenseAccount")]
+    public virtual ICollection<FaDepreciationRunLine> FaDepreciationRunLineExpenseAccounts { get; set; } = new List<FaDepreciationRunLine>();
+
+    [InverseProperty("CustomerAccount")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocCustomerAccounts { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("DisposalAccount")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocDisposalAccounts { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("GainAccount")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocGainAccounts { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("AccumulatedDepreciationAccount")]
+    public virtual ICollection<FaDisposalDocLine> FaDisposalDocLineAccumulatedDepreciationAccounts { get; set; } = new List<FaDisposalDocLine>();
+
+    [InverseProperty("AssetAccount")]
+    public virtual ICollection<FaDisposalDocLine> FaDisposalDocLineAssetAccounts { get; set; } = new List<FaDisposalDocLine>();
+
+    [InverseProperty("LossAccount")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocLossAccounts { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("VatAccount")]
+    public virtual ICollection<FaDisposalDoc> FaDisposalDocVatAccounts { get; set; } = new List<FaDisposalDoc>();
+
+    [InverseProperty("AccumulatedDepreciationAccount")]
+    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssetAccumulatedDepreciationAccounts { get; set; } = new List<FaReceiptDocAsset>();
+
+    [InverseProperty("AssetAccount")]
+    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssetAssetAccounts { get; set; } = new List<FaReceiptDocAsset>();
+
+    [InverseProperty("DepreciationExpenseAccount")]
+    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssetDepreciationExpenseAccounts { get; set; } = new List<FaReceiptDocAsset>();
+
+    [InverseProperty("CapitalInvestmentAccount")]
+    public virtual ICollection<FaReceiptDocLine> FaReceiptDocLineCapitalInvestmentAccounts { get; set; } = new List<FaReceiptDocLine>();
+
+    [InverseProperty("VatAccount")]
+    public virtual ICollection<FaReceiptDocLine> FaReceiptDocLineVatAccounts { get; set; } = new List<FaReceiptDocLine>();
+
+    [InverseProperty("SupplierAccount")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty("AccumulatedDepreciationAccount")]
+    public virtual ICollection<FaRevaluationDocLine> FaRevaluationDocLineAccumulatedDepreciationAccounts { get; set; } = new List<FaRevaluationDocLine>();
+
+    [InverseProperty("AssetAccount")]
+    public virtual ICollection<FaRevaluationDocLine> FaRevaluationDocLineAssetAccounts { get; set; } = new List<FaRevaluationDocLine>();
+
+    [InverseProperty("RevaluationLossAccount")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocRevaluationLossAccounts { get; set; } = new List<FaRevaluationDoc>();
+
+    [InverseProperty("RevaluationReserveAccount")]
+    public virtual ICollection<FaRevaluationDoc> FaRevaluationDocRevaluationReserveAccounts { get; set; } = new List<FaRevaluationDoc>();
+
     [InverseProperty("DebitAccount")]
     public virtual ICollection<InvOpeningInventoryProduct> InvOpeningInventoryProducts { get; set; } = new List<InvOpeningInventoryProduct>();
 

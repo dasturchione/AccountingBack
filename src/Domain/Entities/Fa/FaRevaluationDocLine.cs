@@ -1,13 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("fa_revaluation_doc_line")]
-[Index("RevaluationDocId", Name = "idx_fa_revaluation_doc_line_doc_id")]
-[Index("FaAssetId", Name = "idx_fa_revaluation_doc_line_fa_asset_id")]
-[Index("RevaluationDocId", "FaAssetId", Name = "ux_fa_revaluation_doc_line_doc_asset", IsUnique = true)]
 public partial class FaRevaluationDocLine
 {
     [Key]
@@ -32,6 +28,20 @@ public partial class FaRevaluationDocLine
     [Column("note")]
     [StringLength(500)]
     public string? Note { get; set; }
+
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [ForeignKey(nameof(AssetAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaRevaluationDocLineAssetAccounts))]
+    public virtual ChartAccount? AssetAccount { get; set; }
+
+    [ForeignKey(nameof(AccumulatedDepreciationAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaRevaluationDocLineAccumulatedDepreciationAccounts))]
+    public virtual ChartAccount? AccumulatedDepreciationAccount { get; set; }
 
     [ForeignKey("FaAssetId")]
     public virtual FaAsset FaAsset { get; set; } = null!;

@@ -144,6 +144,21 @@ public partial class SysUser
     [InverseProperty("UpdatedByUser")]
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocUpdatedByUsers { get; set; } = new List<FaRevaluationDoc>();
 
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<HrAbsenceAttachment> HrAbsenceAttachments { get; set; } = new List<HrAbsenceAttachment>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<HrAbsence> HrAbsenceCreatedByUsers { get; set; } = new List<HrAbsence>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<HrAbsence> HrAbsenceUpdatedByUsers { get; set; } = new List<HrAbsence>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<HrEmployeeWorkSchedule> HrEmployeeWorkScheduleCreatedByUsers { get; set; } = new List<HrEmployeeWorkSchedule>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<HrEmployeeWorkSchedule> HrEmployeeWorkScheduleUpdatedByUsers { get; set; } = new List<HrEmployeeWorkSchedule>();
+
     [InverseProperty("CancelledByUser")]
     public virtual ICollection<InvOpeningInventory> InvOpeningInventoryCancelledByUsers { get; set; } = new List<InvOpeningInventory>();
 

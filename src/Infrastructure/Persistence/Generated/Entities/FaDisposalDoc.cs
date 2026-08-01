@@ -11,6 +11,11 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("StateId", Name = "idx_fa_disposal_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_disposal_doc_status_id")]
 [Index("DisposalType", Name = "idx_fa_disposal_doc_type")]
+[Index("CustomerAccountId", Name = "ix_fa_disposal_doc_customer_account")]
+[Index("DisposalAccountId", Name = "ix_fa_disposal_doc_disposal_account")]
+[Index("GainAccountId", Name = "ix_fa_disposal_doc_gain_account")]
+[Index("LossAccountId", Name = "ix_fa_disposal_doc_loss_account")]
+[Index("VatAccountId", Name = "ix_fa_disposal_doc_vat_account")]
 [Index("OrganizationId", "DocNumber", Name = "ux_fa_disposal_doc_org_doc_number", IsUnique = true)]
 public partial class FaDisposalDoc
 {
@@ -66,6 +71,21 @@ public partial class FaDisposalDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("disposal_account_id")]
+    public int? DisposalAccountId { get; set; }
+
+    [Column("customer_account_id")]
+    public int? CustomerAccountId { get; set; }
+
+    [Column("vat_account_id")]
+    public int? VatAccountId { get; set; }
+
+    [Column("gain_account_id")]
+    public int? GainAccountId { get; set; }
+
+    [Column("loss_account_id")]
+    public int? LossAccountId { get; set; }
+
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("FaDisposalDocCancelledByUsers")]
     public virtual SysUser? CancelledByUser { get; set; }
@@ -74,8 +94,24 @@ public partial class FaDisposalDoc
     [InverseProperty("FaDisposalDocCreatedByUsers")]
     public virtual SysUser? CreatedByUser { get; set; }
 
+    [ForeignKey("CustomerAccountId")]
+    [InverseProperty("FaDisposalDocCustomerAccounts")]
+    public virtual AccChartAccount? CustomerAccount { get; set; }
+
+    [ForeignKey("DisposalAccountId")]
+    [InverseProperty("FaDisposalDocDisposalAccounts")]
+    public virtual AccChartAccount? DisposalAccount { get; set; }
+
     [InverseProperty("DisposalDoc")]
     public virtual ICollection<FaDisposalDocLine> FaDisposalDocLines { get; set; } = new List<FaDisposalDocLine>();
+
+    [ForeignKey("GainAccountId")]
+    [InverseProperty("FaDisposalDocGainAccounts")]
+    public virtual AccChartAccount? GainAccount { get; set; }
+
+    [ForeignKey("LossAccountId")]
+    [InverseProperty("FaDisposalDocLossAccounts")]
+    public virtual AccChartAccount? LossAccount { get; set; }
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("FaDisposalDocs")]
@@ -96,4 +132,8 @@ public partial class FaDisposalDoc
     [ForeignKey("UpdatedByUserId")]
     [InverseProperty("FaDisposalDocUpdatedByUsers")]
     public virtual SysUser? UpdatedByUser { get; set; }
+
+    [ForeignKey("VatAccountId")]
+    [InverseProperty("FaDisposalDocVatAccounts")]
+    public virtual AccChartAccount? VatAccount { get; set; }
 }

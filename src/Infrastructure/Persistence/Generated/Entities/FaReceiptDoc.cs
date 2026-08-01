@@ -13,6 +13,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("StateId", Name = "idx_fa_receipt_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_receipt_doc_status_id")]
 [Index("WarehouseId", Name = "idx_fa_receipt_doc_warehouse_id")]
+[Index("SupplierAccountId", Name = "ix_fa_receipt_doc_supplier_account")]
 [Index("OrganizationId", "DocNumber", Name = "ux_fa_receipt_doc_org_doc_number", IsUnique = true)]
 public partial class FaReceiptDoc
 {
@@ -79,6 +80,9 @@ public partial class FaReceiptDoc
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
 
+    [Column("supplier_account_id")]
+    public int? SupplierAccountId { get; set; }
+
     [ForeignKey("CounterpartyId")]
     [InverseProperty("FaReceiptDocs")]
     public virtual CounterpartyCard? Counterparty { get; set; }
@@ -101,6 +105,10 @@ public partial class FaReceiptDoc
     [ForeignKey("StatusId")]
     [InverseProperty("FaReceiptDocs")]
     public virtual CmnDocumentStatus Status { get; set; } = null!;
+
+    [ForeignKey("SupplierAccountId")]
+    [InverseProperty("FaReceiptDocs")]
+    public virtual AccChartAccount? SupplierAccount { get; set; }
 
     [ForeignKey("WarehouseId")]
     [InverseProperty("FaReceiptDocs")]

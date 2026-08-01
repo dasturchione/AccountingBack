@@ -78,6 +78,12 @@ public partial class PayEmployee
     [InverseProperty("PayEmployeeCreatedByUsers")]
     public virtual SysUser? CreatedByUser { get; set; }
 
+    [InverseProperty("Employee")]
+    public virtual ICollection<HrAbsence> HrAbsences { get; set; } = new List<HrAbsence>();
+
+    [InverseProperty("Employee")]
+    public virtual ICollection<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; } = new List<HrEmployeeWorkSchedule>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("PayEmployees")]
     public virtual OrgOrganization Organization { get; set; } = null!;

@@ -14,6 +14,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("OkofId", Name = "idx_fa_receipt_doc_asset_okof_id")]
 [Index("OwnerId", Name = "idx_fa_receipt_doc_asset_owner_id")]
 [Index("ResponsibleUserId", Name = "idx_fa_receipt_doc_asset_responsible_user_id")]
+[Index("AccumulatedDepreciationAccountId", Name = "ix_fa_receipt_asset_accum_depr_account")]
+[Index("AssetAccountId", Name = "ix_fa_receipt_asset_asset_account")]
+[Index("DepreciationExpenseAccountId", Name = "ix_fa_receipt_asset_depr_exp_account")]
 public partial class FaReceiptDocAsset
 {
     [Key]
@@ -70,9 +73,30 @@ public partial class FaReceiptDocAsset
     [Column("responsible_user_id")]
     public int? ResponsibleUserId { get; set; }
 
+    [Column("asset_account_id")]
+    public int? AssetAccountId { get; set; }
+
+    [Column("accumulated_depreciation_account_id")]
+    public int? AccumulatedDepreciationAccountId { get; set; }
+
+    [Column("depreciation_expense_account_id")]
+    public int? DepreciationExpenseAccountId { get; set; }
+
+    [ForeignKey("AccumulatedDepreciationAccountId")]
+    [InverseProperty("FaReceiptDocAssetAccumulatedDepreciationAccounts")]
+    public virtual AccChartAccount? AccumulatedDepreciationAccount { get; set; }
+
+    [ForeignKey("AssetAccountId")]
+    [InverseProperty("FaReceiptDocAssetAssetAccounts")]
+    public virtual AccChartAccount? AssetAccount { get; set; }
+
     [ForeignKey("DepartmentId")]
     [InverseProperty("FaReceiptDocAssets")]
     public virtual OrgDepartment? Department { get; set; }
+
+    [ForeignKey("DepreciationExpenseAccountId")]
+    [InverseProperty("FaReceiptDocAssetDepreciationExpenseAccounts")]
+    public virtual AccChartAccount? DepreciationExpenseAccount { get; set; }
 
     [ForeignKey("DepreciationMethodId")]
     [InverseProperty("FaReceiptDocAssets")]

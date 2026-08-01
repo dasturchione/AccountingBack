@@ -158,6 +158,18 @@ public partial class OrgOrganization
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<HrAbsenceAttachment> HrAbsenceAttachments { get; set; } = new List<HrAbsenceAttachment>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<HrAbsence> HrAbsences { get; set; } = new List<HrAbsence>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<HrEmployeeWorkScheduleDay> HrEmployeeWorkScheduleDays { get; set; } = new List<HrEmployeeWorkScheduleDay>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; } = new List<HrEmployeeWorkSchedule>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<IdempotencyRecord> IdempotencyRecords { get; set; } = new List<IdempotencyRecord>();
 
     [InverseProperty("Organization")]

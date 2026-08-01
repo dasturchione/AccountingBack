@@ -186,6 +186,16 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaRevaluationDocLine> FaRevaluationDocLines { get; set; }
 
+    public virtual DbSet<HrAbsence> HrAbsences { get; set; }
+
+    public virtual DbSet<HrAbsenceAttachment> HrAbsenceAttachments { get; set; }
+
+    public virtual DbSet<HrAbsenceType> HrAbsenceTypes { get; set; }
+
+    public virtual DbSet<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; }
+
+    public virtual DbSet<HrEmployeeWorkScheduleDay> HrEmployeeWorkScheduleDays { get; set; }
+
     public virtual DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
 
     public virtual DbSet<IntegrationCredential> IntegrationCredentials { get; set; }
@@ -631,6 +641,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<AccOpeningBalanceAccountDetail>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("acc_opening_balance_account_detail_pkey");
+
+            entity.HasIndex(e => new { e.SourceDocumentTypeId, e.SourceDocumentId }, "ix_acc_opening_balance_detail_source_document").HasFilter("((source_document_type_id IS NOT NULL) AND (source_document_id IS NOT NULL))");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.SortOrder).HasDefaultValue(1);
@@ -1469,7 +1481,19 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
 
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaAssetAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_asset_accumulated_depreciation_account_id_fkey");
+
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaAssetAssetAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_asset_asset_account_id_fkey");
+
             entity.HasOne(d => d.Department).WithMany(p => p.FaAssets).HasConstraintName("fa_asset_department_id_fkey");
+
+            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaAssetDepreciationExpenseAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_asset_depreciation_expense_account_id_fkey");
 
             entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1537,7 +1561,15 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaDepreciationRunLineAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_depreciation_run_line_accumulated_depreciation_account__fkey");
+
             entity.HasOne(d => d.DepreciationRun).WithMany(p => p.FaDepreciationRunLines).HasConstraintName("fa_depreciation_run_line_depreciation_run_id_fkey");
+
+            entity.HasOne(d => d.ExpenseAccount).WithMany(p => p.FaDepreciationRunLineExpenseAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_depreciation_run_line_expense_account_id_fkey");
 
             entity.HasOne(d => d.FaAsset).WithMany(p => p.FaDepreciationRunLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1556,6 +1588,22 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaDisposalDocCreatedByUsers).HasConstraintName("fa_disposal_doc_created_by_user_id_fkey");
 
+            entity.HasOne(d => d.CustomerAccount).WithMany(p => p.FaDisposalDocCustomerAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_customer_account_id_fkey");
+
+            entity.HasOne(d => d.DisposalAccount).WithMany(p => p.FaDisposalDocDisposalAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_disposal_account_id_fkey");
+
+            entity.HasOne(d => d.GainAccount).WithMany(p => p.FaDisposalDocGainAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_gain_account_id_fkey");
+
+            entity.HasOne(d => d.LossAccount).WithMany(p => p.FaDisposalDocLossAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_loss_account_id_fkey");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.FaDisposalDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_disposal_doc_organization_id_fkey");
@@ -1571,6 +1619,10 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fa_disposal_doc_status_id_fkey");
 
             entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaDisposalDocUpdatedByUsers).HasConstraintName("fa_disposal_doc_updated_by_user_id_fkey");
+
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.FaDisposalDocVatAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_vat_account_id_fkey");
         });
 
         modelBuilder.Entity<FaDisposalDocLine>(entity =>
@@ -1578,6 +1630,14 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("fa_disposal_doc_line_pkey");
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaDisposalDocLineAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_line_accumulated_depreciation_account_id_fkey");
+
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaDisposalDocLineAssetAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_disposal_doc_line_asset_account_id_fkey");
 
             entity.HasOne(d => d.DisposalDoc).WithMany(p => p.FaDisposalDocLines).HasConstraintName("fa_disposal_doc_line_disposal_doc_id_fkey");
 
@@ -1662,6 +1722,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_status_id_fkey");
 
+            entity.HasOne(d => d.SupplierAccount).WithMany(p => p.FaReceiptDocs)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_supplier_account_id_fkey");
+
             entity.HasOne(d => d.Warehouse).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_warehouse_id_fkey");
         });
 
@@ -1671,7 +1735,19 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaReceiptDocAssetAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_asset_accumulated_depreciation_account_id_fkey");
+
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaReceiptDocAssetAssetAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_asset_asset_account_id_fkey");
+
             entity.HasOne(d => d.Department).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_department_id_fkey");
+
+            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaReceiptDocAssetDepreciationExpenseAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_asset_depreciation_expense_account_id_fkey");
 
             entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaReceiptDocAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1696,9 +1772,17 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
+            entity.HasOne(d => d.CapitalInvestmentAccount).WithMany(p => p.FaReceiptDocLineCapitalInvestmentAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_line_capital_investment_account_id_fkey");
+
             entity.HasOne(d => d.Owner).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_owner_id_fkey");
 
             entity.HasOne(d => d.SourceProduct).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_source_product_id_fkey");
+
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.FaReceiptDocLineVatAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_receipt_doc_line_vat_account_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_vat_rate_id_fkey");
         });
@@ -1721,6 +1805,14 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaRevaluationDocPostedByUsers).HasConstraintName("fa_revaluation_doc_posted_by_user_id_fkey");
 
+            entity.HasOne(d => d.RevaluationLossAccount).WithMany(p => p.FaRevaluationDocRevaluationLossAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_revaluation_doc_revaluation_loss_account_id_fkey");
+
+            entity.HasOne(d => d.RevaluationReserveAccount).WithMany(p => p.FaRevaluationDocRevaluationReserveAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_revaluation_doc_revaluation_reserve_account_id_fkey");
+
             entity.HasOne(d => d.State).WithMany(p => p.FaRevaluationDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_revaluation_doc_state_id_fkey");
@@ -1738,11 +1830,109 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaRevaluationDocLineAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_revaluation_doc_line_accumulated_depreciation_account_i_fkey");
+
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaRevaluationDocLineAssetAccounts)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fa_revaluation_doc_line_asset_account_id_fkey");
+
             entity.HasOne(d => d.FaAsset).WithMany(p => p.FaRevaluationDocLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_revaluation_doc_line_fa_asset_id_fkey");
 
             entity.HasOne(d => d.RevaluationDoc).WithMany(p => p.FaRevaluationDocLines).HasConstraintName("fa_revaluation_doc_line_revaluation_doc_id_fkey");
+        });
+
+        modelBuilder.Entity<HrAbsence>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hr_absence_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.AbsenceType).WithMany(p => p.HrAbsences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_absence_type_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.HrAbsenceCreatedByUsers).HasConstraintName("hr_absence_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.HrAbsences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_employee_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.HrAbsences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.HrAbsences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_state_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.HrAbsenceUpdatedByUsers).HasConstraintName("hr_absence_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<HrAbsenceAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hr_absence_attachment_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Absence).WithMany(p => p.HrAbsenceAttachments).HasConstraintName("hr_absence_attachment_absence_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.HrAbsenceAttachments).HasConstraintName("hr_absence_attachment_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.HrAbsenceAttachments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_attachment_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<HrAbsenceType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hr_absence_type_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.State).WithMany(p => p.HrAbsenceTypes)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_absence_type_state_id_fkey");
+        });
+
+        modelBuilder.Entity<HrEmployeeWorkSchedule>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hr_employee_work_schedule_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.HrEmployeeWorkScheduleCreatedByUsers).HasConstraintName("hr_employee_work_schedule_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.HrEmployeeWorkSchedules)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_employee_work_schedule_employee_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.HrEmployeeWorkSchedules)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_employee_work_schedule_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.HrEmployeeWorkSchedules)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_employee_work_schedule_state_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.HrEmployeeWorkScheduleUpdatedByUsers).HasConstraintName("hr_employee_work_schedule_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<HrEmployeeWorkScheduleDay>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("hr_employee_work_schedule_day_pkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.HrEmployeeWorkScheduleDays)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("hr_employee_work_schedule_day_organization_id_fkey");
+
+            entity.HasOne(d => d.Schedule).WithMany(p => p.HrEmployeeWorkScheduleDays).HasConstraintName("hr_employee_work_schedule_day_schedule_id_fkey");
         });
 
         modelBuilder.Entity<IdempotencyRecord>(entity =>

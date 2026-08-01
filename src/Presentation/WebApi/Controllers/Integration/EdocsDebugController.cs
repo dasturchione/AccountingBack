@@ -12,6 +12,7 @@ namespace WebApi.Controllers.Integration;
 [Authorize]
 public sealed class EdocsDebugController(IEdocsDebugService service, IHostEnvironment environment) : ControllerBase
 {
+    // Deprecated/debug-only: common EDO API replacement yo'q. Development guard saqlanadi.
     [HttpGet("document/{id}")]
     public async Task<IResult> GetDocument(string id, CancellationToken ct = default)
     {

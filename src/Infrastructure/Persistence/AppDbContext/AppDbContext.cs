@@ -134,6 +134,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<HrAbsence> HrAbsences { get; set; }
     public virtual DbSet<HrAbsenceAttachment> HrAbsenceAttachments { get; set; }
     public virtual DbSet<Organization> Organizations { get; set; }
+    public virtual DbSet<OrganizationEdoProvider> OrganizationEdoProviders { get; set; }
     public virtual DbSet<OrganizationClaimRequest> OrganizationClaimRequests { get; set; }
     public virtual DbSet<OrganizationDefault> OrganizationDefaults { get; set; }
     public virtual DbSet<OrganizationSetupState> OrganizationSetupStates { get; set; }
@@ -184,6 +185,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; }
     public virtual DbSet<MarkingDidoxDocument> MarkingDidoxDocuments { get; set; }
     public virtual DbSet<IntegrationCredential> IntegrationCredentials { get; set; }
+    public virtual DbSet<EdoDocument> EdoDocuments { get; set; }
+    public virtual DbSet<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; }
+    public virtual DbSet<EdoAuthSigningSession> EdoAuthSigningSessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -401,6 +405,175 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(e => e.OrganizationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("integration_credential_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<OrganizationEdoProvider>(entity =>
+        {
+            entity.HasKey(e => e.OrganizationId)
+                .HasName("organization_edo_provider_pkey");
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()");
+
+            entity.Property(e => e.UpdatedDate)
+                .IsConcurrencyToken();
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_organization_edo_provider_provider",
+                "provider IN ('DIDOX', 'FAKTURA', 'EDOCS')"));
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("organization_edo_provider_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoAuthSigningSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId)
+                .HasName("edo_auth_signing_session_pkey");
+
+            entity.Property(e => e.SessionId)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.ChallengeId)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(e => e.ProviderChallengeId)
+                .HasMaxLength(256);
+
+            entity.Property(e => e.CertificateSerialNumber)
+                .HasMaxLength(256);
+
+            entity.Property(e => e.SigningMode)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()");
+
+            entity.Property(e => e.ConsumedAt)
+                .IsConcurrencyToken();
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Provider })
+                .HasDatabaseName("idx_edo_auth_signing_session_organization_provider");
+
+            entity.HasIndex(e => e.ExpiresAt)
+                .HasDatabaseName("idx_edo_auth_signing_session_expires_at");
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_edo_auth_signing_session_provider",
+                "provider IN ('DIDOX', 'FAKTURA', 'EDOCS')"));
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_auth_signing_session_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id)
+                .HasName("edo_document_pkey");
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(20)
+                .IsRequired();
+            entity.Property(e => e.Direction)
+                .HasMaxLength(10)
+                .IsRequired();
+            entity.Property(e => e.InternalDocumentType)
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(e => e.DocumentType)
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(e => e.Status)
+                .HasMaxLength(40)
+                .IsRequired();
+            entity.Property(e => e.ProviderStatusCode)
+                .HasMaxLength(100);
+            entity.Property(e => e.RejectReason)
+                .HasMaxLength(2000);
+            entity.Property(e => e.OperationType)
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Provider, e.ProviderDocumentId })
+                .HasDatabaseName("ux_edo_document_organization_provider_document")
+                .IsUnique()
+                .HasFilter("provider_document_id IS NOT NULL");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Provider, e.OperationType, e.IdempotencyKey })
+                .HasDatabaseName("ux_edo_document_organization_provider_operation_key")
+                .IsUnique()
+                .HasFilter("idempotency_key IS NOT NULL");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "ck_edo_document_provider",
+                    "provider IN ('DIDOX', 'FAKTURA', 'EDOCS')");
+                table.HasCheckConstraint(
+                    "ck_edo_document_direction",
+                    "direction IN ('OUTBOX', 'INBOX')");
+            });
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoDocumentSigningSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId)
+                .HasName("edo_document_signing_session_pkey");
+
+            entity.Property(e => e.SessionId)
+                .HasMaxLength(64)
+                .IsRequired();
+            entity.Property(e => e.Provider)
+                .HasMaxLength(20)
+                .IsRequired();
+            entity.Property(e => e.SigningMode)
+                .HasMaxLength(40)
+                .IsRequired();
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("now()");
+            entity.Property(e => e.ConsumedAt)
+                .IsConcurrencyToken();
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_document_signing_session_organization_id_fkey");
+
+            entity.HasOne(e => e.Document)
+                .WithMany()
+                .HasForeignKey(e => e.DocumentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_document_signing_session_document_id_fkey");
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_edo_document_signing_session_provider",
+                "provider IN ('DIDOX', 'FAKTURA', 'EDOCS')"));
         });
 
         modelBuilder.Entity<Warehouse>()

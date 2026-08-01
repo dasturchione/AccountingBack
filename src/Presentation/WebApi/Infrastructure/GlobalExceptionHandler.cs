@@ -29,6 +29,48 @@ namespace WebApi.Infrastructure
 
             var problemDetails = exception switch
             {
+                EdoOrganizationScopeRequiredException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                    Title = "OrganizationScopeRequired",
+                    Detail = "A current organization scope is required for this request."
+                },
+                EdoActiveProviderNotConfiguredException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                    Title = "EdoActiveProviderNotConfigured",
+                    Detail = "An active EDO provider is not configured for the current organization."
+                },
+                EdoCredentialNotConfiguredException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status422UnprocessableEntity,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.21",
+                    Title = "CredentialNotConfigured",
+                    Detail = "Organization-scoped credentials are not configured for the selected EDO provider."
+                },
+                EdoProviderNotFoundException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                    Title = "EdoProviderNotFound",
+                    Detail = "The requested EDO provider is not registered."
+                },
+                EdoCapabilityUnavailableException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status501NotImplemented,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.6.2",
+                    Title = "EdoCapabilityUnavailable",
+                    Detail = "The requested EDO capability is not available."
+                },
+                EdoAuthSigningSessionException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+                    Title = "EdoAuthSigningSessionInvalid",
+                    Detail = "The EDO authentication signing session is missing, expired, scoped differently, or already used."
+                },
                 OptimisticConcurrencyException concurrencyException => new ProblemDetails
                 {
                     Status = StatusCodes.Status409Conflict,

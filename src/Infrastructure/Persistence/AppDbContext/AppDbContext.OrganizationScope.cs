@@ -49,6 +49,10 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<PostingBatch>(modelBuilder);
             ApplyScopedFilter<DocumentSequence>(modelBuilder);
             ApplyScopedFilter<OrganizationSetupState>(modelBuilder);
+            ApplyScopedFilter<OrganizationEdoProvider>(modelBuilder);
+            ApplyScopedFilter<EdoDocument>(modelBuilder);
+            ApplyScopedFilter<EdoDocumentSigningSession>(modelBuilder);
+            ApplyScopedFilter<EdoAuthSigningSession>(modelBuilder);
             ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);
             ApplyScopedFilter<OrganizationDefault>(modelBuilder);
             ApplyScopedFilter<OrganizationUserInvitation>(modelBuilder);

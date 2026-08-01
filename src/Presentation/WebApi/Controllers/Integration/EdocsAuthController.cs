@@ -9,6 +9,8 @@ namespace WebApi.Controllers.Integration;
 [Authorize]
 public sealed class EdocsAuthController(IEdocsAuthService service) : ControllerBase
 {
+    // Deprecated: yangi clientlar /api/edo/auth/challenge va /api/edo/auth/complete
+    // common contractlaridan foydalanishi kerak; legacy response shakli saqlanadi.
     // 1-qadam: Edocs GET /authId/{serialNumber} ni proksi qiladi. Frontend qaytgan
     // authId'ni ЭЦП bilan imzolab, natijani /auth/complete ga yuboradi.
     [HttpGet("challenge")]

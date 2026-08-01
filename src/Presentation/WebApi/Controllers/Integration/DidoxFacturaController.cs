@@ -9,6 +9,8 @@ namespace WebApi.Controllers.Integration;
 [Authorize]
 public sealed class DidoxFacturaController(IDidoxFacturaService service) : ControllerBase
 {
+    // Deprecated: yangi clientlar /api/edo/outbox/facturas va /api/edo/outbox/{id}/sign
+    // common endpointlaridan foydalanishi kerak; legacy DTO va route'lar saqlanadi.
     [HttpPost("factura")]
     public async Task<IResult> CreateFactura([FromBody] DidoxFacturaCreateRequestDto request, CancellationToken ct = default)
         => Results.Ok(await service.CreateFacturaDocumentAsync(request, ct));

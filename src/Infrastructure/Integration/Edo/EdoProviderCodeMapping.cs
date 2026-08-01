@@ -1,7 +1,7 @@
 using Application.Abstractions.Integration.Edo;
 using SharedKernel.Constants;
 
-namespace Integration.Edo;
+namespace Integration.Edo.Mapping;
 
 public static class EdoProviderCodeMapping
 {

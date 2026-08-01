@@ -355,14 +355,14 @@ namespace Infrastructure
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();
 
-            services.Scan(scan => scan
-                .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
-                .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-                .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime());
+            //services.Scan(scan => scan
+            //    .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
+            //    .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
+            //        .AsImplementedInterfaces()
+            //        .WithScopedLifetime()
+            //    .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
+            //        .AsImplementedInterfaces()
+            //        .WithScopedLifetime());
 
             return services;
         }

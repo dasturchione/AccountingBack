@@ -68,11 +68,6 @@ public sealed class EdoProviderCapabilityDto
     public IReadOnlyCollection<EdoSigningMode> SigningModes { get; init; } = [];
 }
 
-public sealed class EdoActiveProviderRequestDto
-{
-    public EdoProviderCode ProviderCode { get; init; }
-}
-
 public sealed class EdoActiveProviderDto
 {
     public EdoProviderCode ProviderCode { get; init; }

@@ -1,8 +1,14 @@
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration.Edo;
+using Application.Features;
+using Application.Features.AuditLogs;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Exceptions;
+using SharedKernel.Constants;
+using SharedKernel.Results;
+using ApplicationSigningSession = Application.Abstractions.Integration.Edo.EdoDocumentSigningSession;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,9 +19,15 @@ public sealed class EdoOutboxService(
     IActiveEdoProviderResolver activeProviderResolver,
     IEdoDocumentStore documentStore,
     IEdoDocumentSigningSessionStore signingSessionStore,
-    ILogger<EdoOutboxService> logger) : IEdoOutboxService
+    IEdoIdempotencyService idempotencyService,
+    IAuditLogService auditLogService,
+    ILogger<EdoOutboxService> logger,
+    IUnitOfWork unitOfWork) : BaseService(logger, unitOfWork), IEdoOutboxService
 {
     private const string CreateOperationType = "FACTURA_CREATE";
+    private const string SignOperationType = "OUTBOX_SIGN";
+    private const string DocumentTable = "edo_document";
+    private const string SigningSessionTable = "edo_document_signing_session";
     private static readonly TimeSpan DocumentSigningSessionLifetime = TimeSpan.FromMinutes(5);
 
     public async Task<EdoOutboxCreateDto> CreateFacturaAsync(
@@ -27,6 +39,38 @@ public sealed class EdoOutboxService(
         EnsureCapability(provider, EdoCapabilityKind.CreateFactura);
 
         var idempotencyKey = RequireIdempotencyKey(request.IdempotencyKey);
+        var idempotency = await idempotencyService.TryCreateIdempotencyRecordAsync(
+            organizationId,
+            provider.Code,
+            CreateOperationType,
+            idempotencyKey,
+            ComputeCreateRequestHash(request),
+            ct: ct);
+        if (idempotency.IsReplay)
+        {
+            var replayDocument = !string.IsNullOrWhiteSpace(idempotency.ResultDocumentId)
+                ? await documentStore.FindByProviderDocumentIdAsync(
+                    organizationId,
+                    provider.Code,
+                    idempotency.ResultDocumentId,
+                    ct)
+                : null;
+            replayDocument ??= await documentStore.FindByIdempotencyAsync(
+                organizationId,
+                provider.Code,
+                CreateOperationType,
+                idempotencyKey,
+                ct);
+            if (replayDocument is null)
+                throw new InvalidOperationException("The completed EDO idempotency result is not available locally.");
+
+            return new EdoOutboxCreateDto
+            {
+                Document = MapDocument(replayDocument),
+                IsReplay = true
+            };
+        }
+
         var existing = await documentStore.FindByIdempotencyAsync(
             organizationId,
             provider.Code,
@@ -37,6 +81,14 @@ public sealed class EdoOutboxService(
         {
             if (existing.Status == EdoDocumentStatusCode.PENDING.ToString())
                 throw new InvalidOperationException("An EDO factura creation is already in progress for this idempotency key.");
+
+            await idempotencyService.CompleteIdempotencyAsync(
+                organizationId,
+                provider.Code,
+                CreateOperationType,
+                idempotency.Key,
+                existing.ProviderDocumentId ?? existing.Id.ToString(),
+                ct);
 
             return new EdoOutboxCreateDto
             {
@@ -63,7 +115,16 @@ public sealed class EdoOutboxService(
 
         try
         {
-            await documentStore.AddAsync(document, ct);
+            await ExecuteInTransactionAsync("CreatePendingDocument", async () =>
+            {
+                await documentStore.AddAsync(document, ct);
+                AuditCreatedDocument(auditLogService, document, provider.Code, "FACTURA_CREATE_PENDING");
+                await auditLogService.CreateAsync(
+                    DocumentTable,
+                    document.Id.ToString(),
+                    AuditLogOperationTypeConst.Create);
+                return Result.Success();
+            }, ct);
         }
         catch (UniqueConstraintViolationException)
         {
@@ -97,24 +158,45 @@ public sealed class EdoOutboxService(
         }
         catch (Exception ex)
         {
-            await MarkCreateFailureAsync(document.Id, organizationId, provider.Code, providerScopedKey, null, ex);
+            await MarkCreateFailureAsync(document.Id, organizationId, provider.Code, providerScopedKey, idempotency.Key, null, ex);
             throw;
         }
 
         try
         {
-            if (providerResult.Document.LegacyDocumentId is null
-                || providerResult.Document.LegacyDocumentId <= 0
-                || string.IsNullOrWhiteSpace(providerResult.Document.ProviderDocumentId))
+            if (string.IsNullOrWhiteSpace(providerResult.Document.ProviderDocumentId))
             {
-                throw new InvalidOperationException("The provider did not return a complete factura document identity.");
+                throw new InvalidOperationException("The provider did not return a provider factura document ID.");
             }
 
             document = await documentStore.GetAsync(organizationId, provider.Code, document.Id, CancellationToken.None)
                 ?? throw new InvalidOperationException("The pending EDO document disappeared before result persistence.");
 
+            var oldStatus = document.Status;
             ApplyProviderResult(document, providerResult.Document);
-            await documentStore.UpdateAsync(document, CancellationToken.None);
+            await ExecuteInTransactionAsync("PersistCreateResult", async () =>
+            {
+                await documentStore.UpdateAsync(document, CancellationToken.None);
+                AuditUpdatedDocument(
+                    auditLogService,
+                    document,
+                    provider.Code,
+                    "FACTURA_CREATE_RESULT",
+                    oldStatus,
+                    document.Status);
+                await auditLogService.CreateAsync(
+                    DocumentTable,
+                    document.Id.ToString(),
+                    AuditLogOperationTypeConst.Update);
+                await idempotencyService.CompleteIdempotencyAsync(
+                    organizationId,
+                    provider.Code,
+                    CreateOperationType,
+                    idempotency.Key,
+                    document.ProviderDocumentId ?? document.Id.ToString(),
+                    CancellationToken.None);
+                return Result.Success();
+            }, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -123,6 +205,7 @@ public sealed class EdoOutboxService(
                 organizationId,
                 provider.Code,
                 providerScopedKey,
+                idempotency.Key,
                 providerResult.Document.ProviderDocumentId,
                 ex);
             throw;
@@ -148,10 +231,16 @@ public sealed class EdoOutboxService(
             ?? throw new InvalidOperationException("The EDO document was not found in the current organization/provider scope.");
 
         if (document.Direction != EdoDirection.OUTBOX.ToString()
-            || document.LegacyDocumentId is null
             || string.IsNullOrWhiteSpace(document.ProviderDocumentId))
         {
             throw new InvalidOperationException("The EDO document is not ready for signing.");
+        }
+
+        if (provider.Code != EdoProviderCode.FAKTURA && document.LegacyDocumentId is null)
+        {
+            throw new IntegrationHttpException(
+                "The provider document has no numeric legacy ID required by the signing operation.",
+                502);
         }
 
         if (document.Status is nameof(EdoDocumentStatusCode.FAILED)
@@ -160,6 +249,20 @@ public sealed class EdoOutboxService(
             throw new InvalidOperationException("The EDO document requires reconciliation before signing.");
         }
 
+        var signIdempotencyKey = RequireIdempotencyKey(
+            request.IdempotencyKey,
+            "IdempotencyKey is required for EDO outbox signing.");
+        var signIdempotency = await idempotencyService.TryCreateIdempotencyRecordAsync(
+            organizationId,
+            provider.Code,
+            SignOperationType,
+            signIdempotencyKey,
+            ComputeSignRequestHash(id, request),
+            request.SigningSessionId,
+            ct);
+        if (signIdempotency.IsReplay)
+            return new EdoOutboxSignDto { Document = MapDocument(document) };
+
         var isDidoxChallengeRequest = provider.Code == EdoProviderCode.DIDOX
             && string.IsNullOrWhiteSpace(request.SigningSessionId)
             && string.IsNullOrWhiteSpace(request.PreparedPkcs7)
@@ -167,27 +270,66 @@ public sealed class EdoOutboxService(
 
         if (isDidoxChallengeRequest)
         {
-            var challenge = await provider.SignOutboxAsync(document.LegacyDocumentId.Value, request, ct);
+            EdoOutboxSignDto challenge;
+            try
+            {
+                challenge = await provider.SignOutboxAsync(document.LegacyDocumentId!.Value, request, ct);
+            }
+            catch
+            {
+                await idempotencyService.MarkFailedAsync(
+                    organizationId,
+                    provider.Code,
+                    SignOperationType,
+                    signIdempotency.Key,
+                    ct: CancellationToken.None);
+                throw;
+            }
             var providerSession = challenge.SigningSession
                 ?? throw new EdoCapabilityUnavailableException(
                     provider.Code.ToString(),
                     "SignChallenge",
                     EdoCapabilityStatus.UNKNOWN.ToString());
 
-            var session = await signingSessionStore.CreateAsync(
-                organizationId,
-                provider.Code,
-                document.Id,
-                providerSession.SigningMode,
-                providerSession.ExpiresAt ?? DateTimeOffset.UtcNow.Add(DocumentSigningSessionLifetime),
-                ct);
+            ApplicationSigningSession? session = null;
+            await ExecuteInTransactionAsync("CreateDocumentSigningSession", async () =>
+            {
+                session = await signingSessionStore.CreateAsync(
+                    organizationId,
+                    provider.Code,
+                    document.Id,
+                    providerSession.SigningMode,
+                    providerSession.ExpiresAt ?? DateTimeOffset.UtcNow.Add(DocumentSigningSessionLifetime),
+                    ct);
+                auditLogService.SetNewValues(new
+                {
+                    operation = "OUTBOX_SIGN_SESSION_CREATED",
+                    organizationId,
+                    providerCode = provider.Code.ToString(),
+                    documentId = document.Id,
+                    sessionId = session.SessionId,
+                    status = "CREATED"
+                });
+                await auditLogService.CreateAsync(
+                    SigningSessionTable,
+                    session.SessionId,
+                    AuditLogOperationTypeConst.Create);
+                await idempotencyService.SetReferenceAsync(
+                    organizationId,
+                    provider.Code,
+                    SignOperationType,
+                    signIdempotency.Key,
+                    session.SessionId,
+                    ct);
+                return Result.Success();
+            }, ct);
 
             return new EdoOutboxSignDto
             {
                 Document = MapDocument(document),
                 SigningSession = new EdoSigningSessionDto
                 {
-                    SessionId = session.SessionId,
+                    SessionId = session!.SessionId,
                     SigningMode = session.SigningMode,
                     DocumentId = document.Id.ToString(),
                     Payload = providerSession.Payload,
@@ -216,22 +358,87 @@ public sealed class EdoOutboxService(
 
         if (!string.IsNullOrWhiteSpace(request.SigningSessionId))
         {
-            await signingSessionStore.ConsumeAsync(
-                organizationId,
-                provider.Code,
-                document.Id,
-                request.SigningSessionId,
-                ct);
+            await ExecuteInTransactionAsync("ConsumeDocumentSigningSession", async () =>
+            {
+                await signingSessionStore.ConsumeAsync(
+                    organizationId,
+                    provider.Code,
+                    document.Id,
+                    request.SigningSessionId,
+                    ct);
+                auditLogService.SetOldValues(new
+                {
+                    operation = "OUTBOX_SIGN_SESSION_CONSUMED",
+                    organizationId,
+                    providerCode = provider.Code.ToString(),
+                    documentId = document.Id,
+                    sessionId = request.SigningSessionId,
+                    status = "CREATED"
+                });
+                auditLogService.SetNewValues(new
+                {
+                    operation = "OUTBOX_SIGN_SESSION_CONSUMED",
+                    organizationId,
+                    providerCode = provider.Code.ToString(),
+                    documentId = document.Id,
+                    sessionId = request.SigningSessionId,
+                    status = "CONSUMED"
+                });
+                await auditLogService.CreateAsync(
+                    SigningSessionTable,
+                    request.SigningSessionId,
+                    AuditLogOperationTypeConst.Update);
+                return Result.Success();
+            }, ct);
         }
 
-        var providerResult = await provider.SignOutboxAsync(document.LegacyDocumentId.Value, request, ct);
+        EdoOutboxSignDto providerResult;
+        try
+        {
+            providerResult = provider.Code == EdoProviderCode.FAKTURA
+                ? await provider.SignOutboxAsync(document.ProviderDocumentId!, request, ct)
+                : await provider.SignOutboxAsync(document.LegacyDocumentId!.Value, request, ct);
+        }
+        catch
+        {
+            await idempotencyService.MarkFailedAsync(
+                organizationId,
+                provider.Code,
+                SignOperationType,
+                signIdempotency.Key,
+                ct: CancellationToken.None);
+            throw;
+        }
 
         try
         {
             document = await documentStore.GetAsync(organizationId, provider.Code, id, CancellationToken.None)
                 ?? throw new InvalidOperationException("The EDO document disappeared during signing.");
+            var oldStatus = document.Status;
             ApplyProviderResult(document, providerResult.Document);
-            await documentStore.UpdateAsync(document, CancellationToken.None);
+            await ExecuteInTransactionAsync("PersistSignResult", async () =>
+            {
+                await documentStore.UpdateAsync(document, CancellationToken.None);
+                AuditUpdatedDocument(
+                    auditLogService,
+                    document,
+                    provider.Code,
+                    "OUTBOX_SIGN_RESULT",
+                    oldStatus,
+                    document.Status);
+                await auditLogService.CreateAsync(
+                    DocumentTable,
+                    document.Id.ToString(),
+                    AuditLogOperationTypeConst.Update);
+                await idempotencyService.CompleteIdempotencyAsync(
+                    organizationId,
+                    provider.Code,
+                    SignOperationType,
+                    signIdempotency.Key,
+                    document.ProviderDocumentId ?? document.Id.ToString(),
+                    CancellationToken.None);
+                return Result.Success();
+            }, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -239,6 +446,13 @@ public sealed class EdoOutboxService(
                 ex,
                 "EDO sign succeeded remotely but common EdoDocument {DocumentId} local status update failed. Manual reconciliation required.",
                 id);
+            await idempotencyService.MarkFailedAsync(
+                organizationId,
+                provider.Code,
+                SignOperationType,
+                signIdempotency.Key,
+                document.ProviderDocumentId,
+                CancellationToken.None);
             throw;
         }
 
@@ -250,41 +464,75 @@ public sealed class EdoOutboxService(
         int organizationId,
         EdoProviderCode providerCode,
         string providerScopedKey,
+        string idempotencyKey,
         string? fallbackProviderDocumentId,
         Exception originalException)
     {
         try
         {
-            var providerDocumentId = await documentStore.FindProviderResultIdAsync(
-                organizationId,
-                providerScopedKey,
-                CancellationToken.None) ?? fallbackProviderDocumentId;
-            var document = await documentStore.GetAsync(
-                organizationId,
-                providerCode,
-                documentId,
-                CancellationToken.None);
-            if (document is null)
-                return;
-
-            document.ProviderDocumentId = providerDocumentId;
-            document.Status = string.IsNullOrWhiteSpace(providerDocumentId)
-                ? EdoDocumentStatusCode.FAILED.ToString()
-                : EdoDocumentStatusCode.RECONCILIATION_REQUIRED.ToString();
-            document.ErrorMessage = string.IsNullOrWhiteSpace(providerDocumentId)
-                ? "EDO factura creation failed."
-                : "Remote factura creation succeeded but local reconciliation is required.";
-            document.UpdatedAt = DateTime.UtcNow;
-            await documentStore.UpdateAsync(document, CancellationToken.None);
-
-            if (!string.IsNullOrWhiteSpace(providerDocumentId))
+            await ExecuteInTransactionAsync("PersistCreateFailure", async () =>
             {
-                logger.LogCritical(
-                    originalException,
-                    "EDO factura creation succeeded remotely with ProviderDocumentId {ProviderDocumentId}, but common local persistence requires reconciliation for EdoDocument {DocumentId}.",
+                var providerDocumentId = await documentStore.FindProviderResultIdAsync(
+                    organizationId,
+                    providerScopedKey,
+                    CancellationToken.None) ?? fallbackProviderDocumentId;
+                var document = await documentStore.GetAsync(
+                    organizationId,
+                    providerCode,
+                    documentId,
+                    CancellationToken.None);
+                if (document is null)
+                {
+                    await idempotencyService.MarkFailedAsync(
+                        organizationId,
+                        providerCode,
+                        CreateOperationType,
+                        idempotencyKey,
+                        providerDocumentId,
+                        CancellationToken.None);
+                    return Result.Success();
+                }
+
+                var oldStatus = document.Status;
+                document.ProviderDocumentId = providerDocumentId;
+                document.Status = string.IsNullOrWhiteSpace(providerDocumentId)
+                    ? EdoDocumentStatusCode.FAILED.ToString()
+                    : EdoDocumentStatusCode.RECONCILIATION_REQUIRED.ToString();
+                document.ErrorMessage = string.IsNullOrWhiteSpace(providerDocumentId)
+                    ? "EDO factura creation failed."
+                    : "Remote factura creation succeeded but local reconciliation is required.";
+                document.UpdatedAt = DateTime.UtcNow;
+                await documentStore.UpdateAsync(document, CancellationToken.None);
+                AuditUpdatedDocument(
+                    auditLogService,
+                    document,
+                    providerCode,
+                    "FACTURA_CREATE_FAILURE",
+                    oldStatus,
+                    document.Status);
+                await auditLogService.CreateAsync(
+                    DocumentTable,
+                    document.Id.ToString(),
+                    AuditLogOperationTypeConst.Update);
+                await idempotencyService.MarkFailedAsync(
+                    organizationId,
+                    providerCode,
+                    CreateOperationType,
+                    idempotencyKey,
                     providerDocumentId,
-                    documentId);
-            }
+                    CancellationToken.None);
+
+                if (!string.IsNullOrWhiteSpace(providerDocumentId))
+                {
+                    logger.LogCritical(
+                        originalException,
+                        "EDO factura creation succeeded remotely with ProviderDocumentId {ProviderDocumentId}, but common local persistence requires reconciliation for EdoDocument {DocumentId}.",
+                        providerDocumentId,
+                        documentId);
+                }
+
+                return Result.Success();
+            }, CancellationToken.None);
         }
         catch (Exception reconciliationException)
         {
@@ -293,6 +541,46 @@ public sealed class EdoOutboxService(
                 "Failed to persist EDO factura reconciliation state for EdoDocument {DocumentId}.",
                 documentId);
         }
+    }
+
+    private static void AuditCreatedDocument(
+        IAuditLogService auditLogService,
+        EdoDocument document,
+        EdoProviderCode providerCode,
+        string operation) =>
+        auditLogService.SetNewValues(new
+        {
+            operation,
+            organizationId = document.OrganizationId,
+            providerCode = providerCode.ToString(),
+            documentId = document.Id,
+            status = document.Status
+        });
+
+    private static void AuditUpdatedDocument(
+        IAuditLogService auditLogService,
+        EdoDocument document,
+        EdoProviderCode providerCode,
+        string operation,
+        string oldStatus,
+        string newStatus)
+    {
+        auditLogService.SetOldValues(new
+        {
+            operation,
+            organizationId = document.OrganizationId,
+            providerCode = providerCode.ToString(),
+            documentId = document.Id,
+            status = oldStatus
+        });
+        auditLogService.SetNewValues(new
+        {
+            operation,
+            organizationId = document.OrganizationId,
+            providerCode = providerCode.ToString(),
+            documentId = document.Id,
+            status = newStatus
+        });
     }
 
     private static void EnsureCapability(IEdoProvider provider, EdoCapabilityKind capability)
@@ -327,7 +615,7 @@ public sealed class EdoOutboxService(
     private static string CreateProviderScopedKey(EdoProviderCode providerCode, string key)
     {
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
-        return $"EDO_{providerCode}_FACTURA_{hash}";
+        return $"EDO_{providerCode}*{CreateOperationType}*{hash}";
     }
 
     private static void ApplyProviderResult(EdoDocument document, EdoDocumentDto providerDocument)
@@ -368,12 +656,26 @@ public sealed class EdoOutboxService(
             }
             : new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN };
 
-    private static string RequireIdempotencyKey(string key) =>
+    private static string RequireIdempotencyKey(
+        string key,
+        string message = "IdempotencyKey is required for EDO factura creation.") =>
         string.IsNullOrWhiteSpace(key)
-            ? throw new InvalidOperationException("IdempotencyKey is required for EDO factura creation.")
+            ? throw new InvalidOperationException(message)
             : key.Length > 200
                 ? throw new InvalidOperationException("IdempotencyKey must not exceed 200 characters.")
                 : key;
+
+    private static string ComputeCreateRequestHash(EdoOutboxFacturaCreateRequestDto request)
+    {
+        var lines = string.Join(";", request.Lines.Select(line =>
+            $"{line.Number}|{line.Name}|{line.Quantity}|{line.Amount}|{line.TaxRate}|{line.TaxAmount}|{line.IsTaxFree}|{string.Join(',', line.MarkingCodeIds.OrderBy(id => id))}"));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"{CreateOperationType}|{request.InternalDocumentType}|{request.InternalDocumentId}|{request.DocumentNumber}|{request.DocumentDate:O}|{request.Seller.TaxIdentifier}|{request.Buyer.TaxIdentifier}|{lines}")));
+    }
+
+    private static string ComputeSignRequestHash(long documentId, EdoOutboxSignRequestDto request)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"{SignOperationType}|{documentId}|{request.IdempotencyKey}|{request.CertificateSerialNumber}|{request.PreparedPkcs7}|{request.SignatureHex}")));
 
     private static string RequireText(string value, string name) =>
         string.IsNullOrWhiteSpace(value)

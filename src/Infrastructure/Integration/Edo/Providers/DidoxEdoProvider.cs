@@ -152,12 +152,14 @@ public sealed class DidoxEdoProvider(
         edoOperations.ListInboxAsync(request, ct);
 
     public Task<EdoInboxRejectDto> RejectInboxAsync(
+        string providerDocumentType,
         string providerDocumentId,
         EdoInboxRejectRequestDto request,
         CancellationToken ct = default) =>
         edoOperations.RejectInboxAsync(providerDocumentId, request, ct);
 
     public Task<EdoFileDto> GetFileAsync(
+        string providerDocumentType,
         string providerDocumentId,
         CancellationToken ct = default) =>
         edoOperations.GetFileAsync(providerDocumentId, ct);

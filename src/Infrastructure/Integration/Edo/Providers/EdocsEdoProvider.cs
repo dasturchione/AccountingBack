@@ -126,15 +126,17 @@ public sealed class EdocsEdoProvider(
         edoOperations.ListInboxAsync(request, ct);
 
     public Task<EdoInboxRejectDto> RejectInboxAsync(
+        string providerDocumentType,
         string providerDocumentId,
         EdoInboxRejectRequestDto request,
         CancellationToken ct = default) =>
-        ThrowUnavailable<EdoInboxRejectDto>(EdoCapabilityKind.RejectInbox);
+        edoOperations.RejectInboxAsync(providerDocumentType, providerDocumentId, request, ct);
 
     public Task<EdoFileDto> GetFileAsync(
+        string providerDocumentType,
         string providerDocumentId,
         CancellationToken ct = default) =>
-        ThrowUnavailable<EdoFileDto>(EdoCapabilityKind.GetFile);
+        edoOperations.GetFileAsync(providerDocumentType, providerDocumentId, ct);
 
     public Task<EdoDocumentStatusDto> GetOutboxStatusAsync(
         string providerDocumentId,

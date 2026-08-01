@@ -61,12 +61,14 @@ public sealed class ContractOnlyEdoProvider : IEdoProvider
         ThrowUnavailable<EdoInboxListDto>(EdoCapabilityKind.ListInbox);
 
     public Task<EdoInboxRejectDto> RejectInboxAsync(
+        string providerDocumentType,
         string providerDocumentId,
         EdoInboxRejectRequestDto request,
         CancellationToken ct = default) =>
         ThrowUnavailable<EdoInboxRejectDto>(EdoCapabilityKind.RejectInbox);
 
     public Task<EdoFileDto> GetFileAsync(
+        string providerDocumentType,
         string providerDocumentId,
         CancellationToken ct = default) =>
         ThrowUnavailable<EdoFileDto>(EdoCapabilityKind.GetFile);

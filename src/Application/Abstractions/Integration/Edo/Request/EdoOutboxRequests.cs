@@ -15,24 +15,13 @@ public sealed class EdoOutboxFacturaCreateRequestDto
     public string IdempotencyKey { get; init; } = string.Empty;
 }
 
-public sealed class EdoOutboxCreateDto
-{
-    public EdoDocumentDto Document { get; init; } = new();
-    public EdoSigningSessionDto? SigningSession { get; init; }
-    public bool IsReplay { get; init; }
-}
-
 public sealed class EdoOutboxSignRequestDto
 {
+    public string IdempotencyKey { get; init; } = string.Empty;
+    public string? CertificateSerialNumber { get; init; }
     public string? SigningSessionId { get; init; }
     public EdoSigningMode? SigningMode { get; init; }
     public string? PreparedPkcs7 { get; init; }
     public string? SignatureHex { get; init; }
     public string? Hash { get; init; }
-}
-
-public sealed class EdoOutboxSignDto
-{
-    public EdoDocumentDto Document { get; init; } = new();
-    public EdoSigningSessionDto? SigningSession { get; init; }
 }

@@ -4,6 +4,7 @@ using Application.Abstractions.Integration.Edo;
 using Infrastructure.Persistence;
 using Integration.Didox.Configs;
 using Integration.Edocs.Configs;
+using Integration.Faktura.Configs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SharedKernel.Constants;
@@ -16,7 +17,8 @@ public sealed class EdoAuthCredentialValidator(
     IIntegrationCredentialProvider credentialProvider,
     AppDbContext context,
     IOptions<DidoxOptions> didoxOptions,
-    IOptions<EdocsOptions> edocsOptions) : IEdoAuthCredentialValidator
+    IOptions<EdocsOptions> edocsOptions,
+    IOptions<FakturaOptions> fakturaOptions) : IEdoAuthCredentialValidator
 {
     public async Task ValidateAsync(EdoProviderCode providerCode, CancellationToken ct = default)
     {
@@ -33,10 +35,10 @@ public sealed class EdoAuthCredentialValidator(
 
         if (providerCode == EdoProviderCode.FAKTURA)
         {
-            throw new EdoCapabilityUnavailableException(
-                providerCode.ToString(),
-                nameof(EdoCapabilityKind.AuthChallenge),
-                nameof(EdoCapabilityStatus.UNKNOWN));
+            // Faktura credentials are platform-level options, not organization rows.
+            // ValidateOnStart performs the detailed required-value validation.
+            _ = fakturaOptions.Value;
+            return;
         }
 
         var credential = await credentialProvider.GetAsync(organizationId, provider, ct);

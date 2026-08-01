@@ -1,9 +1,14 @@
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration.Edo;
+using Application.Features;
+using Application.Features.AuditLogs;
 using Domain.Entities;
 using Integration.Edo.Providers;
 using Microsoft.Extensions.Logging;
+using SharedKernel.Constants;
 using SharedKernel.Exceptions;
+using SharedKernel.Results;
 
 namespace Integration.Edo.Reconciliation;
 
@@ -15,8 +20,12 @@ public sealed class EdoReconciliationService(
     IUserContext userContext,
     IActiveEdoProviderResolver activeProviderResolver,
     IEdoDocumentStore documentStore,
-    ILogger<EdoReconciliationService> logger) : IEdoReconciliationService
+    ILogger<EdoReconciliationService> logger,
+    IAuditLogService auditLogService,
+    IUnitOfWork unitOfWork) : BaseService(logger, unitOfWork), IEdoReconciliationService
 {
+    private const string DocumentTable = "edo_document";
+
     public async Task<EdoReconciliationResultDto> ReconcileAsync(
         long documentId,
         EdoDirection direction,
@@ -96,9 +105,10 @@ public sealed class EdoReconciliationService(
 
         if (!statusIsKnown)
         {
+            var oldStatus = document.Status;
             document.ProviderStatusCode = providerStatus.ProviderStatusCode;
             document.UpdatedAt = DateTime.UtcNow;
-            await PersistDiagnosticsAsync(document, document.Id, ct);
+            await PersistDiagnosticsAsync(document, document.Id, provider.Code, oldStatus, ct);
 
             return new EdoReconciliationResultDto
             {
@@ -129,7 +139,7 @@ public sealed class EdoReconciliationService(
         document.ProviderStatusCode = providerStatus.ProviderStatusCode;
         document.ErrorMessage = null;
         document.UpdatedAt = DateTime.UtcNow;
-        await PersistDiagnosticsAsync(document, document.Id, ct);
+        await PersistDiagnosticsAsync(document, document.Id, provider.Code, localStatus.ToString(), ct);
 
         return new EdoReconciliationResultDto
         {
@@ -181,12 +191,13 @@ public sealed class EdoReconciliationService(
         CancellationToken ct,
         Exception? exception = null)
     {
+        var oldStatus = document.Status;
         document.Status = EdoDocumentStatusCode.RECONCILIATION_REQUIRED.ToString();
         document.ErrorMessage = message;
         document.UpdatedAt = DateTime.UtcNow;
         try
         {
-            await documentStore.UpdateAsync(document, ct);
+            await PersistDiagnosticsAsync(document, document.Id, providerCode, oldStatus, ct);
         }
         catch (Exception persistenceException)
         {
@@ -217,11 +228,40 @@ public sealed class EdoReconciliationService(
         };
     }
 
-    private async Task PersistDiagnosticsAsync(EdoDocument document, long documentId, CancellationToken ct)
+    private async Task PersistDiagnosticsAsync(
+        EdoDocument document,
+        long documentId,
+        EdoProviderCode providerCode,
+        string oldStatus,
+        CancellationToken ct)
     {
         try
         {
-            await documentStore.UpdateAsync(document, ct);
+            await ExecuteInTransactionAsync("PersistReconciliationStatus", async () =>
+            {
+                await documentStore.UpdateAsync(document, ct);
+                auditLogService.SetOldValues(new
+                {
+                    operation = "RECONCILIATION_STATUS_UPDATE",
+                    organizationId = document.OrganizationId,
+                    providerCode = providerCode.ToString(),
+                    documentId = document.Id,
+                    status = oldStatus
+                });
+                auditLogService.SetNewValues(new
+                {
+                    operation = "RECONCILIATION_STATUS_UPDATE",
+                    organizationId = document.OrganizationId,
+                    providerCode = providerCode.ToString(),
+                    documentId = document.Id,
+                    status = document.Status
+                });
+                await auditLogService.CreateAsync(
+                    DocumentTable,
+                    document.Id.ToString(),
+                    AuditLogOperationTypeConst.Update);
+                return Result.Success();
+            }, ct);
         }
         catch (Exception ex)
         {
@@ -242,6 +282,7 @@ public sealed class EdoReconciliationService(
             EdoProviderCode.DIDOX when int.TryParse(status.ProviderStatusCode, out var didoxStatus)
                 => EdoProviderStatusMapper.MapDidoxStatus(didoxStatus),
             EdoProviderCode.EDOCS => EdoProviderStatusMapper.MapEdocsStatus(status.ProviderStatusCode),
+            EdoProviderCode.FAKTURA => status,
             _ => EdoProviderStatusMapper.Map(status.ProviderStatusCode)
         };
     }

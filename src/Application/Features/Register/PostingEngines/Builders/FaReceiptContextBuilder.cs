@@ -57,6 +57,25 @@ namespace Application.Features.Register.PostingEngines
                         JournalNumber = document.DocNumber,
                         SourceLineId = line.Id,
                         FixedAssetId = asset.FaAssetId is { } faAssetId ? (int)faAssetId : null,
+                        Entries = new List<PostingEntryContext>
+                        {
+                            new()
+                            {
+                                DebitAccountId = line.CapitalInvestmentAccountId,
+                                CreditAccountId = document.SupplierAccountId,
+                                Amount = asset.InitialCost,
+                                Content = "Fixed asset capitalization",
+                                SourceLineId = line.Id
+                            },
+                            new()
+                            {
+                                DebitAccountId = asset.AssetAccountId,
+                                CreditAccountId = line.CapitalInvestmentAccountId,
+                                Amount = asset.InitialCost,
+                                Content = "Fixed asset commissioning",
+                                SourceLineId = line.Id
+                            }
+                        },
                         Subkontos = new List<SubkontoValue>
                         {
                             new()
@@ -96,6 +115,17 @@ namespace Application.Features.Register.PostingEngines
                         CurrencyId = document.CurrencyId,
                         JournalNumber = document.DocNumber,
                         SourceLineId = line.Id,
+                        Entries = new List<PostingEntryContext>
+                        {
+                            new()
+                            {
+                                DebitAccountId = line.VatAccountId,
+                                CreditAccountId = document.SupplierAccountId,
+                                Amount = line.VatAmount,
+                                Content = "Fixed asset receipt VAT",
+                                SourceLineId = line.Id
+                            }
+                        },
                         Subkontos = new List<SubkontoValue>()
                     };
 
@@ -125,4 +155,3 @@ namespace Application.Features.Register.PostingEngines
         }
     }
 }
-

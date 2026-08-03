@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Integration.Faktura.Edo;
 
@@ -21,6 +22,19 @@ public sealed class FakturaEdoOperations(
     IUserContext userContext,
     IQueryRepository<Organization> organizationQuery)
 {
+    private const int MaxErrorResponseBodyBytes = 4 * 1024;
+    private const int MaxDiagnosticValueLength = 512;
+    private static readonly HashSet<string> SafeErrorFieldNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "code",
+        "message",
+        "error",
+        "detail"
+    };
+    private static readonly Regex SensitiveDiagnosticRegex = new(
+        """(?i)(token|password|client[_-]?secret|authorization|pkcs7|signature|private[_-]?key|inn|tin|tax[_-]?id)\s*['"]?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^,;\s}\]]+)""",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     public async Task<EdoAuthCompleteDto> CompleteAuthAsync(CancellationToken ct = default)
     {
         _ = await tokenService.GetAccessTokenAsync(ct);
@@ -439,12 +453,106 @@ public sealed class FakturaEdoOperations(
             return;
 
         var status = (int)response.StatusCode;
+        var diagnostics = await ReadErrorDiagnosticsAsync(response);
         throw response.StatusCode switch
         {
-            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException($"{operation} was rejected by Faktura."),
-            HttpStatusCode.Forbidden => new IntegrationForbiddenException($"{operation} was denied by Faktura."),
-            _ => new IntegrationHttpException($"{operation} failed with HTTP status {status}.", status)
+            HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException(
+                $"{operation} was rejected by Faktura. {diagnostics}"),
+            HttpStatusCode.Forbidden => new IntegrationForbiddenException(
+                $"{operation} was denied by Faktura. {diagnostics}"),
+            _ => new IntegrationHttpException(
+                $"{operation} failed with HTTP status {status}. {diagnostics}",
+                status)
         };
+    }
+
+    private static async Task<string> ReadErrorDiagnosticsAsync(HttpResponseMessage response)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        var buffer = new byte[MaxErrorResponseBodyBytes];
+        var offset = 0;
+        while (offset < buffer.Length)
+        {
+            var bytesRead = await stream.ReadAsync(buffer.AsMemory(offset));
+            if (bytesRead == 0)
+                break;
+
+            offset += bytesRead;
+        }
+
+        var body = System.Text.Encoding.UTF8.GetString(buffer, 0, offset);
+        var fields = new List<string>();
+        try
+        {
+            using var json = JsonDocument.Parse(body);
+            CollectSafeErrorFields(json.RootElement, fields);
+        }
+        catch (JsonException)
+        {
+            // The bounded body is included only as a redacted summary below.
+        }
+
+        var fieldSummary = fields.Count == 0 ? "none" : string.Join(", ", fields);
+        var bodySummary = RedactDiagnosticText(body);
+        var requestUri = response.RequestMessage?.RequestUri;
+        return $"status={(int)response.StatusCode}, "
+            + $"host={requestUri?.Host ?? "none"}, "
+            + $"path={requestUri?.AbsolutePath ?? "none"}, "
+            + $"contentType={response.Content.Headers.ContentType?.ToString() ?? "none"}, "
+            + $"bodyPresent={offset > 0}, "
+            + $"fields={fieldSummary}, "
+            + $"bodySummary={bodySummary ?? "none"}";
+    }
+
+    private static void CollectSafeErrorFields(JsonElement element, ICollection<string> fields, int depth = 0)
+    {
+        if (depth > 5 || fields.Count >= 16)
+            return;
+
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (SafeErrorFieldNames.Contains(property.Name)
+                    && property.Value.ValueKind is JsonValueKind.String
+                        or JsonValueKind.Number
+                        or JsonValueKind.True
+                        or JsonValueKind.False)
+                {
+                    var value = property.Value.ValueKind == JsonValueKind.String
+                        ? property.Value.GetString()
+                        : property.Value.GetRawText();
+                    var safeValue = RedactDiagnosticText(value);
+                    if (!string.IsNullOrWhiteSpace(safeValue))
+                        fields.Add($"{property.Name}={safeValue}");
+                }
+
+                CollectSafeErrorFields(property.Value, fields, depth + 1);
+                if (fields.Count >= 16)
+                    return;
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                CollectSafeErrorFields(item, fields, depth + 1);
+                if (fields.Count >= 16)
+                    return;
+            }
+        }
+    }
+
+    private static string? RedactDiagnosticText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var redacted = SensitiveDiagnosticRegex.Replace(value, "$1=<redacted>");
+        var compact = Regex.Replace(redacted, @"\s+", " ").Trim();
+        return compact.Length <= MaxDiagnosticValueLength
+            ? compact
+            : compact[..MaxDiagnosticValueLength] + "...";
     }
 
     private static async Task<int> ReadSignResultCodeAsync(

@@ -29,11 +29,15 @@ public sealed class FakturaAuthorizationHandler : DelegatingHandler
 
         // Token faqat shu so'rovga qo'yiladi; DefaultRequestHeaders'ga tegilmaydi.
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var authorization = request.Headers.Authorization;
 
         _logger.LogDebug(
-            "Sending Faktura request {Method} to host {Host}.",
+            "Sending Faktura request {Method} to host {Host}, path {Path}; authorizationPresent={AuthorizationPresent}, authorizationScheme={AuthorizationScheme}.",
             request.Method.Method,
-            request.RequestUri?.Host);
+            request.RequestUri?.Host,
+            request.RequestUri?.AbsolutePath,
+            authorization is not null,
+            authorization?.Scheme ?? "none");
 
         return await base.SendAsync(request, cancellationToken);
     }

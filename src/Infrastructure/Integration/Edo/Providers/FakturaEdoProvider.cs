@@ -82,7 +82,8 @@ public sealed class FakturaEdoProvider(FakturaEdoOperations edoOperations) : IEd
                 .Select(kind => new EdoCapabilityDto
                 {
                     Kind = kind,
-                    Status = kind == EdoCapabilityKind.AuthComplete
+                    Status = kind is EdoCapabilityKind.AuthComplete
+                        or EdoCapabilityKind.ListInbox
                         ? EdoCapabilityStatus.SUPPORTED
                         : EdoCapabilityStatus.UNKNOWN
                 })

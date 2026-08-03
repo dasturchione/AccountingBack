@@ -20,7 +20,6 @@ public class FaDisposalService : BaseService, IFaDisposalService
     private readonly IDocNumberGenerator _docNumberGenerator;
     private readonly IQueryRepository<FaDisposalDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
-    private readonly IQueryRepository<FaDisposalType> _faDisposalTypeQuery;
     private readonly IFaDisposalCommandRepository _command;
 
     public FaDisposalService(
@@ -32,7 +31,6 @@ public class FaDisposalService : BaseService, IFaDisposalService
         IDocNumberGenerator docNumberGenerator,
         IQueryRepository<FaDisposalDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
-        IQueryRepository<FaDisposalType> faDisposalTypeQuery,
         IFaDisposalCommandRepository command,
         ILogger<FaDisposalService> logger)
         : base(logger, unitOfWork)
@@ -45,7 +43,6 @@ public class FaDisposalService : BaseService, IFaDisposalService
         _docNumberGenerator = docNumberGenerator;
         _query = query;
         _faAssetQuery = faAssetQuery;
-        _faDisposalTypeQuery = faDisposalTypeQuery;
         _command = command;
     }
 
@@ -174,14 +171,9 @@ public class FaDisposalService : BaseService, IFaDisposalService
     {
         if (dto.Lines.Count == 0)
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.LinesRequired(_userContext.LanguageId));
-
-        if (dto.DisposalTypeId is not (FaDisposalTypeIdConst.SALE or FaDisposalTypeIdConst.WRITEOFF or FaDisposalTypeIdConst.BREAKDOWN) ||
-            !await _faDisposalTypeQuery.AnyAsync(x => x.Id == dto.DisposalTypeId, ct))
-        {
-            return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.InvalidDisposalType(_userContext.LanguageId));
-        }
-
+        
         var assetIds = dto.Lines.Select(x => x.FaAssetId).Distinct().ToList();
+
         if (assetIds.Count != dto.Lines.Count)
         {
             var duplicateId = dto.Lines.GroupBy(x => x.FaAssetId).First(x => x.Count() > 1).Key;

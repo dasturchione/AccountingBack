@@ -26,7 +26,6 @@ public class FaReceiptService : BaseService, IFaReceiptService
     private readonly IQueryRepository<FaGroup> _faGroupQuery;
     private readonly IQueryRepository<FaOkof> _okofQuery;
     private readonly IQueryRepository<FaDepreciationMethod> _depreciationMethodQuery;
-    private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
@@ -48,7 +47,6 @@ public class FaReceiptService : BaseService, IFaReceiptService
         IQueryRepository<FaGroup> faGroupQuery,
         IQueryRepository<FaOkof> okofQuery,
         IQueryRepository<FaDepreciationMethod> depreciationMethodQuery,
-        IQueryRepository<FaReceiptType> faReceiptTypeQuery,
         IQueryRepository<Department> departmentQuery,
         IQueryRepository<User> userQuery,
         IQueryRepository<FaAsset> faAssetQuery,
@@ -71,7 +69,6 @@ public class FaReceiptService : BaseService, IFaReceiptService
         _faGroupQuery = faGroupQuery;
         _okofQuery = okofQuery;
         _depreciationMethodQuery = depreciationMethodQuery;
-        _faReceiptTypeQuery = faReceiptTypeQuery;
         _departmentQuery = departmentQuery;
         _userQuery = userQuery;
         _faAssetQuery = faAssetQuery;
@@ -249,13 +246,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
 
     private async Task<Result> ValidateHeaderReferencesAsync(FaReceiptBaseDto dto, int organizationId, CancellationToken ct)
     {
-        if (dto.ReceiptTypeId is not (FaReceiptTypeIdConst.PURCHASE or FaReceiptTypeIdConst.CONSTRUCTION or FaReceiptTypeIdConst.OTHER) ||
-            !await _faReceiptTypeQuery.AnyAsync(x => x.Id == dto.ReceiptTypeId, ct))
-        {
-            return Result.Failure(FaReceiptErrors.InvalidReceiptType(dto.ReceiptTypeId, _userContext.LanguageId));
-        }
-
-        if (dto.CounterpartyId.HasValue &&
+if (dto.CounterpartyId.HasValue &&
             !await _counterpartyQuery.AnyAsync(x => x.Id == dto.CounterpartyId.Value &&
                                                     x.OrganizationId == organizationId &&
                                                     x.StateId == StateIdConst.ACTIVE, ct))

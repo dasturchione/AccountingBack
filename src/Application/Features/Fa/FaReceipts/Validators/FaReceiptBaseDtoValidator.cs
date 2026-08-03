@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using FluentValidation;
+using SharedKernel.Constants;
 
 namespace Application.Features.FaReceipts;
 
@@ -8,7 +9,7 @@ public class FaReceiptBaseDtoValidator : AbstractValidator<FaReceiptBaseDto>
     {
         RuleFor(x => x.DocDate).NotEmpty();
         RuleFor(x => x.CurrencyId).GreaterThan((short)0);
-        RuleFor(x => x.ReceiptTypeId).GreaterThan((short)0);
+        RuleFor(x => x.ReceiptTypeId).Must(x => x is FaReceiptTypeIdConst.PURCHASE or FaReceiptTypeIdConst.CONSTRUCTION or FaReceiptTypeIdConst.OTHER);
         RuleFor(x => x.Lines).NotEmpty();
         RuleForEach(x => x.Lines).SetValidator(new FaReceiptLineWriteDtoValidator());
     }

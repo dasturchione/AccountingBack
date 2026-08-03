@@ -62,7 +62,10 @@ public class FaAssetService : BaseService, IFaAssetService
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var orgId = _userContext.OrganizationId.Value;
-            var validationError = await ValidateAsync(dto, orgId, FaAssetStatusIdConst.DRAFT, null, ct);
+            var statusId = dto.ProcessingMode == FaAssetProcessingMode.Immediate
+                ? FaAssetStatusIdConst.ACTIVE
+                : FaAssetStatusIdConst.DRAFT;
+            var validationError = await ValidateAsync(dto, orgId, statusId, null, ct);
             if (validationError is not null)
                 return Result.Failure<long>(validationError);
 
@@ -87,7 +90,7 @@ public class FaAssetService : BaseService, IFaAssetService
                 AssetAccountId = dto.AssetAccountId,
                 AccumulatedDepreciationAccountId = dto.AccumulatedDepreciationAccountId,
                 DepreciationExpenseAccountId = dto.DepreciationExpenseAccountId,
-                StatusId = FaAssetStatusIdConst.DRAFT,
+                StatusId = statusId,
                 CreatedDate = DateTime.Now,
                 UpdatedDate = DateTime.Now
             };
@@ -111,7 +114,7 @@ public class FaAssetService : BaseService, IFaAssetService
             if (entity is null)
                 return Result.Failure(FaAssetErrors.NotFound(id, _userContext.LanguageId));
 
-            var validationError = await ValidateAsync(dto, orgId, dto.StatusId, entity.Id, ct);
+            var validationError = await ValidateAsync(dto, orgId, entity.StatusId, entity.Id, ct);
             if (validationError is not null)
                 return Result.Failure(validationError);
 
@@ -133,9 +136,67 @@ public class FaAssetService : BaseService, IFaAssetService
             entity.AccumulatedDepreciationAccountId = dto.AccumulatedDepreciationAccountId;
             entity.DepreciationExpenseAccountId = dto.DepreciationExpenseAccountId;
             entity.StateId = dto.StateId;
-            entity.StatusId = dto.StatusId;
             entity.UpdatedDate = DateTime.Now;
 
+            await _command.UpdateAsync(entity, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var entity = await GetForCurrentOrganizationAsync(id, _userContext.OrganizationId.Value, ct);
+            if (entity is null)
+                return Result.Failure(FaAssetErrors.NotFound(id, _userContext.LanguageId));
+
+            if (entity.StateId != StateIdConst.ACTIVE || entity.StatusId != FaAssetStatusIdConst.DRAFT)
+            {
+                return entity.StateId == StateIdConst.ACTIVE && entity.StatusId == FaAssetStatusIdConst.ACTIVE
+                    ? Result.Success()
+                    : Result.Failure(FaAssetErrors.CannotConfirmInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
+            }
+
+            var validationError = await ValidateAsync(
+                ToBaseDto(entity),
+                entity.OrganizationId,
+                FaAssetStatusIdConst.ACTIVE,
+                entity.Id,
+                ct);
+            if (validationError is not null)
+                return Result.Failure(validationError);
+
+            entity.StatusId = FaAssetStatusIdConst.ACTIVE;
+            entity.UpdatedDate = DateTime.Now;
+            await _command.UpdateAsync(entity, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            return Result.Success();
+        }, ct);
+
+    public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var entity = await GetForCurrentOrganizationAsync(id, _userContext.OrganizationId.Value, ct);
+            if (entity is null)
+                return Result.Failure(FaAssetErrors.NotFound(id, _userContext.LanguageId));
+
+            if (entity.StateId != StateIdConst.ACTIVE || entity.StatusId != FaAssetStatusIdConst.ACTIVE)
+            {
+                return entity.StateId == StateIdConst.ACTIVE && entity.StatusId == FaAssetStatusIdConst.DRAFT
+                    ? Result.Success()
+                    : Result.Failure(FaAssetErrors.CannotCancelInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
+            }
+
+            entity.StatusId = FaAssetStatusIdConst.DRAFT;
+            entity.UpdatedDate = DateTime.Now;
             await _command.UpdateAsync(entity, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
@@ -251,4 +312,30 @@ public class FaAssetService : BaseService, IFaAssetService
 
         return null;
     }
+
+    private async Task<FaAsset?> GetForCurrentOrganizationAsync(long id, int organizationId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<FaAsset>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
+        return await _query.GetAsync(query, ct);
+    }
+
+    private static FaAssetBaseDto ToBaseDto(FaAsset entity) => new()
+    {
+        InventoryNumber = entity.InventoryNumber,
+        Name = entity.Name,
+        FaGroupId = entity.FaGroupId,
+        OkofId = entity.OkofId,
+        DepreciationMethodId = entity.DepreciationMethodId,
+        UsefulLifeMonths = entity.UsefulLifeMonths,
+        InitialCost = entity.InitialCost,
+        SalvageValue = entity.SalvageValue,
+        CommissioningDate = entity.CommissioningDate,
+        DeprStartDate = entity.DeprStartDate,
+        PlannedUnitsTotal = entity.PlannedUnitsTotal,
+        SourceProductTableId = entity.SourceProductTableId,
+        DepartmentId = entity.DepartmentId,
+        ResponsibleUserId = entity.ResponsibleUserId
+    };
 }

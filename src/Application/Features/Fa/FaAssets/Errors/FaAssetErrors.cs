@@ -100,4 +100,20 @@ public static class FaAssetErrors
             LanguageIdConst.RU => "Dlya osnovnogo sredstva v ekspluatatsii dolzhna byt ukazana data nachala amortizatsii.",
             _ => "Depreciation start date is required for an active fixed asset."
         });
+
+    public static Error CannotConfirmInCurrentStatus(long id, short statusId, short? languageId = null) =>
+        Error.Business("FaAsset.CannotConfirmInCurrentStatus", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vositani {statusId} holatida tasdiqlab bo'lmaydi.",
+            LanguageIdConst.RU => $"Основное средство с id {id} нельзя подтвердить в статусе {statusId}.",
+            _ => $"Fixed asset with id {id} cannot be confirmed in status {statusId}."
+        });
+
+    public static Error CannotCancelInCurrentStatus(long id, short statusId, short? languageId = null) =>
+        Error.Business("FaAsset.CannotCancelInCurrentStatus", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vositani {statusId} holatida bekor qilib bo'lmaydi.",
+            LanguageIdConst.RU => $"Основное средство с id {id} нельзя отменить в статусе {statusId}.",
+            _ => $"Fixed asset with id {id} cannot be cancelled in status {statusId}."
+        });
 }

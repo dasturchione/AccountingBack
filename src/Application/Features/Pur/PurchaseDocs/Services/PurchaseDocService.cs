@@ -4,6 +4,7 @@ using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.Contracts;
 using Application.Features.CounterpartyCards;
+using Application.Features.DocumentNumbers;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Warehouses;
 using Domain.Entities;

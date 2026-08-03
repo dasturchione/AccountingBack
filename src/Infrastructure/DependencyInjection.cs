@@ -139,6 +139,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharedKernel.Query;
 using Scrutor;
+using Application.Features.DocumentNumbers;
 
 namespace Infrastructure
 {

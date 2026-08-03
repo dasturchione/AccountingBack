@@ -1,6 +1,6 @@
 using SharedKernel.Results;
 
-namespace Application.Abstractions;
+namespace Application.Features.DocumentNumbers;
 
 public sealed record DocumentNumberResult(
     long SequenceNumber,

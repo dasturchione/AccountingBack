@@ -18,7 +18,7 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IFaRevaluationLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<FaRevaluationDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IFaRevaluationCommandRepository _command;
@@ -29,7 +29,7 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IFaRevaluationLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<FaRevaluationDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
         IFaRevaluationCommandRepository command,
@@ -41,7 +41,7 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _faAssetQuery = faAssetQuery;
         _command = command;
@@ -74,12 +74,20 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                _userContext.OrganizationId.Value,
+                DocumentTypeIdConst.FAREVALUATION,
+                dto.RevaluationDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var doc = new FaRevaluationDoc
             {
                 OrganizationId = _userContext.OrganizationId.Value,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "FARV", dto.RevaluationDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 RevaluationDate = NormalizeDateTime(dto.RevaluationDate),
                 Reason = dto.Reason?.Trim(),
                 RevaluationReserveAccountId = dto.RevaluationReserveAccountId,

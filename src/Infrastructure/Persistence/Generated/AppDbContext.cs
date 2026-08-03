@@ -98,7 +98,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnDistrict> CmnDistricts { get; set; }
 
-    public virtual DbSet<CmnDocumentSequence> CmnDocumentSequences { get; set; }
+    public virtual DbSet<CmnDocumentNumberSequence> CmnDocumentNumberSequences { get; set; }
 
     public virtual DbSet<CmnDocumentStatus> CmnDocumentStatuses { get; set; }
 
@@ -1061,14 +1061,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
-        modelBuilder.Entity<CmnDocumentSequence>(entity =>
+        modelBuilder.Entity<CmnDocumentNumberSequence>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("cmn_document_sequence_pkey");
+            entity.HasKey(e => e.Id).HasName("cmn_document_number_sequence_pkey");
 
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.Padding).HasDefaultValue((short)5);
-            entity.Property(e => e.ResetPeriod).HasDefaultValueSql("'yearly'::character varying");
-            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.Property(e => e.LastDocumentDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.DocumentType).WithMany(p => p.CmnDocumentNumberSequences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_number_sequence_document_type_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.CmnDocumentNumberSequences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_number_sequence_organization_id_fkey");
         });
 
         modelBuilder.Entity<CmnDocumentStatus>(entity =>
@@ -1651,7 +1658,9 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fa_disposal_doc_disposal_account_id_fkey");
 
-            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalDocs).HasConstraintName("fa_disposal_doc_disposal_type_id_fkey");
+            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_disposal_type_id_fkey");
 
             entity.HasOne(d => d.GainAccount).WithMany(p => p.FaDisposalDocGainAccounts)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -1789,7 +1798,9 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_organization_id_fkey");
 
-            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_receipt_type_id_fkey");
+            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_doc_receipt_type_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)

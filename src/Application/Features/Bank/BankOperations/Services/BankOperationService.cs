@@ -18,14 +18,14 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly IBankLifecycleService _bankLifecycleService;
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
 
     public BankOperationService(
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IBankLifecycleService bankLifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
         ILogger<BankOperationService> logger,
@@ -36,7 +36,7 @@ public class BankOperationService : BaseService, IBankOperationService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _bankLifecycleService = bankLifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
     }
@@ -71,7 +71,11 @@ public class BankOperationService : BaseService, IBankOperationService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var entity = await BuildCreateEntityAsync(dto, _userContext.OrganizationId.Value, ct);
+            var entityResult = await BuildCreateEntityAsync(dto, _userContext.OrganizationId.Value, ct);
+            if (!entityResult.IsSuccess)
+                return Result.Failure<long>(entityResult.Error);
+
+            var entity = entityResult.Value;
             await _command.CreateAsync(entity, ct);
 
             var docDto = await GetByIdInternalAsync(entity.Id, ct);
@@ -92,7 +96,13 @@ public class BankOperationService : BaseService, IBankOperationService
 
             var entities = new List<BankOperation>(dto.Operations.Count);
             foreach (var operation in dto.Operations)
-                entities.Add(await BuildCreateEntityAsync(operation, _userContext.OrganizationId.Value, ct));
+            {
+                var entityResult = await BuildCreateEntityAsync(operation, _userContext.OrganizationId.Value, ct);
+                if (!entityResult.IsSuccess)
+                    return Result.Failure<List<long>>(entityResult.Error);
+
+                entities.Add(entityResult.Value);
+            }
 
             await _command.CreateAsync(entities, ct);
 
@@ -209,11 +219,17 @@ public class BankOperationService : BaseService, IBankOperationService
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<BankOperation> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
+    private async Task<Result<BankOperation>> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
     {
-        var docNumber = await _docNumberGenerator.GenerateAsync(organizationId, "BNK", dto.DocDate, ct);
+        var documentNumberResult = await _documentNumberService.GetNextAsync(
+            organizationId,
+            DocumentTypeIdConst.BANKOPERATION,
+            dto.DocDate,
+            ct);
+        if (!documentNumberResult.IsSuccess)
+            return Result.Failure<BankOperation>(documentNumberResult.Error);
 
-        return new BankOperation
+        return Result.Success(new BankOperation
         {
             OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
@@ -224,7 +240,7 @@ public class BankOperationService : BaseService, IBankOperationService
             BankChartAccountId = dto.BankChartAccountId,
             OffsetAccountId = dto.OffsetAccountId,
             ContractId = dto.ContractId,
-            DocNumber = docNumber,
+            DocNumber = documentNumberResult.Value.DocumentNumber,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
@@ -233,6 +249,6 @@ public class BankOperationService : BaseService, IBankOperationService
             StatusId = DocumentStatusIdConst.DRAFT,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
-        };
+        });
     }
 }

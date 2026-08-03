@@ -54,7 +54,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaGroup> FaGroups { get; set; }
     public virtual DbSet<FaOkof> FaOkofs { get; set; }
     public virtual DbSet<District> Districts { get; set; }
-    public virtual DbSet<DocumentSequence> DocumentSequences { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
     public virtual DbSet<DocumentAccountType> DocumentAccountTypes { get; set; }

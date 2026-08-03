@@ -114,6 +114,9 @@ public partial class OrgOrganization
     public virtual ICollection<CmnCurrencyRevaluation> CmnCurrencyRevaluations { get; set; } = new List<CmnCurrencyRevaluation>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<CmnDocumentNumberSequence> CmnDocumentNumberSequences { get; set; } = new List<CmnDocumentNumberSequence>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<CmnFaGroup> CmnFaGroups { get; set; } = new List<CmnFaGroup>();
 
     [InverseProperty("Organization")]

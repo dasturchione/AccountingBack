@@ -17,7 +17,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IFaDisposalLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<FaDisposalDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IFaDisposalCommandRepository _command;
@@ -28,7 +28,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IFaDisposalLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<FaDisposalDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
         IFaDisposalCommandRepository command,
@@ -40,7 +40,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _faAssetQuery = faAssetQuery;
         _command = command;
@@ -73,12 +73,20 @@ public class FaDisposalService : BaseService, IFaDisposalService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                _userContext.OrganizationId.Value,
+                DocumentTypeIdConst.FADISPOSAL,
+                dto.DisposalDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var doc = new FaDisposalDoc
             {
                 OrganizationId = _userContext.OrganizationId.Value,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "FADS", dto.DisposalDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DisposalDate = NormalizeDateTime(dto.DisposalDate),
                 DisposalTypeId = dto.DisposalTypeId,
                 Reason = dto.Reason?.Trim(),

@@ -33,13 +33,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
     private readonly ICommandRepository<PurchaseDocProduct> _productLineCommand;
     private readonly ICommandRepository<PurchaseDocTable> _tableLineCommand;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
 
     public PurchaseDocService(IUserContext userContext,
                               IQueryBuilder queryBuilder,
                               IPurchaseLifecycleService purchaseLifecycleService,
                               IAuditLogService auditLogService,
-                              IDocNumberGenerator docNumberGenerator,
+                              IDocumentNumberService documentNumberService,
                               IQueryRepository<PurchaseDoc> query,
                               IQueryRepository<VatRate> vatRateQuery,
                               IQueryRepository<Contract> contractQuery,
@@ -74,7 +74,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
         _productQuery = productQuery;
         _productTableCommand = productTableCommand;
         _purchaseDocTableQuery = purchaseDocTableQuery;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
     }
 
     public Task<Result<PagedResponse<PurchaseDocListDto>>> GetAllAsync(PurchaseDocListFilter filter, CancellationToken ct = default) =>
@@ -113,18 +113,23 @@ public class PurchaseDocService : BaseService, IPurchaseDocService
             if (!headerValidation.IsSuccess)
                 return Result.Failure<long>(headerValidation.Error);
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "PUR", dto.DocDate, ct);
-
             var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure<long>(allLinesResult.Error);
 
             var allLines = allLinesResult.Value;
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                _userContext.OrganizationId.Value,
+                DocumentTypeIdConst.PURCHASE,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
 
             var doc = new PurchaseDoc
             {
                 OrganizationId = _userContext.OrganizationId.Value,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,

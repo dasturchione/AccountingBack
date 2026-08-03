@@ -81,7 +81,7 @@ public partial class FaReceiptDoc
     public int? SupplierAccountId { get; set; }
 
     [Column("receipt_type_id")]
-    public short? ReceiptTypeId { get; set; }
+    public short ReceiptTypeId { get; set; }
 
     [ForeignKey("CounterpartyId")]
     [InverseProperty("FaReceiptDocs")]
@@ -100,7 +100,7 @@ public partial class FaReceiptDoc
 
     [ForeignKey("ReceiptTypeId")]
     [InverseProperty("FaReceiptDocs")]
-    public virtual FaReceiptType? ReceiptType { get; set; }
+    public virtual FaReceiptType ReceiptType { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("FaReceiptDocs")]

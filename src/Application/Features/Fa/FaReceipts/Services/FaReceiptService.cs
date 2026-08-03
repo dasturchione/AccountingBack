@@ -30,7 +30,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
     private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IFaReceiptCommandRepository _command;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
 
     public FaReceiptService(
         IUserContext userContext,
@@ -51,7 +51,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         IQueryRepository<User> userQuery,
         IQueryRepository<FaAsset> faAssetQuery,
         IFaReceiptCommandRepository command,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         ILogger<FaReceiptService> logger)
         : base(logger, unitOfWork)
     {
@@ -73,7 +73,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         _userQuery = userQuery;
         _faAssetQuery = faAssetQuery;
         _command = command;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
     }
 
     public Task<Result<PagedResponse<FaReceiptListDto>>> GetAllAsync(FaReceiptListFilter filter, CancellationToken ct = default) =>
@@ -108,13 +108,21 @@ public class FaReceiptService : BaseService, IFaReceiptService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.FARECEIPT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var lines = linesResult.Value;
             var doc = new FaReceiptDoc
             {
                 OrganizationId = organizationId,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "FA", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = NormalizeDateTime(dto.DocDate),
                 CounterpartyId = dto.CounterpartyId,
                 WarehouseId = dto.WarehouseId,

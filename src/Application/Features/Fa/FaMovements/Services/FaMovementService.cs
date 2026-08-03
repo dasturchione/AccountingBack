@@ -18,7 +18,7 @@ public class FaMovementService : BaseService, IFaMovementService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IFaMovementLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<FaMovementDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
@@ -31,7 +31,7 @@ public class FaMovementService : BaseService, IFaMovementService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IFaMovementLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<FaMovementDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
         IQueryRepository<Department> departmentQuery,
@@ -45,7 +45,7 @@ public class FaMovementService : BaseService, IFaMovementService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _faAssetQuery = faAssetQuery;
         _departmentQuery = departmentQuery;
@@ -81,13 +81,21 @@ public class FaMovementService : BaseService, IFaMovementService
             if (!draftDataResult.IsSuccess)
                 return Result.Failure<long>(draftDataResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.FAMOVEMENT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var draftData = draftDataResult.Value;
             var doc = new FaMovementDoc
             {
                 OrganizationId = organizationId,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "FAM", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = NormalizeDateTime(dto.DocDate),
                 StatusId = DocumentStatusIdConst.DRAFT,
                 FromDepartmentId = draftData.FromDepartmentId,

@@ -83,7 +83,7 @@ public partial class FaDisposalDoc
     public int? LossAccountId { get; set; }
 
     [Column("disposal_type_id")]
-    public short? DisposalTypeId { get; set; }
+    public short DisposalTypeId { get; set; }
 
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("FaDisposalDocCancelledByUsers")]
@@ -103,7 +103,7 @@ public partial class FaDisposalDoc
 
     [ForeignKey("DisposalTypeId")]
     [InverseProperty("FaDisposalDocs")]
-    public virtual FaDisposalType? DisposalType { get; set; }
+    public virtual FaDisposalType DisposalType { get; set; } = null!;
 
     [InverseProperty("DisposalDoc")]
     public virtual ICollection<FaDisposalDocLine> FaDisposalDocLines { get; set; } = new List<FaDisposalDocLine>();

@@ -140,6 +140,15 @@ public partial class OrgOrganization
     public virtual CmnDistrict? District { get; set; }
 
     [InverseProperty("Organization")]
+    public virtual ICollection<EdoAuthSigningSession> EdoAuthSigningSessions { get; set; } = new List<EdoAuthSigningSession>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; } = new List<EdoDocumentSigningSession>();
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<EdoDocument> EdoDocuments { get; set; } = new List<EdoDocument>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("Organization")]
@@ -255,6 +264,9 @@ public partial class OrgOrganization
 
     [InverseProperty("Organization")]
     public virtual ICollection<OrgPosition> OrgPositions { get; set; } = new List<OrgPosition>();
+
+    [InverseProperty("Organization")]
+    public virtual OrganizationEdoProvider? OrganizationEdoProvider { get; set; }
 
     [InverseProperty("Organization")]
     public virtual ICollection<PayComponent> PayComponents { get; set; } = new List<PayComponent>();

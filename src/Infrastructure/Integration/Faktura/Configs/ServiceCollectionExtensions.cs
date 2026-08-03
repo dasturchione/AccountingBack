@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddTransient<FakturaAuthorizationHandler>();
+        services.AddSingleton<IFakturaTokenService, FakturaTokenService>();
 
         // Token endpointi: handler'siz, aks holda rekursiya bo'ladi.
         services.AddHttpClient(FakturaHttpClientNames.AuthClient, (serviceProvider, client) =>

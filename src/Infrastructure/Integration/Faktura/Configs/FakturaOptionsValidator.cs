@@ -11,7 +11,8 @@ public sealed class FakturaOptionsValidator : IValidateOptions<FakturaOptions>
         ValidateHttpsUrl(options.BaseUrl, $"{FakturaOptions.SectionName}:BaseUrl", failures);
         ValidateHttpsUrl(options.AuthUrl, $"{FakturaOptions.SectionName}:AuthUrl", failures);
 
-        ValidateRequired(options.GrantType, $"{FakturaOptions.SectionName}:GrantType", failures);
+        if (!string.Equals(options.GrantType, "password", StringComparison.Ordinal))
+            failures.Add($"{FakturaOptions.SectionName}:GrantType must be 'password'.");
         ValidateRequired(options.Username, $"{FakturaOptions.SectionName}:Username", failures);
         ValidateRequired(options.Password, $"{FakturaOptions.SectionName}:Password", failures);
         ValidateRequired(options.ClientId, $"{FakturaOptions.SectionName}:ClientId", failures);

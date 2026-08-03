@@ -9,6 +9,8 @@ namespace WebApi.Controllers.Integration;
 [Authorize]
 public sealed class EdocsFacturaController(IEdocsFacturaService service) : ControllerBase
 {
+    // Deprecated: yangi clientlar /api/edo/outbox/facturas va /api/edo/outbox/{id}/sign
+    // common endpointlaridan foydalanishi kerak; Edocs reject/file contractlari UNKNOWN.
     [HttpPost("factura")]
     public async Task<IResult> CreateFactura([FromBody] EdocsFacturaCreateRequestDto request, CancellationToken ct = default)
         => Results.Ok(await service.CreateFacturaDocumentAsync(request, ct));

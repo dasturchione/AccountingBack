@@ -38,6 +38,7 @@ using Application.Features.Cmn.CurrencyRates.Extensions;
 using Application.Features.Cmn.CurrencyRevaluations.Extensions;
 using Application.Features.Cmn.Taxes.Extensions;
 using Application.Abstractions.Integration;
+using Application.Abstractions.Integration.Edo;
 using Application.Features.Integration.AslBelgi.Services;
 using Application.Features.Integration.AslBelgi.Orders;
 using Application.Features.Integration.AslBelgi.Utilizations;
@@ -46,6 +47,7 @@ using Application.Features.Integration.Edocs.Services;
 using Application.Features.Integration.Edocs.Facturas;
 using Application.Features.Integration.Didox.Services;
 using Application.Features.Integration.Didox.Facturas;
+using Application.Features.Integration.Edo;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
@@ -126,6 +128,7 @@ using Integration.Edocs.Facturas;
 using Integration.Didox.Configs;
 using Integration.Didox.Services;
 using Integration.Didox.Facturas;
+using Integration.Edo.Configs;
 using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
 using Integration.Tax.Configs;
@@ -191,6 +194,12 @@ namespace Infrastructure
             services.AddDidoxHttpClient();
             services.AddScoped<IDidoxAuthService, DidoxAuthService>();
             services.AddScoped<IDidoxFacturaService, DidoxFacturaService>();
+            services.AddScoped<IEdoProviderManagementService, EdoProviderManagementService>();
+            services.AddScoped<IEdoAuthenticationService, EdoAuthenticationService>();
+            services.AddScoped<IEdoOutboxService, EdoOutboxService>();
+            services.AddScoped<IEdoInboxService, EdoInboxService>();
+            services.AddScoped<IEdoSigningSessionCleanupService, EdoSigningSessionCleanupService>();
+            services.AddEdoProviderRegistry();
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
             services.AddEmailIntegration(config);
@@ -346,14 +355,14 @@ namespace Infrastructure
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();
 
-            services.Scan(scan => scan
-                .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
-                .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-                .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime());
+            //services.Scan(scan => scan
+            //    .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
+            //    .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
+            //        .AsImplementedInterfaces()
+            //        .WithScopedLifetime()
+            //    .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
+            //        .AsImplementedInterfaces()
+            //        .WithScopedLifetime());
 
             return services;
         }

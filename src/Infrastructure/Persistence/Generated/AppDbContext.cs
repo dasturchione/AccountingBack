@@ -162,6 +162,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CounterpartyRegBalance> CounterpartyRegBalances { get; set; }
 
+    public virtual DbSet<EdoAuthSigningSession> EdoAuthSigningSessions { get; set; }
+
+    public virtual DbSet<EdoDocument> EdoDocuments { get; set; }
+
+    public virtual DbSet<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; }
+
     public virtual DbSet<FaAsset> FaAssets { get; set; }
 
     public virtual DbSet<FaDepreciationRun> FaDepreciationRuns { get; set; }
@@ -291,6 +297,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OrgTaxSetting> OrgTaxSettings { get; set; }
 
     public virtual DbSet<OrgUserInvitation> OrgUserInvitations { get; set; }
+
+    public virtual DbSet<OrganizationEdoProvider> OrganizationEdoProviders { get; set; }
 
     public virtual DbSet<PayComponent> PayComponents { get; set; }
 
@@ -1471,6 +1479,49 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.CounterpartyRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("counterparty_reg_balance_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoAuthSigningSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId).HasName("edo_auth_signing_session_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.EdoAuthSigningSessions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_auth_signing_session_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_document_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Provider, e.ProviderDocumentId }, "ux_edo_document_organization_provider_document")
+                .IsUnique()
+                .HasFilter("(provider_document_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.Provider, e.OperationType, e.IdempotencyKey }, "ux_edo_document_organization_provider_operation_key")
+                .IsUnique()
+                .HasFilter("(idempotency_key IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.EdoDocuments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoDocumentSigningSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId).HasName("edo_document_signing_session_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.EdoDocumentSigningSessions).HasConstraintName("edo_document_signing_session_document_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.EdoDocumentSigningSessions)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_document_signing_session_organization_id_fkey");
         });
 
         modelBuilder.Entity<FaAsset>(entity =>
@@ -2794,6 +2845,18 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.StateId).HasDefaultValue((short)1);
+        });
+
+        modelBuilder.Entity<OrganizationEdoProvider>(entity =>
+        {
+            entity.HasKey(e => e.OrganizationId).HasName("organization_edo_provider_pkey");
+
+            entity.Property(e => e.OrganizationId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithOne(p => p.OrganizationEdoProvider)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("organization_edo_provider_organization_id_fkey");
         });
 
         modelBuilder.Entity<PayComponent>(entity =>

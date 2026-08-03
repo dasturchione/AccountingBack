@@ -2,6 +2,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Integration.Edocs.Services;
 using Integration.Edocs.Http;
 using Integration.Shared.Http;
+using SharedKernel.Constants;
 using SharedKernel.Exceptions;
 using System.Net;
 using System.Net.Http.Json;
@@ -107,7 +108,7 @@ public sealed class EdocsAuthService : IEdocsAuthService
         if (string.IsNullOrWhiteSpace(token))
             throw new IntegrationHttpException("Edocs login javobida token topilmadi.", 502);
 
-        _tokenCache.Set(RequireOrganization(), token, TokenLifetime);
+        _tokenCache.Set(RequireOrganization(), IntegrationProviderConst.Edocs, token, TokenLifetime);
         return new EdocsAuthCompleteResultDto { Success = true };
     }
 

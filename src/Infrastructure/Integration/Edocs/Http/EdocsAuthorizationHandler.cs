@@ -68,7 +68,7 @@ public sealed class EdocsAuthorizationHandler : DelegatingHandler
                 $"Edocs uchun tashkilot {organizationId} kredensiali topilmadi yoki faol emas (provider='{IntegrationProviderConst.Edocs}').");
         }
 
-        if (!_tokenCache.TryGet(organizationId, out var token))
+        if (!_tokenCache.TryGet(organizationId, IntegrationProviderConst.Edocs, out var token))
         {
             throw new EdocsAuthenticationRequiredException(
                 "Edocs uchun qayta autentifikatsiya kerak — /auth/challenge va /auth/complete orqali.");

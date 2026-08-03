@@ -202,13 +202,10 @@ public sealed class EdocsFacturaService : IEdocsFacturaService
         {
             await _unitOfWork.BeginAsync(CancellationToken.None);
 
-            // TASDIQLANMAGAN: Edocs'ning holat mashinasi bo'yicha bu chaqiruv drafts→sended
-            // (birinchi tomon) YOKI sended→signed (barcha qabul qiluvchilar imzolagach)
-            // bo'lishi mumkin — javob buni ajratib bermaydi (PDF'da namuna yo'q). Soddalik
-            // uchun har ikkala holatda ham mahalliy "SIGNED" qo'yiladi; agar keyingi bosqichda
-            // Edocs javobi haqiqiy holatni ("sended" vs "signed") qaytarishi tasdiqlansa, bu
-            // yerga aniqlashtirish qo'shilishi kerak.
-            document.Status = "SIGNED";
+            // Edocs sign response bu chaqiruv drafts→sended yoki sended→signed
+            // o'tganini tasdiqlamaydi. Shu sababli SIGNED statusi taxmin bilan
+            // yozilmaydi; keyingi rasmiy status sync bosqichigacha SIGN_SENT saqlanadi.
+            document.Status = "SIGN_SENT";
             document.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(CancellationToken.None);

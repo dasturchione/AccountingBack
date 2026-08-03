@@ -9,6 +9,8 @@ namespace WebApi.Controllers.Integration;
 [Authorize]
 public sealed class DidoxAuthController(IDidoxAuthService service) : ControllerBase
 {
+    // Deprecated: yangi clientlar /api/edo/auth/challenge va /api/edo/auth/complete
+    // common contractlaridan foydalanishi kerak; legacy response shakli saqlanadi.
     // 1-qadam: joriy tashkilotning INN ini (base64) qaytaradi. Frontend shuni E-IMZO
     // bilan imzolab, natijani /auth/complete ga yuboradi.
     [HttpGet("challenge")]

@@ -26,9 +26,8 @@ public partial class FaDisposalDoc
     [Column("status_id")]
     public short StatusId { get; set; }
 
-    [Column("disposal_type")]
-    [StringLength(30)]
-    public string DisposalType { get; set; } = null!;
+    [Column("disposal_type_id")]
+    public short DisposalTypeId { get; set; }
 
     [Column("reason")]
     [StringLength(500)]
@@ -88,6 +87,10 @@ public partial class FaDisposalDoc
     [ForeignKey(nameof(GainAccountId))]
     [InverseProperty(nameof(ChartAccount.FaDisposalDocGainAccounts))]
     public virtual ChartAccount? GainAccount { get; set; }
+
+    [ForeignKey(nameof(DisposalTypeId))]
+    [InverseProperty(nameof(FaDisposalType.FaDisposalDocs))]
+    public virtual FaDisposalType DisposalType { get; set; } = null!;
 
     [ForeignKey(nameof(LossAccountId))]
     [InverseProperty(nameof(ChartAccount.FaDisposalDocLossAccounts))]

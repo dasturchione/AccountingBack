@@ -6,7 +6,7 @@ public partial class FaReceiptBaseDto
     public int? CounterpartyId { get; set; }
     public int? WarehouseId { get; set; }
     public short CurrencyId { get; set; }
-    public string ReceiptType { get; set; } = null!;
+    public short ReceiptTypeId { get; set; }
     public List<FaReceiptLineWriteDto> Lines { get; set; } = new();
 }
 

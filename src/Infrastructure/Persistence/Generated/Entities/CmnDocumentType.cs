@@ -33,6 +33,9 @@ public partial class CmnDocumentType
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("DocumentType")]
+    public virtual ICollection<CmnDocumentNumberSequence> CmnDocumentNumberSequences { get; set; } = new List<CmnDocumentNumberSequence>();
+
+    [InverseProperty("DocumentType")]
     public virtual ICollection<CmnDocumentTypeTranslation> CmnDocumentTypeTranslations { get; set; } = new List<CmnDocumentTypeTranslation>();
 
     [InverseProperty("DocumentType")]

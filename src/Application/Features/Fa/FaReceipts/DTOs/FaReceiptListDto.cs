@@ -18,7 +18,7 @@ public partial class FaReceiptListDto
     public decimal FinalAmount { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
-    public string ReceiptType { get; set; } = null!;
+    public short ReceiptTypeId { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime UpdatedDate { get; set; }

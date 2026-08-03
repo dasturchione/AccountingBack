@@ -10,6 +10,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("CounterpartyId", Name = "idx_fa_receipt_doc_counterparty_id")]
 [Index("CurrencyId", Name = "idx_fa_receipt_doc_currency_id")]
 [Index("DocDate", Name = "idx_fa_receipt_doc_doc_date")]
+[Index("ReceiptTypeId", Name = "idx_fa_receipt_doc_receipt_type_id")]
 [Index("StateId", Name = "idx_fa_receipt_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_receipt_doc_status_id")]
 [Index("WarehouseId", Name = "idx_fa_receipt_doc_warehouse_id")]
@@ -58,10 +59,6 @@ public partial class FaReceiptDoc
     [Column("status_id")]
     public short StatusId { get; set; }
 
-    [Column("receipt_type")]
-    [StringLength(50)]
-    public string ReceiptType { get; set; } = null!;
-
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
@@ -83,6 +80,9 @@ public partial class FaReceiptDoc
     [Column("supplier_account_id")]
     public int? SupplierAccountId { get; set; }
 
+    [Column("receipt_type_id")]
+    public short ReceiptTypeId { get; set; }
+
     [ForeignKey("CounterpartyId")]
     [InverseProperty("FaReceiptDocs")]
     public virtual CounterpartyCard? Counterparty { get; set; }
@@ -97,6 +97,10 @@ public partial class FaReceiptDoc
     [ForeignKey("OrganizationId")]
     [InverseProperty("FaReceiptDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;
+
+    [ForeignKey("ReceiptTypeId")]
+    [InverseProperty("FaReceiptDocs")]
+    public virtual FaReceiptType ReceiptType { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("FaReceiptDocs")]

@@ -7,7 +7,7 @@ public class FaReceiptListFilter : ISearchFilter, IPaginationFilter
     public int? CounterpartyId { get; set; }
     public int? WarehouseId { get; set; }
     public short? StatusId { get; set; }
-    public string? ReceiptType { get; set; }
+    public short? ReceiptTypeId { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
     public string? Search { get; set; }

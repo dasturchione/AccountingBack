@@ -98,7 +98,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnDistrict> CmnDistricts { get; set; }
 
-    public virtual DbSet<CmnDocumentSequence> CmnDocumentSequences { get; set; }
+    public virtual DbSet<CmnDocumentNumberSequence> CmnDocumentNumberSequences { get; set; }
 
     public virtual DbSet<CmnDocumentStatus> CmnDocumentStatuses { get; set; }
 
@@ -178,6 +178,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaDisposalDocLine> FaDisposalDocLines { get; set; }
 
+    public virtual DbSet<FaDisposalType> FaDisposalTypes { get; set; }
+
+    public virtual DbSet<FaDisposalTypeTranslation> FaDisposalTypeTranslations { get; set; }
+
     public virtual DbSet<FaMovementDoc> FaMovementDocs { get; set; }
 
     public virtual DbSet<FaMovementDocLine> FaMovementDocLines { get; set; }
@@ -187,6 +191,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }
 
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
+
+    public virtual DbSet<FaReceiptType> FaReceiptTypes { get; set; }
+
+    public virtual DbSet<FaReceiptTypeTranslation> FaReceiptTypeTranslations { get; set; }
 
     public virtual DbSet<FaRevaluationDoc> FaRevaluationDocs { get; set; }
 
@@ -1053,14 +1061,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
         });
 
-        modelBuilder.Entity<CmnDocumentSequence>(entity =>
+        modelBuilder.Entity<CmnDocumentNumberSequence>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("cmn_document_sequence_pkey");
+            entity.HasKey(e => e.Id).HasName("cmn_document_number_sequence_pkey");
 
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.Padding).HasDefaultValue((short)5);
-            entity.Property(e => e.ResetPeriod).HasDefaultValueSql("'yearly'::character varying");
-            entity.Property(e => e.StateId).HasDefaultValue((short)1);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.Property(e => e.LastDocumentDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.DocumentType).WithMany(p => p.CmnDocumentNumberSequences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_number_sequence_document_type_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.CmnDocumentNumberSequences)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_document_number_sequence_organization_id_fkey");
         });
 
         modelBuilder.Entity<CmnDocumentStatus>(entity =>
@@ -1643,6 +1658,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fa_disposal_doc_disposal_account_id_fkey");
 
+            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_doc_disposal_type_id_fkey");
+
             entity.HasOne(d => d.GainAccount).WithMany(p => p.FaDisposalDocGainAccounts)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fa_disposal_doc_gain_account_id_fkey");
@@ -1691,6 +1710,24 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.FaAsset).WithMany(p => p.FaDisposalDocLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_disposal_doc_line_fa_asset_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDisposalType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_disposal_type_pkey");
+        });
+
+        modelBuilder.Entity<FaDisposalTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.DisposalTypeId, e.LanguageId }).HasName("fa_disposal_type_translation_pkey");
+
+            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_type_translation_disposal_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.FaDisposalTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<FaMovementDoc>(entity =>
@@ -1760,6 +1797,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_doc_receipt_type_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1832,6 +1873,24 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fa_receipt_doc_line_vat_account_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<FaReceiptType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_receipt_type_pkey");
+        });
+
+        modelBuilder.Entity<FaReceiptTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.ReceiptTypeId, e.LanguageId }).HasName("fa_receipt_type_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.FaReceiptTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_type_translation_language_id_fkey");
+
+            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_type_translation_receipt_type_id_fkey");
         });
 
         modelBuilder.Entity<FaRevaluationDoc>(entity =>

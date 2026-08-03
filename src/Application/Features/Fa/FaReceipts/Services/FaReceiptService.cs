@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -30,7 +31,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
     private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IFaReceiptCommandRepository _command;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
 
     public FaReceiptService(
         IUserContext userContext,
@@ -51,7 +52,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         IQueryRepository<User> userQuery,
         IQueryRepository<FaAsset> faAssetQuery,
         IFaReceiptCommandRepository command,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         ILogger<FaReceiptService> logger)
         : base(logger, unitOfWork)
     {
@@ -73,7 +74,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         _userQuery = userQuery;
         _faAssetQuery = faAssetQuery;
         _command = command;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
     }
 
     public Task<Result<PagedResponse<FaReceiptListDto>>> GetAllAsync(FaReceiptListFilter filter, CancellationToken ct = default) =>
@@ -108,13 +109,21 @@ public class FaReceiptService : BaseService, IFaReceiptService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.FARECEIPT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var lines = linesResult.Value;
             var doc = new FaReceiptDoc
             {
                 OrganizationId = organizationId,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "FA", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = NormalizeDateTime(dto.DocDate),
                 CounterpartyId = dto.CounterpartyId,
                 WarehouseId = dto.WarehouseId,
@@ -123,7 +132,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 VatAmount = lines.Sum(x => x.VatAmount),
                 FinalAmount = lines.Sum(x => x.TotalAmount),
                 StatusId = DocumentStatusIdConst.DRAFT,
-                ReceiptType = NormalizeReceiptType(dto.ReceiptType),
+                ReceiptTypeId = dto.ReceiptTypeId,
                 SupplierAccountId = dto.SupplierAccountId,
                 CreatedDate = now,
                 UpdatedDate = now,
@@ -185,7 +194,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             doc.TotalAmount = doc.Lines.Sum(x => x.Amount);
             doc.VatAmount = doc.Lines.Sum(x => x.VatAmount);
             doc.FinalAmount = doc.Lines.Sum(x => x.TotalAmount);
-            doc.ReceiptType = NormalizeReceiptType(dto.ReceiptType);
+            doc.ReceiptTypeId = dto.ReceiptTypeId;
             doc.SupplierAccountId = dto.SupplierAccountId;
             doc.UpdatedDate = DateTime.Now;
 
@@ -246,11 +255,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
 
     private async Task<Result> ValidateHeaderReferencesAsync(FaReceiptBaseDto dto, int organizationId, CancellationToken ct)
     {
-        var normalizedReceiptType = NormalizeReceiptType(dto.ReceiptType);
-        if (normalizedReceiptType is not (FaReceiptTypeConst.PURCHASE or FaReceiptTypeConst.CONSTRUCTION or FaReceiptTypeConst.OTHER))
-            return Result.Failure(FaReceiptErrors.InvalidReceiptType(dto.ReceiptType, _userContext.LanguageId));
-
-        if (dto.CounterpartyId.HasValue &&
+if (dto.CounterpartyId.HasValue &&
             !await _counterpartyQuery.AnyAsync(x => x.Id == dto.CounterpartyId.Value &&
                                                     x.OrganizationId == organizationId &&
                                                     x.StateId == StateIdConst.ACTIVE, ct))

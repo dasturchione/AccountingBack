@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyCards;
+using Application.Features.DocumentNumbers;
 using Application.Features.Inv.ProductPrices;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.InventoryCounts;
@@ -44,14 +45,14 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
     private readonly IWarehouseInventoryService _warehouseInventoryService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
 
     public SaleDocService(IUserContext userContext,
                           IQueryBuilder queryBuilder,
                           IAuditLogService auditLogService,
                           ISaleLifecycleService saleLifecycleService,
                           IDocumentPostingLock postingLock,
-                          IDocNumberGenerator docNumberGenerator,
+                          IDocumentNumberService documentNumberService,
                           IQueryRepository<SaleDoc> query,
                           IQueryRepository<VatRate> vatRateQuery,
                           ICommandRepository<SaleDoc> command,
@@ -99,7 +100,7 @@ public class SaleDocService : BaseService, ISaleDocService
         _warehouseProductBalanceService = warehouseProductBalanceService;
         _warehouseInventoryService = warehouseInventoryService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
     }
 
     public Task<Result<PagedResponse<SaleDocListDto>>> GetAllAsync(SaleDocListFilter filter, CancellationToken ct = default) =>
@@ -144,8 +145,6 @@ public class SaleDocService : BaseService, ISaleDocService
                 ? DateTime.SpecifyKind(dto.DocDate.Value, DateTimeKind.Unspecified)
                 : now;
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(orgId, "SAL", docDate, ct);
-
             var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
             var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
             if (warehouse is null)
@@ -170,10 +169,18 @@ public class SaleDocService : BaseService, ISaleDocService
             if (!batchSelectionValidation.IsSuccess)
                 return Result.Failure<long>(batchSelectionValidation.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                orgId,
+                DocumentTypeIdConst.SALE,
+                docDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var doc = new SaleDoc
             {
                 OrganizationId = orgId,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = docDate,
                 CurrencyId = dto.CurrencyId,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,

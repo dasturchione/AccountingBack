@@ -52,6 +52,22 @@ public class FaAssetController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpPut("{id:long}/confirm")]
+    [ModuleAuthorize(PermissionCodeConst.FaAssetUpdate)]
+    public async Task<IResult> Confirm([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPut("{id:long}/cancel")]
+    [ModuleAuthorize(PermissionCodeConst.FaAssetUpdate)]
+    public async Task<IResult> Cancel([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.CancelAsync(id, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpDelete("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.FaAssetDelete)]
     public async Task<IResult> Delete([FromRoute] long id, CancellationToken ct = default)

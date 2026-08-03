@@ -139,6 +139,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharedKernel.Query;
 using Scrutor;
+using Application.Features.DocumentNumbers;
 
 namespace Infrastructure
 {
@@ -161,6 +162,7 @@ namespace Infrastructure
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
 
+            services.AddScoped<IDocumentNumberService, Application.Features.DocumentNumbers.DocumentNumberService>();
             services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();
             services.AddScoped<IWarehouseProductBalanceService, WarehouseProductBalanceService>();
@@ -354,6 +356,7 @@ namespace Infrastructure
             services.AddScoped<IInventoryDocumentHandler<WarehouseTransferDoc>, WarehouseTransferInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<FaReceiptDoc>, FaReceiptInventoryHandler>();
 
             //services.Scan(scan => scan
             //    .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -16,7 +17,7 @@ public class CashOperationService : BaseService, ICashOperationService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly ICashLifecycleService _cashLifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<CashOperation> _query;
     private readonly ICommandRepository<CashOperation> _command;
 
@@ -24,7 +25,7 @@ public class CashOperationService : BaseService, ICashOperationService
                                IQueryBuilder queryBuilder,
                                IAuditLogService auditLogService,
                                ICashLifecycleService cashLifecycleService,
-                               IDocNumberGenerator docNumberGenerator,
+                               IDocumentNumberService documentNumberService,
                                IQueryRepository<CashOperation> query,
                                ICommandRepository<CashOperation> command,
                                ILogger<CashOperationService> logger,
@@ -35,7 +36,7 @@ public class CashOperationService : BaseService, ICashOperationService
         _userContext = userContext;
         _auditLogService = auditLogService;
         _cashLifecycleService = cashLifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
     }
@@ -46,7 +47,13 @@ public class CashOperationService : BaseService, ICashOperationService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "CASH", dto.DocDate, ct);
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                _userContext.OrganizationId.Value,
+                DocumentTypeIdConst.CASHOPERATION,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
 
             var entity = new CashOperation
             {
@@ -58,7 +65,7 @@ public class CashOperationService : BaseService, ICashOperationService
                 CashChartAccountId = dto.CashChartAccountId,
                 OffsetAccountId = dto.OffsetAccountId,
                 CounterpartyId = dto.CounterpartyId,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
                 Amount = dto.Amount,

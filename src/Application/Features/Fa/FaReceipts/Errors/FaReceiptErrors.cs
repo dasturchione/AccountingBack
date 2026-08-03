@@ -29,6 +29,21 @@ public static class FaReceiptErrors
             _ => $"Warehouse with id {id} was not found."
         });
 
+    public static Error WarehouseRequiredForSourceProduct(short? languageId = null) =>
+        Error.Business("FaReceipt.WarehouseRequiredForSourceProduct", languageId switch
+        {
+            LanguageIdConst.UZ => "Ombordagi mahsulotdan asosiy vosita yaratish uchun ombor tanlanishi shart.",
+            LanguageIdConst.RU => "Для создания основного средства из складского товара необходимо выбрать склад.",
+            _ => "A warehouse is required when creating a fixed asset from stock."
+        });
+
+    public static Error SourceProductTableRequired(long receiptAssetId, short? languageId = null) =>
+        Error.Business("FaReceipt.SourceProductTableRequired", languageId switch
+        {
+            LanguageIdConst.UZ => $"{receiptAssetId} qator uchun mahsulot nusxasi aniqlanmadi.",
+            LanguageIdConst.RU => $"Для строки ОС {receiptAssetId} не определён экземпляр товара со склада.",
+            _ => $"A source product table was not determined for fixed asset line {receiptAssetId}."
+        });
     public static Error CurrencyNotFound(short id, short? languageId = null) =>
         Error.NotFound("FaReceipt.CurrencyNotFound", languageId switch
         {
@@ -109,7 +124,7 @@ public static class FaReceiptErrors
             _ => $"Inventory number '{inventoryNumber}' is duplicated within the document."
         });
 
-    public static Error InvalidReceiptType(string receiptType, short? languageId = null) =>
+    public static Error InvalidReceiptType(short receiptType, short? languageId = null) =>
         Error.Business("FaReceipt.InvalidReceiptType", languageId switch
         {
             LanguageIdConst.UZ => $"'{receiptType}' qabul turi qo'llab-quvvatlanmaydi.",

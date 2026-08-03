@@ -75,11 +75,14 @@ public partial class Organization
     [StringLength(20)]
     public string? Oked { get; set; }
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(AccountingRegisterEntry.Organization))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
     [InverseProperty(nameof(DocumentAccountSetting.Organization))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
+
+    [InverseProperty(nameof(DocumentNumberSequence.Organization))]
+    public virtual ICollection<DocumentNumberSequence> DocumentNumberSequences { get; set; } = new List<DocumentNumberSequence>();
 
     [InverseProperty(nameof(OpeningInventory.Organization))]
     public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
@@ -90,7 +93,7 @@ public partial class Organization
     [InverseProperty(nameof(OpeningBalance.Organization))]
     public virtual OpeningBalance? OpeningBalance { get; set; }
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(ChartAccount.Organization))]
     public virtual ICollection<ChartAccount> ChartAccounts { get; set; } = new List<ChartAccount>();
 
     [InverseProperty(nameof(WarehouseProductMovement.Organization))]
@@ -99,32 +102,32 @@ public partial class Organization
     [InverseProperty(nameof(WarehouseProductBatch.Organization))]
     public virtual ICollection<WarehouseProductBatch> WarehouseProductBatches { get; set; } = new List<WarehouseProductBatch>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(BankOperation.Organization))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CashBox.Organization))]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CashOperation.Organization))]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(PricingCondition.Organization))]
     public virtual ICollection<PricingCondition> PricingConditions { get; set; } = new List<PricingCondition>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CounterpartyBankAccount.Organization))]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CounterpartyCard.Organization))]
     public virtual ICollection<CounterpartyCard> CounterpartyCards { get; set; } = new List<CounterpartyCard>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CounterpartyContact.Organization))]
     public virtual ICollection<CounterpartyContact> CounterpartyContacts { get; set; } = new List<CounterpartyContact>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(CounterpartyRegisterBalance.Organization))]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
     [ForeignKey("DefaultLanguageId")]
-    [InverseProperty("Organizations")]
+    [InverseProperty(nameof(Language.Organizations))]
     public virtual Language? DefaultLanguage { get; set; }
 
     [ForeignKey(nameof(TenantId))]
@@ -132,28 +135,28 @@ public partial class Organization
     public virtual PlatformTenant PlatformTenant { get; set; } = null!;
 
     [ForeignKey("DistrictId")]
-    [InverseProperty("Organizations")]
+    [InverseProperty(nameof(District.Organizations))]
     public virtual District? District { get; set; }
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(ProductGroup.Organization))]
     public virtual ICollection<ProductGroup> ProductGroups { get; set; } = new List<ProductGroup>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(ProductPrice.Organization))]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(Product.Organization))]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(Warehouse.Organization))]
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(MoneyRegisterBalance.Organization))]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(BankAccount.Organization))]
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
-    [InverseProperty("Organization")]
+    [InverseProperty(nameof(Branch.Organization))]
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
 
     [InverseProperty("Organization")]

@@ -3,7 +3,7 @@ namespace Application.Features.FaDisposals;
 public partial class FaDisposalBaseDto
 {
     public DateTime DisposalDate { get; set; }
-    public string DisposalType { get; set; } = null!;
+    public short DisposalTypeId { get; set; }
     public string? Reason { get; set; }
     public short StateId { get; set; } = SharedKernel.Constants.StateIdConst.ACTIVE;
     public List<FaDisposalLineWriteDto> Lines { get; set; } = new();
@@ -28,7 +28,7 @@ public partial class FaDisposalDto
     public DateTime DisposalDate { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
-    public string DisposalType { get; set; } = null!;
+    public short DisposalTypeId { get; set; }
     public string? Reason { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;

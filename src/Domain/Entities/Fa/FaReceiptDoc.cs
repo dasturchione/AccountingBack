@@ -48,9 +48,8 @@ public partial class FaReceiptDoc
     [Column("status_id")]
     public short StatusId { get; set; }
 
-    [Column("receipt_type")]
-    [StringLength(50)]
-    public string ReceiptType { get; set; } = null!;
+    [Column("receipt_type_id")]
+    public short ReceiptTypeId { get; set; }
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
@@ -76,6 +75,10 @@ public partial class FaReceiptDoc
     [ForeignKey(nameof(SupplierAccountId))]
     [InverseProperty(nameof(ChartAccount.FaReceiptDocs))]
     public virtual ChartAccount? SupplierAccount { get; set; }
+
+    [ForeignKey(nameof(ReceiptTypeId))]
+    [InverseProperty(nameof(FaReceiptType.FaReceiptDocs))]
+    public virtual FaReceiptType ReceiptType { get; set; } = null!;
 
     [ForeignKey("CounterpartyId")]
     public virtual CounterpartyCard? Counterparty { get; set; }

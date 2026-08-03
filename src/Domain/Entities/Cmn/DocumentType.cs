@@ -27,8 +27,11 @@ public partial class DocumentType
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("DocumentType")]
+    [InverseProperty(nameof(AccountingRegisterEntry.DocumentType))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
+
+    [InverseProperty(nameof(DocumentNumberSequence.DocumentType))]
+    public virtual ICollection<DocumentNumberSequence> DocumentNumberSequences { get; set; } = new List<DocumentNumberSequence>();
 
     [InverseProperty(nameof(WarehouseProductMovement.DocumentType))]
     public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
@@ -36,10 +39,10 @@ public partial class DocumentType
     [InverseProperty(nameof(DocumentTypeTranslation.DocumentType))]
     public virtual ICollection<DocumentTypeTranslation> DocumentTypeTranslations { get; set; } = new List<DocumentTypeTranslation>();
 
-    [InverseProperty("DocumentType")]
+    [InverseProperty(nameof(CounterpartyRegisterBalance.DocumentType))]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
-    [InverseProperty("DocumentType")]
+    [InverseProperty(nameof(MoneyRegisterBalance.DocumentType))]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
     [ForeignKey("StateId")]

@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IDocumentPostingLock _postingLock;
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAccountingDispatcher _dispatcher;
@@ -37,7 +38,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IDocumentPostingLock postingLock,
         IAccountingPeriodValidator periodValidator,
         IAccountingDispatcher dispatcher,
@@ -57,7 +58,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
         _unitOfWork = unitOfWork;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _postingLock = postingLock;
         _periodValidator = periodValidator;
         _dispatcher = dispatcher;
@@ -111,12 +112,20 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.FADEPRECIATION,
+                periodMonth,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var doc = new FaDepreciationRun
             {
                 OrganizationId = organizationId,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "FAD", periodMonth, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 PeriodMonth = periodMonth.Date,
                 StatusId = DocumentStatusIdConst.POSTED,
                 Note = $"Monthly depreciation for {periodMonth:yyyy-MM}",

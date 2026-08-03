@@ -2,8 +2,8 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -18,7 +18,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IFaDisposalLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<FaDisposalDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IFaDisposalCommandRepository _command;
@@ -29,7 +29,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IFaDisposalLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<FaDisposalDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
         IFaDisposalCommandRepository command,
@@ -41,7 +41,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _faAssetQuery = faAssetQuery;
         _command = command;
@@ -74,14 +74,22 @@ public class FaDisposalService : BaseService, IFaDisposalService
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                _userContext.OrganizationId.Value,
+                DocumentTypeIdConst.FADISPOSAL,
+                dto.DisposalDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var doc = new FaDisposalDoc
             {
                 OrganizationId = _userContext.OrganizationId.Value,
                 StateId = StateIdConst.ACTIVE,
-                DocNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "FADS", dto.DisposalDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DisposalDate = NormalizeDateTime(dto.DisposalDate),
-                DisposalType = dto.DisposalType.Trim().ToUpperInvariant(),
+                DisposalTypeId = dto.DisposalTypeId,
                 Reason = dto.Reason?.Trim(),
                 DisposalAccountId = dto.DisposalAccountId,
                 CustomerAccountId = dto.CustomerAccountId,
@@ -140,7 +148,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
                 doc.Lines.Add(line);
 
             doc.DisposalDate = NormalizeDateTime(dto.DisposalDate);
-            doc.DisposalType = dto.DisposalType.Trim().ToUpperInvariant();
+            doc.DisposalTypeId = dto.DisposalTypeId;
             doc.Reason = dto.Reason?.Trim();
             doc.DisposalAccountId = dto.DisposalAccountId;
             doc.CustomerAccountId = dto.CustomerAccountId;
@@ -172,12 +180,9 @@ public class FaDisposalService : BaseService, IFaDisposalService
     {
         if (dto.Lines.Count == 0)
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.LinesRequired(_userContext.LanguageId));
-
-        var disposalType = dto.DisposalType.Trim().ToUpperInvariant();
-        if (disposalType is not ("SALE" or "WRITEOFF" or "BREAKDOWN"))
-            return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.InvalidDisposalType(_userContext.LanguageId));
-
+        
         var assetIds = dto.Lines.Select(x => x.FaAssetId).Distinct().ToList();
+
         if (assetIds.Count != dto.Lines.Count)
         {
             var duplicateId = dto.Lines.GroupBy(x => x.FaAssetId).First(x => x.Count() > 1).Key;
@@ -191,7 +196,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         var assets = await _faAssetQuery.GetAllAsync(assetQuery, ct);
         var assetById = assets.ToDictionary(x => x.Id);
 
-        if (disposalType == "SALE" && dto.Lines.All(x => x.SaleAmount <= 0))
+        if (dto.DisposalTypeId == FaDisposalTypeIdConst.SALE && dto.Lines.All(x => x.SaleAmount <= 0))
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.SaleAmountRequired(_userContext.LanguageId));
 
         var lines = new List<FaDisposalDocLine>();

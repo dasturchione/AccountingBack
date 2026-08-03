@@ -47,7 +47,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<BankAccount>(modelBuilder);
             ApplyScopedFilter<AccountingPeriod>(modelBuilder);
             ApplyScopedFilter<PostingBatch>(modelBuilder);
-            ApplyScopedFilter<DocumentSequence>(modelBuilder);
+            ApplyScopedFilter<DocumentNumberSequence>(modelBuilder);
             ApplyScopedFilter<OrganizationSetupState>(modelBuilder);
             ApplyScopedFilter<OrganizationEdoProvider>(modelBuilder);
             ApplyScopedFilter<EdoDocument>(modelBuilder);

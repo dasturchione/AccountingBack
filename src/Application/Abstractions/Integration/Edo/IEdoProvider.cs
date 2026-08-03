@@ -47,7 +47,19 @@ public interface IEdoProvider
         string providerDocumentId,
         CancellationToken ct = default);
 
+    Task<EdoDocumentStatusDto> GetOutboxStatusAsync(
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        GetOutboxStatusAsync(providerDocumentId, ct);
+
     Task<EdoDocumentStatusDto> GetInboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default);
+
+    Task<EdoDocumentStatusDto> GetInboxStatusAsync(
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        GetInboxStatusAsync(providerDocumentId, ct);
 }

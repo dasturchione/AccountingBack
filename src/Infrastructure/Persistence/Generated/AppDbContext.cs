@@ -268,10 +268,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MarkingOrder> MarkingOrders { get; set; }
 
-    public virtual DbSet<MarkingTransfer> MarkingTransfers { get; set; }
-
-    public virtual DbSet<MarkingTransferCode> MarkingTransferCodes { get; set; }
-
     public virtual DbSet<MarkingUtilization> MarkingUtilizations { get; set; }
 
     public virtual DbSet<MoneyRegBalance> MoneyRegBalances { get; set; }
@@ -2615,42 +2611,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.MarkingOrders)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("marking_order_product_id_fkey");
-        });
-
-        modelBuilder.Entity<MarkingTransfer>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_pkey");
-
-            entity.HasIndex(e => e.DocumentId, "idx_marking_transfer_document_id").HasFilter("(document_id IS NOT NULL)");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.BuyerCounterparty).WithMany(p => p.MarkingTransferBuyerCounterparties)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_buyer_counterparty_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingTransfers)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_organization_id_fkey");
-
-            entity.HasOne(d => d.SellerCounterparty).WithMany(p => p.MarkingTransferSellerCounterparties)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_seller_counterparty_id_fkey");
-        });
-
-        modelBuilder.Entity<MarkingTransferCode>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_code_pkey");
-
-            entity.HasIndex(e => e.Gtin, "idx_marking_transfer_code_gtin").HasFilter("(gtin IS NOT NULL)");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.MarkingTransfer).WithMany(p => p.MarkingTransferCodes).HasConstraintName("marking_transfer_code_marking_transfer_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingTransferCodes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_code_organization_id_fkey");
         });
 
         modelBuilder.Entity<MarkingUtilization>(entity =>

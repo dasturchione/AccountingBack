@@ -123,12 +123,6 @@ public partial class CounterpartyCard
     [InverseProperty("OwnerCounterparty")]
     public virtual ICollection<MarkingCode> MarkingCodes { get; set; } = new List<MarkingCode>();
 
-    [InverseProperty("BuyerCounterparty")]
-    public virtual ICollection<MarkingTransfer> MarkingTransferBuyerCounterparties { get; set; } = new List<MarkingTransfer>();
-
-    [InverseProperty("SellerCounterparty")]
-    public virtual ICollection<MarkingTransfer> MarkingTransferSellerCounterparties { get; set; } = new List<MarkingTransfer>();
-
     [ForeignKey("OrganizationId")]
     [InverseProperty("CounterpartyCards")]
     public virtual OrgOrganization Organization { get; set; } = null!;

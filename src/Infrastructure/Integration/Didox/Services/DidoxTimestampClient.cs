@@ -3,7 +3,9 @@ using Integration.Shared.Http;
 using SharedKernel.Exceptions;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Integration.Didox.Services;
 
@@ -25,7 +27,13 @@ namespace Integration.Didox.Services;
 // ko'rsatadi, birontasi ham "sukut" emas.
 public sealed class DidoxTimestampClient
 {
+    private const int MaxErrorBodyBytes = 4096;
+    private const int MaxErrorFieldLength = 512;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly Regex SensitiveValueRegex = new(
+        @"(?i)\b(?:pkcs7|signaturehex|signature|private(?:\s|_)?key|partner-authorization|authorization|access[_\s-]?token|auth[_\s-]?token|user[_\s-]?key)\b\s*[:=]\s*(?:""[^"" ]*""|'[^']*'|[^\s,;]+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly IHttpClientFactory _httpClientFactory;
 
@@ -70,7 +78,10 @@ public sealed class DidoxTimestampClient
     private static async Task<string> ExtractTokenOrThrowAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)
-            throw MapError(response.StatusCode);
+        {
+            var providerError = await ReadProviderErrorAsync(response, ct);
+            throw MapError(response.StatusCode, providerError);
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
@@ -85,15 +96,97 @@ public sealed class DidoxTimestampClient
         return token;
     }
 
+    private static async Task<DidoxProviderError?> ReadProviderErrorAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        var buffer = new byte[MaxErrorBodyBytes];
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct);
+
+        if (bytesRead == 0)
+            return null;
+
+        var body = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            return new DidoxProviderError(
+                ReadSafeStringProperty(root, "code", "errorCode", "error_code"),
+                ReadSafeStringProperty(root, "message"),
+                ReadSafeStringProperty(root, "detail"));
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadSafeStringProperty(JsonElement root, params string[] names)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+            return null;
+
+        foreach (var property in root.EnumerateObject())
+        {
+            if (!names.Any(name => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                || property.Value.ValueKind != JsonValueKind.String)
+            {
+                continue;
+            }
+
+            var value = property.Value.GetString();
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var redacted = SensitiveValueRegex.Replace(value.Trim(), "<redacted>");
+            return redacted.Length <= MaxErrorFieldLength
+                ? redacted
+                : redacted[..MaxErrorFieldLength] + "...";
+        }
+
+        return null;
+    }
+
     // INT_DIDOX.md §2.6 — tasdiqlangan xato kodlari (umumiy naqsh, DidoxAuthService
     // dagi asl MapError bilan bir xil qiymatlar).
-    private static Exception MapError(HttpStatusCode statusCode) => statusCode switch
+    private static Exception MapError(HttpStatusCode statusCode, DidoxProviderError? providerError) => statusCode switch
     {
-        HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException("Didox dsvs/timestamp so'rovi rad etildi (401) — imzo yaroqsiz."),
-        HttpStatusCode.Forbidden => new IntegrationForbiddenException("Didox dsvs/timestamp so'rovini rad etdi (403)."),
-        HttpStatusCode.UnprocessableEntity => new IntegrationHttpException("Didox dsvs/timestamp so'rovi rad etildi (422).", 422),
-        HttpStatusCode.Locked => new IntegrationHttpException("Didox dsvs/timestamp: hisob bloklangan (423).", 423),
-        (HttpStatusCode)429 => new IntegrationHttpException("Didox dsvs/timestamp: urinishlar juda ko'p (429).", 429),
-        _ => new IntegrationHttpException($"Didox dsvs/timestamp so'rovi HTTP {(int)statusCode} bilan tugadi.", (int)statusCode)
+        HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException(
+            $"Didox dsvs/timestamp so'rovi rad etildi (401) — imzo yaroqsiz.{FormatProviderError(providerError)}"),
+        HttpStatusCode.Forbidden => new IntegrationForbiddenException(
+            $"Didox dsvs/timestamp so'rovini rad etdi (403).{FormatProviderError(providerError)}"),
+        HttpStatusCode.UnprocessableEntity => new IntegrationHttpException(
+            $"Didox dsvs/timestamp so'rovi rad etildi (422).{FormatProviderError(providerError)}", 422),
+        HttpStatusCode.Locked => new IntegrationHttpException(
+            $"Didox dsvs/timestamp: hisob bloklangan (423).{FormatProviderError(providerError)}", 423),
+        (HttpStatusCode)429 => new IntegrationHttpException(
+            $"Didox dsvs/timestamp: urinishlar juda ko'p (429).{FormatProviderError(providerError)}", 429),
+        _ => new IntegrationHttpException(
+            $"Didox dsvs/timestamp so'rovi HTTP {(int)statusCode} bilan tugadi.{FormatProviderError(providerError)}",
+            (int)statusCode)
     };
+
+    private static string FormatProviderError(DidoxProviderError? providerError)
+    {
+        if (providerError is null)
+            return string.Empty;
+
+        var details = new[]
+        {
+            providerError.Code is null ? null : $"code={providerError.Code}",
+            providerError.Message is null ? null : $"message={providerError.Message}",
+            providerError.Detail is null ? null : $"detail={providerError.Detail}"
+        }.Where(value => value is not null);
+
+        var formatted = string.Join("; ", details);
+        return string.IsNullOrWhiteSpace(formatted)
+            ? string.Empty
+            : $" Provider response: {formatted}";
+    }
+
+    private sealed record DidoxProviderError(string? Code, string? Message, string? Detail);
 }

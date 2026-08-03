@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using SharedKernel.Exceptions;
 
 namespace Integration.Edocs.Facturas;
@@ -18,23 +19,67 @@ public sealed class EdocsEdoOperations(
     IHttpClientFactory httpClientFactory)
 {
     private const string BlobResponseMode = "false";
+    private const int MaxInboxResponseBodyBytes = 1 * 1024 * 1024;
+    private const int MaxDiagnosticSummaryLength = 512;
+    private static readonly Regex SensitiveValueRegex = new(
+        @"(?i)[""']?\b(?:pkcs7(?:_64)?|signature(?:hex)?|private(?:\s|_)?key|partner[-_]?authorization|authorization|access[_\s-]?token|auth[_\s-]?token|user[_\s-]?key|token|inn|tin|tax[_-]?id|(?:document|doc|factura|invoice)[-_]?(?:id|number|no|date)?|id)\b[""']?\s*[:=]\s*(?:""[^"" ]*""|'[^']*'|[^\s,;}\]]+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public async Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct)
     {
         var query = $"documents?io=in&page={request.Page}&limit={request.PageSize}";
         using var response = await SendAsync(HttpMethod.Get, query, ct);
         await EnsureSuccessAsync(response, "Edocs inbox list");
-        using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-        var data = json.RootElement.ValueKind == JsonValueKind.Array
-            ? json.RootElement
-            : json.RootElement.TryGetProperty("data", out var dataProperty) && dataProperty.ValueKind == JsonValueKind.Array
-                ? dataProperty
-                : throw new IntegrationHttpException("Edocs inbox response did not contain a documented data array.", StatusCodes.Status502BadGateway);
+        var body = await ReadBoundedResponseBodyAsync(response, ct);
+        JsonDocument json;
+        try
+        {
+            json = JsonDocument.Parse(body);
+        }
+        catch (JsonException)
+        {
+            throw new IntegrationHttpException(
+                $"Edocs inbox response shape unsupported: rootKind=InvalidJson, " +
+                $"status={(int)response.StatusCode}, " +
+                $"contentType={response.Content.Headers.ContentType?.ToString() ?? "none"}, " +
+                $"contentEncoding={FormatContentEncoding(response)}, " +
+                $"body={RedactAndTruncate(body) ?? "empty"}.",
+                StatusCodes.Status502BadGateway);
+        }
 
-        var items = data.EnumerateArray().Select(ParseDocument).ToList();
-        var total = json.RootElement.TryGetProperty("total", out var totalProperty)
-            && totalProperty.TryGetInt32(out var totalValue) ? totalValue : (int?)null;
-        return new EdoInboxListDto { Items = items, Page = request.Page, PageSize = request.PageSize, TotalCount = total };
+        using (json)
+        {
+            var root = json.RootElement;
+            var usesDocsShape = false;
+            JsonElement data;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                data = root;
+            }
+            else if (root.ValueKind == JsonValueKind.Object
+                     && root.TryGetProperty("data", out var dataProperty)
+                     && dataProperty.ValueKind == JsonValueKind.Array)
+            {
+                data = dataProperty;
+            }
+            else if (root.ValueKind == JsonValueKind.Object
+                     && root.TryGetProperty("docs", out var docsProperty)
+                     && docsProperty.ValueKind == JsonValueKind.Array)
+            {
+                data = docsProperty;
+                usesDocsShape = true;
+            }
+            else
+            {
+                throw CreateUnsupportedInboxShapeException(root);
+            }
+
+            var items = data.EnumerateArray().Select(item => ParseDocument(item, usesDocsShape)).ToList();
+            var total = root.ValueKind == JsonValueKind.Object
+                && root.TryGetProperty("total", out var totalProperty)
+                && totalProperty.TryGetInt32(out var totalValue) ? totalValue : (int?)null;
+            return new EdoInboxListDto { Items = items, Page = request.Page, PageSize = request.PageSize, TotalCount = total };
+        }
     }
 
     public async Task<EdoInboxRejectDto> RejectInboxAsync(
@@ -74,7 +119,7 @@ public sealed class EdocsEdoOperations(
         string providerDocumentId,
         CancellationToken ct)
     {
-        var type = MapDocumentType(providerDocumentType);
+        var type = MapFileDocumentType(providerDocumentType);
         var id = RequireProviderDocumentId(providerDocumentId);
         var path = $"documents/{Uri.EscapeDataString(type)}/{Uri.EscapeDataString(id)}/{Uri.EscapeDataString(BlobResponseMode)}/file";
         var response = await SendAsync(HttpMethod.Get, path, ct);
@@ -99,11 +144,16 @@ public sealed class EdocsEdoOperations(
         }
     }
 
-    public async Task<EdoDocumentStatusDto> GetStatusAsync(string providerDocumentId, CancellationToken ct)
+    public async Task<EdoDocumentStatusDto> GetStatusAsync(
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct)
     {
+        var type = MapStatusDocumentType(providerDocumentType);
+        var id = RequireStatusProviderDocumentId(providerDocumentId);
         using var response = await SendAsync(
             HttpMethod.Get,
-            $"documents/factura/{Uri.EscapeDataString(providerDocumentId)}",
+            $"documents/{Uri.EscapeDataString(type)}/{Uri.EscapeDataString(id)}",
             ct);
         await EnsureSuccessAsync(response, "Edocs document status");
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
@@ -114,9 +164,9 @@ public sealed class EdocsEdoOperations(
         return EdoProviderStatusMapper.MapEdocsStatus(statusProperty.GetString());
     }
 
-    private EdoDocumentDto ParseDocument(JsonElement item)
+    private EdoDocumentDto ParseDocument(JsonElement item, bool usesDocsShape)
     {
-        var providerDocumentId = ReadRequiredString(item, "id");
+        var providerDocumentId = ReadRequiredString(item, usesDocsShape ? "_id" : "id");
         var documentType = ReadRequiredString(item, "type");
 
         var status = item.TryGetProperty("status", out var statusProperty) && statusProperty.ValueKind == JsonValueKind.String
@@ -128,12 +178,13 @@ public sealed class EdocsEdoOperations(
             ProviderDocumentId = providerDocumentId,
             Direction = EdoDirection.INBOX,
             DocumentType = documentType,
-            DocumentNumber = ReadNestedString(item, "FacturaDoc", "FacturaNo"),
-            DocumentDate = ReadNestedDate(item, "FacturaDoc", "FacturaDate"),
+            DocumentNumber = usesDocsShape ? null : ReadNestedString(item, "FacturaDoc", "FacturaNo"),
+            DocumentDate = usesDocsShape ? null : ReadNestedDate(item, "FacturaDoc", "FacturaDate"),
             Status = status,
-            Seller = ReadParty(item, "Seller"),
-            Buyer = ReadParty(item, "Buyer"),
-            TotalAmount = ReadDecimal(item, "TotalAmount")
+            Seller = usesDocsShape ? null : ReadParty(item, "Seller"),
+            Buyer = usesDocsShape ? null : ReadParty(item, "Buyer"),
+            TotalAmount = usesDocsShape ? null : ReadDecimal(item, "TotalAmount"),
+            CreatedAt = usesDocsShape ? ReadDateTimeOffset(item, "createdAt") : null
         };
     }
 
@@ -158,6 +209,127 @@ public sealed class EdocsEdoOperations(
         request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, RequireOrganization());
         return await httpClientFactory.CreateClient(EdocsHttpClientNames.Client)
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+    }
+
+    private static async Task<string> ReadBoundedResponseBodyAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        if (response.Content.Headers.ContentLength is > MaxInboxResponseBodyBytes)
+            throw new IntegrationHttpException(
+                $"Edocs inbox response exceeded the bounded body limit of {MaxInboxResponseBodyBytes} bytes.",
+                StatusCodes.Status502BadGateway);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        var buffer = new byte[MaxInboxResponseBodyBytes];
+        var offset = 0;
+
+        while (offset < buffer.Length)
+        {
+            var bytesRead = await stream.ReadAsync(buffer.AsMemory(offset), ct);
+            if (bytesRead == 0)
+                break;
+
+            offset += bytesRead;
+        }
+
+        if (offset == buffer.Length)
+        {
+            var probe = new byte[1];
+            var additionalBytes = await stream.ReadAsync(probe.AsMemory(), ct);
+            if (additionalBytes > 0)
+                throw new IntegrationHttpException(
+                    $"Edocs inbox response exceeded the bounded body limit of {MaxInboxResponseBodyBytes} bytes.",
+                    StatusCodes.Status502BadGateway);
+        }
+
+        return System.Text.Encoding.UTF8.GetString(buffer, 0, offset);
+    }
+
+    private static IntegrationHttpException CreateUnsupportedInboxShapeException(JsonElement root)
+    {
+        var properties = root.ValueKind == JsonValueKind.Object
+            ? root.EnumerateObject().Select(property => property.Name).ToList()
+            : [];
+        var arrayProperties = root.ValueKind == JsonValueKind.Object
+            ? root.EnumerateObject()
+                .Where(property => property.Value.ValueKind == JsonValueKind.Array)
+                .Select(property => property.Name)
+                .ToList()
+            : [];
+        var itemProperties = FindFirstArrayObject(root) is { } item
+            ? item.EnumerateObject().Select(property => property.Name).ToList()
+            : [];
+
+        var message =
+            $"Edocs inbox response shape unsupported: rootKind={root.ValueKind}, " +
+            $"properties={FormatPropertyNames(properties)}, " +
+            $"arrayProperties={FormatPropertyNames(arrayProperties)}, " +
+            $"itemProperties={FormatPropertyNames(itemProperties)}.";
+
+        return new IntegrationHttpException(message, StatusCodes.Status502BadGateway);
+    }
+
+    private static JsonElement? FindFirstArrayObject(JsonElement root)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in root.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object)
+                    return item;
+            }
+
+            return null;
+        }
+
+        if (root.ValueKind != JsonValueKind.Object)
+            return null;
+
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.Value.ValueKind != JsonValueKind.Array)
+                continue;
+
+            foreach (var item in property.Value.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object)
+                    return item;
+            }
+        }
+
+        return null;
+    }
+
+    private static string FormatPropertyNames(IEnumerable<string> names)
+    {
+        var formatted = string.Join(",", names
+            .Take(64)
+            .Select(name => name.Replace("\r", string.Empty).Replace("\n", string.Empty)));
+
+        if (string.IsNullOrWhiteSpace(formatted))
+            return "none";
+
+        return formatted.Length <= 512
+            ? formatted
+            : formatted[..512] + "...";
+    }
+
+    private static string FormatContentEncoding(HttpResponseMessage response) =>
+        response.Content.Headers.ContentEncoding.Count == 0
+            ? "none"
+            : string.Join(",", response.Content.Headers.ContentEncoding);
+
+    private static string? RedactAndTruncate(string value)
+    {
+        var redacted = SensitiveValueRegex.Replace(value, "<redacted>");
+        var compact = Regex.Replace(redacted, @"\s+", " ").Trim();
+
+        return string.IsNullOrWhiteSpace(compact)
+            ? null
+            : compact.Length <= MaxDiagnosticSummaryLength
+                ? compact
+                : compact[..MaxDiagnosticSummaryLength] + "...";
     }
 
     private int RequireOrganization() => userContext.OrganizationId
@@ -189,6 +361,13 @@ public sealed class EdocsEdoOperations(
     private static decimal? ReadDecimal(JsonElement item, string name) =>
         item.TryGetProperty(name, out var property) && property.TryGetDecimal(out var value) ? value : null;
 
+    private static DateTimeOffset? ReadDateTimeOffset(JsonElement item, string name) =>
+        item.TryGetProperty(name, out var property)
+        && property.ValueKind == JsonValueKind.String
+        && DateTimeOffset.TryParse(property.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value)
+            ? value
+            : null;
+
     private static string ReadRequiredString(JsonElement item, string name) =>
         item.TryGetProperty(name, out var property)
             && property.ValueKind == JsonValueKind.String
@@ -205,10 +384,41 @@ public sealed class EdocsEdoOperations(
             _ => throw new InvalidOperationException($"Edocs inbox rejection does not support document type '{documentType}'.")
         };
 
+    private static string MapFileDocumentType(string documentType)
+    {
+        if (string.IsNullOrWhiteSpace(documentType))
+            throw new IntegrationHttpException(
+                "Edocs file download requires a stored provider document type.",
+                StatusCodes.Status422UnprocessableEntity);
+
+        var type = documentType.Trim();
+        return string.Equals(type, "FACTURA", StringComparison.OrdinalIgnoreCase)
+            ? "factura"
+            : type;
+    }
+
     private static string RequireProviderDocumentId(string providerDocumentId) =>
         string.IsNullOrWhiteSpace(providerDocumentId)
             ? throw new InvalidOperationException("Edocs inbox rejection requires a provider document ID.")
             : providerDocumentId;
+
+    private static string RequireStatusProviderDocumentId(string providerDocumentId) =>
+        string.IsNullOrWhiteSpace(providerDocumentId)
+            ? throw new InvalidOperationException("Edocs document status requires a provider document ID.")
+            : providerDocumentId;
+
+    private static string MapStatusDocumentType(string providerDocumentType)
+    {
+        if (string.IsNullOrWhiteSpace(providerDocumentType))
+            throw new IntegrationHttpException(
+                "Edocs document status requires a stored provider document type.",
+                StatusCodes.Status422UnprocessableEntity);
+
+        var type = providerDocumentType.Trim();
+        return string.Equals(type, "FACTURA", StringComparison.OrdinalIgnoreCase)
+            ? "factura"
+            : type;
+    }
 
     private static EdoPartyDto? ReadParty(JsonElement item, string name)
     {

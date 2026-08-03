@@ -239,12 +239,6 @@ public partial class OrgOrganization
     public virtual ICollection<MarkingOrder> MarkingOrders { get; set; } = new List<MarkingOrder>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<MarkingTransferCode> MarkingTransferCodes { get; set; } = new List<MarkingTransferCode>();
-
-    [InverseProperty("Organization")]
-    public virtual ICollection<MarkingTransfer> MarkingTransfers { get; set; } = new List<MarkingTransfer>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<MarkingUtilization> MarkingUtilizations { get; set; } = new List<MarkingUtilization>();
 
     [InverseProperty("Organization")]

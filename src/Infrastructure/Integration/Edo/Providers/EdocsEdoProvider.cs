@@ -3,6 +3,7 @@ using Application.Features.Integration.Edocs.Facturas;
 using Application.Features.Integration.Edocs.Services;
 using SharedKernel.Exceptions;
 using System.Globalization;
+using System.Text.Json;
 
 namespace Integration.Edo.Providers;
 
@@ -21,13 +22,14 @@ public sealed class EdocsEdoProvider(
     {
         var serialNumber = RequireCertificateSerialNumber(request.CertificateSerialNumber);
         var result = await authService.GetAuthChallengeAsync(serialNumber, ct);
+        var challengePayload = JsonSerializer.Serialize(new { challenge = result.AuthId });
 
         return new EdoAuthChallengeDto
         {
             ChallengeId = result.AuthId,
             AuthMode = EdoAuthMode.EImzo,
-            Payload = result.AuthId,
-            PayloadFormat = "Text"
+            Payload = challengePayload,
+            PayloadFormat = "Json"
         };
     }
 
@@ -141,12 +143,24 @@ public sealed class EdocsEdoProvider(
     public Task<EdoDocumentStatusDto> GetOutboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default) =>
-        edoOperations.GetStatusAsync(providerDocumentId, ct);
+        edoOperations.GetStatusAsync("FACTURA", providerDocumentId, ct);
+
+    public Task<EdoDocumentStatusDto> GetOutboxStatusAsync(
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        edoOperations.GetStatusAsync(providerDocumentType, providerDocumentId, ct);
 
     public Task<EdoDocumentStatusDto> GetInboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default) =>
-        edoOperations.GetStatusAsync(providerDocumentId, ct);
+        edoOperations.GetStatusAsync("FACTURA", providerDocumentId, ct);
+
+    public Task<EdoDocumentStatusDto> GetInboxStatusAsync(
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        edoOperations.GetStatusAsync(providerDocumentType, providerDocumentId, ct);
 
     private Task<T> ThrowUnavailable<T>(EdoCapabilityKind capability) =>
         throw new EdoCapabilityUnavailableException(
@@ -216,6 +230,7 @@ public sealed class EdocsEdoProvider(
                         or EdoCapabilityKind.CreateFactura
                         or EdoCapabilityKind.SignOutbox
                         or EdoCapabilityKind.ListInbox
+                        or EdoCapabilityKind.GetFile
                         or EdoCapabilityKind.GetOutboxStatus
                         or EdoCapabilityKind.GetInboxStatus
                         ? EdoCapabilityStatus.SUPPORTED

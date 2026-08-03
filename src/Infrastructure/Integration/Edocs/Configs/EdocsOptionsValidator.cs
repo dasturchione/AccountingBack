@@ -21,6 +21,12 @@ public sealed class EdocsOptionsValidator : IValidateOptions<EdocsOptions>
         if (options.TimeoutSeconds <= 0)
             failures.Add("Edocs:TimeoutSeconds must be greater than zero.");
 
+        if (string.IsNullOrWhiteSpace(options.Product))
+            failures.Add("Edocs:Product is required.");
+
+        if (string.IsNullOrWhiteSpace(options.PartnerId))
+            failures.Add("Edocs:PartnerId is required.");
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

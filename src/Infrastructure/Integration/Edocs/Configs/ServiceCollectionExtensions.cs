@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Integration.Edocs.Http;
+using System.Net;
 
 namespace Integration.Edocs.Configs;
 
@@ -34,6 +35,11 @@ public static class ServiceCollectionExtensions
             var options = serviceProvider.GetRequiredService<IOptions<EdocsOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
             client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip
+                | DecompressionMethods.Deflate
+                | DecompressionMethods.Brotli
         });
 
         services.AddHttpClient(EdocsHttpClientNames.Client, (serviceProvider, client) =>
@@ -41,6 +47,12 @@ public static class ServiceCollectionExtensions
                 var options = serviceProvider.GetRequiredService<IOptions<EdocsOptions>>().Value;
                 client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
                 client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.TimeoutSeconds));
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+                    | DecompressionMethods.Deflate
+                    | DecompressionMethods.Brotli
             })
             // Tartib: auth tashqarida, retry ichkarida — AslBelgi bilan bir xil.
             .AddHttpMessageHandler<EdocsAuthorizationHandler>()

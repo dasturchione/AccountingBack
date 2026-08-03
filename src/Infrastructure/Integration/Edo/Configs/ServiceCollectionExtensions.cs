@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEdoProvider, FakturaEdoProvider>();
         services.AddScoped<IEdoProvider, EdocsEdoProvider>();
         services.AddScoped<IEdoProviderRegistry, EdoProviderRegistry>();
+        services.AddScoped<IEdoProviderConfiguration, EdoProviderConfiguration>();
         services.AddScoped<IActiveEdoProviderStore, OrganizationEdoProviderStore>();
         services.AddScoped<IActiveEdoProviderResolver, OrganizationActiveEdoProviderResolver>();
         services.AddScoped<IEdoAuthSigningSessionStore, EdoAuthSigningSessionStore>();

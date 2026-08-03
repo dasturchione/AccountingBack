@@ -64,6 +64,13 @@ namespace WebApi.Infrastructure
                     Title = "EdoCapabilityUnavailable",
                     Detail = "The requested EDO capability is not available."
                 },
+                EdoDocumentDirectionMismatchException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                    Title = "EdoDocumentDirectionMismatch",
+                    Detail = "The requested EDO document direction does not match the stored document."
+                },
                 EdoAuthSigningSessionException => new ProblemDetails
                 {
                     Status = StatusCodes.Status409Conflict,

@@ -6,9 +6,9 @@ public sealed class FakturaOptions
     // HostConfiguration.Extensions.cs bu kalitni literal satr bilan o'qiydi.
     public const string SectionName = "FakturaAuthSettings";
 
-    public string BaseUrl { get; set; } = "https://api.faktura.uz";
+    public string BaseUrl { get; set; } = string.Empty;
 
-    public string AuthUrl { get; set; } = "https://account.faktura.uz/token";
+    public string AuthUrl { get; set; } = string.Empty;
 
     public int TimeoutSeconds { get; set; } = 30;
 

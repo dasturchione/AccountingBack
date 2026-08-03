@@ -38,7 +38,7 @@ public sealed class EdoReconciliationService(
                 "The EDO document was not found in the current organization/provider scope.");
 
         if (!string.Equals(document.Direction, direction.ToString(), StringComparison.Ordinal))
-            throw new InvalidOperationException("The requested EDO document direction does not match the stored document.");
+            throw new EdoDocumentDirectionMismatchException();
 
         var localStatus = ParseStatus(document.Status);
         if (string.IsNullOrWhiteSpace(document.ProviderDocumentId))
@@ -62,8 +62,8 @@ public sealed class EdoReconciliationService(
         try
         {
             providerStatus = direction == EdoDirection.OUTBOX
-                ? await provider.GetOutboxStatusAsync(document.ProviderDocumentId, ct)
-                : await provider.GetInboxStatusAsync(document.ProviderDocumentId, ct);
+                ? await provider.GetOutboxStatusAsync(document.DocumentType, document.ProviderDocumentId, ct)
+                : await provider.GetInboxStatusAsync(document.DocumentType, document.ProviderDocumentId, ct);
             providerStatus = MapProviderStatus(provider.Code, providerStatus);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)

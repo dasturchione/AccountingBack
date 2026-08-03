@@ -1,7 +1,5 @@
 using Application.Abstractions.Authentication;
-using Application.Abstractions.Integration;
 using Application.Abstractions.Integration.Edo;
-using SharedKernel.Constants;
 using SharedKernel.Exceptions;
 
 namespace Application.Features.Integration.Edo;
@@ -10,7 +8,7 @@ public sealed class EdoProviderManagementService(
     IUserContext userContext,
     IEdoProviderRegistry providerRegistry,
     IActiveEdoProviderResolver activeProviderResolver,
-    IIntegrationCredentialProvider credentialProvider) : IEdoProviderManagementService
+    IEdoProviderConfiguration providerConfiguration) : IEdoProviderManagementService
 {
     public async Task<IReadOnlyCollection<EdoProviderDto>> GetProvidersAsync(
         CancellationToken ct = default)
@@ -81,30 +79,12 @@ public sealed class EdoProviderManagementService(
     private async Task<bool> IsConfiguredAsync(
         int organizationId,
         EdoProviderCode providerCode,
-        CancellationToken ct)
-    {
-        // Faqat organization-scoped IntegrationCredential tekshiriladi.
-        // FakturaAuthSettings platforma sozlamasi bu qiymatga ta'sir qilmaydi.
-        var credential = await credentialProvider.GetAsync(
-            organizationId,
-            ToIntegrationProviderCode(providerCode),
-            ct);
-
-        return credential is not null;
-    }
+        CancellationToken ct) =>
+        await providerConfiguration.IsConfiguredAsync(providerCode, organizationId, ct);
 
     private int GetCurrentOrganizationId() =>
         userContext.OrganizationId
             ?? throw new EdoOrganizationScopeRequiredException();
-
-    private static string ToIntegrationProviderCode(EdoProviderCode providerCode) =>
-        providerCode switch
-        {
-            EdoProviderCode.DIDOX => IntegrationProviderConst.Didox,
-            EdoProviderCode.FAKTURA => IntegrationProviderConst.Faktura,
-            EdoProviderCode.EDOCS => IntegrationProviderConst.Edocs,
-            _ => throw new ArgumentOutOfRangeException(nameof(providerCode), providerCode, null)
-        };
 
     private static EdoProviderDto Map(
         EdoProviderCapabilityDto capability,

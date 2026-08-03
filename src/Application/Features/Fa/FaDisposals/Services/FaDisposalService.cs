@@ -3,7 +3,6 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -21,6 +20,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
     private readonly IDocNumberGenerator _docNumberGenerator;
     private readonly IQueryRepository<FaDisposalDoc> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
+    private readonly IQueryRepository<FaDisposalType> _faDisposalTypeQuery;
     private readonly IFaDisposalCommandRepository _command;
 
     public FaDisposalService(
@@ -32,6 +32,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         IDocNumberGenerator docNumberGenerator,
         IQueryRepository<FaDisposalDoc> query,
         IQueryRepository<FaAsset> faAssetQuery,
+        IQueryRepository<FaDisposalType> faDisposalTypeQuery,
         IFaDisposalCommandRepository command,
         ILogger<FaDisposalService> logger)
         : base(logger, unitOfWork)
@@ -44,6 +45,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         _docNumberGenerator = docNumberGenerator;
         _query = query;
         _faAssetQuery = faAssetQuery;
+        _faDisposalTypeQuery = faDisposalTypeQuery;
         _command = command;
     }
 
@@ -81,7 +83,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
                 StateId = StateIdConst.ACTIVE,
                 DocNumber = await _docNumberGenerator.GenerateAsync(_userContext.OrganizationId.Value, "FADS", dto.DisposalDate, ct),
                 DisposalDate = NormalizeDateTime(dto.DisposalDate),
-                DisposalType = dto.DisposalType.Trim().ToUpperInvariant(),
+                DisposalTypeId = dto.DisposalTypeId,
                 Reason = dto.Reason?.Trim(),
                 DisposalAccountId = dto.DisposalAccountId,
                 CustomerAccountId = dto.CustomerAccountId,
@@ -140,7 +142,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
                 doc.Lines.Add(line);
 
             doc.DisposalDate = NormalizeDateTime(dto.DisposalDate);
-            doc.DisposalType = dto.DisposalType.Trim().ToUpperInvariant();
+            doc.DisposalTypeId = dto.DisposalTypeId;
             doc.Reason = dto.Reason?.Trim();
             doc.DisposalAccountId = dto.DisposalAccountId;
             doc.CustomerAccountId = dto.CustomerAccountId;
@@ -173,9 +175,11 @@ public class FaDisposalService : BaseService, IFaDisposalService
         if (dto.Lines.Count == 0)
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.LinesRequired(_userContext.LanguageId));
 
-        var disposalType = dto.DisposalType.Trim().ToUpperInvariant();
-        if (disposalType is not ("SALE" or "WRITEOFF" or "BREAKDOWN"))
+        if (dto.DisposalTypeId is not (FaDisposalTypeIdConst.SALE or FaDisposalTypeIdConst.WRITEOFF or FaDisposalTypeIdConst.BREAKDOWN) ||
+            !await _faDisposalTypeQuery.AnyAsync(x => x.Id == dto.DisposalTypeId, ct))
+        {
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.InvalidDisposalType(_userContext.LanguageId));
+        }
 
         var assetIds = dto.Lines.Select(x => x.FaAssetId).Distinct().ToList();
         if (assetIds.Count != dto.Lines.Count)
@@ -191,7 +195,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
         var assets = await _faAssetQuery.GetAllAsync(assetQuery, ct);
         var assetById = assets.ToDictionary(x => x.Id);
 
-        if (disposalType == "SALE" && dto.Lines.All(x => x.SaleAmount <= 0))
+        if (dto.DisposalTypeId == FaDisposalTypeIdConst.SALE && dto.Lines.All(x => x.SaleAmount <= 0))
             return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.SaleAmountRequired(_userContext.LanguageId));
 
         var lines = new List<FaDisposalDocLine>();

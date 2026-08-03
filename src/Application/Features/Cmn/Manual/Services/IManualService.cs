@@ -17,6 +17,8 @@ public interface IManualService
     Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaOkofsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFaReceiptTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFaDisposalTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default);

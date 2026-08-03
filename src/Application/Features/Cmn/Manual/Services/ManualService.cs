@@ -30,6 +30,8 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<InventoryAdjustmentType> _inventoryAdjustmentTypeQuery;
     private readonly IQueryRepository<FaDepreciationMethod> _faDepreciationMethodQuery;
+    private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
+    private readonly IQueryRepository<FaDisposalType> _faDisposalTypeQuery;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
     private readonly IQueryRepository<PricingMethod> _pricingMethodQuery;
@@ -70,6 +72,8 @@ public class ManualService : IManualService
         IQueryRepository<FaGroup> faGroupQuery,
         IQueryRepository<FaOkof> faOkofQuery,
         IQueryRepository<FaDepreciationMethod> faDepreciationMethodQuery,
+        IQueryRepository<FaReceiptType> faReceiptTypeQuery,
+        IQueryRepository<FaDisposalType> faDisposalTypeQuery,
         IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
         IQueryRepository<PricingMethod> pricingMethodQuery,
@@ -116,6 +120,8 @@ public class ManualService : IManualService
         _faGroupQuery = faGroupQuery;
         _faOkofQuery = faOkofQuery;
         _faDepreciationMethodQuery = faDepreciationMethodQuery;
+        _faReceiptTypeQuery = faReceiptTypeQuery;
+        _faDisposalTypeQuery = faDisposalTypeQuery;
         _productTableQuery = productTableQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
         _pricingMethodQuery = pricingMethodQuery;
@@ -285,6 +291,44 @@ public class ManualService : IManualService
             Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
         };
         return (await _faDepreciationMethodQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<SelectListDto>> GetFaReceiptTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<FaReceiptType>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.FaReceiptTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _faReceiptTypeQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetFaDisposalTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<FaDisposalType>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.FaDisposalTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _faDisposalTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)

@@ -16,7 +16,7 @@ public class FaDisposalDtoProjection : IProjectionBuilder<FaDisposalDoc, FaDispo
             DisposalDate = x.DisposalDate,
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
-            DisposalType = x.DisposalType,
+            DisposalTypeId = x.DisposalTypeId,
             Reason = x.Reason,
             DisposalAccountId = x.DisposalAccountId,
             CustomerAccountId = x.CustomerAccountId,

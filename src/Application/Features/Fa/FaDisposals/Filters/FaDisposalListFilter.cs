@@ -5,7 +5,7 @@ namespace Application.Features.FaDisposals;
 public class FaDisposalListFilter : ISearchFilter, IPaginationFilter
 {
     public short? StatusId { get; set; }
-    public string? DisposalType { get; set; }
+    public short? DisposalTypeId { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
     public string? Search { get; set; }

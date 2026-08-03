@@ -178,6 +178,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaDisposalDocLine> FaDisposalDocLines { get; set; }
 
+    public virtual DbSet<FaDisposalType> FaDisposalTypes { get; set; }
+
+    public virtual DbSet<FaDisposalTypeTranslation> FaDisposalTypeTranslations { get; set; }
+
     public virtual DbSet<FaMovementDoc> FaMovementDocs { get; set; }
 
     public virtual DbSet<FaMovementDocLine> FaMovementDocLines { get; set; }
@@ -187,6 +191,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }
 
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
+
+    public virtual DbSet<FaReceiptType> FaReceiptTypes { get; set; }
+
+    public virtual DbSet<FaReceiptTypeTranslation> FaReceiptTypeTranslations { get; set; }
 
     public virtual DbSet<FaRevaluationDoc> FaRevaluationDocs { get; set; }
 
@@ -267,10 +275,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MarkingEdocsDocument> MarkingEdocsDocuments { get; set; }
 
     public virtual DbSet<MarkingOrder> MarkingOrders { get; set; }
-
-    public virtual DbSet<MarkingTransfer> MarkingTransfers { get; set; }
-
-    public virtual DbSet<MarkingTransferCode> MarkingTransferCodes { get; set; }
 
     public virtual DbSet<MarkingUtilization> MarkingUtilizations { get; set; }
 
@@ -1647,6 +1651,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fa_disposal_doc_disposal_account_id_fkey");
 
+            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalDocs).HasConstraintName("fa_disposal_doc_disposal_type_id_fkey");
+
             entity.HasOne(d => d.GainAccount).WithMany(p => p.FaDisposalDocGainAccounts)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fa_disposal_doc_gain_account_id_fkey");
@@ -1695,6 +1701,24 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.FaAsset).WithMany(p => p.FaDisposalDocLines)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_disposal_doc_line_fa_asset_id_fkey");
+        });
+
+        modelBuilder.Entity<FaDisposalType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_disposal_type_pkey");
+        });
+
+        modelBuilder.Entity<FaDisposalTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.DisposalTypeId, e.LanguageId }).HasName("fa_disposal_type_translation_pkey");
+
+            entity.HasOne(d => d.DisposalType).WithMany(p => p.FaDisposalTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_type_translation_disposal_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.FaDisposalTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_disposal_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<FaMovementDoc>(entity =>
@@ -1764,6 +1788,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_receipt_type_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1836,6 +1862,24 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fa_receipt_doc_line_vat_account_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<FaReceiptType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fa_receipt_type_pkey");
+        });
+
+        modelBuilder.Entity<FaReceiptTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.ReceiptTypeId, e.LanguageId }).HasName("fa_receipt_type_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.FaReceiptTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_type_translation_language_id_fkey");
+
+            entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptTypeTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_type_translation_receipt_type_id_fkey");
         });
 
         modelBuilder.Entity<FaRevaluationDoc>(entity =>
@@ -2615,42 +2659,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.MarkingOrders)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("marking_order_product_id_fkey");
-        });
-
-        modelBuilder.Entity<MarkingTransfer>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_pkey");
-
-            entity.HasIndex(e => e.DocumentId, "idx_marking_transfer_document_id").HasFilter("(document_id IS NOT NULL)");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.BuyerCounterparty).WithMany(p => p.MarkingTransferBuyerCounterparties)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_buyer_counterparty_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingTransfers)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_organization_id_fkey");
-
-            entity.HasOne(d => d.SellerCounterparty).WithMany(p => p.MarkingTransferSellerCounterparties)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_seller_counterparty_id_fkey");
-        });
-
-        modelBuilder.Entity<MarkingTransferCode>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("marking_transfer_code_pkey");
-
-            entity.HasIndex(e => e.Gtin, "idx_marking_transfer_code_gtin").HasFilter("(gtin IS NOT NULL)");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.MarkingTransfer).WithMany(p => p.MarkingTransferCodes).HasConstraintName("marking_transfer_code_marking_transfer_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.MarkingTransferCodes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("marking_transfer_code_organization_id_fkey");
         });
 
         modelBuilder.Entity<MarkingUtilization>(entity =>

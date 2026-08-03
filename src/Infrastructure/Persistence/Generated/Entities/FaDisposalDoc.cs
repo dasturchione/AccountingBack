@@ -8,9 +8,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("fa_disposal_doc")]
 [Index("DisposalDate", Name = "idx_fa_disposal_doc_date")]
+[Index("DisposalTypeId", Name = "idx_fa_disposal_doc_disposal_type_id")]
 [Index("StateId", Name = "idx_fa_disposal_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_disposal_doc_status_id")]
-[Index("DisposalType", Name = "idx_fa_disposal_doc_type")]
 [Index("CustomerAccountId", Name = "ix_fa_disposal_doc_customer_account")]
 [Index("DisposalAccountId", Name = "ix_fa_disposal_doc_disposal_account")]
 [Index("GainAccountId", Name = "ix_fa_disposal_doc_gain_account")]
@@ -38,10 +38,6 @@ public partial class FaDisposalDoc
 
     [Column("status_id")]
     public short StatusId { get; set; }
-
-    [Column("disposal_type")]
-    [StringLength(30)]
-    public string DisposalType { get; set; } = null!;
 
     [Column("reason")]
     [StringLength(500)]
@@ -86,6 +82,9 @@ public partial class FaDisposalDoc
     [Column("loss_account_id")]
     public int? LossAccountId { get; set; }
 
+    [Column("disposal_type_id")]
+    public short? DisposalTypeId { get; set; }
+
     [ForeignKey("CancelledByUserId")]
     [InverseProperty("FaDisposalDocCancelledByUsers")]
     public virtual SysUser? CancelledByUser { get; set; }
@@ -101,6 +100,10 @@ public partial class FaDisposalDoc
     [ForeignKey("DisposalAccountId")]
     [InverseProperty("FaDisposalDocDisposalAccounts")]
     public virtual AccChartAccount? DisposalAccount { get; set; }
+
+    [ForeignKey("DisposalTypeId")]
+    [InverseProperty("FaDisposalDocs")]
+    public virtual FaDisposalType? DisposalType { get; set; }
 
     [InverseProperty("DisposalDoc")]
     public virtual ICollection<FaDisposalDocLine> FaDisposalDocLines { get; set; } = new List<FaDisposalDocLine>();

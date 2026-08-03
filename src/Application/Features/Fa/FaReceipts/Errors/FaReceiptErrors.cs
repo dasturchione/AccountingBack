@@ -109,7 +109,7 @@ public static class FaReceiptErrors
             _ => $"Inventory number '{inventoryNumber}' is duplicated within the document."
         });
 
-    public static Error InvalidReceiptType(string receiptType, short? languageId = null) =>
+    public static Error InvalidReceiptType(short receiptType, short? languageId = null) =>
         Error.Business("FaReceipt.InvalidReceiptType", languageId switch
         {
             LanguageIdConst.UZ => $"'{receiptType}' qabul turi qo'llab-quvvatlanmaydi.",

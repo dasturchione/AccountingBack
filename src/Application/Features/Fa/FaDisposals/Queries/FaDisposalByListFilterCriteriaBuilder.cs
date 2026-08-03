@@ -8,7 +8,7 @@ public class FaDisposalByListFilterCriteriaBuilder : ICriteriaBuilder<FaDisposal
 {
     public Expression<Func<FaDisposalDoc, bool>> Build(FaDisposalListFilter options) =>
         x => (!options.StatusId.HasValue || x.StatusId == options.StatusId.Value) &&
-             (string.IsNullOrWhiteSpace(options.DisposalType) || x.DisposalType == options.DisposalType) &&
+             (!options.DisposalTypeId.HasValue || x.DisposalTypeId == options.DisposalTypeId.Value) &&
              (!options.DateFrom.HasValue || x.DisposalDate >= options.DateFrom.Value) &&
              (!options.DateTo.HasValue || x.DisposalDate <= options.DateTo.Value);
 }

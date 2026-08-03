@@ -43,6 +43,12 @@ public partial class Language
     [InverseProperty(nameof(DocumentAccountRoleTranslation.Language))]
     public virtual ICollection<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; } = new List<DocumentAccountRoleTranslation>();
 
+    [InverseProperty(nameof(FaReceiptTypeTranslation.Language))]
+    public virtual ICollection<FaReceiptTypeTranslation> FaReceiptTypeTranslations { get; set; } = new List<FaReceiptTypeTranslation>();
+
+    [InverseProperty(nameof(FaDisposalTypeTranslation.Language))]
+    public virtual ICollection<FaDisposalTypeTranslation> FaDisposalTypeTranslations { get; set; } = new List<FaDisposalTypeTranslation>();
+
     [InverseProperty(nameof(AccountTypeTranslation.Language))]
     public virtual ICollection<AccountTypeTranslation> AccountTypeTranslations { get; set; } = new List<AccountTypeTranslation>();
 

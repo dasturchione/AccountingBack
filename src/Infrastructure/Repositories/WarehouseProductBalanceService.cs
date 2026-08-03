@@ -508,7 +508,9 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 entry.DocumentTypeId,
                 entry.DocumentId,
                 entry.OperationTypeId,
-                entry.ProductTableId.HasValue ? null : entry.SourceLineId,
+                entry.ProductTableId.HasValue && entry.DocumentTypeId != DocumentTypeIdConst.FARECEIPT
+                    ? null
+                    : entry.SourceLineId,
                 entry.ProductTableId.HasValue))
             .Select(group =>
             {
@@ -525,7 +527,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                         ProductId = firstEntry.ProductId,
                         DocumentTypeId = firstEntry.DocumentTypeId,
                         DocumentId = firstEntry.DocumentId,
-                        DocumentLineId = group.Key.IsPieceTracked ? null : firstEntry.SourceLineId,
+                        DocumentLineId = firstEntry.SourceLineId,
                         Quantity = quantity,
                         MovementSign = ToMovementSign(firstEntry.OperationTypeId),
                         MovementDate = firstEntry.DocDate,

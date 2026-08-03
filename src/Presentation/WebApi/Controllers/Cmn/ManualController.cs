@@ -1,3 +1,4 @@
+using Application.Features.FaAssets;
 using Application.Features.Manual;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -133,6 +134,13 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.FaAssetView)]
+    [HttpGet("fa-assets")]
+    public async Task<IActionResult> GetFaAssets([FromQuery] FaAssetListFilter filter, CancellationToken ct)
+    {
+        var result = await _manualService.GetFaAssetsAsync(filter, ct);
+        return Ok(result);
+    }
     [ModuleAuthorize(PermissionCodeConst.ManualGetPriceRoundingMethods)]
     [HttpGet("price-rounding-methods")]
     public async Task<IActionResult> GetPriceRoundingMethods(CancellationToken ct)

@@ -3,6 +3,8 @@ using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.FaAssets;
+using Application.Features.InventoryMovements;
+using Application.Features.Inv.WarehouseProducts;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -21,6 +23,8 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
+    private readonly IInventoryDispatcher _inventoryDispatcher;
+    private readonly IQueryRepository<WarehouseProductTable> _warehouseProductTableQuery;
     private readonly IQueryRepository<FaReceiptDoc> _query;
     private readonly IFaReceiptCommandRepository _command;
     private readonly IFaAssetCommandRepository _faAssetCommand;
@@ -37,6 +41,8 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         IAccountingPeriodValidator periodValidator,
         IAuditLogService auditLogService,
         IAccountingDispatcher dispatcher,
+        IInventoryDispatcher inventoryDispatcher,
+        IQueryRepository<WarehouseProductTable> warehouseProductTableQuery,
         IQueryRepository<FaReceiptDoc> query,
         IFaReceiptCommandRepository command,
         IFaAssetCommandRepository faAssetCommand,
@@ -54,6 +60,8 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         _periodValidator = periodValidator;
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
+        _inventoryDispatcher = inventoryDispatcher;
+        _warehouseProductTableQuery = warehouseProductTableQuery;
         _query = query;
         _command = command;
         _faAssetCommand = faAssetCommand;
@@ -92,6 +100,11 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             if (!businessValidation.IsSuccess)
                 return businessValidation;
 
+            var sourceProductTableResult = await AllocateSourceProductTablesAsync(doc, ct);
+            if (!sourceProductTableResult.IsSuccess)
+                return Result.Failure(sourceProductTableResult.Error);
+
+            var sourceProductTableIds = sourceProductTableResult.Value;
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto is not null)
                 _auditLogService.SetOldValues(oldDocDto);
@@ -117,6 +130,7 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                         CommissioningDate = NormalizeDateTime(receiptAsset.CommissioningDate ?? doc.DocDate),
                         DeprStartDate = NormalizeDateTime(receiptAsset.DeprStartDate ?? receiptAsset.CommissioningDate ?? doc.DocDate),
                         PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal,
+                        SourceProductTableId = sourceProductTableIds.GetValueOrDefault(receiptAsset.Id),
                         DepartmentId = receiptAsset.DepartmentId,
                         ResponsibleUserId = receiptAsset.ResponsibleUserId,
                         AssetAccountId = receiptAsset.AssetAccountId,
@@ -145,6 +159,7 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                     asset.CommissioningDate = NormalizeDateTime(receiptAsset.CommissioningDate ?? doc.DocDate);
                     asset.DeprStartDate = NormalizeDateTime(receiptAsset.DeprStartDate ?? receiptAsset.CommissioningDate ?? doc.DocDate);
                     asset.PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal;
+                    asset.SourceProductTableId = sourceProductTableIds.GetValueOrDefault(receiptAsset.Id);
                     asset.DepartmentId = receiptAsset.DepartmentId;
                     asset.ResponsibleUserId = receiptAsset.ResponsibleUserId;
                     asset.AssetAccountId = receiptAsset.AssetAccountId;
@@ -158,8 +173,10 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             }
 
             // FA-P4: бухгалтерские проводки прихода ОС (Dr 0800→Cr 6010, Dr 4410.1→Cr 6010, Dr 0100→Cr 0800).
+            var inventoryResult = await _inventoryDispatcher.ProcessAsync(doc, ct);
+            if (!inventoryResult.IsSuccess)
+                return Result.Failure(inventoryResult.Error);
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Fixed asset receipt confirmed", ct);
-
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
                 return Result.Failure(dispatch.Error);
@@ -215,6 +232,7 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                     return reversalPeriodValidation;
             }
 
+
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto is not null)
                 _auditLogService.SetOldValues(oldDocDto);
@@ -238,6 +256,9 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                     await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
                 }
 
+                var inventoryReverse = await _inventoryDispatcher.ReverseAsync(doc, ct);
+                if (!inventoryReverse.IsSuccess)
+                    return inventoryReverse;
                 foreach (var asset in doc.Lines.SelectMany(x => x.Assets).Select(x => x.FaAsset).Where(x => x is not null))
                 {
                     asset!.StateId = StateIdConst.PASSIVE;
@@ -267,6 +288,81 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             return Result.Success();
         }, ct);
 
+
+    private async Task<Result<IReadOnlyDictionary<long, int?>>> AllocateSourceProductTablesAsync(
+        FaReceiptDoc doc,
+        CancellationToken ct)
+    {
+        var sourceProductLines = doc.Lines.Where(line => line.SourceProductId.HasValue).ToList();
+        foreach (var line in sourceProductLines.Where(line => line.SourceProduct is null))
+        {
+            return Result.Failure<IReadOnlyDictionary<long, int?>>(FaReceiptErrors.ProductNotFound(
+                line.SourceProductId!.Value,
+                _userContext.LanguageId));
+        }
+
+        var stockSourceLines = sourceProductLines
+            .Where(line => !line.SourceProduct!.IsService)
+            .ToList();
+        if (stockSourceLines.Count == 0)
+            return Result.Success<IReadOnlyDictionary<long, int?>>(new Dictionary<long, int?>());
+
+        if (!doc.WarehouseId.HasValue)
+        {
+            return Result.Failure<IReadOnlyDictionary<long, int?>>(
+                FaReceiptErrors.WarehouseRequiredForSourceProduct(_userContext.LanguageId));
+        }
+
+        var pieceTrackedLines = stockSourceLines
+            .Where(line => line.SourceProduct!.IsPieceTracked)
+            .ToList();
+        if (pieceTrackedLines.Count == 0)
+            return Result.Success<IReadOnlyDictionary<long, int?>>(new Dictionary<long, int?>());
+
+        var productIds = pieceTrackedLines
+            .Select(line => line.SourceProductId!.Value)
+            .Distinct()
+            .ToList();
+        var availableTablesQuery = _queryBuilder.For<WarehouseProductTable>()
+            .Where(table => table.WarehouseId == doc.WarehouseId.Value &&
+                            table.StatusId == ProductTableStatusIdConst.IN_STOCK &&
+                            productIds.Contains(table.ProductTable.ProductId))
+            .As(table => new AvailableSourceProductTable(
+                table.ProductTableId,
+                table.ProductTable.ProductId,
+                table.ReceivedDate))
+            .Build();
+        var availableTables = (await _warehouseProductTableQuery.GetAllAsync(availableTablesQuery, ct))
+            .OrderBy(table => table.ReceivedDate)
+            .ThenBy(table => table.ProductTableId)
+            .ToList();
+        var tablesByProductId = availableTables
+            .GroupBy(table => table.ProductId)
+            .ToDictionary(
+                group => group.Key,
+                group => new Queue<AvailableSourceProductTable>(group));
+        var sourceProductTableIds = new Dictionary<long, int?>();
+
+        foreach (var line in pieceTrackedLines)
+        {
+            var productId = line.SourceProductId!.Value;
+            var requiredQuantity = line.Assets.Count;
+            if (!tablesByProductId.TryGetValue(productId, out var tables) || tables.Count < requiredQuantity)
+            {
+                return Result.Failure<IReadOnlyDictionary<long, int?>>(WarehouseProductErrors.NotEnoughQuantity(
+                    doc.WarehouseId.Value,
+                    productId,
+                    requiredQuantity,
+                    tables?.Count ?? 0,
+                    _userContext.LanguageId));
+            }
+
+            foreach (var receiptAsset in line.Assets)
+                sourceProductTableIds[receiptAsset.Id] = tables.Dequeue().ProductTableId;
+        }
+
+        return Result.Success<IReadOnlyDictionary<long, int?>>(sourceProductTableIds);
+    }
     private Result ValidateForConfirm(FaReceiptDoc doc)
     {
         if (doc.Lines.Count == 0)
@@ -287,10 +383,13 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         return Result.Success();
     }
 
+    private sealed record AvailableSourceProductTable(int ProductTableId, int ProductId, DateTime ReceivedDate);
+
     private async Task<FaReceiptDoc?> GetAggregateAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<FaReceiptDoc>().Where(x => x.Id == id).Build();
         query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.Assets).ThenInclude(a => a.FaAsset));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.SourceProduct));
         return await _query.GetAsync(query, ct);
     }
 

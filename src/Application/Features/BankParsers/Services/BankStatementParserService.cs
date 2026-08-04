@@ -58,7 +58,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         using var workbook = new XLWorkbook(stream);
         var export = bankType switch
         {
-            BankStatementBankType.Trustbank => ParseTrustbankWorkbook(workbook),
+            BankStatementBankType.Trastbank => ParseTrastbankWorkbook(workbook),
             BankStatementBankType.Uzsanoatqurilishbank => ParseUzsanoatqurilishbankWorkbook(workbook),
             _ => new BankExportDto()
         };
@@ -72,7 +72,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         return Task.FromResult(Result.Success(export));
     }
 
-    private static BankExportDto ParseTrustbankWorkbook(XLWorkbook workbook)
+    private static BankExportDto ParseTrastbankWorkbook(XLWorkbook workbook)
     {
         var export = new BankExportDto();
 
@@ -82,10 +82,10 @@ public partial class BankStatementParserService : IBankStatementParserService
 
             for (var row = 1; row <= lastRow - 4; row++)
             {
-                if (!IsTrustbankHeaderRow(worksheet, row))
+                if (!IsTrastbankHeaderRow(worksheet, row))
                     continue;
 
-                var statement = ParseTrustbankAccountStatement(worksheet, row, lastRow);
+                var statement = ParseTrastbankAccountStatement(worksheet, row, lastRow);
                 export.Accounts.Add(statement);
             }
         }
@@ -275,7 +275,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         }
     }
 
-    private static AccountStatementDto ParseTrustbankAccountStatement(IXLWorksheet worksheet, int bankRow, int lastRow)
+    private static AccountStatementDto ParseTrastbankAccountStatement(IXLWorksheet worksheet, int bankRow, int lastRow)
     {
         var periodRow = bankRow + 1;
         var accountRow = bankRow + 2;
@@ -348,7 +348,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         return statement;
     }
 
-    private static bool IsTrustbankHeaderRow(IXLWorksheet worksheet, int row)
+    private static bool IsTrastbankHeaderRow(IXLWorksheet worksheet, int row)
     {
         var current = GetText(worksheet, row, 1);
         var period = GetText(worksheet, row + 1, 1);

@@ -2,6 +2,6 @@ namespace Application.Features.BankParsers;
 
 public enum BankStatementBankType
 {
-    Trustbank = 1,
+    Trastbank = 1,
     Uzsanoatqurilishbank = 2
 }

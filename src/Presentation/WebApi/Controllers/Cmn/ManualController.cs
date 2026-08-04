@@ -1,5 +1,6 @@
 using Application.Features.FaAssets;
 using Application.Features.Manual;
+using Application.Abstractions.Integration.Edo;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +17,37 @@ namespace WebApi.Controllers;
 public class ManualController : ControllerBase
 {
     private readonly IManualService _manualService;
+    private readonly IEdoProviderRegistry _edoProviderRegistry;
 
-    public ManualController(IManualService manualService)
+    public ManualController(
+        IManualService manualService,
+        IEdoProviderRegistry edoProviderRegistry)
     {
         _manualService = manualService;
+        _edoProviderRegistry = edoProviderRegistry;
+    }
+
+    [HttpGet("providers")]
+    public IActionResult GetProviders()
+    {
+        var capabilities = _edoProviderRegistry.GetProviders()
+            .ToDictionary(provider => provider.ProviderCode);
+        var providers = EdoProviderFrontendCatalog.OrderedProviders
+            .Select(item =>
+            {
+                if (!capabilities.TryGetValue(item.Code, out var capability))
+                    throw new InvalidOperationException($"EDO provider '{item.Code}' is not registered.");
+
+                return new EdoProviderSelectionDto
+                {
+                    Id = item.Id,
+                    Name = capability.DisplayName,
+                    Code = item.Code.ToString()
+                };
+            })
+            .ToList();
+
+        return Ok(providers);
     }
 
     [ModuleAuthorize(PermissionCodeConst.ManualGetStates)]

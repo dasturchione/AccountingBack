@@ -14,19 +14,15 @@ public sealed class EdoController(
     IEdoOutboxService outboxService,
     IEdoInboxService inboxService) : ControllerBase
 {
-    [HttpGet("providers")]
-    public async Task<IResult> GetProviders(CancellationToken ct = default) =>
-        Results.Ok(await service.GetProvidersAsync(ct));
-
     [HttpGet("active-provider")]
     public async Task<IResult> GetActiveProvider(CancellationToken ct = default) =>
-        Results.Ok(await service.GetActiveProviderAsync(ct));
+        Results.Ok(ToSelection(await service.GetActiveProviderAsync(ct)));
 
     [HttpPut("active-provider")]
     public async Task<IResult> SetActiveProvider(
         [FromBody] EdoActiveProviderRequestDto request,
         CancellationToken ct = default) =>
-        Results.Ok(await service.SetActiveProviderAsync(request, ct));
+        Results.Ok(ToSelection(await service.SetActiveProviderAsync(request, ct)));
 
     [HttpGet("auth/challenge")]
     public async Task<IResult> GetAuthChallenge(
@@ -80,4 +76,11 @@ public sealed class EdoController(
     [HttpGet("inbox/{id:long}/status")]
     public async Task<IResult> GetInboxStatus(long id, CancellationToken ct = default) =>
         Results.Ok(await inboxService.GetStatusAsync(id, EdoDirection.INBOX, ct));
+
+    private static EdoProviderSelectionDto ToSelection(EdoProviderDto provider) => new()
+    {
+        Id = EdoProviderFrontendCatalog.GetId(provider.ProviderCode),
+        Name = provider.DisplayName,
+        Code = provider.ProviderCode.ToString()
+    };
 }

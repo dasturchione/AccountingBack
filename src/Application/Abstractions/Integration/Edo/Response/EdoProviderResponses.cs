@@ -84,3 +84,25 @@ public sealed class EdoProviderDto
     public IReadOnlyCollection<EdoSigningMode> SigningModes { get; init; } = [];
     public IReadOnlyCollection<EdoCapabilityDto> Capabilities { get; init; } = [];
 }
+
+public sealed class EdoProviderSelectionDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+}
+
+public static class EdoProviderFrontendCatalog
+{
+    public static IReadOnlyList<(int Id, EdoProviderCode Code)> OrderedProviders { get; } =
+    [
+        (1, EdoProviderCode.DIDOX),
+        (2, EdoProviderCode.EDOCS),
+        (3, EdoProviderCode.FAKTURA)
+    ];
+
+    public static int GetId(EdoProviderCode providerCode) =>
+        OrderedProviders
+            .First(item => item.Code == providerCode)
+            .Id;
+}

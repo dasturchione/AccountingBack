@@ -10,30 +10,6 @@ public sealed class EdoProviderManagementService(
     IActiveEdoProviderResolver activeProviderResolver,
     IEdoProviderConfiguration providerConfiguration) : IEdoProviderManagementService
 {
-    public async Task<IReadOnlyCollection<EdoProviderDto>> GetProvidersAsync(
-        CancellationToken ct = default)
-    {
-        var organizationId = GetCurrentOrganizationId();
-        var activeProviderCode = await TryGetActiveProviderCodeAsync(ct);
-        var capabilities = providerRegistry.GetProviders();
-        var result = new List<EdoProviderDto>(capabilities.Count);
-
-        foreach (var capability in capabilities)
-        {
-            var isConfigured = await IsConfiguredAsync(
-                organizationId,
-                capability.ProviderCode,
-                ct);
-
-            result.Add(Map(
-                capability,
-                capability.ProviderCode == activeProviderCode,
-                isConfigured));
-        }
-
-        return result;
-    }
-
     public async Task<EdoProviderDto> GetActiveProviderAsync(
         CancellationToken ct = default)
     {
@@ -61,19 +37,6 @@ public sealed class EdoProviderManagementService(
         await activeProviderResolver.SetActiveProviderAsync(request.ProviderCode, ct);
 
         return Map(provider.Capabilities, isActive: true, isConfigured: true);
-    }
-
-    private async Task<EdoProviderCode?> TryGetActiveProviderCodeAsync(
-        CancellationToken ct)
-    {
-        try
-        {
-            return await activeProviderResolver.GetActiveProviderCodeAsync(ct);
-        }
-        catch (EdoActiveProviderNotConfiguredException)
-        {
-            return null;
-        }
     }
 
     private async Task<bool> IsConfiguredAsync(

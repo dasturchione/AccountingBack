@@ -5,7 +5,6 @@ using SharedKernel.Constants;
 using WebApi.Authorization;
 using WebApi.Extensions;
 using WebApi.Infrastructure;
-using System.IO;
 
 namespace WebApi.Controllers;
 
@@ -24,7 +23,7 @@ public class BankStatementParserController : ControllerBase
     [HttpPost("parse")]
     [Consumes("multipart/form-data")]
     [ModuleAuthorize(PermissionCodeConst.BankStatementParse)]
-    public async Task<IResult> ParseAsync(IFormFile file, CancellationToken ct = default)
+    public async Task<IResult> ParseAsync([FromForm] BankStatementParseRequest request, CancellationToken ct = default)
     {
         const int maxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
         var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -40,27 +39,27 @@ public class BankStatementParserController : ControllerBase
             ".xls"
         };
 
-        if (file is null || file.Length == 0)
+        if (request.File is null || request.File.Length == 0)
             return Results.BadRequest("Excel file is required.");
 
-        if (file.Length > maxFileSizeBytes)
+        if (request.File.Length > maxFileSizeBytes)
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
 
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(request.File.FileName).ToLowerInvariant();
         if (!allowedExtensions.Contains(extension))
             return Results.BadRequest("Invalid file extension.");
 
-        if (!allowedContentTypes.Contains(file.ContentType))
+        if (!allowedContentTypes.Contains(request.File.ContentType))
             return Results.BadRequest("Invalid file type.");
 
-        if (file.Length < 1024)
+        if (request.File.Length < 1024)
             return Results.BadRequest("Excel file is too small.");
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = request.File.OpenReadStream();
         if (!stream.CanRead || stream.Length == 0)
             return Results.BadRequest("Invalid file stream.");
 
-        var result = await _service.ParseAsync(stream, ct);
+        var result = await _service.ParseAsync(stream, request.BankType, ct);
 
         return result.Match(Results.Ok, CustomResults.Problem);
     }

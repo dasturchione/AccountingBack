@@ -20,6 +20,8 @@ public class BankStatementParserController : ControllerBase
         _service = service;
     }
 
+    public record BankStatementParseRequest(IFormFile File, BankStatementBankType BankType);
+
     [HttpPost("parse")]
     [Consumes("multipart/form-data")]
     [ModuleAuthorize(PermissionCodeConst.BankStatementParse)]

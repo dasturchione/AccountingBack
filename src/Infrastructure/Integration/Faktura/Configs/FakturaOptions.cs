@@ -10,6 +10,18 @@ public sealed class FakturaOptions
 
     public string AuthUrl { get; set; } = string.Empty;
 
+    public string SignatureAttachUrl { get; set; } = string.Empty;
+
+    public string SignatureLoginUrl { get; set; } = string.Empty;
+
+    public string AuthorizationUrl { get; set; } = string.Empty;
+
+    public string AuthorizationClientId { get; set; } = string.Empty;
+
+    public string AuthorizationRedirectUri { get; set; } = string.Empty;
+
+    public string AuthorizationScope { get; set; } = string.Empty;
+
     public int TimeoutSeconds { get; set; } = 30;
 
     public string GrantType { get; set; } = null!;

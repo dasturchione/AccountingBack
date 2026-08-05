@@ -17,15 +17,16 @@ public sealed class DidoxOptionsValidator : IValidateOptions<DidoxOptions>
         {
             failures.Add("Didox:BaseUrl must be an absolute HTTPS URL.");
         }
+        else if (options.UsePartnerlessLegacyApi
+                 && !string.Equals(baseUri.Host, "api.didox.uz", StringComparison.OrdinalIgnoreCase))
+        {
+            failures.Add("Didox:UsePartnerlessLegacyApi requires Didox:BaseUrl to use api.didox.uz.");
+        }
 
         if (options.TimeoutSeconds <= 0)
             failures.Add("Didox:TimeoutSeconds must be greater than zero.");
 
-        // PartnerToken ATAYLAB shu yerda tekshirilmaydi — INT_DIDOX.md §1.3: partner
-        // tokeni faqat Didox akkaunt menejeri orqali qo'lda beriladi, ilova PartnerToken
-        // hali yozilmagan holatda ham ishga tushishi shart. Yo'qligi runtime'da,
-        // DidoxAuthorizationHandler va Didox AuthClient darajasida aniq xato bilan chiqadi.
-
+        // PartnerToken ixtiyoriy: legacy/production rejimida u yuborilmaydi.
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

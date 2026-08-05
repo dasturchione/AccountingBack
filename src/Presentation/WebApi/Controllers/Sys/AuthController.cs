@@ -34,7 +34,6 @@ public class AuthController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.AuthCheckToken)]
     [Authorize]
     [HttpGet("check-token")]
     public IActionResult CheckToken()

@@ -408,7 +408,10 @@ namespace WebApi.Configuration
                 throw new InvalidOperationException("Email:Password is not configured with a real secret value.");
 
             var didoxPartnerToken = configuration["Didox:PartnerToken"];
-            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase) && IsPlaceholderValue(didoxPartnerToken))
+            var useDidoxPartnerlessLegacyApi = configuration.GetValue<bool>("Didox:UsePartnerlessLegacyApi");
+            if (env.Equals("Production", StringComparison.OrdinalIgnoreCase)
+                && !useDidoxPartnerlessLegacyApi
+                && IsPlaceholderValue(didoxPartnerToken))
                 throw new InvalidOperationException("Didox:PartnerToken is not configured with a real secret value.");
 
             if (env.Equals("Production", StringComparison.OrdinalIgnoreCase))
@@ -435,7 +438,6 @@ namespace WebApi.Configuration
             "FakturaAuthSettings:ClientSecret",
             "FakturaAuthSettings:Password",
             "Email:Password",
-            "Didox:PartnerToken",
             "DataProtection:KeysPath"
         ];
 

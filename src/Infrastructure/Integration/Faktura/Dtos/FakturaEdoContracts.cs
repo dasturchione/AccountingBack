@@ -2,6 +2,39 @@ using System.Text.Json.Serialization;
 
 namespace Integration.Faktura.Dtos;
 
+public sealed class FakturaAttachTimestampTokenRequestDto
+{
+    [JsonPropertyName("pkcs7")]
+    public string Pkcs7 { get; init; } = string.Empty;
+}
+
+public sealed class FakturaAttachTimestampTokenResponseDto
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; init; }
+
+    [JsonPropertyName("data")]
+    public string? Data { get; init; }
+}
+
+public sealed class FakturaLoginWithSignatureRequestDto
+{
+    [JsonPropertyName("RememberMe")]
+    public bool RememberMe { get; init; }
+
+    [JsonPropertyName("TimeStamp")]
+    public string TimeStamp { get; init; } = string.Empty;
+}
+
+public sealed class FakturaLoginWithSignatureResponseDto
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+}
+
 public sealed class FakturaImportDocumentRequestDto
 {
     [JsonPropertyName("invoices")]

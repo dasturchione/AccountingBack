@@ -18,7 +18,7 @@ public sealed class FakturaEdoProvider(FakturaEdoOperations edoOperations) : IEd
     public Task<EdoAuthCompleteDto> CompleteAuthAsync(
         EdoAuthCompleteRequestDto request,
         CancellationToken ct = default) =>
-        edoOperations.CompleteAuthAsync(ct);
+        edoOperations.CompleteAuthAsync(request, ct);
 
     public Task<EdoOutboxCreateDto> CreateFacturaAsync(
         EdoOutboxFacturaCreateRequestDto request,
@@ -84,6 +84,8 @@ public sealed class FakturaEdoProvider(FakturaEdoOperations edoOperations) : IEd
                     Kind = kind,
                     Status = kind is EdoCapabilityKind.AuthComplete
                         or EdoCapabilityKind.ListInbox
+                        or EdoCapabilityKind.GetFile
+                        or EdoCapabilityKind.GetInboxStatus
                         ? EdoCapabilityStatus.SUPPORTED
                         : EdoCapabilityStatus.UNKNOWN
                 })

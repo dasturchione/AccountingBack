@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration.Edo;
+using Application.Abstractions.Integration.Faktura;
 using Application.Features;
 using Application.Features.AuditLogs;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,9 @@ public sealed class EdoAuthenticationService(
         var challengeId = RequireValue(providerChallenge.ChallengeId, nameof(providerChallenge.ChallengeId));
         var expiresAt = DateTimeOffset.UtcNow.Add(SigningSessionLifetime);
         var signingMode = ResolveSigningMode(provider);
+        var certificateSerialNumber = provider.Code == EdoProviderCode.EDOCS
+            ? request.CertificateSerialNumber
+            : null;
 
         EdoAuthSigningSession? session = null;
         await ExecuteInTransactionAsync(nameof(GetChallengeAsync), async () =>
@@ -46,7 +50,7 @@ public sealed class EdoAuthenticationService(
                 provider.Code,
                 challengeId,
                 provider.Code == EdoProviderCode.EDOCS ? challengeId : null,
-                request.CertificateSerialNumber,
+                certificateSerialNumber,
                 signingMode,
                 expiresAt,
                 ct);
@@ -148,6 +152,36 @@ public sealed class EdoAuthenticationService(
             SessionId = session!.SessionId,
             ExpiresAt = session.ExpiresAt
         };
+    }
+
+    public async Task<EdoAuthCompleteDto> CompleteFakturaAsync(
+        FakturaAuthCompleteRequestDto request,
+        CancellationToken ct = default)
+    {
+        _ = RequireOrganization();
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+
+        if (provider.Code != EdoProviderCode.FAKTURA)
+        {
+            throw new EdoCapabilityUnavailableException(
+                provider.Code.ToString(),
+                "FakturaAuthComplete",
+                "ACTIVE_PROVIDER_REQUIRED");
+        }
+
+        EnsureCapability(provider, EdoCapabilityKind.AuthComplete);
+        await credentialValidator.ValidateAsync(EdoProviderCode.FAKTURA, ct);
+
+        var result = await provider.CompleteAuthAsync(
+            new EdoAuthCompleteRequestDto
+            {
+                PreparedPkcs7 = request.PreparedPkcs7
+            },
+            ct);
+        if (!result.IsAuthenticated)
+            throw new IntegrationUnauthorizedException("Faktura authentication was not completed.");
+
+        return result;
     }
 
     private static void EnsureCapability(IEdoProvider provider, EdoCapabilityKind capability)

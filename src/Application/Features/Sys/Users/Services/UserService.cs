@@ -91,25 +91,6 @@ public class UserService : BaseService, IUserService
             var entity = await _userQuery.GetAsync(query, ct);
             if (entity is null)
                 return Result.Failure<UserDto>(UserErrors.NotFound(id, _userContext.LanguageId));
-
-            var organizationSpec = new QuerySpecification<UserOrganization, UserOrganizationItemDto>
-            {
-                Criteria = membership => membership.UserId == id && membership.StateId == StateIdConst.ACTIVE,
-                Selector = membership => new UserOrganizationItemDto
-                {
-                    OrganizationId = membership.OrganizationId,
-                    OrganizationName = membership.Organization.ShortName,
-                    RoleId = membership.RoleId,
-                    RoleName = membership.Role != null ? membership.Role.FullName : null,
-                    IsDefault = membership.IsDefault,
-                    IsOwner = membership.IsOwner,
-                    JoinedAt = membership.JoinedAt,
-                    InvitedByUserId = membership.InvitedByUserId,
-                    LastAccessAt = membership.LastAccessAt,
-                    BlockedAt = membership.BlockedAt
-                }
-            };
-            entity.Organizations = await _userOrganizationQuery.GetAllAsync(organizationSpec, ct);
             return entity;
         });
 
@@ -131,7 +112,7 @@ public class UserService : BaseService, IUserService
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            EmailVerified = dto.EmailVerified,
+            EmailVerified = false, //dto.EmailVerified,
             Timezone = dto.Timezone,
             Organizations = MapMemberships(dto.Organizations)
         };
@@ -146,7 +127,7 @@ public class UserService : BaseService, IUserService
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            EmailVerified = dto.EmailVerified,
+            EmailVerified = false, //dto.EmailVerified,
             Timezone = dto.Timezone,
             StateId = dto.StateId,
             Organizations = MapMemberships(dto.Organizations)
@@ -159,7 +140,6 @@ public class UserService : BaseService, IUserService
             OrganizationId = organization.OrganizationId,
             RoleId = organization.RoleId,
             IsDefault = organization.IsDefault,
-            IsOwner = organization.IsOwner,
-            InvitedByUserId = organization.InvitedByUserId
+            IsOwner = organization.IsOwner
         }).ToList();
 }

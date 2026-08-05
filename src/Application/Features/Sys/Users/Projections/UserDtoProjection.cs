@@ -26,6 +26,19 @@ public class UserDtoProjection : IProjectionBuilder<User, UserDto>
             StateId = user.StateId,
             CreatedDate = user.CreatedDate,
             HasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin,
-            StateName = user.State.FullName
+            StateName = user.State.FullName,
+            Organizations = user.UserOrganizations.Select(uo => new UserOrganizationItemDto
+            {
+                OrganizationId = uo.OrganizationId,
+                OrganizationName = uo.Organization.FullName,
+                IsDefault = uo.IsDefault,
+                BlockedAt = uo.BlockedAt,
+                InvitedByUserId = uo.InvitedByUserId,
+                IsOwner = uo.IsOwner,
+                JoinedAt = uo.JoinedAt,
+                LastAccessAt = uo.LastAccessAt,
+                RoleId = uo.RoleId,
+                RoleName = uo.Role != null ? uo.Role.FullName : null
+            }).ToList()
         };
 }

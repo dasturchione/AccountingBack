@@ -1,12 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_language")]
-[Index("Code", Name = "idx_cmn_language_code", IsUnique = true)]
-[Index("StateId", Name = "idx_cmn_language_state_id")]
 public partial class Language
 {
     [Key]
@@ -72,6 +69,9 @@ public partial class Language
 
     [InverseProperty(nameof(DocumentAccountTypeTranslation.Language))]
     public virtual ICollection<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; } = new List<DocumentAccountTypeTranslation>();
+
+    [InverseProperty(nameof(UserKindTranslation.Language))]
+    public virtual ICollection<UserKindTranslation> UserKindTranslations { get; set; } = new List<UserKindTranslation>();
 
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();

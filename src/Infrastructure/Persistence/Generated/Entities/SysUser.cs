@@ -9,11 +9,10 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("sys_user")]
 [Index("Email", Name = "idx_sys_user_email")]
 [Index("EmailVerified", Name = "idx_sys_user_email_verified")]
-[Index("IsPlatformAdmin", Name = "idx_sys_user_is_platform_admin")]
 [Index("LanguageId", Name = "idx_sys_user_language_id")]
 [Index("PhoneNumber", Name = "idx_sys_user_phone")]
-[Index("RoleId", Name = "idx_sys_user_role_id")]
 [Index("TenantId", Name = "ix_sys_user_tenant_id")]
+[Index("UserKindId", Name = "ix_sys_user_user_kind_id")]
 [Index("UserName", Name = "uidx_sys_user_user_name", IsUnique = true)]
 public partial class SysUser
 {
@@ -49,9 +48,6 @@ public partial class SysUser
     [StringLength(100)]
     public string LastName { get; set; } = null!;
 
-    [Column("role_id")]
-    public int RoleId { get; set; }
-
     [Column("last_access_time", TypeName = "timestamp without time zone")]
     public DateTime? LastAccessTime { get; set; }
 
@@ -74,15 +70,15 @@ public partial class SysUser
     [StringLength(64)]
     public string? LastLoginIp { get; set; }
 
-    [Column("is_platform_admin")]
-    public bool IsPlatformAdmin { get; set; }
-
     [Column("timezone")]
     [StringLength(100)]
     public string? Timezone { get; set; }
 
     [Column("tenant_id")]
     public int TenantId { get; set; }
+
+    [Column("user_kind_id")]
+    public short UserKindId { get; set; }
 
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
@@ -214,10 +210,6 @@ public partial class SysUser
     [InverseProperty("UpdatedByUser")]
     public virtual ICollection<PayTimesheet> PayTimesheetUpdatedByUsers { get; set; } = new List<PayTimesheet>();
 
-    [ForeignKey("RoleId")]
-    [InverseProperty("SysUsers")]
-    public virtual SysRole Role { get; set; } = null!;
-
     [InverseProperty("AcceptedUser")]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
 
@@ -240,4 +232,8 @@ public partial class SysUser
     [ForeignKey("TenantId")]
     [InverseProperty("SysUsers")]
     public virtual PlatformTenant Tenant { get; set; } = null!;
+
+    [ForeignKey("UserKindId")]
+    [InverseProperty("SysUsers")]
+    public virtual SysUserKind UserKind { get; set; } = null!;
 }

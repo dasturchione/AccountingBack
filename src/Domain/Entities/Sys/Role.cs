@@ -1,14 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("sys_role")]
-[Index("OrganizationId", Name = "idx_sys_role_organization_id")]
-[Index("Code", Name = "idx_sys_role_code")]
-[Index("IsSystem", Name = "idx_sys_role_is_system")]
-[Index("SortOrder", Name = "idx_sys_role_sort_order")]
 public partial class Role
 {
     [Key]
@@ -22,9 +17,6 @@ public partial class Role
     [Column("full_name")]
     [StringLength(255)]
     public string FullName { get; set; } = null!;
-
-    [Column("has_global_access")]
-    public bool HasGlobalAccess { get; set; }
 
     [Column("state_id")]
     public short StateId { get; set; }
@@ -46,9 +38,6 @@ public partial class Role
     [Column("is_system")]
     public bool IsSystem { get; set; }
 
-    [Column("is_owner_role")]
-    public bool IsOwnerRole { get; set; }
-
     [Column("sort_order")]
     public int SortOrder { get; set; }
     [ForeignKey("OrganizationId")]
@@ -64,7 +53,4 @@ public partial class Role
 
     [InverseProperty("Role")]
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
-
-    [InverseProperty("Role")]
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

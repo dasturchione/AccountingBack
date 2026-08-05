@@ -34,9 +34,6 @@ public partial class SysRole
     [Column("organization_id")]
     public int? OrganizationId { get; set; }
 
-    [Column("has_global_access")]
-    public bool HasGlobalAccess { get; set; }
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -47,9 +44,6 @@ public partial class SysRole
 
     [Column("is_system")]
     public bool IsSystem { get; set; }
-
-    [Column("is_owner_role")]
-    public bool IsOwnerRole { get; set; }
 
     [Column("sort_order")]
     public int SortOrder { get; set; }
@@ -67,7 +61,4 @@ public partial class SysRole
 
     [InverseProperty("Role")]
     public virtual ICollection<SysUserOrganization> SysUserOrganizations { get; set; } = new List<SysUserOrganization>();
-
-    [InverseProperty("Role")]
-    public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

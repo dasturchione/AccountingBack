@@ -9,6 +9,7 @@ public class OrganizationScopeMiddleware
 {
     internal const string AllowedOrgIdsKey = "AllowedOrgIds";
     public const string CurrentOrgIdKey = "CurrentOrgId";
+    public const string CurrentRoleIdKey = "CurrentRoleId";
     public const string TrustedGlobalAccessKey = "TrustedGlobalAccess";
 
     private readonly RequestDelegate _next;
@@ -24,7 +25,6 @@ public class OrganizationScopeMiddleware
 
             if (int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) && userId > 0)
             {
-                var roleId = ParsePositiveInt(context.User.FindFirst(ClaimTypes.Role)?.Value);
                 var claimOrgId = ParsePositiveInt(context.User.FindFirst("OrganizationId")?.Value);
                 var headerOrgId = ParseHeader(context, out var invalidHeader);
 
@@ -41,32 +41,39 @@ public class OrganizationScopeMiddleware
                 }
 
                 var currentOrgId = headerOrgId ?? claimOrgId;
-                var hasGlobalAccess = roleId.HasValue && await db.Roles
+                var userKindId = await db.Users
                     .IgnoreQueryFilters()
                     .AsNoTracking()
-                    .AnyAsync(role => role.Id == roleId.Value
-                        && role.StateId == StateIdConst.ACTIVE
-                        && role.OrganizationId == null
-                        && role.HasGlobalAccess, context.RequestAborted);
+                    .Where(user => user.Id == userId && user.StateId == StateIdConst.ACTIVE)
+                    .Select(user => (short?)user.UserKindId)
+                    .SingleOrDefaultAsync(context.RequestAborted);
+                var hasGlobalAccess = userKindId == UserKindIdConst.SuperAdmin;
 
-                var allowedOrgIds = await db.UserOrganizations
+                var memberships = await db.UserOrganizations
                     .IgnoreQueryFilters()
                     .AsNoTracking()
-                    .Where(uo => uo.UserId == userId && uo.StateId == StateIdConst.ACTIVE)
-                    .Select(uo => uo.OrganizationId)
+                    .Where(membership => membership.UserId == userId && membership.StateId == StateIdConst.ACTIVE)
+                    .Select(membership => new { membership.OrganizationId, membership.RoleId })
                     .ToListAsync(context.RequestAborted);
 
+                var allowedOrgIds = memberships.Select(membership => membership.OrganizationId).ToList();
                 context.Items[AllowedOrgIdsKey] = allowedOrgIds;
                 context.Items[TrustedGlobalAccessKey] = hasGlobalAccess;
 
-                if (currentOrgId.HasValue && !hasGlobalAccess && !allowedOrgIds.Contains(currentOrgId.Value))
-                {
-                    await WriteScopeErrorAsync(context, StatusCodes.Status403Forbidden, "OrganizationMembershipRequired");
-                    return;
-                }
-
                 if (currentOrgId.HasValue)
+                {
+                    var membership = memberships.FirstOrDefault(item => item.OrganizationId == currentOrgId.Value);
+                    if (!hasGlobalAccess && membership is null)
+                    {
+                        await WriteScopeErrorAsync(context, StatusCodes.Status403Forbidden, "OrganizationMembershipRequired");
+                        return;
+                    }
+
+                    if (membership?.RoleId is int roleId && roleId > 0)
+                        context.Items[CurrentRoleIdKey] = roleId;
+
                     context.Items[CurrentOrgIdKey] = currentOrgId.Value;
+                }
             }
         }
 

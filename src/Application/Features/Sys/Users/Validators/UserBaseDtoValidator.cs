@@ -1,26 +1,21 @@
-﻿using FluentValidation;
+using FluentValidation;
 
-namespace Application.Features.Users
+namespace Application.Features.Users;
+
+public class UserBaseDtoValidator : AbstractValidator<UserBaseDto>
 {
-    public class UserBaseDtoValidator : AbstractValidator<UserBaseDto>
+    public UserBaseDtoValidator()
     {
-        public UserBaseDtoValidator()
+        RuleFor(user => user.UserName).NotEmpty().MaximumLength(100);
+        RuleFor(user => user.PhoneNumber).NotEmpty().MaximumLength(20);
+        RuleFor(user => user.Email).NotEmpty().EmailAddress();
+        RuleFor(user => user.FirstName).NotEmpty().MaximumLength(100);
+        RuleFor(user => user.LastName).NotEmpty().MaximumLength(100);
+        RuleFor(user => user.Organizations).NotEmpty();
+        RuleForEach(user => user.Organizations).ChildRules(organization =>
         {
-            RuleFor(x => x.UserName).NotEmpty().MaximumLength(100);
-
-            RuleFor(x => x.PhoneNumber).NotEmpty().MaximumLength(20);
-
-            RuleFor(x => x.Email).NotEmpty().EmailAddress();
-
-            RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
-
-            RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
-
-            RuleFor(x => x.RoleId).GreaterThan(0);
-
-            RuleFor(x => x.Organizations).NotEmpty();
-
-            RuleForEach(x => x.Organizations).GreaterThan(0);
-        }
+            organization.RuleFor(item => item.OrganizationId).GreaterThan(0);
+            organization.RuleFor(item => item.RoleId).NotNull().GreaterThan(0);
+        });
     }
 }

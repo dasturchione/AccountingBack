@@ -6,22 +6,18 @@ namespace Application.Features.Roles;
 
 public class RoleDtoProjection : IProjectionBuilder<Role, RoleDto>
 {
-    public Expression<Func<Role, RoleDto>> Build()
-    {
-        return x => new RoleDto
+    public Expression<Func<Role, RoleDto>> Build() =>
+        role => new RoleDto
         {
-            Id          = x.Id,
-            ShortName   = x.ShortName,
-            FullName    = x.FullName,
-            Code        = x.Code,
-            Description = x.Description,
-            HasGlobalAccess = x.HasGlobalAccess,
-            IsSystem    = x.IsSystem,
-            IsOwnerRole = x.IsOwnerRole,
-            SortOrder   = x.SortOrder,
-            StateId     = x.StateId,
-            StateName   = x.State.FullName,
-            CreatedDate = x.CreatedDate
+            Id = role.Id,
+            ShortName = role.ShortName,
+            FullName = role.FullName,
+            Code = role.Code,
+            Description = role.Description,
+            IsSystem = role.IsSystem,
+            SortOrder = role.SortOrder,
+            StateId = role.StateId,
+            StateName = role.State.FullName,
+            CreatedDate = role.CreatedDate
         };
-    }
 }

@@ -400,7 +400,7 @@ public class ManualService : IManualService
         var spec = new QuerySpecification<User, SelectListDto>
         {
             Criteria = u => u.StateId == StateIdConst.ACTIVE
-                         && (roleId == null || u.RoleId == roleId),
+                         && (roleId == null || u.UserOrganizations.Any(membership => membership.RoleId == roleId)),
             OrderBy = q => q.OrderBy(u => u.Name),
             Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
         };

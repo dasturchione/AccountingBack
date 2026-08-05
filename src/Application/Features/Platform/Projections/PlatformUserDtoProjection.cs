@@ -1,6 +1,6 @@
 using Domain.Entities;
-using System.Linq.Expressions;
 using SharedKernel.Constants;
+using System.Linq.Expressions;
 
 namespace Application.Features.Platform;
 
@@ -14,18 +14,17 @@ public static class PlatformUserDtoProjection
         Email = user.Email,
         FirstName = user.FirstName,
         LastName = user.LastName,
-        RoleId = user.RoleId,
-        RoleName = user.Role.FullName,
-        HasGlobalAccess = user.Role.HasGlobalAccess,
+        TenantId = user.TenantId,
+        UserKindId = user.UserKindId,
+        HasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin,
         EmailVerified = user.EmailVerified,
         EmailVerifiedAt = user.EmailVerifiedAt,
         LastLoginIp = user.LastLoginIp,
-        IsPlatformAdmin = user.IsPlatformAdmin,
         Timezone = user.Timezone,
         LastAccessTime = user.LastAccessTime,
         StateId = user.StateId,
         StateName = user.State.FullName,
         CreatedDate = user.CreatedDate,
-        OrganizationsCount = user.UserOrganizations.Count(uo => uo.StateId == StateIdConst.ACTIVE)
+        OrganizationsCount = user.UserOrganizations.Count(membership => membership.StateId == StateIdConst.ACTIVE)
     };
 }

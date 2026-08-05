@@ -66,7 +66,7 @@ public sealed class SettingService : BaseService, ISettingService
     public Task<Result<List<SettingDto>>> GetAllAsync(string? category, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<List<SettingDto>>(PlatformErrors.GlobalAccessRequired());
 
             var normalizedCategory = NormalizeCategory(category);
@@ -106,7 +106,7 @@ public sealed class SettingService : BaseService, ISettingService
 
     private async Task<Result<SystemSetting>> GetSettingAsync(string code, CancellationToken ct)
     {
-        if (!_userContext.HasGlobalAccess)
+        if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
             return Result.Failure<SystemSetting>(PlatformErrors.GlobalAccessRequired());
 
         var normalizedCode = NormalizeCode(code);

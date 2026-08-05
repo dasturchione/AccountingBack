@@ -67,6 +67,6 @@ public class TokenProvider : ITokenProvider
     [
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
         new Claim("TenantId", user.TenantId.ToString()),
-        new Claim("UserKindId", user.UserKindId.ToString())
+        new Claim("UserKindCode", user.UserKind.Code)
     ];
 }

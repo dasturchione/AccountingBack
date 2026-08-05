@@ -51,7 +51,7 @@ public sealed class DashboardService : BaseService, IDashboardService
     public Task<Result<DashboardStatsDto>> GetStatsAsync(CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetStatsAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<DashboardStatsDto>(PlatformErrors.GlobalAccessRequired());
 
             var now = DateTime.Now;

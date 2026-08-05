@@ -32,7 +32,7 @@ public sealed class TaxResolverService : ITaxResolverService
         if (organizationId <= 0)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.OrganizationRequired(_userContext.LanguageId));
 
-        if (!_userContext.HasGlobalAccess
+        if (_userContext.UserKind != CurrentUserKind.SuperAdmin
             && _userContext.OrganizationId.HasValue
             && _userContext.OrganizationId.Value != organizationId)
         {

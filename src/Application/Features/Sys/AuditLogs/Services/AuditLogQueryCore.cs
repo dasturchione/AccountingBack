@@ -67,12 +67,12 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
     }
 
     private Result EnsureAccess(AuditLogQueryScope scope) =>
-        scope == AuditLogQueryScope.Global && !_userContext.HasGlobalAccess
+        scope == AuditLogQueryScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin
             ? Result.Failure(PlatformErrors.GlobalAccessRequired())
             : Result.Success();
 
     private bool HasScopedVisibility(AuditLogQueryScope scope) =>
-        scope == AuditLogQueryScope.Global || _userContext.HasGlobalAccess || _userContext.AllowedOrganizationIds.Count > 0;
+        scope == AuditLogQueryScope.Global || _userContext.UserKind == CurrentUserKind.SuperAdmin || _userContext.AllowedOrganizationIds.Count > 0;
 
     private QuerySpecification<AuditLog> BuildListSpecification(AuditLogQueryFilter filter, AuditLogQueryScope scope)
     {
@@ -117,7 +117,7 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
         var organizationId = filter.OrganizationId;
         var fromDate = filter.FromDate;
         var toDate = filter.ToDate;
-        var hasGlobalAccess = _userContext.HasGlobalAccess;
+        var isSuperAdmin = _userContext.UserKind == CurrentUserKind.SuperAdmin;
         var scopedOrganizationId = _userContext.OrganizationId;
         var allowedOrganizationIds = _userContext.AllowedOrganizationIds.ToArray();
         var hasActionFilter = !string.IsNullOrWhiteSpace(action);
@@ -132,7 +132,7 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
             && (!fromDate.HasValue || log.ChangedDate >= fromDate.Value)
             && (!toDate.HasValue || log.ChangedDate <= toDate.Value)
             && (!hasSearchFilter || MatchesSearch(log, searchText!))
-            && (hasGlobalAccess
+            && (isSuperAdmin
                 || (log.OrganizationId.HasValue
                     && (scopedOrganizationId.HasValue
                         ? log.OrganizationId.Value == scopedOrganizationId.Value

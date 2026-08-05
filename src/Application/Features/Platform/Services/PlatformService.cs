@@ -68,7 +68,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PlatformDashboardDto>> GetDashboardAsync(CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetDashboardAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PlatformDashboardDto>(PlatformErrors.GlobalAccessRequired());
 
             var statsResult = await _dashboardService.GetStatsAsync(ct);
@@ -98,7 +98,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PagedResponse<PlatformTenantDto>>> GetTenantsAsync(PlatformTenantListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantsAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PagedResponse<PlatformTenantDto>>(PlatformErrors.GlobalAccessRequired());
 
             var page = Math.Max(filter.Page, 1);
@@ -127,7 +127,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PlatformTenantDto>> GetTenantByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantByIdAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PlatformTenantDto>(PlatformErrors.GlobalAccessRequired());
 
             var tenant = await GetTenantEntityAsync(id, ct);
@@ -139,7 +139,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<int>> CreateTenantAsync(PlatformTenantCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateTenantAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
 
             var slug = NormalizeSlug(dto.Slug ?? dto.Name);
@@ -176,7 +176,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result> UpdateTenantAsync(int id, PlatformTenantUpdateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(UpdateTenantAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             var tenant = await GetTenantEntityAsync(id, ct);
@@ -209,7 +209,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<int>> CreateTenantUserAsync(int tenantId, PlatformUserCreateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CreateTenantUserAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -231,7 +231,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result> UpdateTenantUserAsync(int tenantId, int userId, PlatformUserUpdateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(UpdateTenantUserAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantUserAsync(tenantId, userId, ct) is null)
@@ -256,7 +256,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result> SetTenantUserPasswordAsync(int tenantId, int userId, PlatformSetPasswordDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(SetTenantUserPasswordAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             var user = await GetTenantUserAsync(tenantId, userId, ct);
@@ -272,7 +272,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PagedResponse<PlatformUserDto>>> GetTenantUsersAsync(int tenantId, PlatformUserListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantUsersAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PagedResponse<PlatformUserDto>>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -293,7 +293,6 @@ public sealed class PlatformService : BaseService, IPlatformService
                     && (!filter.RoleId.HasValue || user.UserOrganizations.Any(membership => membership.RoleId == filter.RoleId.Value))
                     && (!filter.UserKindId.HasValue || user.UserKindId == filter.UserKindId.Value)
                     && (!filter.StateId.HasValue || user.StateId == filter.StateId.Value)
-                    && (!filter.HasGlobalAccess.HasValue || (user.UserKindId == UserKindIdConst.SuperAdmin) == filter.HasGlobalAccess.Value)
                     && ((!filter.OrganizationId.HasValue && user.TenantId == tenantId)
                         || user.UserOrganizations.Any(membership =>
                             membership.Organization.TenantId == tenantId &&
@@ -311,7 +310,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PlatformUserDetailDto>> GetTenantUserByIdAsync(int tenantId, int userId, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantUserByIdAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PlatformUserDetailDto>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -333,7 +332,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<int>> CreateTenantOrganizationAsync(int tenantId, OrganizationCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(CreateTenantOrganizationAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -375,7 +374,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PagedResponse<PlatformOrganizationDto>>> GetTenantOrganizationsAsync(int tenantId, PlatformOrganizationListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantOrganizationsAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PagedResponse<PlatformOrganizationDto>>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -420,7 +419,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PlatformOrganizationDetailDto>> GetTenantOrganizationByIdAsync(int tenantId, int organizationId, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetTenantOrganizationByIdAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.GlobalAccessRequired());
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
@@ -448,7 +447,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     public Task<Result<PagedResponse<PlatformAuditLogDto>>> GetAuditLogsAsync(PlatformAuditLogListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAuditLogsAsync), async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure<PagedResponse<PlatformAuditLogDto>>(PlatformErrors.GlobalAccessRequired());
 
             var page = Math.Max(filter.Page, 1);
@@ -486,7 +485,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     private Task<Result> ChangeTenantStateAsync(int tenantId, short stateId, string operationName, CancellationToken ct) =>
         ExecuteAsync(operationName, async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             var tenant = await GetTenantEntityAsync(tenantId, ct);
@@ -502,7 +501,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     private Task<Result> ChangeTenantUserStateAsync(int tenantId, int userId, short stateId, string operationName, CancellationToken ct) =>
         ExecuteAsync(operationName, async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             var user = await GetTenantUserAsync(tenantId, userId, ct);
@@ -517,7 +516,7 @@ public sealed class PlatformService : BaseService, IPlatformService
     private Task<Result> ChangeTenantOrganizationStateAsync(int tenantId, int organizationId, short stateId, string operationName, CancellationToken ct) =>
         ExecuteAsync(operationName, async () =>
         {
-            if (!_userContext.HasGlobalAccess)
+            if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
                 return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
             var organization = await GetTenantOrganizationAsync(tenantId, organizationId, ct);
@@ -691,7 +690,6 @@ public sealed class PlatformService : BaseService, IPlatformService
             LastName = user.LastName,
             TenantId = user.TenantId,
             UserKindId = user.UserKindId,
-            HasGlobalAccess = user.HasGlobalAccess,
             EmailVerified = user.EmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
             LastLoginIp = user.LastLoginIp,

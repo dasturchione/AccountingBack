@@ -11,5 +11,4 @@ public class PlatformUserListFilter : IPaginationFilter
     public short? UserKindId { get; set; }
     public short? StateId { get; set; }
     public int? OrganizationId { get; set; }
-    public bool? HasGlobalAccess { get; set; }
 }

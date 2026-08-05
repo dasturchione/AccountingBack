@@ -25,7 +25,6 @@ public class UserDtoProjection : IProjectionBuilder<User, UserDto>
             LastAccessTime = user.LastAccessTime,
             StateId = user.StateId,
             CreatedDate = user.CreatedDate,
-            HasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin,
             StateName = user.State.FullName,
             Organizations = user.UserOrganizations.Select(uo => new UserOrganizationItemDto
             {

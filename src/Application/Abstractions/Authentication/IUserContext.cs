@@ -1,3 +1,5 @@
+using SharedKernel.Constants;
+
 namespace Application.Abstractions.Authentication;
 
 public interface IUserContext
@@ -6,7 +8,7 @@ public interface IUserContext
 
     int? RoleId { get; }
 
-    short? UserKindId { get; }
+    CurrentUserKind UserKind { get; }
 
     short? LanguageId { get; }
 
@@ -17,6 +19,12 @@ public interface IUserContext
     List<int> AllowedOrganizationIds { get; }
 
     int? BranchId { get; }
+}
 
-    bool HasGlobalAccess { get; }
+public enum CurrentUserKind : short
+{
+    None = 0,
+    SuperAdmin = UserKindIdConst.SuperAdmin,
+    TenantAdmin = UserKindIdConst.TenantAdmin,
+    TenantUser = UserKindIdConst.TenantUser
 }

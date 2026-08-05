@@ -32,7 +32,7 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
         OrganizationManagementOptions options,
         CancellationToken ct = default)
     {
-        if (options.Scope == OrganizationManagementScope.Global && !_userContext.HasGlobalAccess)
+        if (options.Scope == OrganizationManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
             return Result.Failure<Organization>(PlatformErrors.GlobalAccessRequired());
 
         var organization = await _organizationQuery.GetAsync(BuildOrganizationSpec(organizationId, options.IncludeDetails), ct);

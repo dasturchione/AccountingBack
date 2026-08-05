@@ -17,6 +17,6 @@ internal static class AuthorizationGuard
         return false;
     }
 
-    public static bool HasGlobalAccess(IUserContext? userContext) =>
-        userContext?.HasGlobalAccess == true;
+    public static bool IsSuperAdmin(IUserContext? userContext) =>
+        userContext?.UserKind == CurrentUserKind.SuperAdmin;
 }

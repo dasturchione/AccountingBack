@@ -28,9 +28,9 @@ public sealed class ModuleAuthorizeAttribute : Attribute, IAsyncAuthorizationFil
             return;
 
         var userContext = context.HttpContext.RequestServices.GetService<IUserContext>();
-        if (AuthorizationGuard.HasGlobalAccess(userContext))
+        if (AuthorizationGuard.IsSuperAdmin(userContext))
         {
-            await TryWriteGlobalAccessAuditAsync(context, userContext!);
+            await TryWriteSuperAdminBypassAuditAsync(context, userContext!);
             return;
         }
 
@@ -51,7 +51,7 @@ public sealed class ModuleAuthorizeAttribute : Attribute, IAsyncAuthorizationFil
             context.Result = new ForbidResult();
     }
 
-    private async Task TryWriteGlobalAccessAuditAsync(AuthorizationFilterContext context, IUserContext userContext)
+    private async Task TryWriteSuperAdminBypassAuditAsync(AuthorizationFilterContext context, IUserContext userContext)
     {
         var auditLogService = context.HttpContext.RequestServices.GetService<IAuditLogService>();
         var logger = context.HttpContext.RequestServices.GetService<ILogger<ModuleAuthorizeAttribute>>();
@@ -69,7 +69,7 @@ public sealed class ModuleAuthorizeAttribute : Attribute, IAsyncAuthorizationFil
                 method = context.HttpContext.Request.Method,
                 endpoint = context.HttpContext.Request.Path.Value ?? "/",
                 permissionCodes = _permissionCodes,
-                result = "GLOBAL_ACCESS_BYPASS_GRANTED",
+                result = "SUPER_ADMIN_BYPASS_GRANTED",
                 traceId = context.HttpContext.TraceIdentifier
             });
 
@@ -82,7 +82,7 @@ public sealed class ModuleAuthorizeAttribute : Attribute, IAsyncAuthorizationFil
         {
             logger?.LogWarning(
                 ex,
-                "Failed to persist global access bypass audit for {Method} {Path}.",
+                "Failed to persist super-admin bypass audit for {Method} {Path}.",
                 context.HttpContext.Request.Method,
                 context.HttpContext.Request.Path.Value ?? "/");
         }

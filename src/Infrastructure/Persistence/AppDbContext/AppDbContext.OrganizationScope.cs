@@ -18,7 +18,7 @@ namespace Infrastructure.Persistence
         // Header berilgan bo'lsa — o'sha 1 org; berilmasa 0 (ya'ni "hammasi" rejimi)
         private int CurrentOrganizationId => _userContext?.OrganizationId ?? 0;
 
-        private bool HasGlobalAccess => _userContext?.HasGlobalAccess == true;
+        private bool IsSuperAdmin => _userContext?.UserKind == CurrentUserKind.SuperAdmin;
         private bool HasAuthenticatedUser => _userContext?.Id is not null;
 
         // User ruxsat berilgan barcha org IDlar
@@ -27,7 +27,7 @@ namespace Infrastructure.Persistence
         private void ApplyScopedFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class
         {
             modelBuilder.Entity<TEntity>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? EF.Property<int>(e, OrgIdProperty) == CurrentOrganizationId
@@ -37,7 +37,7 @@ namespace Infrastructure.Persistence
         private void ApplyOrganizationFilters(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Organization>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Id == CurrentOrganizationId
@@ -83,7 +83,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<CashOperation>(modelBuilder);
             ApplyScopedFilter<Position>(modelBuilder);
             ApplyScopedFilter<CashBox>(modelBuilder);
-            ApplyScopedFilter<UserOrganization>(modelBuilder);
+            //ApplyScopedFilter<UserOrganization>(modelBuilder);
             ApplyScopedFilter<FaAsset>(modelBuilder);
             ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
             ApplyScopedFilter<FaMovementDoc>(modelBuilder);
@@ -114,7 +114,7 @@ namespace Infrastructure.Persistence
             ApplyScopedFilter<HrAbsenceAttachment>(modelBuilder);
 
             modelBuilder.Entity<AuditLog>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (e.OrganizationId.HasValue
                                       && (CurrentOrganizationId != 0
                                           ? e.OrganizationId.Value == CurrentOrganizationId
@@ -122,98 +122,98 @@ namespace Infrastructure.Persistence
 
             // Navigation orqali OrganizationId bo'lgan entitylar
             modelBuilder.Entity<PurchaseDocProduct>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<OpeningInventoryProduct>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<OpeningInventoryTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<PurchaseDocTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<FaReceiptDocLine>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<FaReceiptDocAsset>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<FaMovementDocLine>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.MovementDoc.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.MovementDoc.OrganizationId))));
 
             modelBuilder.Entity<SaleDocTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<WarehouseTransferLine>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<WarehouseTransferDocTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<InventoryAdjustmentLine>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<InventoryAdjustmentDocTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
             modelBuilder.Entity<InventoryCountLine>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
             modelBuilder.Entity<InventoryCountDocTable>()
-                .HasQueryFilter(e => HasGlobalAccess
+                .HasQueryFilter(e => IsSuperAdmin
                                   || (AllowedOrgIds.Count > 0
                                   && (CurrentOrganizationId != 0
                                       ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
@@ -222,7 +222,7 @@ namespace Infrastructure.Persistence
             // Role — OrganizationId nullable: null bo'lsa global (hamma ko'ra oladi)
             modelBuilder.Entity<Role>()
                 .HasQueryFilter(e => e.OrganizationId == null
-                                  || HasGlobalAccess
+                                  || IsSuperAdmin
                                   || (CurrentOrganizationId != 0
                                       ? e.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.OrganizationId.Value)));
@@ -230,7 +230,7 @@ namespace Infrastructure.Persistence
             // Claim request hali organization bilan bog'lanmagan bo'lishi mumkin.
             modelBuilder.Entity<OrganizationClaimRequest>()
                 .HasQueryFilter(e => e.OrganizationId == null
-                                  || HasGlobalAccess
+                                  || IsSuperAdmin
                                   || (CurrentOrganizationId != 0
                                       ? e.OrganizationId == CurrentOrganizationId
                                       : AllowedOrgIds.Contains(e.OrganizationId.Value)));
@@ -255,7 +255,7 @@ namespace Infrastructure.Persistence
 
             if (!HasAuthenticatedUser) return;
 
-            if (HasGlobalAccess) return;
+            if (IsSuperAdmin) return;
 
             if (AllowedOrgIds.Count == 0)
                 throw new InvalidOperationException("The current user has no active organization assignments.");

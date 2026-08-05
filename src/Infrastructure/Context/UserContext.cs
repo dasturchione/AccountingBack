@@ -9,7 +9,6 @@ public class UserContext : IUserContext
     private const string AllowedOrgIdsKey = "AllowedOrgIds";
     private const string CurrentOrgIdKey = "CurrentOrgId";
     private const string CurrentRoleIdKey = "CurrentRoleId";
-    private const string TrustedGlobalAccessKey = "TrustedGlobalAccess";
 
     private readonly IHttpContextAccessor _accessor;
 
@@ -23,14 +22,18 @@ public class UserContext : IUserContext
         ? roleId
         : null;
 
-    public short? UserKindId => GetClaimShort("UserKindId");
+    public CurrentUserKind UserKind => GetClaimValue("UserKindCode") switch
+    {
+        UserKindCodeConst.SuperAdmin => CurrentUserKind.SuperAdmin,
+        UserKindCodeConst.TenantOwner => CurrentUserKind.TenantAdmin,
+        UserKindCodeConst.TenantUser => CurrentUserKind.TenantUser,
+        _ => CurrentUserKind.None
+    };
 
     public int? OrganizationId => _accessor.HttpContext?.Items[CurrentOrgIdKey] is int id && id > 0 ? id : null;
 
     public List<int> AllowedOrganizationIds =>
         _accessor.HttpContext?.Items[AllowedOrgIdsKey] is List<int> ids ? ids : [];
-
-    public bool HasGlobalAccess => _accessor.HttpContext?.Items[TrustedGlobalAccessKey] is true;
 
     public int? BranchId => GetHeaderInt("X-BranchId");
 
@@ -41,12 +44,8 @@ public class UserContext : IUserContext
         var value = _accessor.HttpContext?.User.FindFirst(claimType)?.Value;
         return int.TryParse(value, out var result) && result > 0 ? result : null;
     }
-
-    private short? GetClaimShort(string claimType)
-    {
-        var value = _accessor.HttpContext?.User.FindFirst(claimType)?.Value;
-        return short.TryParse(value, out var result) && result > 0 ? result : null;
-    }
+    private string? GetClaimValue(string claimType) =>
+        _accessor.HttpContext?.User.FindFirst(claimType)?.Value;
 
     private int? GetHeaderInt(string key)
     {

@@ -235,7 +235,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
 
     private async Task<Result> EnsurePermissionAsync(string permissionCode, CancellationToken ct)
     {
-        if (_userContext.HasGlobalAccess)
+        if (_userContext.UserKind == CurrentUserKind.SuperAdmin)
             return Result.Success();
 
         if (_userContext.RoleId is null)

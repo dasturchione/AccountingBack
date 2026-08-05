@@ -33,6 +33,7 @@ public interface IManualService
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetUserKindsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default);
     Task<List<ModuleSubGroupSelectListDto>> GetModuleSubGroupSelectListAsync(CancellationToken ct = default);
 

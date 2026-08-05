@@ -2,7 +2,7 @@
 //using Domain.Entities;
 //using Microsoft.EntityFrameworkCore;
 
-//namespace Infrastructure.Persistence.AppDbContext
+//namespace Infrastructure.Persistence
 //{
 //    //public partial class AppDbContext
 //    //{

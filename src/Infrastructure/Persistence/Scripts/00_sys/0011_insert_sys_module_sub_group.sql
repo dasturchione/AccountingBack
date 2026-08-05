@@ -1,6 +1,6 @@
 begin;
 
-delete from sys_module;
+delete from sys_module_sub_group;
 select setval('sys_module_sub_group_id_seq', 1, false);
 
 insert into sys_module_sub_group (code, short_name, full_name, created_date)

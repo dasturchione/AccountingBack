@@ -281,7 +281,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         if (!organizationExists)
             return Result.Failure<int>(OrganizationSetupErrors.OrganizationNotFound(organizationId));
 
-        if (_userContext.HasGlobalAccess)
+        if (_userContext.UserKind == CurrentUserKind.SuperAdmin)
             return organizationId;
 
         if (_userContext.Id is null)

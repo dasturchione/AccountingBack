@@ -17,6 +17,5 @@ public class UserListDto
     public DateTime? LastAccessTime { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public bool HasGlobalAccess { get; set; }
     public string StateName { get; set; } = null!;
 }

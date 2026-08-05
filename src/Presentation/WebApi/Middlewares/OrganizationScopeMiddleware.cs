@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
@@ -10,7 +11,6 @@ public class OrganizationScopeMiddleware
     internal const string AllowedOrgIdsKey = "AllowedOrgIds";
     public const string CurrentOrgIdKey = "CurrentOrgId";
     public const string CurrentRoleIdKey = "CurrentRoleId";
-    public const string TrustedGlobalAccessKey = "TrustedGlobalAccess";
 
     private readonly RequestDelegate _next;
 
@@ -21,7 +21,6 @@ public class OrganizationScopeMiddleware
         if (context.User.Identity?.IsAuthenticated == true)
         {
             context.Items[AllowedOrgIdsKey] = new List<int>();
-            context.Items[TrustedGlobalAccessKey] = false;
 
             if (int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) && userId > 0)
             {
@@ -41,13 +40,7 @@ public class OrganizationScopeMiddleware
                 }
 
                 var currentOrgId = headerOrgId ?? claimOrgId;
-                var userKindId = await db.Users
-                    .IgnoreQueryFilters()
-                    .AsNoTracking()
-                    .Where(user => user.Id == userId && user.StateId == StateIdConst.ACTIVE)
-                    .Select(user => (short?)user.UserKindId)
-                    .SingleOrDefaultAsync(context.RequestAborted);
-                var hasGlobalAccess = userKindId == UserKindIdConst.SuperAdmin;
+                var isSuperAdmin = userContext.UserKind == CurrentUserKind.SuperAdmin;
 
                 var memberships = await db.UserOrganizations
                     .IgnoreQueryFilters()
@@ -58,12 +51,11 @@ public class OrganizationScopeMiddleware
 
                 var allowedOrgIds = memberships.Select(membership => membership.OrganizationId).ToList();
                 context.Items[AllowedOrgIdsKey] = allowedOrgIds;
-                context.Items[TrustedGlobalAccessKey] = hasGlobalAccess;
 
                 if (currentOrgId.HasValue)
                 {
                     var membership = memberships.FirstOrDefault(item => item.OrganizationId == currentOrgId.Value);
-                    if (!hasGlobalAccess && membership is null)
+                    if (!isSuperAdmin && membership is null)
                     {
                         await WriteScopeErrorAsync(context, StatusCodes.Status403Forbidden, "OrganizationMembershipRequired");
                         return;

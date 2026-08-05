@@ -13,7 +13,7 @@ public sealed class GlobalAccessAuthorizeAttribute : Attribute, IAsyncAuthorizat
             return Task.CompletedTask;
 
         var userContext = context.HttpContext.RequestServices.GetService<IUserContext>();
-        if (!AuthorizationGuard.HasGlobalAccess(userContext))
+        if (!AuthorizationGuard.IsSuperAdmin(userContext))
             context.Result = new ForbidResult();
 
         return Task.CompletedTask;

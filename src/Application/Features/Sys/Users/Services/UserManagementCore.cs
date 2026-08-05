@@ -56,7 +56,7 @@ public sealed class UserManagementCore : IUserManagementCore
         UserManagementOptions options,
         CancellationToken ct = default)
     {
-        if (options.Scope == UserManagementScope.Global && !_userContext.HasGlobalAccess)
+        if (options.Scope == UserManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
             return Result.Failure<UserManagementCreateResult>(PlatformErrors.GlobalAccessRequired());
 
         var prepared = PrepareCreateRequest(request, options.Scope);
@@ -117,7 +117,7 @@ public sealed class UserManagementCore : IUserManagementCore
         UserManagementOptions options,
         CancellationToken ct = default)
     {
-        if (options.Scope == UserManagementScope.Global && !_userContext.HasGlobalAccess)
+        if (options.Scope == UserManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
             return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
         var user = await _userQuery.GetAsync(new QuerySpecification<User> { Criteria = item => item.Id == request.UserId }, ct);

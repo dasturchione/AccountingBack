@@ -745,9 +745,9 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)
     {
-        var query = _userContext.UserKindId switch
+        var query = _userContext.UserKind switch
         {
-            UserKindIdConst.SuperAdmin =>
+            CurrentUserKind.SuperAdmin =>
                 _queryBuilder
                     .For<Organization>()
                     .Where(x => x.StateId == StateIdConst.ACTIVE)
@@ -759,7 +759,7 @@ public class ManualService : IManualService
                     .OrderBy(x => x.Name)
                     .Build(),
 
-            UserKindIdConst.TenantAdmin =>
+            CurrentUserKind.TenantAdmin =>
                 _queryBuilder
                     .For<Organization>()
                     .Where(x =>
@@ -773,7 +773,7 @@ public class ManualService : IManualService
                     .OrderBy(x => x.Name)
                     .Build(),
 
-            UserKindIdConst.TenantUser =>
+            CurrentUserKind.TenantUser =>
                 _queryBuilder
                     .For<Organization>()
                     .Where(x =>
@@ -789,7 +789,7 @@ public class ManualService : IManualService
                     .Build(),
 
             _ => throw new InvalidOperationException(
-                $"Unsupported user kind: {_userContext.UserKindId}")
+                $"Unsupported user kind: {_userContext.UserKind}")
         };
 
         return await _organizationQuery.GetAllAsync(query, ct);

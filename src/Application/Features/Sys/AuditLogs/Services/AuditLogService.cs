@@ -114,7 +114,7 @@ public class AuditLogService : IAuditLogService
         if (_userContext.OrganizationId.HasValue)
             return _userContext.OrganizationId.Value;
 
-        if (_userContext.HasGlobalAccess)
+        if (_userContext.UserKind == CurrentUserKind.SuperAdmin)
             return null;
 
         return _userContext.AllowedOrganizationIds.Count == 1

@@ -9,7 +9,6 @@ public class UserContext : IUserContext
     private const string AllowedOrgIdsKey = "AllowedOrgIds";
     private const string CurrentOrgIdKey = "CurrentOrgId";
     private const string CurrentRoleIdKey = "CurrentRoleId";
-    private const string TrustedGlobalAccessKey = "TrustedGlobalAccess";
 
     private readonly IHttpContextAccessor _accessor;
 
@@ -23,14 +22,18 @@ public class UserContext : IUserContext
         ? roleId
         : null;
 
-    public short? UserKindId => GetClaimShort("UserKindId");
+    public CurrentUserKind UserKind => GetClaimShort("UserKindId") switch
+    {
+        UserKindIdConst.SuperAdmin => CurrentUserKind.SuperAdmin,
+        UserKindIdConst.TenantAdmin => CurrentUserKind.TenantAdmin,
+        UserKindIdConst.TenantUser => CurrentUserKind.TenantUser,
+        _ => CurrentUserKind.None
+    };
 
     public int? OrganizationId => _accessor.HttpContext?.Items[CurrentOrgIdKey] is int id && id > 0 ? id : null;
 
     public List<int> AllowedOrganizationIds =>
         _accessor.HttpContext?.Items[AllowedOrgIdsKey] is List<int> ids ? ids : [];
-
-    public bool HasGlobalAccess => _accessor.HttpContext?.Items[TrustedGlobalAccessKey] is true;
 
     public int? BranchId => GetHeaderInt("X-BranchId");
 

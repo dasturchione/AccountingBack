@@ -100,8 +100,8 @@ public class AuthService : IAuthService
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
-        var hasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin;
-        if (hasGlobalAccess != requireGlobalAccess)
+        var isSuperAdmin = user.UserKindId == UserKindIdConst.SuperAdmin;
+        if (isSuperAdmin != requireGlobalAccess)
         {
             _logger.LogInformation(
                 "Authentication failed for {UserName}: user kind {UserKindId} does not match endpoint global-access requirement {RequireGlobalAccess}.",
@@ -126,7 +126,7 @@ public class AuthService : IAuthService
         };
 
         var organizations = await _userOrgQuery.GetAllAsync(organizationSpec, ct);
-        if (!hasGlobalAccess && organizations.Count == 0)
+        if (!isSuperAdmin && organizations.Count == 0)
         {
             _logger.LogInformation(
                 "Authentication failed for {UserName}: non-global user {UserId} has no active organization memberships.",
@@ -138,7 +138,7 @@ public class AuthService : IAuthService
         var defaultOrganization = organizations.FirstOrDefault(organization => organization.IsDefault)
             ?? organizations.FirstOrDefault();
         var token = _tokenProvider.GenerateAccessToken(user, defaultOrganization?.OrganizationId ?? 0);
-        var permissions = hasGlobalAccess
+        var permissions = isSuperAdmin
             ? await GetAllActivePermissionCodesAsync(ct)
             : defaultOrganization?.RoleId is int roleId
                 ? await GetRolePermissionCodesAsync(roleId, ct)
@@ -157,7 +157,6 @@ public class AuthService : IAuthService
                 LastName = user.LastName,
                 TenantId = user.TenantId,
                 UserKindId = user.UserKindId,
-                HasGlobalAccess = hasGlobalAccess,
                 StateName = user.State.FullName,
                 StateId = user.StateId,
                 LastAccessTime = user.LastAccessTime,

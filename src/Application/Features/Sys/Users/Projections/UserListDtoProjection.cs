@@ -25,7 +25,6 @@ public class UserListDtoProjection : IProjectionBuilder<User, UserListDto>
             LastAccessTime = user.LastAccessTime,
             StateId = user.StateId,
             CreatedDate = user.CreatedDate,
-            HasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin,
             StateName = user.State.FullName
         };
 }

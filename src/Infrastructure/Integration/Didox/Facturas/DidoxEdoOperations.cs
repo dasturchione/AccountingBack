@@ -243,6 +243,30 @@ public sealed class DidoxEdoOperations(
     private static DateTimeOffset? ReadDateTime(JsonElement item, string propertyName) =>
         DateTimeOffset.TryParse(ReadString(item, propertyName), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var value) ? value : null;
 
-    private static decimal? ReadDecimal(JsonElement item, string propertyName) =>
-        item.TryGetProperty(propertyName, out var property) && property.TryGetDecimal(out var value) ? value : null;
+    private static decimal? ReadDecimal(JsonElement item, string propertyName)
+    {
+        if (!item.TryGetProperty(propertyName, out var property)
+            || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number
+            && property.TryGetDecimal(out var numericValue))
+        {
+            return numericValue;
+        }
+
+        if (property.ValueKind == JsonValueKind.String
+            && decimal.TryParse(
+                property.GetString(),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var stringValue))
+        {
+            return stringValue;
+        }
+
+        return null;
+    }
 }

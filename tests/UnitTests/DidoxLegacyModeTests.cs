@@ -251,6 +251,7 @@ public sealed class DidoxLegacyModeTests
     {
         public int? Id => 1;
         public int? RoleId => 1;
+        public short? UserKindId => 3;
         public short? LanguageId => null;
         public int? TenantId => 1;
         public int? OrganizationId => organizationId;

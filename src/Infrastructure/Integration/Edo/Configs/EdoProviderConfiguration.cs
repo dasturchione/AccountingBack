@@ -28,8 +28,7 @@ public sealed class EdoProviderConfiguration(
 
     private async Task<bool> IsDidoxConfiguredAsync(int organizationId, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(didoxOptions.Value.BaseUrl)
-            || string.IsNullOrWhiteSpace(didoxOptions.Value.PartnerToken))
+        if (string.IsNullOrWhiteSpace(didoxOptions.Value.BaseUrl))
         {
             return false;
         }

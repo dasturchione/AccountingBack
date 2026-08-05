@@ -1,4 +1,5 @@
 using Application.Abstractions.Integration.Edo;
+using Application.Abstractions.Integration.Faktura;
 using Application.Features.Integration.Edo;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,12 @@ public sealed class EdoController(
         [FromBody] EdoAuthCompleteRequestDto request,
         CancellationToken ct = default) =>
         Results.Ok(await authenticationService.CompleteAsync(request, ct));
+
+    [HttpPost("auth/faktura/complete")]
+    public async Task<IResult> CompleteFakturaAuth(
+        [FromBody] FakturaAuthCompleteRequestDto request,
+        CancellationToken ct = default) =>
+        Results.Ok(await authenticationService.CompleteFakturaAsync(request, ct));
 
     [HttpPost("outbox/facturas")]
     public async Task<IResult> CreateFactura(

@@ -31,8 +31,7 @@ public sealed class EdoAuthCredentialValidator(
                     .SingleOrDefaultAsync(ct);
 
                 if (string.IsNullOrWhiteSpace(organizationInn)
-                    || string.IsNullOrWhiteSpace(didoxOptions.Value.BaseUrl)
-                    || string.IsNullOrWhiteSpace(didoxOptions.Value.PartnerToken))
+                    || string.IsNullOrWhiteSpace(didoxOptions.Value.BaseUrl))
                 {
                     throw new EdoCredentialNotConfiguredException(providerCode.ToString());
                 }

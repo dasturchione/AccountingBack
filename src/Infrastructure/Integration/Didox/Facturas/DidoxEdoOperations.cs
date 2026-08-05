@@ -32,6 +32,7 @@ public sealed class DidoxEdoOperations(
             $"limit={request.PageSize}"
         };
         AddQuery(query, "name", request.Search);
+        AddQuery(query, "hasMarks", request.HasMarks?.ToString().ToLowerInvariant());
         AddQuery(query, "dateFromCreated", request.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         AddQuery(query, "dateToCreated", request.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         AddQuery(query, "status", MapStatusFilter(request.Status));
@@ -163,7 +164,8 @@ public sealed class DidoxEdoOperations(
             },
             TotalAmount = ReadDecimal(item, "total_sum"),
             CreatedAt = ReadDateTime(item, "created"),
-            UpdatedAt = ReadDateTime(item, "updated")
+            UpdatedAt = ReadDateTime(item, "updated"),
+            MarkingCodes = DidoxDocumentResponseMapper.ReadMarkingCodes(item)
         };
     }
 

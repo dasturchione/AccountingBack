@@ -1,11 +1,14 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration.Edo;
+using Application.Abstractions.Integration.Faktura;
 using Domain.Entities;
+using Integration.Faktura.Configs;
 using Integration.Faktura.Dtos;
 using Integration.Faktura.Http;
 using Integration.Edo.Http;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using SharedKernel.Exceptions;
 using SharedKernel.Query.Specifications;
 using System.Globalization;
@@ -19,6 +22,8 @@ namespace Integration.Faktura.Edo;
 public sealed class FakturaEdoOperations(
     IHttpClientFactory httpClientFactory,
     IFakturaTokenService tokenService,
+    IFakturaAuthSessionStore authSessionStore,
+    IOptions<FakturaOptions> options,
     IUserContext userContext,
     IQueryRepository<Organization> organizationQuery)
 {
@@ -35,10 +40,362 @@ public sealed class FakturaEdoOperations(
         """(?i)(token|password|client[_-]?secret|authorization|pkcs7|signature|private[_-]?key|inn|tin|tax[_-]?id)\s*['"]?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^,;\s}\]]+)""",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public async Task<EdoAuthCompleteDto> CompleteAuthAsync(CancellationToken ct = default)
+    private static readonly HashSet<string> SupportedSessionCookieNames =
+    [
+        ".AspNet.AccountFakturaApp",
+        ".ASPXAUTH"
+    ];
+
+    private const int MaxRedirects = 8;
+
+    public async Task<EdoAuthCompleteDto> CompleteAuthAsync(
+        EdoAuthCompleteRequestDto request,
+        CancellationToken ct = default)
     {
-        _ = await tokenService.GetAccessTokenAsync(ct);
+        if (string.IsNullOrWhiteSpace(request.PreparedPkcs7))
+        {
+            _ = await tokenService.GetAccessTokenAsync(ct);
+            return new EdoAuthCompleteDto { IsAuthenticated = true };
+        }
+
+        var preparedPkcs7 = RequireText(request.PreparedPkcs7, nameof(request.PreparedPkcs7));
+        var userId = userContext.Id
+            ?? throw new IntegrationUnauthorizedException(
+                "Faktura E-IMZO authentication requires an authenticated user.");
+        var organizationId = userContext.OrganizationId
+            ?? throw new InvalidOperationException(
+                "Faktura E-IMZO authentication requires an active organization.");
+        var settings = options.Value;
+        var client = httpClientFactory.CreateClient(FakturaHttpClientNames.AuthClient);
+
+        using var attachRequest = new HttpRequestMessage(HttpMethod.Post, settings.SignatureAttachUrl)
+        {
+            Content = JsonContent.Create(new FakturaAttachTimestampTokenRequestDto
+            {
+                Pkcs7 = preparedPkcs7
+            })
+        };
+        using var attachResponse = await client.SendAsync(
+            attachRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            ct);
+        await EnsureSuccessAsync(attachResponse, "Faktura timestamp attachment");
+
+        var timestampResponse = await attachResponse.Content
+            .ReadFromJsonAsync<FakturaAttachTimestampTokenResponseDto>(ct)
+            ?? throw new IntegrationHttpException(
+                "Faktura timestamp attachment response could not be parsed.",
+                StatusCodes.Status502BadGateway);
+        if (!timestampResponse.Success || string.IsNullOrWhiteSpace(timestampResponse.Data))
+        {
+            throw new IntegrationHttpException(
+                "Faktura timestamp attachment response did not contain a successful data value.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        using var loginRequest = new HttpRequestMessage(HttpMethod.Post, settings.SignatureLoginUrl)
+        {
+            Content = JsonContent.Create(new FakturaLoginWithSignatureRequestDto
+            {
+                RememberMe = false,
+                TimeStamp = timestampResponse.Data
+            })
+        };
+        using var loginResponse = await client.SendAsync(
+            loginRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            ct);
+
+        var cookies = new Dictionary<string, FakturaAuthCookie>(StringComparer.Ordinal);
+        CaptureCookies(loginResponse, cookies, DateTimeOffset.UtcNow);
+        await EnsureSuccessAsync(loginResponse, "Faktura signature login");
+
+        var loginResult = await loginResponse.Content
+            .ReadFromJsonAsync<FakturaLoginWithSignatureResponseDto>(ct)
+            ?? throw new IntegrationHttpException(
+                "Faktura signature login response could not be parsed.",
+                StatusCodes.Status502BadGateway);
+        if (!loginResult.Success)
+        {
+            throw new IntegrationUnauthorizedException(
+                "Faktura signature login was not successful.");
+        }
+
+        var authorizationUri = BuildAuthorizationUri(settings);
+        using var authorizationRequest = new HttpRequestMessage(HttpMethod.Get, authorizationUri);
+        AddCookieHeader(authorizationRequest, cookies, DateTimeOffset.UtcNow);
+        using var authorizationResponse = await client.SendAsync(
+            authorizationRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            ct);
+        CaptureCookies(authorizationResponse, cookies, DateTimeOffset.UtcNow);
+
+        using var redirectResponse = await FollowRedirectsAsync(
+            client,
+            authorizationResponse,
+            cookies,
+            settings,
+            ct);
+        if (redirectResponse is not null)
+        {
+            CaptureCookies(redirectResponse, cookies, DateTimeOffset.UtcNow);
+            if (!IsRedirect(redirectResponse))
+                await EnsureSuccessAsync(redirectResponse, "Faktura signature authorization redirect");
+        }
+        else
+        {
+            await EnsureSuccessAsync(authorizationResponse, "Faktura signature authorization");
+        }
+
+        if (!cookies.ContainsKey(".AspNet.AccountFakturaApp")
+            || !cookies.ContainsKey(".ASPXAUTH"))
+        {
+            throw new IntegrationHttpException(
+                $"Faktura signature authorization did not return the required session cookies (received: {string.Join(", ", cookies.Keys.OrderBy(name => name, StringComparer.Ordinal))}).",
+                StatusCodes.Status502BadGateway);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var session = new FakturaAuthSession(
+            new FakturaAuthSessionScope(userId, organizationId, EdoProviderCode.FAKTURA),
+            cookies.Values.ToArray(),
+            now,
+            DateTimeOffset.MaxValue);
+        await authSessionStore.SaveAsync(session, ct);
+
         return new EdoAuthCompleteDto { IsAuthenticated = true };
+    }
+
+    private static async Task<HttpResponseMessage?> FollowRedirectsAsync(
+        HttpClient client,
+        HttpResponseMessage response,
+        IDictionary<string, FakturaAuthCookie> cookies,
+        FakturaOptions settings,
+        CancellationToken ct)
+    {
+        var allowedHosts = GetAllowedHosts(settings);
+        var current = response;
+
+        for (var redirectCount = 0; redirectCount < MaxRedirects; redirectCount++)
+        {
+            if (!IsRedirect(current))
+                return null;
+
+            var location = current.Headers.Location
+                ?? throw new IntegrationHttpException(
+                    "Faktura signature login redirect did not contain a Location header.",
+                    StatusCodes.Status502BadGateway);
+            var currentUri = current.RequestMessage?.RequestUri
+                ?? throw new IntegrationHttpException(
+                    "Faktura signature login redirect did not contain a request URI.",
+                    StatusCodes.Status502BadGateway);
+            var nextUri = location.IsAbsoluteUri
+                ? location
+                : new Uri(currentUri, location);
+            EnsureAllowedRedirect(nextUri, allowedHosts);
+
+            var currentMethod = current.RequestMessage?.Method ?? HttpMethod.Get;
+            var nextMethod = GetRedirectMethod(current.StatusCode, currentMethod);
+            current.Dispose();
+
+            using var nextRequest = new HttpRequestMessage(nextMethod, nextUri);
+            AddCookieHeader(nextRequest, cookies, DateTimeOffset.UtcNow);
+            current = await client.SendAsync(
+                nextRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                ct);
+            CaptureCookies(current, cookies, DateTimeOffset.UtcNow);
+
+            if (IsExternalLoginCallback(current)
+                && HasUsableCookie(cookies, ".ASPXAUTH", DateTimeOffset.UtcNow))
+            {
+                return current;
+            }
+        }
+
+        current.Dispose();
+        throw new IntegrationHttpException(
+            "Faktura signature login redirect chain exceeded the configured limit.",
+            StatusCodes.Status502BadGateway);
+    }
+
+    private static Uri BuildAuthorizationUri(FakturaOptions settings)
+    {
+        var builder = new UriBuilder(RequireText(
+            settings.AuthorizationUrl,
+            $"{FakturaOptions.SectionName}:AuthorizationUrl"));
+        var query = builder.Query.TrimStart('?');
+        var parameters = new List<string>();
+        if (!string.IsNullOrWhiteSpace(query))
+            parameters.Add(query);
+
+        parameters.Add("response_type=code");
+        parameters.Add($"client_id={Uri.EscapeDataString(RequireText(
+            settings.AuthorizationClientId,
+            $"{FakturaOptions.SectionName}:AuthorizationClientId"))}");
+        parameters.Add($"redirect_uri={Uri.EscapeDataString(RequireText(
+            settings.AuthorizationRedirectUri,
+            $"{FakturaOptions.SectionName}:AuthorizationRedirectUri"))}");
+        parameters.Add($"state={Uri.EscapeDataString("/")}");
+        parameters.Add($"scope={Uri.EscapeDataString(RequireText(
+            settings.AuthorizationScope,
+            $"{FakturaOptions.SectionName}:AuthorizationScope"))}");
+
+        builder.Query = string.Join("&", parameters);
+        return builder.Uri;
+    }
+
+    private static bool IsExternalLoginCallback(HttpResponseMessage response)
+    {
+        var requestUri = response.RequestMessage?.RequestUri;
+        return requestUri is not null
+            && string.Equals(
+                requestUri.AbsolutePath,
+                "/account/externallogin",
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRedirect(HttpResponseMessage response) =>
+        response.StatusCode is HttpStatusCode.MovedPermanently
+            or HttpStatusCode.Found
+            or HttpStatusCode.SeeOther
+            or HttpStatusCode.TemporaryRedirect
+            or HttpStatusCode.PermanentRedirect;
+
+    private static HttpMethod GetRedirectMethod(
+        HttpStatusCode statusCode,
+        HttpMethod currentMethod)
+    {
+        if (statusCode is HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
+        {
+            if (currentMethod != HttpMethod.Get && currentMethod != HttpMethod.Head)
+            {
+                throw new IntegrationHttpException(
+                    "Faktura signature login returned an unsupported redirect method.",
+                    StatusCodes.Status502BadGateway);
+            }
+
+            return currentMethod;
+        }
+
+        return currentMethod == HttpMethod.Get || currentMethod == HttpMethod.Head
+            ? currentMethod
+            : HttpMethod.Get;
+    }
+
+    private static HashSet<string> GetAllowedHosts(FakturaOptions settings)
+    {
+        var hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AddHost(settings.BaseUrl, hosts);
+        AddHost(settings.AuthUrl, hosts);
+        AddHost(settings.SignatureAttachUrl, hosts);
+        AddHost(settings.SignatureLoginUrl, hosts);
+        AddHost(settings.AuthorizationUrl, hosts);
+        return hosts;
+    }
+
+    private static void AddHost(string value, ISet<string> hosts)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
+            hosts.Add(uri.Host);
+    }
+
+    private static void EnsureAllowedRedirect(Uri uri, ISet<string> allowedHosts)
+    {
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            || !allowedHosts.Contains(uri.Host))
+        {
+            throw new IntegrationHttpException(
+                "Faktura signature login returned a redirect outside the configured HTTPS provider hosts.",
+                StatusCodes.Status502BadGateway);
+        }
+    }
+
+    private static void CaptureCookies(
+        HttpResponseMessage response,
+        IDictionary<string, FakturaAuthCookie> cookies,
+        DateTimeOffset now)
+    {
+        if (!response.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
+            return;
+
+        foreach (var header in setCookieHeaders)
+        {
+            var segments = header.Split(';');
+            var separator = segments[0].IndexOf('=');
+            if (separator <= 0)
+                continue;
+
+            var name = segments[0][..separator].Trim();
+            var value = segments[0][(separator + 1)..].Trim();
+            if (!SupportedSessionCookieNames.Contains(name)
+                || string.IsNullOrWhiteSpace(value)
+                || value.Any(char.IsControl)
+                || value.Contains(';', StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            DateTimeOffset? expiresAt = null;
+            foreach (var attribute in segments.Skip(1))
+            {
+                var parts = attribute.Split('=', 2);
+                var attributeName = parts[0].Trim();
+                if (attributeName.Equals("expires", StringComparison.OrdinalIgnoreCase)
+                    && parts.Length == 2
+                    && DateTimeOffset.TryParse(
+                        parts[1].Trim(),
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.AllowWhiteSpaces,
+                        out var parsedExpiry))
+                {
+                    expiresAt = parsedExpiry;
+                }
+                else if (attributeName.Equals("max-age", StringComparison.OrdinalIgnoreCase)
+                    && parts.Length == 2
+                    && long.TryParse(
+                        parts[1].Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out var maxAgeSeconds))
+                {
+                    expiresAt = maxAgeSeconds <= 0
+                        ? now
+                        : now.AddSeconds(maxAgeSeconds);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(value)
+                || (expiresAt is not null && expiresAt <= now))
+            {
+                cookies.Remove(name);
+                continue;
+            }
+
+            cookies[name] = new FakturaAuthCookie(name, value, expiresAt);
+        }
+    }
+
+    private static bool HasUsableCookie(
+        IDictionary<string, FakturaAuthCookie> cookies,
+        string name,
+        DateTimeOffset now) =>
+        cookies.TryGetValue(name, out var cookie)
+        && !string.IsNullOrWhiteSpace(cookie.Value)
+        && (cookie.ExpiresAt is null || cookie.ExpiresAt > now);
+
+    private static void AddCookieHeader(
+        HttpRequestMessage request,
+        IDictionary<string, FakturaAuthCookie> cookies,
+        DateTimeOffset now)
+    {
+        var cookieHeader = string.Join(
+            "; ",
+            cookies.Values
+                .Where(cookie => cookie.ExpiresAt is null || cookie.ExpiresAt > now)
+                .Select(cookie => $"{cookie.Name}={cookie.Value}"));
+        if (!string.IsNullOrWhiteSpace(cookieHeader))
+            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
     }
 
     public async Task<EdoOutboxCreateDto> CreateFacturaAsync(
@@ -178,10 +535,28 @@ public sealed class FakturaEdoOperations(
             "IsInbox=true");
 
         var client = httpClientFactory.CreateClient(FakturaHttpClientNames.Client);
-        using var response = await client.GetAsync(
-            $"Api/Document/GetDocuments?{query}",
-            HttpCompletionOption.ResponseHeadersRead,
-            ct);
+        var session = await TryGetAuthSessionAsync(ct);
+        using var response = session is not null
+            ? await client.PostAsJsonAsync(
+                BuildSessionInboxUri(options.Value),
+                new
+                {
+                    Limit = request.PageSize,
+                    Skip = skip,
+                    IsInbox = true,
+                    IsSent = false,
+                    IsSign = false,
+                    Statuses = Array.Empty<string>()
+                },
+                new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = null
+                },
+                ct)
+            : await client.GetAsync(
+                $"Api/Document/GetDocuments?{query}",
+                HttpCompletionOption.ResponseHeadersRead,
+                ct);
         await EnsureSuccessAsync(response, "Faktura inbox list");
 
         using var json = await JsonDocument.ParseAsync(
@@ -274,21 +649,46 @@ public sealed class FakturaEdoOperations(
         CancellationToken ct = default)
     {
         var uniqueId = RequireText(providerDocumentId, nameof(providerDocumentId));
+        if (await TryGetAuthSessionAsync(ct) is null)
+        {
+            throw new IntegrationUnauthorizedException(
+                "Faktura PDF download requires an active E-IMZO session.");
+        }
+
         var client = httpClientFactory.CreateClient(FakturaHttpClientNames.Client);
         var response = await client.GetAsync(
-            $"Api/DownloadArchive/{Uri.EscapeDataString(uniqueId)}",
+            BuildSessionFileUri(options.Value, uniqueId),
             HttpCompletionOption.ResponseHeadersRead,
             ct);
 
         try
         {
-            await EnsureSuccessAsync(response, "Faktura ZIP download");
+            await EnsureSuccessAsync(response, "Faktura PDF download");
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+            if (!string.Equals(contentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IntegrationHttpException(
+                    "Faktura PDF response did not contain the documented application/pdf content type.",
+                    StatusCodes.Status502BadGateway);
+            }
+            var pdfContentType = contentType!;
+
+            if (!string.Equals(
+                    response.Content.Headers.ContentDisposition?.DispositionType,
+                    "attachment",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IntegrationHttpException(
+                    "Faktura PDF response did not contain the documented attachment disposition.",
+                    StatusCodes.Status502BadGateway);
+            }
+
             var stream = await response.Content.ReadAsStreamAsync(ct);
             return new EdoFileDto
             {
                 ProviderFileId = uniqueId,
                 FileName = "UNKNOWN",
-                ContentType = response.Content.Headers.ContentType?.MediaType ?? "UNKNOWN",
+                ContentType = pdfContentType,
                 Length = response.Content.Headers.ContentLength ?? -1,
                 Content = new EdoProviderResponseStream(stream, response, long.MaxValue)
             };
@@ -308,7 +708,76 @@ public sealed class FakturaEdoOperations(
     public Task<EdoDocumentStatusDto> GetInboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default) =>
-        GetStatusAsync(providerDocumentId, ct);
+        GetInboxStatusFromSessionAsync(providerDocumentId, ct);
+
+    private async Task<EdoDocumentStatusDto> GetInboxStatusFromSessionAsync(
+        string providerDocumentId,
+        CancellationToken ct)
+    {
+        var uniqueId = RequireText(providerDocumentId, nameof(providerDocumentId));
+        if (await TryGetAuthSessionAsync(ct) is null)
+        {
+            throw new IntegrationUnauthorizedException(
+                "Faktura inbox status requires an active E-IMZO session.");
+        }
+
+        var client = httpClientFactory.CreateClient(FakturaHttpClientNames.Client);
+        using var response = await client.PostAsJsonAsync(
+            BuildSessionInboxUri(options.Value),
+            new
+            {
+                Limit = 100,
+                Skip = 0,
+                IsInbox = true,
+                IsSent = false,
+                IsSign = false,
+                Statuses = Array.Empty<string>()
+            },
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = null
+            },
+            ct);
+        await EnsureSuccessAsync(response, "Faktura inbox status");
+
+        using var json = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct),
+            cancellationToken: ct);
+        if (!json.RootElement.TryGetProperty("documents", out var documents)
+            || documents.ValueKind != JsonValueKind.Array)
+        {
+            throw new IntegrationHttpException(
+                "Faktura inbox status response did not contain the documented documents array.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        var document = documents.EnumerateArray()
+            .FirstOrDefault(item => string.Equals(
+                ReadOptionalString(item, "uniqueId"),
+                uniqueId,
+                StringComparison.Ordinal));
+        if (document.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new IntegrationHttpException(
+                "Faktura inbox status response did not contain the requested document.",
+                StatusCodes.Status404NotFound);
+        }
+
+        if (!document.TryGetProperty("status", out var statusProperty)
+            || statusProperty.ValueKind is not (JsonValueKind.String or JsonValueKind.Number))
+        {
+            throw new IntegrationHttpException(
+                "Faktura inbox status item did not contain the documented status field.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        return new EdoDocumentStatusDto
+        {
+            Code = EdoDocumentStatusCode.UNKNOWN,
+            ProviderStatusCode = ReadProviderStatusCode(statusProperty),
+            CheckedAt = DateTimeOffset.UtcNow
+        };
+    }
 
     private async Task<EdoDocumentStatusDto> GetStatusAsync(
         string providerDocumentId,
@@ -708,28 +1177,138 @@ public sealed class FakturaEdoOperations(
         return RequireText(organization?.Inn, "Organization.Inn");
     }
 
+    private async Task<FakturaAuthSession?> TryGetAuthSessionAsync(CancellationToken ct)
+    {
+        if (userContext.Id is not int userId
+            || userContext.OrganizationId is not int organizationId)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await authSessionStore.GetAsync(
+                new FakturaAuthSessionScope(userId, organizationId, EdoProviderCode.FAKTURA),
+                ct);
+        }
+        catch (Exception ex) when (ex is IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static Uri BuildSessionInboxUri(FakturaOptions settings)
+    {
+        return BuildSessionAppUri(settings, "ru/document/getdocuments");
+    }
+
+    private static Uri BuildSessionFileUri(FakturaOptions settings, string providerDocumentId)
+    {
+        var endpoint = new UriBuilder(
+            BuildSessionAppUri(settings, "ru/document/downloaddocumentpdf"))
+        {
+            Query = $"uniqueid={Uri.EscapeDataString(providerDocumentId)}"
+        };
+        return endpoint.Uri;
+    }
+
+    private static Uri BuildSessionAppUri(FakturaOptions settings, string path)
+    {
+        var signatureAttachUri = new Uri(
+            RequireText(
+                settings.SignatureAttachUrl,
+                $"{FakturaOptions.SectionName}:SignatureAttachUrl"),
+            UriKind.Absolute);
+        if (!string.Equals(
+                signatureAttachUri.Scheme,
+                Uri.UriSchemeHttps,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"{FakturaOptions.SectionName}:SignatureAttachUrl must use HTTPS.");
+        }
+
+        return new Uri(
+            $"{signatureAttachUri.Scheme}://{signatureAttachUri.Authority}/{path.TrimStart('/')}",
+            UriKind.Absolute);
+    }
+
     private static EdoDocumentDto ParseInboxDocument(JsonElement item)
     {
-        if (!item.TryGetProperty("UniqueId", out var idProperty)
-            || idProperty.ValueKind != JsonValueKind.String
-            || string.IsNullOrWhiteSpace(idProperty.GetString()))
+        var providerDocumentId = ReadOptionalString(item, "uniqueId")
+            ?? ReadOptionalString(item, "UniqueId");
+        if (string.IsNullOrWhiteSpace(providerDocumentId))
         {
             throw new IntegrationHttpException(
-                "Faktura inbox item did not contain the documented UniqueId field.",
+                "Faktura inbox item did not contain the required uniqueId field.",
                 StatusCodes.Status502BadGateway);
         }
 
+        var providerStatus = ReadOptionalString(item, "status");
         return new EdoDocumentDto
         {
-            ProviderDocumentId = idProperty.GetString(),
+            ProviderDocumentId = providerDocumentId,
             Direction = EdoDirection.INBOX,
             DocumentType = "UNKNOWN",
+            TotalAmount = ReadOptionalDecimal(item, "totalPrice"),
+            CreatedAt = ReadOptionalDateTimeOffset(item, "createdDateTime"),
+            UpdatedAt = ReadOptionalDateTimeOffset(item, "updatedDateTime"),
             Status = new EdoDocumentStatusDto
             {
                 Code = EdoDocumentStatusCode.UNKNOWN,
+                ProviderStatusCode = providerStatus,
                 CheckedAt = DateTimeOffset.UtcNow
             }
         };
+    }
+
+    private static string? ReadOptionalString(JsonElement item, string propertyName)
+    {
+        if (!item.TryGetProperty(propertyName, out var property)
+            || property.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var value = property.GetString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static decimal? ReadOptionalDecimal(JsonElement item, string propertyName)
+    {
+        if (!item.TryGetProperty(propertyName, out var property))
+            return null;
+
+        if (property.ValueKind == JsonValueKind.Number
+            && property.TryGetDecimal(out var number))
+        {
+            return number;
+        }
+
+        return property.ValueKind == JsonValueKind.String
+            && decimal.TryParse(
+                property.GetString(),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var parsed)
+            ? parsed
+            : null;
+    }
+
+    private static DateTimeOffset? ReadOptionalDateTimeOffset(
+        JsonElement item,
+        string propertyName)
+    {
+        var value = ReadOptionalString(item, propertyName);
+        return DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind,
+            out var parsed)
+            ? parsed
+            : null;
     }
 
     private static string RequireText(string? value, string name) =>

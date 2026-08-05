@@ -89,6 +89,7 @@ public sealed class EdoDocumentDto
     public string? CurrencyCode { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
+    public IReadOnlyCollection<string> MarkingCodes { get; init; } = [];
 
     // Internal adapter mapping only; it is never serialized by WebAPI.
     [System.Text.Json.Serialization.JsonIgnore]

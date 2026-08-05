@@ -67,7 +67,11 @@ public class AuthService : IAuthService
             OrderBy = query.OrderBy,
             IgnoreQueryFilters = true
         };
-        query.AddIncludes(builder => builder.Include(user => user.State));
+        query.AddIncludes(builder =>
+        {
+            builder.Include(user => user.State);
+            builder.Include(user => user.UserKind);
+        });
 
         var user = await _userQuery.GetAsync(query, ct);
         if (user is null || user.State is null || user.StateId != StateIdConst.ACTIVE)

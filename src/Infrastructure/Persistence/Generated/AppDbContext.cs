@@ -380,6 +380,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SysUser> SysUsers { get; set; }
 
+    public virtual DbSet<SysUserKind> SysUserKinds { get; set; }
+
+    public virtual DbSet<SysUserKindTranslation> SysUserKindTranslations { get; set; }
+
     public virtual DbSet<SysUserOrganization> SysUserOrganizations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -3575,6 +3579,14 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("(code IS NOT NULL)");
 
+            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "ux_sys_role_organization_code")
+                .IsUnique()
+                .HasFilter("(is_system = false)");
+
+            entity.HasIndex(e => e.Code, "ux_sys_role_system_code")
+                .IsUnique()
+                .HasFilter("(is_system = true)");
+
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.SysRoles).HasConstraintName("sys_role_organization_id_fkey");
@@ -3622,12 +3634,9 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.TenantId).HasDefaultValue(1);
+            entity.Property(e => e.UserKindId).HasDefaultValue((short)3);
 
             entity.HasOne(d => d.Language).WithMany(p => p.SysUsers).HasConstraintName("sys_user_language_id_fkey");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.SysUsers)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("sys_user_role_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.SysUsers)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -3636,6 +3645,26 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Tenant).WithMany(p => p.SysUsers)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("sys_user_tenant_id_fkey");
+
+            entity.HasOne(d => d.UserKind).WithMany(p => p.SysUsers)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("sys_user_user_kind_id_fkey");
+        });
+
+        modelBuilder.Entity<SysUserKind>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sys_user_kind_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<SysUserKindTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.UserKindId, e.LanguageId }).HasName("sys_user_kind_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.SysUserKindTranslations).HasConstraintName("sys_user_kind_translation_language_id_fkey");
+
+            entity.HasOne(d => d.UserKind).WithMany(p => p.SysUserKindTranslations).HasConstraintName("sys_user_kind_translation_user_kind_id_fkey");
         });
 
         modelBuilder.Entity<SysUserOrganization>(entity =>

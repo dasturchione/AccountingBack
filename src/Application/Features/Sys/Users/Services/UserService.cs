@@ -16,7 +16,7 @@ public class UserService : BaseService, IUserService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
-    private readonly IQueryRepository<UserOrganization> _userOrgQuery;
+    private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
     private readonly IUserManagementCore _userManagementCore;
 
     public UserService(
@@ -24,7 +24,7 @@ public class UserService : BaseService, IUserService
         IQueryBuilder queryBuilder,
         IQueryRepository<User> userQuery,
         ICommandRepository<User> userCommand,
-        IQueryRepository<UserOrganization> userOrgQuery,
+        IQueryRepository<UserOrganization> userOrganizationQuery,
         IUserManagementCore userManagementCore,
         ILogger<UserService> logger,
         IUnitOfWork unitOfWork)
@@ -34,7 +34,7 @@ public class UserService : BaseService, IUserService
         _queryBuilder = queryBuilder;
         _userQuery = userQuery;
         _userCommand = userCommand;
-        _userOrgQuery = userOrgQuery;
+        _userOrganizationQuery = userOrganizationQuery;
         _userManagementCore = userManagementCore;
     }
 
@@ -44,21 +44,16 @@ public class UserService : BaseService, IUserService
             return Result.Failure<int>(CommonErrors.UserHasNoTenant(_userContext.LanguageId));
 
         UserWelcomeEmailMessage? welcomeEmail = null;
-
         var result = await ExecuteInTransactionAsync(nameof(CreateAsync), async () =>
         {
-            var user = MapCreateRequest(dto, _userContext.TenantId!.Value);
-
             var coreResult = await _userManagementCore.CreateUserAsync(
-                user,
+                MapCreateRequest(dto, _userContext.TenantId.Value),
                 UserManagementOptions.ForOrganization(sendWelcomeEmail: true),
                 ct);
-
             if (!coreResult.IsSuccess)
                 return Result.Failure<int>(coreResult.Error);
 
             welcomeEmail = coreResult.Value.WelcomeEmail;
-
             return coreResult.Value.UserId;
         }, ct);
 
@@ -71,13 +66,12 @@ public class UserService : BaseService, IUserService
     public Task<Result> DeleteAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<User>().Where(x => x.Id == id).Build();
+            var query = _queryBuilder.For<User>().Where(user => user.Id == id).Build();
             var entity = await _userQuery.GetAsync(query, ct);
-            if (entity == null)
+            if (entity is null)
                 return Result.Failure(UserErrors.NotFound(id, _userContext.LanguageId));
 
             entity.StateId = StateIdConst.PASSIVE;
-
             await _userCommand.UpdateAsync(entity, ct);
             return Result.Success();
         });
@@ -93,30 +87,29 @@ public class UserService : BaseService, IUserService
     public Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<User>().Where(x => id == x.Id).As<UserDto>().Build();
+            var query = _queryBuilder.For<User>().Where(user => user.Id == id).As<UserDto>().Build();
             var entity = await _userQuery.GetAsync(query, ct);
-            if (entity == null)
+            if (entity is null)
                 return Result.Failure<UserDto>(UserErrors.NotFound(id, _userContext.LanguageId));
 
-            var orgSpec = new QuerySpecification<UserOrganization, UserOrganizationItemDto>
+            var organizationSpec = new QuerySpecification<UserOrganization, UserOrganizationItemDto>
             {
-                Criteria = uo => uo.UserId == id && uo.StateId == StateIdConst.ACTIVE,
-                Selector = uo => new UserOrganizationItemDto
+                Criteria = membership => membership.UserId == id && membership.StateId == StateIdConst.ACTIVE,
+                Selector = membership => new UserOrganizationItemDto
                 {
-                    OrganizationId = uo.OrganizationId,
-                    OrganizationName = uo.Organization.ShortName,
-                    RoleId = uo.RoleId,
-                    RoleName = uo.Role != null ? uo.Role.FullName : null,
-                    IsDefault = uo.IsDefault,
-                    IsOwner = uo.IsOwner,
-                    JoinedAt = uo.JoinedAt,
-                    InvitedByUserId = uo.InvitedByUserId,
-                    LastAccessAt = uo.LastAccessAt,
-                    BlockedAt = uo.BlockedAt
+                    OrganizationId = membership.OrganizationId,
+                    OrganizationName = membership.Organization.ShortName,
+                    RoleId = membership.RoleId,
+                    RoleName = membership.Role != null ? membership.Role.FullName : null,
+                    IsDefault = membership.IsDefault,
+                    IsOwner = membership.IsOwner,
+                    JoinedAt = membership.JoinedAt,
+                    InvitedByUserId = membership.InvitedByUserId,
+                    LastAccessAt = membership.LastAccessAt,
+                    BlockedAt = membership.BlockedAt
                 }
             };
-            entity.Organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
-
+            entity.Organizations = await _userOrganizationQuery.GetAllAsync(organizationSpec, ct);
             return entity;
         });
 
@@ -131,43 +124,42 @@ public class UserService : BaseService, IUserService
         new()
         {
             TenantId = tenantId,
+            UserKindId = UserKindIdConst.TenantUser,
             UserName = dto.UserName,
             Password = dto.Password,
             PhoneNumber = dto.PhoneNumber,
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            RoleId = dto.RoleId,
             EmailVerified = dto.EmailVerified,
-            IsPlatformAdmin = dto.IsPlatformAdmin,
             Timezone = dto.Timezone,
-            Organizations = dto.Organizations
-                .Select(orgId => new UserManagementMembershipRequest
-                {
-                    OrganizationId = orgId
-                })
-                .ToList()
+            Organizations = MapMemberships(dto.Organizations)
         };
 
     private static UserManagementUpdateRequest MapUpdateRequest(int id, UserUpdateDto dto) =>
         new()
         {
             UserId = id,
+            UserKindId = UserKindIdConst.TenantUser,
             UserName = dto.UserName,
             PhoneNumber = dto.PhoneNumber,
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            RoleId = dto.RoleId,
             EmailVerified = dto.EmailVerified,
-            IsPlatformAdmin = dto.IsPlatformAdmin,
             Timezone = dto.Timezone,
             StateId = dto.StateId,
-            Organizations = dto.Organizations
-                .Select(orgId => new UserManagementMembershipRequest
-                {
-                    OrganizationId = orgId
-                })
-                .ToList()
+            Organizations = MapMemberships(dto.Organizations)
         };
+
+    private static List<UserManagementMembershipRequest> MapMemberships(
+        IEnumerable<UserOrganizationRequestDto> organizations) =>
+        organizations.Select(organization => new UserManagementMembershipRequest
+        {
+            OrganizationId = organization.OrganizationId,
+            RoleId = organization.RoleId,
+            IsDefault = organization.IsDefault,
+            IsOwner = organization.IsOwner,
+            InvitedByUserId = organization.InvitedByUserId
+        }).ToList();
 }

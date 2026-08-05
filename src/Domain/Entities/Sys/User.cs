@@ -38,11 +38,11 @@ public partial class User
     [StringLength(100)]
     public string LastName { get; set; } = null!;
 
-    [Column("role_id")]
-    public int RoleId { get; set; }
-
     [Column("tenant_id")]
     public int TenantId { get; set; }
+
+    [Column("user_kind_id")]
+    public short UserKindId { get; set; }
 
     [Column("last_access_time", TypeName = "timestamp without time zone")]
     public DateTime? LastAccessTime { get; set; }
@@ -66,9 +66,6 @@ public partial class User
     [StringLength(64)]
     public string? LastLoginIp { get; set; }
 
-    [Column("is_platform_admin")]
-    public bool IsPlatformAdmin { get; set; }
-
     [Column("timezone")]
     [StringLength(100)]
     public string? Timezone { get; set; }
@@ -87,15 +84,11 @@ public partial class User
     [InverseProperty(nameof(PlatformTenant.Users))]
     public virtual PlatformTenant PlatformTenant { get; set; } = null!;
 
-    [ForeignKey("RoleId")]
-    [InverseProperty("Users")]
-    public virtual Role Role { get; set; } = null!;
-
-    [ForeignKey("StateId")]
-    [InverseProperty("Users")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.Users))]
     public virtual State State { get; set; } = null!;
 
-    [InverseProperty("User")]
+    [InverseProperty(nameof(UserOrganization.User))]
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 
     [InverseProperty(nameof(SaleShipmentDoc.AcceptedUser))]
@@ -115,4 +108,7 @@ public partial class User
 
     [InverseProperty(nameof(SaleShipmentDoc.SubmittedUser))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocSubmittedUsers { get; set; } = new List<SaleShipmentDoc>();
+
+    [InverseProperty(nameof(UserKind.Users))]
+    public virtual UserKind UserKind { get; set; } = null!;
 }

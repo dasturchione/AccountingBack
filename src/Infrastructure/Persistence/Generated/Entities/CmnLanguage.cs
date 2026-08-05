@@ -98,5 +98,8 @@ public partial class CmnLanguage
     public virtual CmnState State { get; set; } = null!;
 
     [InverseProperty("Language")]
+    public virtual ICollection<SysUserKindTranslation> SysUserKindTranslations { get; set; } = new List<SysUserKindTranslation>();
+
+    [InverseProperty("Language")]
     public virtual ICollection<SysUser> SysUsers { get; set; } = new List<SysUser>();
 }

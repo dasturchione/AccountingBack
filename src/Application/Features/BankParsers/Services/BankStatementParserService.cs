@@ -32,18 +32,48 @@ public partial class BankStatementParserService : IBankStatementParserService
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
     }
 
-    public async Task<Result<BankExportDto>> ParseAsync(Stream stream, CancellationToken ct = default)
+    public async Task<Result<BankExportDto>> ParseAsync(
+        Stream stream,
+        BankStatementBankType bankType,
+        CancellationToken ct = default)
     {
-        var parsedResult = await ParseExcelAsync(stream, ct);
+        var parsedResult = await ParseExcelAsync(stream, bankType, ct);
         if (!parsedResult.IsSuccess)
             return Result.Failure<BankExportDto>(parsedResult.Error);
 
         return await EnrichAsync(parsedResult.Value, ct);
     }
 
-    public async Task<Result<BankExportDto>> ParseExcelAsync(Stream stream, CancellationToken ct = default)
+    public Task<Result<BankExportDto>> ParseExcelAsync(
+        Stream stream,
+        BankStatementBankType bankType,
+        CancellationToken ct = default)
     {
+        if (!Enum.IsDefined(typeof(BankStatementBankType), bankType))
+        {
+            return Task.FromResult(Result.Failure<BankExportDto>(
+                BankStatementParserErrors.InvalidBankType(_userContext.LanguageId)));
+        }
+
         using var workbook = new XLWorkbook(stream);
+        var export = bankType switch
+        {
+            BankStatementBankType.Trastbank => ParseTrastbankWorkbook(workbook),
+            BankStatementBankType.Uzsanoatqurilishbank => ParseUzsanoatqurilishbankWorkbook(workbook),
+            _ => new BankExportDto()
+        };
+
+        if (export.Accounts.Count == 0)
+        {
+            return Task.FromResult(Result.Failure<BankExportDto>(
+                BankStatementParserErrors.StatementNotFound(bankType, _userContext.LanguageId)));
+        }
+
+        return Task.FromResult(Result.Success(export));
+    }
+
+    private static BankExportDto ParseTrastbankWorkbook(XLWorkbook workbook)
+    {
         var export = new BankExportDto();
 
         foreach (var worksheet in workbook.Worksheets)
@@ -52,17 +82,16 @@ public partial class BankStatementParserService : IBankStatementParserService
 
             for (var row = 1; row <= lastRow - 4; row++)
             {
-                if (!IsBankHeaderRow(worksheet, row))
+                if (!IsTrastbankHeaderRow(worksheet, row))
                     continue;
 
-                var statement = ParseAccountStatement(worksheet, row, lastRow);
+                var statement = ParseTrastbankAccountStatement(worksheet, row, lastRow);
                 export.Accounts.Add(statement);
             }
         }
 
-        return Result.Success(export);
+        return export;
     }
-
     public async Task<Result<BankExportDto>> EnrichAsync(BankExportDto export, CancellationToken ct = default)
     {
         await EnrichWithDatabaseIdsAsync(export, ct);
@@ -135,7 +164,9 @@ public partial class BankStatementParserService : IBankStatementParserService
                 Id = x.Id,
                 AccountNumber = x.AccountNumber,
                 BankId = x.BankId,
-                BankInn = x.Bank.Inn
+                BankInn = x.Bank.Inn,
+                BankMfo = x.Bank.Mfo,
+                BankName = x.Bank.Name
             }
         };
 
@@ -154,6 +185,12 @@ public partial class BankStatementParserService : IBankStatementParserService
 
                 if (string.IsNullOrWhiteSpace(account.BankInn) && !string.IsNullOrWhiteSpace(match.BankInn))
                     account.BankInn = match.BankInn;
+
+                if (string.IsNullOrWhiteSpace(account.BankMfo) && !string.IsNullOrWhiteSpace(match.BankMfo))
+                    account.BankMfo = match.BankMfo;
+
+                if (string.IsNullOrWhiteSpace(account.BankName) && !string.IsNullOrWhiteSpace(match.BankName))
+                    account.BankName = match.BankName;
             }
         }
     }
@@ -238,7 +275,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         }
     }
 
-    private static AccountStatementDto ParseAccountStatement(IXLWorksheet worksheet, int bankRow, int lastRow)
+    private static AccountStatementDto ParseTrastbankAccountStatement(IXLWorksheet worksheet, int bankRow, int lastRow)
     {
         var periodRow = bankRow + 1;
         var accountRow = bankRow + 2;
@@ -311,7 +348,7 @@ public partial class BankStatementParserService : IBankStatementParserService
         return statement;
     }
 
-    private static bool IsBankHeaderRow(IXLWorksheet worksheet, int row)
+    private static bool IsTrastbankHeaderRow(IXLWorksheet worksheet, int row)
     {
         var current = GetText(worksheet, row, 1);
         var period = GetText(worksheet, row + 1, 1);
@@ -434,6 +471,8 @@ public partial class BankStatementParserService : IBankStatementParserService
         public string AccountNumber { get; set; } = "";
         public int BankId { get; set; }
         public string? BankInn { get; set; }
+        public string? BankMfo { get; set; }
+        public string? BankName { get; set; }
     }
 
     private sealed class CounterpartyMatch

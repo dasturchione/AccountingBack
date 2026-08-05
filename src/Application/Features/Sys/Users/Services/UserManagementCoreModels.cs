@@ -43,11 +43,10 @@ public sealed class UserManagementCreateRequest
     public string? Email { get; init; }
     public string FirstName { get; init; } = null!;
     public string LastName { get; init; } = null!;
-    public int RoleId { get; init; }
     public int TenantId { get; init; }
+    public short UserKindId { get; init; }
     public short? LanguageId { get; init; }
     public bool EmailVerified { get; init; }
-    public bool IsPlatformAdmin { get; init; }
     public string? Timezone { get; init; }
     public List<UserManagementMembershipRequest> Organizations { get; init; } = [];
 }
@@ -60,10 +59,9 @@ public sealed class UserManagementUpdateRequest
     public string? Email { get; init; }
     public string FirstName { get; init; } = null!;
     public string LastName { get; init; } = null!;
-    public int RoleId { get; init; }
+    public short UserKindId { get; init; }
     public short? LanguageId { get; init; }
     public bool EmailVerified { get; init; }
-    public bool IsPlatformAdmin { get; init; }
     public string? Timezone { get; init; }
     public short StateId { get; init; }
     public List<UserManagementMembershipRequest>? Organizations { get; init; }

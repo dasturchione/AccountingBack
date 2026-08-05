@@ -1,5 +1,5 @@
 using Domain.Entities;
-﻿
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -7,28 +7,25 @@ namespace Application.Features.Users;
 
 public class UserDtoProjection : IProjectionBuilder<User, UserDto>
 {
-    public Expression<Func<User, UserDto>> Build()
-    {
-        return x => new UserDto
+    public Expression<Func<User, UserDto>> Build() =>
+        user => new UserDto
         {
-            Id = x.Id,
-            UserName = x.UserName,
-            PhoneNumber = x.PhoneNumber,
-            Email = x.Email,
-            FirstName = x.FirstName,
-            LastName = x.LastName,
-            RoleId = x.RoleId,
-            EmailVerified = x.EmailVerified,
-            EmailVerifiedAt = x.EmailVerifiedAt,
-            LastLoginIp = x.LastLoginIp,
-            IsPlatformAdmin = x.IsPlatformAdmin,
-            Timezone = x.Timezone,
-            LastAccessTime = x.LastAccessTime,
-            StateId = x.StateId,
-            CreatedDate = x.CreatedDate,
-            RoleName = x.Role.FullName,
-            HasGlobalAccess = x.Role.HasGlobalAccess,
-            StateName = x.State.FullName
+            Id = user.Id,
+            UserName = user.UserName,
+            PhoneNumber = user.PhoneNumber,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            TenantId = user.TenantId,
+            UserKindId = user.UserKindId,
+            EmailVerified = user.EmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
+            LastLoginIp = user.LastLoginIp,
+            Timezone = user.Timezone,
+            LastAccessTime = user.LastAccessTime,
+            StateId = user.StateId,
+            CreatedDate = user.CreatedDate,
+            HasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin,
+            StateName = user.State.FullName
         };
-    }
 }

@@ -20,6 +20,7 @@ public sealed class UserManagementCore : IUserManagementCore
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
     private readonly ICommandRepository<UserOrganization> _userOrganizationCommand;
     private readonly IQueryRepository<Role> _roleQuery;
+    private readonly IQueryRepository<UserKind> _userKindQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<UserManagementCore> _logger;
@@ -32,6 +33,7 @@ public sealed class UserManagementCore : IUserManagementCore
         IQueryRepository<UserOrganization> userOrganizationQuery,
         ICommandRepository<UserOrganization> userOrganizationCommand,
         IQueryRepository<Role> roleQuery,
+        IQueryRepository<UserKind> userKindQuery,
         IQueryRepository<Organization> organizationQuery,
         IEmailSender emailSender,
         ILogger<UserManagementCore> logger)
@@ -43,6 +45,7 @@ public sealed class UserManagementCore : IUserManagementCore
         _userOrganizationQuery = userOrganizationQuery;
         _userOrganizationCommand = userOrganizationCommand;
         _roleQuery = roleQuery;
+        _userKindQuery = userKindQuery;
         _organizationQuery = organizationQuery;
         _emailSender = emailSender;
         _logger = logger;
@@ -57,26 +60,18 @@ public sealed class UserManagementCore : IUserManagementCore
             return Result.Failure<UserManagementCreateResult>(PlatformErrors.GlobalAccessRequired());
 
         var prepared = PrepareCreateRequest(request, options.Scope);
-        var exists = await _userQuery.AnyAsync(x => x.UserName == prepared.UserName, ct);
+        var exists = await _userQuery.AnyAsync(user => user.UserName == prepared.UserName, ct);
         if (exists)
             return Result.Failure<UserManagementCreateResult>(ResolveUserNameConflict(prepared.UserName, options.Scope));
 
-        List<UserManagementMembershipRequest> memberships;
-        if (options.Scope == UserManagementScope.Global)
-        {
-            var roleValidation = await ValidateGlobalRoleAsync(prepared.RoleId, ct);
-            if (roleValidation is not null)
-                return Result.Failure<UserManagementCreateResult>(roleValidation);
+        var userKindValidation = await ValidateUserKindAsync(prepared.UserKindId, ct);
+        if (userKindValidation is not null)
+            return Result.Failure<UserManagementCreateResult>(userKindValidation);
 
-            memberships = NormalizeGlobalMemberships(prepared.Organizations);
-            var membershipValidation = await ValidateGlobalMembershipsAsync(memberships, ct);
-            if (membershipValidation is not null)
-                return Result.Failure<UserManagementCreateResult>(membershipValidation);
-        }
-        else
-        {
-            memberships = DistinctOrganizationMemberships(prepared.Organizations);
-        }
+        var memberships = NormalizeMemberships(prepared.Organizations);
+        var membershipValidation = await ValidateMembershipsAsync(memberships, ct);
+        if (membershipValidation is not null)
+            return Result.Failure<UserManagementCreateResult>(membershipValidation);
 
         var now = DateTime.Now;
         var salt = _passwordHasher.GenerateSalt();
@@ -87,12 +82,11 @@ public sealed class UserManagementCore : IUserManagementCore
             Email = prepared.Email,
             FirstName = prepared.FirstName,
             LastName = prepared.LastName,
-            RoleId = prepared.RoleId,
-            TenantId = request.TenantId,
+            TenantId = prepared.TenantId,
+            UserKindId = prepared.UserKindId,
             LanguageId = options.Scope == UserManagementScope.Global ? prepared.LanguageId : null,
             EmailVerified = prepared.EmailVerified,
             EmailVerifiedAt = options.Scope == UserManagementScope.Global && prepared.EmailVerified ? now : null,
-            IsPlatformAdmin = prepared.IsPlatformAdmin,
             Timezone = prepared.Timezone,
             PasswordSalt = salt,
             PasswordHash = _passwordHasher.Hash(prepared.Password, salt),
@@ -101,11 +95,7 @@ public sealed class UserManagementCore : IUserManagementCore
         };
 
         await _userCommand.CreateAsync(user, ct);
-
-        if (options.Scope == UserManagementScope.Global)
-            await SyncGlobalMembershipsAsync(user.Id, memberships, replaceExisting: false, ct);
-        else
-            await CreateOrganizationMembershipsAsync(user.Id, memberships, includeJoinedAt: true, ct);
+        await CreateOrganizationMembershipsAsync(user.Id, memberships, includeJoinedAt: true, ct);
 
         return Result.Success(new UserManagementCreateResult
         {
@@ -130,14 +120,14 @@ public sealed class UserManagementCore : IUserManagementCore
         if (options.Scope == UserManagementScope.Global && !_userContext.HasGlobalAccess)
             return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
-        var user = await _userQuery.GetAsync(new QuerySpecification<User> { Criteria = x => x.Id == request.UserId }, ct);
+        var user = await _userQuery.GetAsync(new QuerySpecification<User> { Criteria = item => item.Id == request.UserId }, ct);
         if (user is null)
             return Result.Failure(ResolveUserNotFound(request.UserId, options.Scope));
 
         var prepared = PrepareUpdateRequest(request, options.Scope);
         if (ShouldCheckUserNameConflict(user.UserName, prepared.UserName, options.Scope))
         {
-            var exists = await _userQuery.AnyAsync(x => x.Id != request.UserId && x.UserName == prepared.UserName, ct);
+            var exists = await _userQuery.AnyAsync(item => item.Id != request.UserId && item.UserName == prepared.UserName, ct);
             if (exists)
                 return Result.Failure(ResolveUserNameConflict(prepared.UserName, options.Scope));
         }
@@ -145,21 +135,24 @@ public sealed class UserManagementCore : IUserManagementCore
         List<UserManagementMembershipRequest>? memberships = null;
         if (options.Scope == UserManagementScope.Global)
         {
-            var roleValidation = await ValidateGlobalRoleAsync(prepared.RoleId, ct);
-            if (roleValidation is not null)
-                return Result.Failure(roleValidation);
+            var userKindValidation = await ValidateUserKindAsync(prepared.UserKindId, ct);
+            if (userKindValidation is not null)
+                return Result.Failure(userKindValidation);
 
             if (prepared.Organizations is not null)
             {
-                memberships = NormalizeGlobalMemberships(prepared.Organizations);
-                var membershipValidation = await ValidateGlobalMembershipsAsync(memberships, ct);
+                memberships = NormalizeMemberships(prepared.Organizations);
+                var membershipValidation = await ValidateMembershipsAsync(memberships, ct);
                 if (membershipValidation is not null)
                     return Result.Failure(membershipValidation);
             }
         }
         else
         {
-            memberships = DistinctOrganizationMemberships(prepared.Organizations ?? []);
+            memberships = NormalizeMemberships(prepared.Organizations ?? []);
+            var membershipValidation = await ValidateMembershipsAsync(memberships, ct);
+            if (membershipValidation is not null)
+                return Result.Failure(membershipValidation);
         }
 
         var now = DateTime.Now;
@@ -168,14 +161,13 @@ public sealed class UserManagementCore : IUserManagementCore
         user.Email = prepared.Email;
         user.FirstName = prepared.FirstName;
         user.LastName = prepared.LastName;
-        user.RoleId = prepared.RoleId;
         user.EmailVerified = prepared.EmailVerified;
-        user.IsPlatformAdmin = prepared.IsPlatformAdmin;
         user.Timezone = prepared.Timezone;
         user.StateId = prepared.StateId;
 
         if (options.Scope == UserManagementScope.Global)
         {
+            user.UserKindId = prepared.UserKindId;
             user.LanguageId = prepared.LanguageId;
             user.EmailVerifiedAt = prepared.EmailVerified ? user.EmailVerifiedAt ?? now : null;
         }
@@ -185,11 +177,11 @@ public sealed class UserManagementCore : IUserManagementCore
         if (options.Scope == UserManagementScope.Global)
         {
             if (memberships is not null)
-                await SyncGlobalMembershipsAsync(user.Id, memberships, replaceExisting: true, ct);
+                await SyncMembershipsAsync(user.Id, memberships, replaceExisting: true, ct);
         }
         else
         {
-            await _userOrganizationCommand.DeleteAsync(x => x.UserId == user.Id, ct);
+            await _userOrganizationCommand.DeleteAsync(membership => membership.UserId == user.Id, ct);
             await CreateOrganizationMembershipsAsync(user.Id, memberships ?? [], includeJoinedAt: false, ct);
         }
 
@@ -219,30 +211,36 @@ public sealed class UserManagementCore : IUserManagementCore
         }
     }
 
-    private async Task<Error?> ValidateGlobalRoleAsync(int roleId, CancellationToken ct)
+    private async Task<Error?> ValidateUserKindAsync(short userKindId, CancellationToken ct)
     {
-        var exists = await _roleQuery.AnyAsync(x => x.Id == roleId && x.StateId == StateIdConst.ACTIVE, ct);
+        var exists = await _userKindQuery.AnyAsync(kind => kind.Id == userKindId, ct);
+        return exists ? null : PlatformErrors.UserKindNotFound(userKindId);
+    }
+
+    private async Task<Error?> ValidateRoleAsync(int roleId, CancellationToken ct)
+    {
+        var exists = await _roleQuery.AnyAsync(role => role.Id == roleId && role.StateId == StateIdConst.ACTIVE, ct);
         return exists ? null : PlatformErrors.RoleNotFound(roleId);
     }
 
-    private async Task<Error?> ValidateGlobalMembershipsAsync(List<UserManagementMembershipRequest> memberships, CancellationToken ct)
+    private async Task<Error?> ValidateMembershipsAsync(List<UserManagementMembershipRequest> memberships, CancellationToken ct)
     {
         foreach (var membership in memberships)
         {
-            var organizationExists = await _organizationQuery.AnyAsync(x => x.Id == membership.OrganizationId, ct);
+            var organizationExists = await _organizationQuery.AnyAsync(organization => organization.Id == membership.OrganizationId, ct);
             if (!organizationExists)
                 return PlatformErrors.OrganizationNotFound(membership.OrganizationId);
 
             if (membership.RoleId.HasValue)
             {
-                var roleValidation = await ValidateGlobalRoleAsync(membership.RoleId.Value, ct);
+                var roleValidation = await ValidateRoleAsync(membership.RoleId.Value, ct);
                 if (roleValidation is not null)
                     return roleValidation;
             }
 
             if (membership.InvitedByUserId.HasValue)
             {
-                var userExists = await _userQuery.AnyAsync(x => x.Id == membership.InvitedByUserId.Value, ct);
+                var userExists = await _userQuery.AnyAsync(user => user.Id == membership.InvitedByUserId.Value, ct);
                 if (!userExists)
                     return PlatformErrors.UserNotFound(membership.InvitedByUserId.Value);
             }
@@ -261,22 +259,23 @@ public sealed class UserManagementCore : IUserManagementCore
             return;
 
         var now = DateTime.Now;
-        var entities = memberships
-            .Select((membership, index) => new UserOrganization
+        var entities = memberships.Select(membership =>
+        {
+            var entity = new UserOrganization
             {
                 UserId = userId,
                 OrganizationId = membership.OrganizationId,
-                IsDefault = index == 0,
-                StateId = StateIdConst.ACTIVE,
                 CreatedDate = now,
                 JoinedAt = includeJoinedAt ? now : default
-            })
-            .ToList();
+            };
+            ApplyMembership(entity, membership, now);
+            return entity;
+        }).ToList();
 
         await _userOrganizationCommand.CreateAsync(entities, ct);
     }
 
-    private async Task SyncGlobalMembershipsAsync(
+    private async Task SyncMembershipsAsync(
         int userId,
         List<UserManagementMembershipRequest> memberships,
         bool replaceExisting,
@@ -285,16 +284,16 @@ public sealed class UserManagementCore : IUserManagementCore
         var now = DateTime.Now;
         var existing = await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization>
         {
-            Criteria = x => x.UserId == userId
+            Criteria = membership => membership.UserId == userId
         }, ct);
 
-        var requestedOrganizationIds = memberships.Select(x => x.OrganizationId).ToHashSet();
+        var requestedOrganizationIds = memberships.Select(membership => membership.OrganizationId).ToHashSet();
         var toUpdate = new List<UserOrganization>();
         var toCreate = new List<UserOrganization>();
 
         if (replaceExisting)
         {
-            foreach (var membership in existing.Where(x => !requestedOrganizationIds.Contains(x.OrganizationId)))
+            foreach (var membership in existing.Where(item => !requestedOrganizationIds.Contains(item.OrganizationId)))
             {
                 membership.IsDefault = false;
                 membership.StateId = StateIdConst.PASSIVE;
@@ -303,24 +302,24 @@ public sealed class UserManagementCore : IUserManagementCore
             }
         }
 
-        foreach (var dto in memberships)
+        foreach (var request in memberships)
         {
-            var membership = existing.FirstOrDefault(x => x.OrganizationId == dto.OrganizationId);
+            var membership = existing.FirstOrDefault(item => item.OrganizationId == request.OrganizationId);
             if (membership is null)
             {
                 membership = new UserOrganization
                 {
                     UserId = userId,
-                    OrganizationId = dto.OrganizationId,
+                    OrganizationId = request.OrganizationId,
                     CreatedDate = now,
                     JoinedAt = now
                 };
-                ApplyGlobalMembership(membership, dto, now);
+                ApplyMembership(membership, request, now);
                 toCreate.Add(membership);
             }
             else
             {
-                ApplyGlobalMembership(membership, dto, now);
+                ApplyMembership(membership, request, now);
                 toUpdate.Add(membership);
             }
         }
@@ -332,7 +331,7 @@ public sealed class UserManagementCore : IUserManagementCore
             await _userOrganizationCommand.UpdateAsync(toUpdate, ct);
     }
 
-    private static void ApplyGlobalMembership(UserOrganization membership, UserManagementMembershipRequest request, DateTime now)
+    private static void ApplyMembership(UserOrganization membership, UserManagementMembershipRequest request, DateTime now)
     {
         membership.RoleId = request.RoleId;
         membership.IsDefault = request.IsDefault;
@@ -354,10 +353,10 @@ public sealed class UserManagementCore : IUserManagementCore
                 Email = request.Email,
                 FirstName = request.FirstName.Trim(),
                 LastName = request.LastName.Trim(),
-                RoleId = request.RoleId,
+                TenantId = request.TenantId,
+                UserKindId = request.UserKindId,
                 LanguageId = request.LanguageId,
                 EmailVerified = request.EmailVerified,
-                IsPlatformAdmin = request.IsPlatformAdmin,
                 Timezone = request.Timezone,
                 Organizations = request.Organizations
             }
@@ -373,10 +372,9 @@ public sealed class UserManagementCore : IUserManagementCore
                 Email = request.Email,
                 FirstName = request.FirstName.Trim(),
                 LastName = request.LastName.Trim(),
-                RoleId = request.RoleId,
+                UserKindId = request.UserKindId,
                 LanguageId = request.LanguageId,
                 EmailVerified = request.EmailVerified,
-                IsPlatformAdmin = request.IsPlatformAdmin,
                 Timezone = request.Timezone,
                 StateId = request.StateId,
                 Organizations = request.Organizations
@@ -388,30 +386,19 @@ public sealed class UserManagementCore : IUserManagementCore
             ? !string.Equals(currentUserName, requestedUserName, StringComparison.OrdinalIgnoreCase)
             : currentUserName != requestedUserName;
 
-    private static List<UserManagementMembershipRequest> DistinctOrganizationMemberships(IEnumerable<UserManagementMembershipRequest> memberships) =>
-        memberships
-            .Where(x => x.OrganizationId > 0)
-            .GroupBy(x => x.OrganizationId)
-            .Select(x => x.First())
-            .Select(x => new UserManagementMembershipRequest
-            {
-                OrganizationId = x.OrganizationId
-            })
-            .ToList();
-
-    private static List<UserManagementMembershipRequest> NormalizeGlobalMemberships(IEnumerable<UserManagementMembershipRequest> memberships)
+    private static List<UserManagementMembershipRequest> NormalizeMemberships(IEnumerable<UserManagementMembershipRequest> memberships)
     {
         var normalized = memberships
-            .Where(x => x.OrganizationId > 0)
-            .GroupBy(x => x.OrganizationId)
-            .Select(x => x.First())
-            .Select(x => new UserManagementMembershipRequest
+            .Where(membership => membership.OrganizationId > 0)
+            .GroupBy(membership => membership.OrganizationId)
+            .Select(group => group.First())
+            .Select(membership => new UserManagementMembershipRequest
             {
-                OrganizationId = x.OrganizationId,
-                RoleId = x.RoleId,
-                IsDefault = x.IsDefault,
-                IsOwner = x.IsOwner,
-                InvitedByUserId = x.InvitedByUserId
+                OrganizationId = membership.OrganizationId,
+                RoleId = membership.RoleId,
+                IsDefault = membership.IsDefault,
+                IsOwner = membership.IsOwner,
+                InvitedByUserId = membership.InvitedByUserId
             })
             .ToList();
 
@@ -451,10 +438,6 @@ public sealed class UserManagementCore : IUserManagementCore
 
         return normalized;
     }
-
-    private static int? GetDefaultOrganizationId(List<UserManagementMembershipRequest> memberships) =>
-        memberships.FirstOrDefault(x => x.IsDefault)?.OrganizationId
-        ?? memberships.FirstOrDefault()?.OrganizationId;
 
     private Error ResolveUserNameConflict(string userName, UserManagementScope scope) =>
         scope == UserManagementScope.Global

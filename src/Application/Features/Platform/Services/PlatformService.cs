@@ -3,12 +3,10 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.Platform.Filters;
-using Application.Features;
 using Application.Features.AuditLogs;
 using Application.Features.Organizations;
 using Application.Features.Users.Services;
 using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -292,9 +290,10 @@ public sealed class PlatformService : BaseService, IPlatformService
                      || (user.Email != null && user.Email.ToLower().Contains(search))
                      || user.FirstName.ToLower().Contains(search)
                      || user.LastName.ToLower().Contains(search))
-                    && (!filter.RoleId.HasValue || user.RoleId == filter.RoleId.Value)
+                    && (!filter.RoleId.HasValue || user.UserOrganizations.Any(membership => membership.RoleId == filter.RoleId.Value))
+                    && (!filter.UserKindId.HasValue || user.UserKindId == filter.UserKindId.Value)
                     && (!filter.StateId.HasValue || user.StateId == filter.StateId.Value)
-                    && (!filter.HasGlobalAccess.HasValue || user.Role.HasGlobalAccess == filter.HasGlobalAccess.Value)
+                    && (!filter.HasGlobalAccess.HasValue || (user.UserKindId == UserKindIdConst.SuperAdmin) == filter.HasGlobalAccess.Value)
                     && ((!filter.OrganizationId.HasValue && user.TenantId == tenantId)
                         || user.UserOrganizations.Any(membership =>
                             membership.Organization.TenantId == tenantId &&
@@ -541,9 +540,9 @@ public sealed class PlatformService : BaseService, IPlatformService
         {
             Criteria = x => x.Id == organizationId && x.TenantId == tenantId
         }, ct);
-    private async Task<Error?> ValidateTenantOrganizationsAsync(int tenantId, IEnumerable<int> organizationIds, CancellationToken ct)
+    private async Task<Error?> ValidateTenantOrganizationsAsync(int tenantId, IEnumerable<PlatformUserOrganizationCreateDto> organizations, CancellationToken ct)
     {
-        var requestedOrganizationIds = organizationIds
+        var requestedOrganizationIds = organizations.Select(organization => organization.OrganizationId)
             .Where(id => id > 0)
             .Distinct()
             .ToList();
@@ -690,13 +689,12 @@ public sealed class PlatformService : BaseService, IPlatformService
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            RoleId = user.RoleId,
-            RoleName = user.RoleName,
+            TenantId = user.TenantId,
+            UserKindId = user.UserKindId,
             HasGlobalAccess = user.HasGlobalAccess,
             EmailVerified = user.EmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
             LastLoginIp = user.LastLoginIp,
-            IsPlatformAdmin = user.IsPlatformAdmin,
             Timezone = user.Timezone,
             LastAccessTime = user.LastAccessTime,
             StateId = user.StateId,
@@ -745,17 +743,11 @@ public sealed class PlatformService : BaseService, IPlatformService
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            RoleId = dto.RoleId,
+            UserKindId = dto.UserKindId,
             LanguageId = dto.LanguageId,
             EmailVerified = dto.EmailVerified,
-            IsPlatformAdmin = dto.IsPlatformAdmin,
             Timezone = dto.Timezone,
-            Organizations = dto.Organizations
-                .Select(organizationId => new UserManagementMembershipRequest
-                {
-                    OrganizationId = organizationId
-                })
-                .ToList()
+            Organizations = MapMemberships(dto.Organizations)
         };
 
     private static UserManagementUpdateRequest MapTenantUserUpdateRequest(int userId, PlatformUserUpdateDto dto) =>
@@ -767,20 +759,24 @@ public sealed class PlatformService : BaseService, IPlatformService
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            RoleId = dto.RoleId,
+            UserKindId = dto.UserKindId,
             LanguageId = dto.LanguageId,
             EmailVerified = dto.EmailVerified,
-            IsPlatformAdmin = dto.IsPlatformAdmin,
             Timezone = dto.Timezone,
             StateId = dto.StateId,
-            Organizations = dto.Organizations
-                .Select(organizationId => new UserManagementMembershipRequest
-                {
-                    OrganizationId = organizationId
-                })
-                .ToList()
+            Organizations = MapMemberships(dto.Organizations)
         };
 
+    private static List<UserManagementMembershipRequest> MapMemberships(
+        IEnumerable<PlatformUserOrganizationCreateDto> organizations) =>
+        organizations.Select(organization => new UserManagementMembershipRequest
+        {
+            OrganizationId = organization.OrganizationId,
+            RoleId = organization.RoleId,
+            IsDefault = organization.IsDefault,
+            IsOwner = organization.IsOwner,
+            InvitedByUserId = organization.InvitedByUserId
+        }).ToList();
     private static PlatformAuditLogDto CreatePlatformAuditLogDto(AuditLogQueryItem log) =>
         new()
         {

@@ -23,16 +23,17 @@ public class AuthService : IAuthService
     private readonly IQueryRepository<Module> _moduleQuery;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IUserContext userContext,
-                       IQueryBuilder queryBuilder,
-                       ITokenProvider tokenProvider,
-                       IPasswordHasher passwordHasher,
-                       IQueryRepository<User> userQuery,
-                       ICommandRepository<User> userCommand,
-                       IQueryRepository<RoleModule> roleModuleQuery,
-                       IQueryRepository<UserOrganization> userOrgQuery,
-                       IQueryRepository<Module> moduleQuery,
-                       ILogger<AuthService> logger)
+    public AuthService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        ITokenProvider tokenProvider,
+        IPasswordHasher passwordHasher,
+        IQueryRepository<User> userQuery,
+        ICommandRepository<User> userCommand,
+        IQueryRepository<RoleModule> roleModuleQuery,
+        IQueryRepository<UserOrganization> userOrgQuery,
+        IQueryRepository<Module> moduleQuery,
+        ILogger<AuthService> logger)
     {
         _userQuery = userQuery;
         _userCommand = userCommand;
@@ -46,13 +47,16 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public ValueTask<Result<LoginResponseDto>> LoginAsync(LoginDto dto, CancellationToken ct = default)
-        => AuthenticateAsync(dto, requireGlobalAccess: false, ct);
+    public ValueTask<Result<LoginResponseDto>> LoginAsync(LoginDto dto, CancellationToken ct = default) =>
+        AuthenticateAsync(dto, requireGlobalAccess: false, ct);
 
-    public ValueTask<Result<LoginResponseDto>> SuperAdminLoginAsync(LoginDto dto, CancellationToken ct = default)
-        => AuthenticateAsync(dto, requireGlobalAccess: true, ct);
+    public ValueTask<Result<LoginResponseDto>> SuperAdminLoginAsync(LoginDto dto, CancellationToken ct = default) =>
+        AuthenticateAsync(dto, requireGlobalAccess: true, ct);
 
-    private async ValueTask<Result<LoginResponseDto>> AuthenticateAsync(LoginDto dto, bool requireGlobalAccess, CancellationToken ct = default)
+    private async ValueTask<Result<LoginResponseDto>> AuthenticateAsync(
+        LoginDto dto,
+        bool requireGlobalAccess,
+        CancellationToken ct = default)
     {
         var normalizedUserName = dto.UserName.Trim();
 
@@ -63,19 +67,13 @@ public class AuthService : IAuthService
             OrderBy = query.OrderBy,
             IgnoreQueryFilters = true
         };
-
-        query.AddIncludes(b =>
-        {
-            b.Include(u => u.Role);
-            b.Include(u => u.State);
-        });
+        query.AddIncludes(builder => builder.Include(user => user.State));
 
         var user = await _userQuery.GetAsync(query, ct);
-
-        if (user is null || user.Role is null || user.State is null || user.StateId != StateIdConst.ACTIVE)
+        if (user is null || user.State is null || user.StateId != StateIdConst.ACTIVE)
         {
             _logger.LogInformation(
-                "Authentication failed for {UserName}: user not found, inactive, or missing role/state.",
+                "Authentication failed for {UserName}: user not found, inactive, or missing state.",
                 normalizedUserName);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
@@ -102,33 +100,32 @@ public class AuthService : IAuthService
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
-        var hasGlobalAccess = user.Role.HasGlobalAccess;
+        var hasGlobalAccess = user.UserKindId == UserKindIdConst.SuperAdmin;
         if (hasGlobalAccess != requireGlobalAccess)
         {
             _logger.LogInformation(
-                "Authentication failed for {UserName}: role global-access flag {HasGlobalAccess} does not match endpoint requirement {RequireGlobalAccess}.",
+                "Authentication failed for {UserName}: user kind {UserKindId} does not match endpoint global-access requirement {RequireGlobalAccess}.",
                 normalizedUserName,
-                hasGlobalAccess,
+                user.UserKindId,
                 requireGlobalAccess);
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
-        var orgSpec = new QuerySpecification<UserOrganization, UserOrgDto>
+        var organizationSpec = new QuerySpecification<UserOrganization, UserOrgDto>
         {
-            Criteria = uo => uo.UserId == user.Id && uo.StateId == StateIdConst.ACTIVE,
+            Criteria = membership => membership.UserId == user.Id && membership.StateId == StateIdConst.ACTIVE,
             IgnoreQueryFilters = true,
-            Selector = uo => new UserOrgDto
+            Selector = membership => new UserOrgDto
             {
-                OrganizationId = uo.OrganizationId,
-                OrganizationName = uo.Organization.ShortName,
-                RoleId = uo.RoleId,
-                RoleName = uo.Role != null ? uo.Role.FullName : null,
-                IsDefault = uo.IsDefault
+                OrganizationId = membership.OrganizationId,
+                OrganizationName = membership.Organization.ShortName,
+                RoleId = membership.RoleId,
+                RoleName = membership.Role != null ? membership.Role.FullName : null,
+                IsDefault = membership.IsDefault
             }
         };
 
-        var organizations = await _userOrgQuery.GetAllAsync(orgSpec, ct);
-
+        var organizations = await _userOrgQuery.GetAllAsync(organizationSpec, ct);
         if (!hasGlobalAccess && organizations.Count == 0)
         {
             _logger.LogInformation(
@@ -138,15 +135,14 @@ public class AuthService : IAuthService
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
-        var defaultOrg = organizations.FirstOrDefault(o => o.IsDefault)
-                      ?? organizations.FirstOrDefault();
-        var defaultOrgId = defaultOrg?.OrganizationId ?? 0;
-
-        var token = _tokenProvider.GenerateAccessToken(user, defaultOrgId);
-
+        var defaultOrganization = organizations.FirstOrDefault(organization => organization.IsDefault)
+            ?? organizations.FirstOrDefault();
+        var token = _tokenProvider.GenerateAccessToken(user, defaultOrganization?.OrganizationId ?? 0);
         var permissions = hasGlobalAccess
             ? await GetAllActivePermissionCodesAsync(ct)
-            : await GetRolePermissionCodesAsync(user.RoleId, ct);
+            : defaultOrganization?.RoleId is int roleId
+                ? await GetRolePermissionCodesAsync(roleId, ct)
+                : [];
 
         var response = new LoginResponseDto
         {
@@ -159,10 +155,10 @@ public class AuthService : IAuthService
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                RoleId = user.RoleId,
-                RoleName = user.Role.FullName,
+                TenantId = user.TenantId,
+                UserKindId = user.UserKindId,
                 HasGlobalAccess = hasGlobalAccess,
-                StateName = user.State.ShortName,
+                StateName = user.State.FullName,
                 StateId = user.StateId,
                 LastAccessTime = user.LastAccessTime,
                 CreatedDate = user.CreatedDate,
@@ -179,25 +175,23 @@ public class AuthService : IAuthService
 
     private async Task<List<string>> GetRolePermissionCodesAsync(int roleId, CancellationToken ct)
     {
-        var permSpec = new QuerySpecification<RoleModule, string>
+        var permissionSpec = new QuerySpecification<RoleModule, string>
         {
-            Criteria = rm => rm.RoleId == roleId,
-            Selector = rm => rm.Module.Code
+            Criteria = roleModule => roleModule.RoleId == roleId,
+            Selector = roleModule => roleModule.Module.Code
         };
 
-        var permissions = await _roleModuleQuery.GetAllAsync(permSpec, ct);
-        return permissions.ToList();
+        return (await _roleModuleQuery.GetAllAsync(permissionSpec, ct)).ToList();
     }
 
     private async Task<List<string>> GetAllActivePermissionCodesAsync(CancellationToken ct)
     {
-        var permSpec = new QuerySpecification<Module, string>
+        var permissionSpec = new QuerySpecification<Module, string>
         {
             Criteria = module => module.StateId == StateIdConst.ACTIVE,
             Selector = module => module.Code
         };
 
-        var permissions = await _moduleQuery.GetAllAsync(permSpec, ct);
-        return permissions.ToList();
+        return (await _moduleQuery.GetAllAsync(permissionSpec, ct)).ToList();
     }
 }

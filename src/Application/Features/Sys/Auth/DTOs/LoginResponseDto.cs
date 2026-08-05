@@ -1,4 +1,4 @@
-﻿namespace Application.Features.Auth;
+namespace Application.Features.Auth;
 
 public class LoginResponseDto
 {
@@ -14,11 +14,11 @@ public class UserResponseDto
     public string? Email { get; set; }
     public string FirstName { get; set; } = null!;
     public string LastName { get; set; } = null!;
-    public int RoleId { get; set; }
+    public int TenantId { get; set; }
+    public short UserKindId { get; set; }
     public DateTime? LastAccessTime { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }
-    public string RoleName { get; set; } = null!;
     public bool HasGlobalAccess { get; set; }
     public string StateName { get; set; } = null!;
     public List<UserOrgDto> Organizations { get; set; } = [];

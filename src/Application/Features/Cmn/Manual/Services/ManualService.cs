@@ -14,6 +14,7 @@ public class ManualService : IManualService
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
     private readonly IQueryRepository<Role> _roleQuery;
+    private readonly IQueryRepository<UserKind> _userKindQuery;
     private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<Unit> _unitQuery;
     private readonly IQueryRepository<State> _stateQuery;
@@ -61,6 +62,7 @@ public class ManualService : IManualService
     private readonly IQueryBuilder _queryBuilder;
     public ManualService(
         IQueryRepository<Role> roleQuery,
+        IQueryRepository<UserKind> userKindQuery,
         IQueryRepository<State> stateQuery,
         IQueryRepository<Region> regionQuery,
         IQueryRepository<District> districtQuery,
@@ -110,6 +112,7 @@ public class ManualService : IManualService
         IUserContext userContext)
     {
         _roleQuery = roleQuery;
+        _userKindQuery = userKindQuery;
         _stateQuery = stateQuery;
         _regionQuery = regionQuery;
         _districtQuery = districtQuery;
@@ -395,12 +398,31 @@ public class ManualService : IManualService
         return (await _roleQuery.GetAllAsync(spec, ct)).ToList();
     }
 
+    public async Task<List<SelectListDto>> GetUserKindsAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<UserKind>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.UserKindTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _userKindQuery.GetAllAsync(query, ct);
+    }
+
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
         var spec = new QuerySpecification<User, SelectListDto>
         {
             Criteria = u => u.StateId == StateIdConst.ACTIVE
-                         && (roleId == null || u.RoleId == roleId),
+                         && (roleId == null || u.UserOrganizations.Any(membership => membership.RoleId == roleId)),
             OrderBy = q => q.OrderBy(u => u.Name),
             Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
         };

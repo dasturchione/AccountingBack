@@ -249,9 +249,16 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [GlobalAccessAuthorize]
+    [HttpGet("user-kinds")]
+    public async Task<IActionResult> GetUserKinds(CancellationToken ct)
+    {
+        var result = await _manualService.GetUserKindsAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetUsers)]
-    [HttpGet("users")]
-    public async Task<IActionResult> GetUsers([FromQuery] int? roleId, CancellationToken ct)
+    [HttpGet("users")]    public async Task<IActionResult> GetUsers([FromQuery] int? roleId, CancellationToken ct)
     {
         var result = await _manualService.GetUsersAsync(roleId, ct);
         return Ok(result);

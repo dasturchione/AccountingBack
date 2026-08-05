@@ -1,4 +1,4 @@
-﻿namespace Application.Abstractions.Authentication;
+namespace Application.Abstractions.Authentication;
 
 public interface IUserContext
 {
@@ -6,14 +6,14 @@ public interface IUserContext
 
     int? RoleId { get; }
 
+    short? UserKindId { get; }
+
     short? LanguageId { get; }
 
     int? TenantId { get; }
 
-    // Header berilgan bo'lsa — o'sha org; berilmasa null
     int? OrganizationId { get; }
 
-    // User ruxsat berilgan barcha org IDlar (middleware tomonidan to'ldiriladi)
     List<int> AllowedOrganizationIds { get; }
 
     int? BranchId { get; }

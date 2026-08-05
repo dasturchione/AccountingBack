@@ -1,4 +1,4 @@
-using Application.Abstractions.Authentication;
+﻿using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration.Edo;
 using Integration.Didox.Configs;
 using Integration.Didox.Facturas;
@@ -251,12 +251,11 @@ public sealed class DidoxLegacyModeTests
     {
         public int? Id => 1;
         public int? RoleId => 1;
-        public short? UserKindId => 3;
+        public CurrentUserKind UserKind => CurrentUserKind.TenantUser;
         public short? LanguageId => null;
         public int? TenantId => 1;
         public int? OrganizationId => organizationId;
         public List<int> AllowedOrganizationIds => [organizationId];
         public int? BranchId => null;
-        public bool HasGlobalAccess => false;
     }
 }

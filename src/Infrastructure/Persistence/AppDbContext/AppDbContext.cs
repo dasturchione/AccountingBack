@@ -1,4 +1,4 @@
-using Domain.Entities;
+﻿using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SharedKernel.Constants;
@@ -802,7 +802,7 @@ public partial class AppDbContext : DbContext
         });
 
         ConfigureIdentityPrimaryKeys(modelBuilder);
-        ApplyOrganizationFilters(modelBuilder);
+        ApplyAccessFilters(modelBuilder);
     }
 
     private static void ConfigureIdentityPrimaryKeys(ModelBuilder modelBuilder)

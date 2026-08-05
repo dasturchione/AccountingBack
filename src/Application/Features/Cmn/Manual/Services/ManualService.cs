@@ -164,68 +164,95 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetStatesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<State, SelectListDto>
-        {
-            Criteria = s => true,
-            OrderBy = q => q.OrderBy(s => s.Name),
-            Selector = s => new SelectListDto { Id = s.Id, Name = s.FullName }
-        };
-        return (await _stateQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<State>()
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.FullName
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+        
+        return await _stateQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetRegionsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Region, SelectListDto>
-        {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(r => r.Name),
-            Selector = r => new SelectListDto { Id = r.Id, Name = r.FullName }
-        };
-        return (await _regionQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<Region>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.FullName
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+
+        return await _regionQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetDistrictsAsync(int? regionId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<District, SelectListDto>
-        {
-            Criteria = d => d.StateId == StateIdConst.ACTIVE && (regionId == null || d.RegionId == regionId),
-            OrderBy = q => q.OrderBy(d => d.Name),
-            Selector = d => new SelectListDto { Id = d.Id, Name = d.FullName }
-        };
-        return (await _districtQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<District>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                                            (regionId == null || x.RegionId == regionId))
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.FullName
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+
+        return await _districtQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Currency, SelectListDto>
-        {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(c => c.Name),
-            Selector = c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }
-        };
-        return (await _currencyQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<Currency>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.Name,
+                                     Code = s.Code
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+
+        return await _currencyQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetUnitsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Unit, SelectListDto>
-        {
-            Criteria = u => u.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(u => u.Name),
-            Selector = u => new SelectListDto { Id = u.Id, Name = u.Name, Code = u.Code }
-        };
-        return (await _unitQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<Unit>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.Name,
+                                     Code = s.Code
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+
+        return await _unitQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<DocumentStatus, SelectListDto>
-        {
-            Criteria = d => d.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(d => d.Name),
-            Selector = d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code }
-        };
-        return (await _documentStatusQuery.GetAllAsync(spec, ct)).ToList();
+        var query = _queryBuilder.For<DocumentStatus>()
+                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
+                                 .As(s => new SelectListDto
+                                 {
+                                     Id = s.Id,
+                                     Name = s.Name,
+                                     Code = s.Code
+                                 })
+                                 .OrderBy(o => o.Name)
+                                 .Build();
+
+        return await _documentStatusQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default)
@@ -341,6 +368,7 @@ public class ManualService : IManualService
     public async Task<List<SelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default)
     {
         var query = _queryBuilder.Build<FaAsset, FaAssetListDto, FaAssetListFilter>(filter);
+
         var assets = await _faAssetQuery.GetAllAsync(query, ct);
 
         return assets
@@ -354,15 +382,20 @@ public class ManualService : IManualService
             })
             .ToList();
     }
+
     public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<PriceRoundingMethod, SelectListDto>
-        {
-            Criteria = x => true,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
-        return await _priceRoundingMethodQuery.GetAllAsync(spec, ct);
+        var query = _queryBuilder.For<PriceRoundingMethod>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _priceRoundingMethodQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default)
@@ -712,15 +745,52 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Organization>()
-                            .Where(x => x.StateId == StateIdConst.ACTIVE && x.UserOrganizations.Any(p => p.UserId == _userContext.Id))
-                            .As(x => new SelectListDto
-                            {
-                                Id = x.Id,
-                                Name = x.FullName,
-                            })
-                            .OrderBy(x => x.Name)
-                            .Build();
+        var query = _userContext.UserKindId switch
+        {
+            UserKindIdConst.SuperAdmin =>
+                _queryBuilder
+                    .For<Organization>()
+                    .Where(x => x.StateId == StateIdConst.ACTIVE)
+                    .As(x => new SelectListDto
+                    {
+                        Id = x.Id,
+                        Name = x.FullName
+                    })
+                    .OrderBy(x => x.Name)
+                    .Build(),
+
+            UserKindIdConst.TenantAdmin =>
+                _queryBuilder
+                    .For<Organization>()
+                    .Where(x =>
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.TenantId == _userContext.TenantId)
+                    .As(x => new SelectListDto
+                    {
+                        Id = x.Id,
+                        Name = x.FullName
+                    })
+                    .OrderBy(x => x.Name)
+                    .Build(),
+
+            UserKindIdConst.TenantUser =>
+                _queryBuilder
+                    .For<Organization>()
+                    .Where(x =>
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.UserOrganizations.Any(uo =>
+                            uo.UserId == _userContext.Id))
+                    .As(x => new SelectListDto
+                    {
+                        Id = x.Id,
+                        Name = x.FullName
+                    })
+                    .OrderBy(x => x.Name)
+                    .Build(),
+
+            _ => throw new InvalidOperationException(
+                $"Unsupported user kind: {_userContext.UserKindId}")
+        };
 
         return await _organizationQuery.GetAllAsync(query, ct);
     }

@@ -29,7 +29,6 @@ public partial class ProductGroup
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -39,14 +38,15 @@ public partial class ProductGroup
 
     [Column("sort_order")]
     public int SortOrder { get; set; }
+
     [InverseProperty("ProductGroup")]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     [ForeignKey("OrganizationId")]
-    [InverseProperty("ProductGroups")]
+    [InverseProperty(nameof(Organization.ProductGroups))]
     public virtual Organization Organization { get; set; } = null!;
 
     [ForeignKey("StateId")]
-    [InverseProperty("ProductGroups")]
+    [InverseProperty(nameof(State.ProductGroups))]
     public virtual State State { get; set; } = null!;
 }

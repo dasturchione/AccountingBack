@@ -1,23 +1,31 @@
+﻿using Application.Abstractions.Authentication;
 using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
 namespace Application.Features.ProductGroups;
 
-public class ProductGroupListDtoProjection : IProjectionBuilder<ProductGroup, ProductGroupListDto>
+public class ProductGroupListDtoProjection(IUserContext userContext) : IProjectionBuilder<ProductGroup, ProductGroupListDto>
 {
-    public Expression<Func<ProductGroup, ProductGroupListDto>> Build() =>
-        x => new ProductGroupListDto
+    public Expression<Func<ProductGroup, ProductGroupListDto>> Build()
+    {
+        var languageId = userContext.LanguageId ?? LanguageIdConst.UZ;
+
+        return group => new ProductGroupListDto
         {
-            Id = x.Id,
-            OrganizationId = x.OrganizationId,
-            OrganizationName = x.Organization.ShortName,
-            Code = x.Code,
-            ParentId = x.ParentId,
-            SortOrder = x.SortOrder,
-            Name = x.Name,
-            StateId = x.StateId,
-            StateName = x.State.FullName,
-            CreatedDate = x.CreatedDate
+            Id = group.Id,
+            Code = group.Code,
+            ParentId = group.ParentId,
+            IsAssignable = group.IsAssignable,
+            SortOrder = group.SortOrder,
+            Name = group.ProductGroupTranslations
+                .Where(translation => translation.LanguageId == languageId)
+                .Select(translation => translation.Name)
+                .FirstOrDefault() ?? group.Name,
+            StateId = group.StateId,
+            StateName = group.State.FullName,
+            CreatedDate = group.CreatedDate
         };
+    }
 }

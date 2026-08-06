@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
@@ -15,76 +15,77 @@ public class ProductGroupService : BaseService, IProductGroupService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductGroup> _query;
     private readonly ICommandRepository<ProductGroup> _command;
-    public ProductGroupService(IUserContext userContext,
-                               IQueryBuilder queryBuilder, 
-                               IQueryRepository<ProductGroup> query,
-                               ICommandRepository<ProductGroup> command,
-                               ILogger<ProductGroupService> logger, 
-                               IUnitOfWork unitOfWork) : base(logger, unitOfWork)
+
+    public ProductGroupService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IQueryRepository<ProductGroup> query,
+        ICommandRepository<ProductGroup> command,
+        ILogger<ProductGroupService> logger,
+        IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
         _query = query;
         _command = command;
-        _userContext = userContext; 
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
     }
 
     public Task<Result<int>> CreateAsync(ProductGroupCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(CreateAsync), async () =>
         {
-            if (_userContext.OrganizationId is null)
+            var organizationId = _userContext.OrganizationId;
+            if (dto.Products.Count > 0 && !organizationId.HasValue)
                 return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var entity = new ProductGroup
             {
-                OrganizationId = _userContext.OrganizationId.Value,
                 Code = dto.Code,
                 ParentId = dto.ParentId,
+                IsAssignable = dto.IsAssignable,
                 Name = dto.Name,
                 SortOrder = dto.SortOrder,
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = DateTime.Now
             };
 
-            foreach (var p in dto.Products)
+            foreach (var productDto in dto.Products)
             {
                 entity.Products.Add(new Product
                 {
-                    OrganizationId = _userContext.OrganizationId.Value,
-                    Code = p.Code,
-                    Sku = p.Sku,
-                    Article = p.Article,
-                    Mxik = p.Mxik,
-                    UnitId = p.UnitId,
-                    Barcode = p.Barcode,
-                    Name = p.Name,
-                    Description = p.Description,
-                    IsService = p.IsService,
-                    IsPieceTracked = p.IsPieceTracked,
-                    IsSold = p.IsSold,
-                    IsPurchased = p.IsPurchased,
-                    DefaultVatRateId = p.DefaultVatRateId,
-                    MinStock = p.MinStock,
+                    OrganizationId = organizationId!.Value,
+                    Code = productDto.Code,
+                    Sku = productDto.Sku,
+                    Article = productDto.Article,
+                    Mxik = productDto.Mxik,
+                    UnitId = productDto.UnitId,
+                    Barcode = productDto.Barcode,
+                    Name = productDto.Name,
+                    Description = productDto.Description,
+                    IsService = productDto.IsService,
+                    IsPieceTracked = productDto.IsPieceTracked,
+                    IsSold = productDto.IsSold,
+                    IsPurchased = productDto.IsPurchased,
+                    DefaultVatRateId = productDto.DefaultVatRateId,
+                    MinStock = productDto.MinStock,
                     StateId = StateIdConst.ACTIVE,
                     CreatedDate = DateTime.Now
                 });
             }
 
             await _command.CreateAsync(entity, ct);
-
             return entity.Id;
         });
 
     public Task<Result> DeleteAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).Build();
+            var query = _queryBuilder.For<ProductGroup>().Where(group => group.Id == id).Build();
             var entity = await _query.GetAsync(query, ct);
-            
-            if (entity == null)
+
+            if (entity is null)
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
             entity.StateId = StateIdConst.PASSIVE;
-
             await _command.UpdateAsync(entity, ct);
             return Result.Success();
         });
@@ -100,13 +101,17 @@ public class ProductGroupService : BaseService, IProductGroupService
     public Task<Result<ProductGroupDto>> GetByIdAsync(int id, bool? isService, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).As<ProductGroupDto>().Build();
+            var query = _queryBuilder.For<ProductGroup>()
+                .Where(group => group.Id == id && group.IsAssignable)
+                .As<ProductGroupDto>()
+                .Build();
             var entity = await _query.GetAsync(query, ct);
-            if (entity == null)
+
+            if (entity is null)
                 return Result.Failure<ProductGroupDto>(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
             if (isService.HasValue)
-                entity.Products = entity.Products.Where(x => x.IsService == isService).ToList();
+                entity.Products = entity.Products.Where(product => product.IsService == isService).ToList();
 
             return entity;
         });
@@ -114,75 +119,71 @@ public class ProductGroupService : BaseService, IProductGroupService
     public Task<Result> UpdateAsync(int id, ProductGroupUpdateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(UpdateAsync), async () =>
         {
-            if (_userContext.OrganizationId is null)
-                return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+            var organizationId = _userContext.OrganizationId;
+            var hasNewProducts = dto.Products.Any(product => !product.Id.HasValue);
+            if (hasNewProducts && !organizationId.HasValue)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var query = _queryBuilder.For<ProductGroup>().Where(x => x.Id == id).Build();
-
-            query.AddIncludes(e => e.Include(i => i.Products));
+            var query = _queryBuilder.For<ProductGroup>().Where(group => group.Id == id).Build();
+            query.AddIncludes(builder => builder.Include(group => group.Products));
 
             var entity = await _query.GetAsync(query, ct);
-            if (entity == null)
+            if (entity is null)
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
 
-            entity.OrganizationId = _userContext.OrganizationId.Value;
             entity.Code = dto.Code;
             entity.ParentId = dto.ParentId;
+            entity.IsAssignable = dto.IsAssignable;
             entity.Name = dto.Name;
             entity.SortOrder = dto.SortOrder;
             entity.StateId = dto.StateId;
 
-            foreach (var dtoProduct in dto.Products)
+            foreach (var productDto in dto.Products)
             {
-                Product? product = null;
-
-                if (dtoProduct.Id.HasValue)
+                Product? product;
+                if (productDto.Id.HasValue)
                 {
-                    product = entity.Products.FirstOrDefault(x => x.Id == dtoProduct.Id.Value);
-
+                    product = entity.Products.FirstOrDefault(item => item.Id == productDto.Id.Value);
                     if (product is null)
-                        continue; 
+                        continue;
                 }
                 else
                 {
                     product = new Product
                     {
-                        OrganizationId = _userContext.OrganizationId.Value,
+                        OrganizationId = organizationId!.Value,
                         CreatedDate = DateTime.Now,
-                        StateId = StateIdConst.ACTIVE,
+                        StateId = StateIdConst.ACTIVE
                     };
-
                     entity.Products.Add(product);
                 }
 
-                product.Code = dtoProduct.Code;
-                product.Sku = dtoProduct.Sku;
-                product.Mxik = dtoProduct.Mxik;
-                product.Article = dtoProduct.Article;
-                product.Name = dtoProduct.Name;
-                product.Barcode = dtoProduct.Barcode;
-                product.Description = dtoProduct.Description;
-                product.UnitId = dtoProduct.UnitId;
-                product.IsPieceTracked = dtoProduct.IsPieceTracked;
-                product.IsService = dtoProduct.IsService;
-                product.IsSold = dtoProduct.IsSold;
-                product.IsPurchased = dtoProduct.IsPurchased;
-                product.DefaultVatRateId = dtoProduct.DefaultVatRateId;
-                product.MinStock = dtoProduct.MinStock;
-                product.StateId = dtoProduct.StateId ?? StateIdConst.ACTIVE;
+                product.Code = productDto.Code;
+                product.Sku = productDto.Sku;
+                product.Mxik = productDto.Mxik;
+                product.Article = productDto.Article;
+                product.Name = productDto.Name;
+                product.Barcode = productDto.Barcode;
+                product.Description = productDto.Description;
+                product.UnitId = productDto.UnitId;
+                product.IsPieceTracked = productDto.IsPieceTracked;
+                product.IsService = productDto.IsService;
+                product.IsSold = productDto.IsSold;
+                product.IsPurchased = productDto.IsPurchased;
+                product.DefaultVatRateId = productDto.DefaultVatRateId;
+                product.MinStock = productDto.MinStock;
+                product.StateId = productDto.StateId ?? StateIdConst.ACTIVE;
             }
 
-            var dtoIds = dto.Products.Where(x => x.Id.HasValue).Select(x => x.Id!.Value).ToHashSet();
+            var dtoIds = dto.Products
+                .Where(product => product.Id.HasValue)
+                .Select(product => product.Id!.Value)
+                .ToHashSet();
 
-            var productsToDelete = entity.Products.Where(x => !dtoIds.Contains(x.Id)).ToList();
-
-            foreach (var product in productsToDelete)
-            {
+            foreach (var product in entity.Products.Where(product => !dtoIds.Contains(product.Id)))
                 product.StateId = StateIdConst.PASSIVE;
-            }
 
             await _command.UpdateAsync(entity, ct);
-
             return Result.Success();
         });
 }

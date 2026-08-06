@@ -1,4 +1,4 @@
-using Domain.Entities;
+﻿using Domain.Entities;
 using SharedKernel.Constants;
 
 namespace Application.Features.Acc.OpeningBalances;
@@ -180,12 +180,20 @@ public partial class OpeningBalanceService
         if (entityIds.Count == 0)
             return [];
 
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<ProductGroup>()
-            .Where(x => entityIds.Contains(x.Id) && x.OrganizationId == organizationId)
-            .As(x => new { x.Id, x.Name })
+            .Where(group => entityIds.Contains(group.Id))
+            .As(group => new
+            {
+                group.Id,
+                Name = group.ProductGroupTranslations
+                    .Where(translation => translation.LanguageId == languageId)
+                    .Select(translation => translation.Name)
+                    .FirstOrDefault() ?? group.Name
+            })
             .Build();
         var items = await _productGroupQuery.GetAllAsync(query, ct);
-        return items.ToDictionary(x => (long)x.Id, x => x.Name);
+        return items.ToDictionary(item => (long)item.Id, item => item.Name);
     }
 
     private async Task<Dictionary<long, string>> GetVatRateNamesAsync(IReadOnlyCollection<long> ids, CancellationToken ct)

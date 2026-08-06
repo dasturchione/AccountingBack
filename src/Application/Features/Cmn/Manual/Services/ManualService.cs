@@ -1,4 +1,4 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.FaAssets;
 using Domain.Entities;
@@ -675,15 +675,20 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<ProductGroup>()
-                            .Where(x => x.StateId == StateIdConst.ACTIVE)
-                            .As(s => new SelectListDto
-                            {
-                                Id = s.Id,
-                                Name = s.Name
-                            })
-                            .OrderBy(o => o.Name)
-                            .Build();
+            .Where(group => group.StateId == StateIdConst.ACTIVE && group.IsAssignable)
+            .As(group => new SelectListDto
+            {
+                Id = group.Id,
+                Name = group.ProductGroupTranslations
+                    .Where(translation => translation.LanguageId == languageId)
+                    .Select(translation => translation.Name)
+                    .FirstOrDefault() ?? group.Name,
+                Code = group.Code
+            })
+            .OrderBy(item => item.Name)
+            .Build();
 
         return await _productGroupQuery.GetAllAsync(query, ct);
     }

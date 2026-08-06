@@ -8,18 +8,15 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_product_group")]
 [Index("Code", Name = "idx_inv_product_group_code")]
-[Index("OrganizationId", Name = "idx_inv_product_group_organization_id")]
 [Index("ParentId", Name = "idx_inv_product_group_parent_id")]
 [Index("SortOrder", Name = "idx_inv_product_group_sort_order")]
 [Index("StateId", Name = "idx_inv_product_group_state_id")]
+[Index("Code", Name = "uq_inv_product_group_code", IsUnique = true)]
 public partial class InvProductGroup
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
-
-    [Column("organization_id")]
-    public int OrganizationId { get; set; }
 
     [Column("name")]
     [StringLength(250)]
@@ -33,7 +30,7 @@ public partial class InvProductGroup
 
     [Column("code")]
     [StringLength(100)]
-    public string? Code { get; set; }
+    public string Code { get; set; } = null!;
 
     [Column("parent_id")]
     public int? ParentId { get; set; }
@@ -41,12 +38,14 @@ public partial class InvProductGroup
     [Column("sort_order")]
     public int SortOrder { get; set; }
 
+    [Column("is_assignable")]
+    public bool IsAssignable { get; set; }
+
+    [InverseProperty("ProductGroup")]
+    public virtual ICollection<InvProductGroupTranslation> InvProductGroupTranslations { get; set; } = new List<InvProductGroupTranslation>();
+
     [InverseProperty("ProductGroup")]
     public virtual ICollection<InvProduct> InvProducts { get; set; } = new List<InvProduct>();
-
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("InvProductGroups")]
-    public virtual OrgOrganization Organization { get; set; } = null!;
 
     [ForeignKey("StateId")]
     [InverseProperty("InvProductGroups")]

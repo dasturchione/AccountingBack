@@ -43,6 +43,9 @@ public partial class Language
     [InverseProperty(nameof(FaReceiptTypeTranslation.Language))]
     public virtual ICollection<FaReceiptTypeTranslation> FaReceiptTypeTranslations { get; set; } = new List<FaReceiptTypeTranslation>();
 
+    [InverseProperty(nameof(ProductGroupTranslation.Language))]
+    public virtual ICollection<ProductGroupTranslation> ProductGroupTranslations { get; set; } = new List<ProductGroupTranslation>();
+
     [InverseProperty(nameof(FaDisposalTypeTranslation.Language))]
     public virtual ICollection<FaDisposalTypeTranslation> FaDisposalTypeTranslations { get; set; } = new List<FaDisposalTypeTranslation>();
 

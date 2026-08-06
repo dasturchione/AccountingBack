@@ -45,8 +45,7 @@ public partial class AppDbContext
                     && organization.TenantId == CurrentTenantId)
                 || (IsTenantUser
                     && HasAuthenticatedUser
-                    && AllowedOrgIds.Contains(organization.Id)
-                    && (!HasCurrentOrganization || organization.Id == CurrentOrganizationId)));
+                    && AllowedOrgIds.Contains(organization.Id)));
 
         modelBuilder.Entity<User>()
             .HasQueryFilter(user =>
@@ -60,6 +59,7 @@ public partial class AppDbContext
                         AllowedOrgIds.Contains(assignment.OrganizationId))
                     && (!HasCurrentOrganization || user.UserOrganizations.Any(assignment =>
                         assignment.OrganizationId == CurrentOrganizationId))));
+
 // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
         ApplyScopedFilter<BankAccount>(modelBuilder);
         ApplyScopedFilter<AccountingPeriod>(modelBuilder);
@@ -76,7 +76,6 @@ public partial class AppDbContext
         ApplyScopedFilter<Warehouse>(modelBuilder);
         ApplyScopedFilter<BankOperation>(modelBuilder);
         ApplyScopedFilter<ProductPrice>(modelBuilder);
-        ApplyScopedFilter<ProductGroup>(modelBuilder);
         ApplyScopedFilter<FaGroup>(modelBuilder);
         ApplyScopedFilter<PricingCondition>(modelBuilder);
         ApplyScopedFilter<SaleCondition>(modelBuilder);

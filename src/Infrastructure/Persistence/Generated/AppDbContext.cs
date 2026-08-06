@@ -236,6 +236,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InvProductGroup> InvProductGroups { get; set; }
 
+    public virtual DbSet<InvProductGroupTranslation> InvProductGroupTranslations { get; set; }
+
     public virtual DbSet<InvProductPrice> InvProductPrices { get; set; }
 
     public virtual DbSet<InvProductTable> InvProductTables { get; set; }
@@ -2268,19 +2270,20 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("inv_product_group_pkey");
 
-            entity.HasIndex(e => new { e.OrganizationId, e.Code }, "uidx_inv_product_group_org_code")
-                .IsUnique()
-                .HasFilter("(code IS NOT NULL)");
-
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.InvProductGroups)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_product_group_organization_id_fkey");
 
             entity.HasOne(d => d.State).WithMany(p => p.InvProductGroups)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_group_state_id_fkey");
+        });
+
+        modelBuilder.Entity<InvProductGroupTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.ProductGroupId, e.LanguageId }).HasName("inv_product_group_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.InvProductGroupTranslations).HasConstraintName("inv_product_group_translation_language_id_fkey");
+
+            entity.HasOne(d => d.ProductGroup).WithMany(p => p.InvProductGroupTranslations).HasConstraintName("inv_product_group_translation_product_group_id_fkey");
         });
 
         modelBuilder.Entity<InvProductPrice>(entity =>

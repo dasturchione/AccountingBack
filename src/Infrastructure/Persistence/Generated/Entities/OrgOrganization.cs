@@ -197,9 +197,6 @@ public partial class OrgOrganization
     public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
 
     [InverseProperty("Organization")]
-    public virtual ICollection<InvProductGroup> InvProductGroups { get; set; } = new List<InvProductGroup>();
-
-    [InverseProperty("Organization")]
     public virtual ICollection<InvProductPrice> InvProductPrices { get; set; } = new List<InvProductPrice>();
 
     [InverseProperty("Organization")]

@@ -1,12 +1,11 @@
-namespace Application.Features.ProductGroups;
+﻿namespace Application.Features.ProductGroups;
 
 public class ProductGroupListDto
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
-    public string OrganizationName { get; set; } = null!;
-    public string? Code { get; set; }
+    public string Code { get; set; } = null!;
     public int? ParentId { get; set; }
+    public bool IsAssignable { get; set; }
     public int SortOrder { get; set; }
     public string Name { get; set; } = null!;
     public short StateId { get; set; }

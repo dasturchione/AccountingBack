@@ -1,23 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("inv_product_group")]
-[Index("OrganizationId", Name = "idx_inv_product_group_organization_id")]
-[Index("StateId", Name = "idx_inv_product_group_state_id")]
-[Index("Code", Name = "idx_inv_product_group_code")]
-[Index("ParentId", Name = "idx_inv_product_group_parent_id")]
-[Index("SortOrder", Name = "idx_inv_product_group_sort_order")]
 public partial class ProductGroup
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
-
-    [Column("organization_id")]
-    public int OrganizationId { get; set; }
 
     [Column("name")]
     [StringLength(250)]
@@ -29,24 +20,26 @@ public partial class ProductGroup
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
-    public string? Code { get; set; }
+    public string Code { get; set; } = null!;
 
     [Column("parent_id")]
     public int? ParentId { get; set; }
 
+    [Column("is_assignable")]
+    public bool IsAssignable { get; set; }
+
     [Column("sort_order")]
     public int SortOrder { get; set; }
-    [InverseProperty("ProductGroup")]
+
+    [InverseProperty(nameof(Product.ProductGroup))]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("ProductGroups")]
-    public virtual Organization Organization { get; set; } = null!;
+    [InverseProperty(nameof(ProductGroupTranslation.ProductGroup))]
+    public virtual ICollection<ProductGroupTranslation> ProductGroupTranslations { get; set; } = new List<ProductGroupTranslation>();
 
     [ForeignKey("StateId")]
-    [InverseProperty("ProductGroups")]
+    [InverseProperty(nameof(State.ProductGroups))]
     public virtual State State { get; set; } = null!;
 }

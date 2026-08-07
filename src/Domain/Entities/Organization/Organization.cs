@@ -138,9 +138,6 @@ public partial class Organization
     [InverseProperty(nameof(District.Organizations))]
     public virtual District? District { get; set; }
 
-    [InverseProperty(nameof(ProductGroup.Organization))]
-    public virtual ICollection<ProductGroup> ProductGroups { get; set; } = new List<ProductGroup>();
-
     [InverseProperty(nameof(ProductPrice.Organization))]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 

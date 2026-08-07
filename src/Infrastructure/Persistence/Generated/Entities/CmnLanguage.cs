@@ -90,6 +90,9 @@ public partial class CmnLanguage
     [InverseProperty("Language")]
     public virtual ICollection<FaReceiptTypeTranslation> FaReceiptTypeTranslations { get; set; } = new List<FaReceiptTypeTranslation>();
 
+    [InverseProperty("Language")]
+    public virtual ICollection<InvProductGroupTranslation> InvProductGroupTranslations { get; set; } = new List<InvProductGroupTranslation>();
+
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<OrgOrganization> OrgOrganizations { get; set; } = new List<OrgOrganization>();
 

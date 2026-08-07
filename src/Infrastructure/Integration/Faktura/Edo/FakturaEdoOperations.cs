@@ -7,6 +7,7 @@ using Integration.Faktura.Configs;
 using Integration.Faktura.Dtos;
 using Integration.Faktura.Http;
 using Integration.Edo.Http;
+using Integration.Edo.Providers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using SharedKernel.Exceptions;
@@ -462,6 +463,7 @@ public sealed class FakturaEdoOperations(
                 Status = new EdoDocumentStatusDto
                 {
                     Code = EdoDocumentStatusCode.UNKNOWN,
+                    LocalCode = EdoDocumentStatusCode.UNKNOWN,
                     CheckedAt = DateTimeOffset.UtcNow
                 }
             }
@@ -515,24 +517,69 @@ public sealed class FakturaEdoOperations(
                 Status = new EdoDocumentStatusDto
                 {
                     Code = EdoDocumentStatusCode.UNKNOWN,
+                    LocalCode = EdoDocumentStatusCode.UNKNOWN,
                     CheckedAt = DateTimeOffset.UtcNow
                 }
             }
         };
     }
 
-    public async Task<EdoInboxListDto> ListInboxAsync(
+    public Task<EdoInboxListDto> ListInboxAsync(
         EdoInboxQueryDto request,
+        CancellationToken ct = default) =>
+        ListDocumentsAsync(new EdoDocumentQueryDto
+        {
+            Scope = EdoDocumentQueryScope.INBOX,
+            Page = request.Page,
+            Limit = request.PageSize,
+            Search = request.Search,
+            HasMarks = request.HasMarks,
+            Category = request.Category,
+            Status = request.Status,
+            DateFrom = request.FromDate,
+            DateTo = request.ToDate
+        }, ct);
+
+    public async Task<EdoInboxListDto> ListDocumentsAsync(
+        EdoDocumentQueryDto request,
         CancellationToken ct = default)
     {
-        var companyInn = RequireText(request.CompanyInn, nameof(request.CompanyInn));
-        var skip = checked((request.Page - 1) * request.PageSize);
+        var skip = checked((request.Page - 1) * request.Limit);
+        if (request.Scope == EdoDocumentQueryScope.ALL)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.FAKTURA.ToString(),
+                EdoCapabilityKind.ListAll.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        var isInbox = request.Scope == EdoDocumentQueryScope.INBOX;
+        var companyInn = await RequireOrganizationInnAsync(ct);
+        var requestedDirectionCategory = isInbox
+            ? EdoDocumentCategory.INBOX
+            : EdoDocumentCategory.OUTBOX;
+        if (request.Category is not null && request.Category != requestedDirectionCategory)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.FAKTURA.ToString(),
+                EdoCapabilityKind.SearchFilter.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        if (request.Search is not null
+            || request.HasMarks is not null
+            || request.DateFrom is not null
+            || request.DateTo is not null
+            || request.Status is not null
+            || request.ProviderFilters.Count > 0)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.FAKTURA.ToString(),
+                EdoCapabilityKind.SearchFilter.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
         var query = string.Join(
             "&",
             $"CompanyInn={Uri.EscapeDataString(companyInn)}",
-            $"Limit={request.PageSize.ToString(CultureInfo.InvariantCulture)}",
+            $"Limit={request.Limit.ToString(CultureInfo.InvariantCulture)}",
             $"Skip={skip.ToString(CultureInfo.InvariantCulture)}",
-            "IsInbox=true");
+            $"IsInbox={isInbox.ToString().ToLowerInvariant()}",
+            $"IsSent={(!isInbox).ToString().ToLowerInvariant()}");
 
         var client = httpClientFactory.CreateClient(FakturaHttpClientNames.Client);
         var session = await TryGetAuthSessionAsync(ct);
@@ -541,10 +588,10 @@ public sealed class FakturaEdoOperations(
                 BuildSessionInboxUri(options.Value),
                 new
                 {
-                    Limit = request.PageSize,
+                    Limit = request.Limit,
                     Skip = skip,
-                    IsInbox = true,
-                    IsSent = false,
+                    IsInbox = isInbox,
+                    IsSent = !isInbox,
                     IsSign = false,
                     Statuses = Array.Empty<string>()
                 },
@@ -578,13 +625,30 @@ public sealed class FakturaEdoOperations(
                 StatusCodes.Status502BadGateway);
         }
 
-        var items = documents.EnumerateArray().Select(ParseInboxDocument).ToList();
+        var items = documents.EnumerateArray()
+            .Select(item => ParseInboxDocument(
+                item,
+                isInbox ? EdoDirection.INBOX : EdoDirection.OUTBOX,
+                request.Category))
+            .ToList();
         return new EdoInboxListDto
         {
             Items = items,
-            Page = request.Page,
-            PageSize = request.PageSize,
-            TotalCount = totalCount
+            Page = ReadOptionalInt(json.RootElement, "page") ?? request.Page,
+            PageSize = ReadOptionalInt(json.RootElement, "limit") ?? request.Limit,
+            TotalCount = totalCount,
+            TotalPages = ReadOptionalInt(json.RootElement, "totalPages"),
+            HasNextPage = ReadOptionalBool(json.RootElement, "hasNextPage"),
+            HasPrevPage = ReadOptionalBool(json.RootElement, "hasPrevPage")
+                ?? ReadOptionalBool(json.RootElement, "hasPreviousPage"),
+            HasPreviousPage = ReadOptionalBool(json.RootElement, "hasPreviousPage")
+                ?? ReadOptionalBool(json.RootElement, "hasPrevPage"),
+            Limit = ReadOptionalInt(json.RootElement, "limit") ?? request.Limit,
+            NextPage = ReadOptionalInt(json.RootElement, "nextPage"),
+            PrevPage = ReadOptionalInt(json.RootElement, "prevPage"),
+            PreviousPage = ReadOptionalInt(json.RootElement, "previousPage")
+                ?? ReadOptionalInt(json.RootElement, "prevPage"),
+            PagingCounter = ReadOptionalInt(json.RootElement, "pagingCounter")
         };
     }
 
@@ -774,6 +838,7 @@ public sealed class FakturaEdoOperations(
         return new EdoDocumentStatusDto
         {
             Code = EdoDocumentStatusCode.UNKNOWN,
+            LocalCode = EdoDocumentStatusCode.UNKNOWN,
             ProviderStatusCode = ReadProviderStatusCode(statusProperty),
             CheckedAt = DateTimeOffset.UtcNow
         };
@@ -1140,6 +1205,7 @@ public sealed class FakturaEdoOperations(
         return new EdoDocumentStatusDto
         {
             Code = EdoDocumentStatusCode.UNKNOWN,
+            LocalCode = EdoDocumentStatusCode.UNKNOWN,
             ProviderStatusCode = providerStatusCode,
             Description = description,
             CheckedAt = DateTimeOffset.UtcNow
@@ -1174,7 +1240,14 @@ public sealed class FakturaEdoOperations(
         var organization = await organizationQuery.GetAsync(
             new QuerySpecification<Organization> { Criteria = x => x.Id == organizationId },
             ct);
-        return RequireText(organization?.Inn, "Organization.Inn");
+        if (organization is null || string.IsNullOrWhiteSpace(organization.Inn))
+        {
+            throw new IntegrationHttpException(
+                "The current organization is missing the INN required by the Faktura provider.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        return organization.Inn.Trim();
     }
 
     private async Task<FakturaAuthSession?> TryGetAuthSessionAsync(CancellationToken ct)
@@ -1235,7 +1308,10 @@ public sealed class FakturaEdoOperations(
             UriKind.Absolute);
     }
 
-    private static EdoDocumentDto ParseInboxDocument(JsonElement item)
+    private static EdoDocumentDto ParseInboxDocument(
+        JsonElement item,
+        EdoDirection direction,
+        EdoDocumentCategory? requestedCategory)
     {
         var providerDocumentId = ReadOptionalString(item, "uniqueId")
             ?? ReadOptionalString(item, "UniqueId");
@@ -1247,21 +1323,51 @@ public sealed class FakturaEdoOperations(
         }
 
         var providerStatus = ReadOptionalString(item, "status");
+        var status = EdoProviderStatusMapper.Map(providerStatus);
         return new EdoDocumentDto
         {
+            ProviderCode = EdoProviderCode.FAKTURA,
             ProviderDocumentId = providerDocumentId,
-            Direction = EdoDirection.INBOX,
+            Direction = direction,
+            Category = EdoProviderStatusMapper.MapCategory(direction, status.Code, requestedCategory),
             DocumentType = "UNKNOWN",
             TotalAmount = ReadOptionalDecimal(item, "totalPrice"),
             CreatedAt = ReadOptionalDateTimeOffset(item, "createdDateTime"),
             UpdatedAt = ReadOptionalDateTimeOffset(item, "updatedDateTime"),
             Status = new EdoDocumentStatusDto
             {
-                Code = EdoDocumentStatusCode.UNKNOWN,
-                ProviderStatusCode = providerStatus,
+                Code = status.Code,
+                LocalCode = status.LocalCode,
+                ProviderStatusCode = status.ProviderStatusCode,
+                ProviderRawStatus = status.ProviderRawStatus,
+                IsTerminal = status.IsTerminal,
+                IsSuccessful = status.IsSuccessful,
                 CheckedAt = DateTimeOffset.UtcNow
-            }
+            },
+            ProviderFields = ReadProviderFields(item)
         };
+    }
+
+    private static IReadOnlyDictionary<string, JsonElement> ReadProviderFields(JsonElement item)
+    {
+        if (item.ValueKind != JsonValueKind.Object)
+            return new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+
+        var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in item.EnumerateObject())
+        {
+            if (property.Name.Contains("token", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("pkcs7", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("signature", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("authorization", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("password", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("secret", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            fields[property.Name] = property.Value.Clone();
+        }
+
+        return fields;
     }
 
     private static string? ReadOptionalString(JsonElement item, string propertyName)
@@ -1274,6 +1380,36 @@ public sealed class FakturaEdoOperations(
 
         var value = property.GetString();
         return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static int? ReadOptionalInt(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null
+            || property.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var value))
+            return value;
+
+        throw new IntegrationHttpException(
+            $"Faktura response field '{propertyName}' must be an integer.",
+            StatusCodes.Status502BadGateway);
+    }
+
+    private static bool? ReadOptionalBool(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null
+            || property.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        if (property.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            return property.GetBoolean();
+
+        throw new IntegrationHttpException(
+            $"Faktura response field '{propertyName}' must be a boolean.",
+            StatusCodes.Status502BadGateway);
     }
 
     private static decimal? ReadOptionalDecimal(JsonElement item, string propertyName)

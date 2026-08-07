@@ -23,19 +23,45 @@ public sealed class DidoxEdoOperations(
     private const int MaxFileLength = 25 * 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new();
 
-    public async Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct)
+    public Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct) =>
+        ListDocumentsAsync(new EdoDocumentQueryDto
+        {
+            Scope = EdoDocumentQueryScope.INBOX,
+            Page = request.Page,
+            Limit = request.PageSize,
+            Search = request.Search,
+            HasMarks = request.HasMarks,
+            Category = request.Category,
+            Status = request.Status,
+            DateFrom = request.FromDate,
+            DateTo = request.ToDate
+        }, ct);
+
+    public async Task<EdoInboxListDto> ListDocumentsAsync(EdoDocumentQueryDto request, CancellationToken ct)
     {
+        if (request.Scope == EdoDocumentQueryScope.ALL)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.DIDOX.ToString(),
+                EdoCapabilityKind.ListAll.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        if (request.ProviderFilters.Count > 0)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.DIDOX.ToString(),
+                EdoCapabilityKind.SearchFilter.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
         var query = new List<string>
         {
-            "owner=0",
+            $"owner={(request.Scope == EdoDocumentQueryScope.OUTBOX ? "1" : "0")}",
             $"page={request.Page}",
-            $"limit={request.PageSize}"
+            $"limit={request.Limit}"
         };
         AddQuery(query, "name", request.Search);
         AddQuery(query, "hasMarks", request.HasMarks?.ToString().ToLowerInvariant());
-        AddQuery(query, "dateFromCreated", request.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        AddQuery(query, "dateToCreated", request.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        AddQuery(query, "status", MapStatusFilter(request.Status));
+        AddQuery(query, "dateFromCreated", request.DateFrom?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        AddQuery(query, "dateToCreated", request.DateTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        AddQuery(query, "status", MapStatusFilter(request.Status, request.Category));
 
         using var response = await SendAsync(HttpMethod.Get, $"v2/documents?{string.Join('&', query)}", ct);
         await EnsureSuccessAsync(response, "Didox inbox list");
@@ -43,11 +69,65 @@ public sealed class DidoxEdoOperations(
         if (!json.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
             throw new IntegrationHttpException("Didox inbox response did not contain the documented data array.", StatusCodes.Status502BadGateway);
 
-        var items = data.EnumerateArray().Select(ParseDocument).ToList();
-        var total = json.RootElement.TryGetProperty("total", out var totalProperty)
-            && totalProperty.TryGetInt32(out var totalValue) ? totalValue : (int?)null;
+        var direction = request.Scope == EdoDocumentQueryScope.OUTBOX
+            ? EdoDirection.OUTBOX
+            : EdoDirection.INBOX;
+        var items = data.EnumerateArray()
+            .Select(item => ParseDocument(item, direction, requestedCategory: request.Category))
+            .ToList();
+        int? total = null;
+        if (json.RootElement.TryGetProperty("total", out var totalProperty))
+        {
+            if (totalProperty.ValueKind != JsonValueKind.Number
+                || !totalProperty.TryGetInt32(out var totalValue))
+            {
+                throw new IntegrationHttpException(
+                    "Didox response field 'total' must be an integer.",
+                    StatusCodes.Status502BadGateway);
+            }
 
-        return new EdoInboxListDto { Items = items, Page = request.Page, PageSize = request.PageSize, TotalCount = total };
+            total = totalValue;
+        }
+
+        var page = ReadOptionalInt(json.RootElement, "page") ?? request.Page;
+        var limit = ReadOptionalInt(json.RootElement, "limit") ?? request.Limit;
+        var hasPreviousPage = ReadOptionalBool(json.RootElement, "hasPreviousPage")
+            ?? ReadOptionalBool(json.RootElement, "hasPrevPage");
+
+        return new EdoInboxListDto
+        {
+            Items = items,
+            Page = page,
+            PageSize = limit,
+            TotalCount = total,
+            TotalPages = ReadOptionalInt(json.RootElement, "totalPages"),
+            HasNextPage = ReadOptionalBool(json.RootElement, "hasNextPage"),
+            HasPrevPage = hasPreviousPage,
+            HasPreviousPage = hasPreviousPage,
+            Limit = limit,
+            NextPage = ReadOptionalInt(json.RootElement, "nextPage"),
+            PrevPage = ReadOptionalInt(json.RootElement, "prevPage"),
+            PreviousPage = ReadOptionalInt(json.RootElement, "previousPage")
+                ?? ReadOptionalInt(json.RootElement, "prevPage"),
+            PagingCounter = ReadOptionalInt(json.RootElement, "pagingCounter")
+        };
+    }
+
+    public async Task<EdoDocumentDto> GetDocumentDetailsAsync(
+        EdoDirection direction,
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct)
+    {
+        var id = RequireProviderDocumentId(providerDocumentId);
+        using var response = await SendAsync(
+            HttpMethod.Get,
+            $"v1/documents/{Uri.EscapeDataString(id)}",
+            ct);
+        await EnsureSuccessAsync(response, "Didox document details");
+        using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        var root = json.RootElement;
+        return ParseDocument(root, direction, providerDocumentType, id);
     }
 
     public async Task<EdoInboxRejectDto> RejectInboxAsync(string providerDocumentId, EdoInboxRejectRequestDto request, CancellationToken ct)
@@ -135,37 +215,70 @@ public sealed class DidoxEdoOperations(
             ct);
         await EnsureSuccessAsync(response, "Didox document status");
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-        if (!json.RootElement.TryGetProperty("doc_status", out var statusProperty)
-            || !statusProperty.TryGetInt32(out var status))
-            return new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = "UNKNOWN" };
+        var root = json.RootElement;
+        if (!TryReadDidoxStatus(root, out var status))
+            return new EdoDocumentStatusDto
+            {
+                Code = EdoDocumentStatusCode.UNKNOWN,
+                LocalCode = EdoDocumentStatusCode.UNKNOWN
+            };
 
-        return EdoProviderStatusMapper.MapDidoxStatus(status);
+        return MapDidoxProviderStatus(status);
     }
 
-    private EdoDocumentDto ParseDocument(JsonElement item)
+    private EdoDocumentDto ParseDocument(
+        JsonElement item,
+        EdoDirection direction,
+        string? fallbackDocumentType = null,
+        string? fallbackProviderDocumentId = null,
+        EdoDocumentCategory? requestedCategory = null)
     {
-        var providerDocumentId = ReadRequiredString(item, "doc_id");
-        var status = item.TryGetProperty("doc_status", out var statusProperty) && statusProperty.TryGetInt32(out var statusCode)
-            ? EdoProviderStatusMapper.MapDidoxStatus(statusCode)
-            : new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = "UNKNOWN" };
+        var detail = ReadDetailPayload(item);
+        var providerDocumentId = ReadString(item, "doc_id")
+            ?? ReadString(detail, "doc_id")
+            ?? fallbackProviderDocumentId;
+        if (string.IsNullOrWhiteSpace(providerDocumentId))
+            throw new IntegrationHttpException(
+                "Didox document response did not contain the documented doc_id field.",
+                StatusCodes.Status502BadGateway);
+        var status = TryReadDidoxStatus(item, out var statusCode)
+            ? MapDidoxProviderStatus(statusCode)
+            : new EdoDocumentStatusDto
+            {
+                Code = EdoDocumentStatusCode.UNKNOWN,
+                LocalCode = EdoDocumentStatusCode.UNKNOWN
+            };
+        var seller = ReadDidoxParty(detail, "Seller", "SellerTin")
+            ?? ReadDidoxParty(item, "Seller", "SellerTin");
+        var buyer = ReadDidoxParty(detail, "Buyer", "BuyerTin")
+            ?? ReadDidoxParty(item, "Buyer", "BuyerTin");
+        var markingCodes = DidoxDocumentResponseMapper.ReadMarkingCodes(item)
+            .Concat(DidoxDocumentResponseMapper.ReadMarkingCodes(detail))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
 
         return new EdoDocumentDto
         {
+            ProviderCode = EdoProviderCode.DIDOX,
             ProviderDocumentId = providerDocumentId,
-            Direction = EdoDirection.INBOX,
-            DocumentType = ReadString(item, "doctype") ?? "UNKNOWN",
-            DocumentNumber = ReadString(item, "name"),
-            DocumentDate = ReadDate(item, "doc_date"),
+            Direction = direction,
+            Category = EdoProviderStatusMapper.MapCategory(direction, status.Code, requestedCategory),
+            DocumentType = ReadString(item, "doctype")
+                ?? ReadString(detail, "doctype")
+                ?? fallbackDocumentType
+                ?? "UNKNOWN",
+            DocumentNumber = ReadString(item, "name")
+                ?? ReadNestedString(detail, "FacturaDoc", "FacturaNo"),
+            DocumentDate = ReadDate(item, "doc_date")
+                ?? ReadNestedDate(detail, "FacturaDoc", "FacturaDate"),
             Status = status,
-            Buyer = new EdoPartyDto
-            {
-                Name = ReadString(item, "partnerCompany") ?? string.Empty,
-                TaxIdentifier = ReadString(item, "partnerTin") ?? string.Empty
-            },
-            TotalAmount = ReadDecimal(item, "total_sum"),
+            Seller = seller,
+            Buyer = buyer ?? ReadDidoxListPartner(item),
+            TotalAmount = ReadDecimalFromPayloads(item, "total_sum"),
             CreatedAt = ReadDateTime(item, "created"),
             UpdatedAt = ReadDateTime(item, "updated"),
-            MarkingCodes = DidoxDocumentResponseMapper.ReadMarkingCodes(item)
+            MarkingCodes = markingCodes,
+            ProviderFields = ReadProviderFields(item)
         };
     }
 
@@ -216,16 +329,37 @@ public sealed class DidoxEdoOperations(
             query.Add($"{name}={Uri.EscapeDataString(value)}");
     }
 
-    private static string? MapStatusFilter(EdoDocumentStatusCode? status) => status switch
+    private static string? MapStatusFilter(
+        EdoDocumentStatusCode? status,
+        EdoDocumentCategory? category)
     {
-        EdoDocumentStatusCode.DRAFT => "0",
-        EdoDocumentStatusCode.SENT => "1,2,6,60",
-        EdoDocumentStatusCode.SIGNED => "3",
-        EdoDocumentStatusCode.REJECTED => "4",
-        EdoDocumentStatusCode.CANCELLED => "5,50,55",
-        EdoDocumentStatusCode.FAILED => "40",
-        _ => null
-    };
+        if (status is null)
+        {
+            return category switch
+            {
+                EdoDocumentCategory.DRAFTS => "0",
+                EdoDocumentCategory.REJECTED => "4",
+                EdoDocumentCategory.DELETED_ARCHIVED => "5,50,55",
+                _ => null
+            };
+        }
+
+        return status.Value switch
+        {
+            EdoDocumentStatusCode.DRAFT => "0",
+            EdoDocumentStatusCode.PENDING_SIGNATURE => "2",
+            EdoDocumentStatusCode.PARTNER_SIGNATURE_PENDING => "1",
+            EdoDocumentStatusCode.AGENT_SIGNATURE_PENDING => "60",
+            EdoDocumentStatusCode.SENT => "1,2,6,60",
+            EdoDocumentStatusCode.SIGNED => "3",
+            EdoDocumentStatusCode.REJECTED => "4",
+            EdoDocumentStatusCode.DELETED => "5,55",
+            EdoDocumentStatusCode.ARCHIVED => "50",
+            EdoDocumentStatusCode.CANCELLED => "5,50,55",
+            EdoDocumentStatusCode.FAILED => "40",
+            _ => null
+        };
+    }
 
     private static string ReadRequiredString(JsonElement item, string propertyName) =>
         ReadString(item, propertyName) is { Length: > 0 } value
@@ -233,9 +367,199 @@ public sealed class DidoxEdoOperations(
             : throw new IntegrationHttpException($"Didox inbox item did not contain the documented '{propertyName}' field.", StatusCodes.Status502BadGateway);
 
     private static string? ReadString(JsonElement item, string propertyName) =>
-        item.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+        TryGetPropertyIgnoreCase(item, propertyName, out var property) && property.ValueKind == JsonValueKind.String
             ? property.GetString()
             : null;
+
+    private static EdoDocumentStatusDto MapDidoxProviderStatus(int statusCode)
+    {
+        var mapped = EdoProviderStatusMapper.MapDidoxStatus(statusCode);
+        return new EdoDocumentStatusDto
+        {
+            Code = mapped.Code,
+            LocalCode = mapped.LocalCode,
+            ProviderStatusCode = mapped.ProviderStatusCode,
+            ProviderRawStatus = mapped.ProviderRawStatus,
+            Description = mapped.Description,
+            IsTerminal = mapped.IsTerminal,
+            IsSuccessful = mapped.IsSuccessful,
+            CheckedAt = DateTimeOffset.UtcNow,
+            IsReconciliationRequired = mapped.IsReconciliationRequired
+        };
+    }
+
+    private static bool TryReadDidoxStatus(JsonElement item, out int status)
+    {
+        status = default;
+        foreach (var payload in EnumeratePayloads(item))
+        {
+            foreach (var propertyName in new[] { "doc_status", "status" })
+            {
+                if (!TryGetPropertyIgnoreCase(payload, propertyName, out var property)
+                    || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                    continue;
+
+                if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out status))
+                    return true;
+
+                throw new IntegrationHttpException(
+                    $"Didox response field '{propertyName}' must be an integer.",
+                    StatusCodes.Status502BadGateway);
+            }
+        }
+
+        return false;
+    }
+
+    private static JsonElement ReadDetailPayload(JsonElement root)
+    {
+        if (TryGetPropertyIgnoreCase(root, "data", out var data)
+            && data.ValueKind == JsonValueKind.Object)
+        {
+            if (TryGetPropertyIgnoreCase(data, "json", out var json)
+                && json.ValueKind == JsonValueKind.Object)
+                return json;
+
+            if (TryGetPropertyIgnoreCase(data, "document_json", out var documentJson)
+                && documentJson.ValueKind == JsonValueKind.Object)
+                return documentJson;
+
+            if (TryGetPropertyIgnoreCase(data, "document", out var document)
+                && document.ValueKind == JsonValueKind.Object)
+                return document;
+
+            return data;
+        }
+
+        return root;
+    }
+
+    private static EdoPartyDto? ReadDidoxParty(
+        JsonElement document,
+        string partyPropertyName,
+        string taxIdentifierPropertyName)
+    {
+        if (!TryGetPropertyIgnoreCase(document, partyPropertyName, out var party)
+            || party.ValueKind != JsonValueKind.Object)
+            return null;
+
+        var name = ReadString(party, "Name");
+        var taxIdentifier = ReadString(document, taxIdentifierPropertyName);
+        return string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(taxIdentifier)
+            ? null
+            : new EdoPartyDto
+            {
+                Name = name,
+                TaxIdentifier = taxIdentifier
+            };
+    }
+
+    private static EdoPartyDto? ReadDidoxListPartner(JsonElement item)
+    {
+        var name = ReadString(item, "partnerCompany");
+        var taxIdentifier = ReadString(item, "partnerTin");
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(taxIdentifier))
+            return null;
+
+        return new EdoPartyDto
+        {
+            Name = name,
+            TaxIdentifier = taxIdentifier
+        };
+    }
+
+    private static string? ReadNestedString(JsonElement root, string objectPropertyName, string valuePropertyName) =>
+        TryGetPropertyIgnoreCase(root, objectPropertyName, out var nested)
+        && nested.ValueKind == JsonValueKind.Object
+            ? ReadString(nested, valuePropertyName)
+            : null;
+
+    private static DateOnly? ReadNestedDate(JsonElement root, string objectPropertyName, string valuePropertyName) =>
+        DateOnly.TryParse(
+            ReadNestedString(root, objectPropertyName, valuePropertyName),
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var value)
+            ? value
+            : null;
+
+    private static bool TryGetPropertyIgnoreCase(
+        JsonElement element,
+        string propertyName,
+        out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static int? ReadOptionalInt(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null
+            || property.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var value))
+            return value;
+
+        throw new IntegrationHttpException(
+            $"Didox response field '{propertyName}' must be an integer.",
+            StatusCodes.Status502BadGateway);
+    }
+
+    private static bool? ReadOptionalBool(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property)
+            || property.ValueKind == JsonValueKind.Null
+            || property.ValueKind == JsonValueKind.Undefined)
+            return null;
+
+        if (property.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            return property.GetBoolean();
+
+        throw new IntegrationHttpException(
+            $"Didox response field '{propertyName}' must be a boolean.",
+            StatusCodes.Status502BadGateway);
+    }
+
+    private static string RequireProviderDocumentId(string providerDocumentId) =>
+        string.IsNullOrWhiteSpace(providerDocumentId)
+            ? throw new InvalidOperationException("Didox document details requires a provider document ID.")
+            : providerDocumentId;
+
+    private static IReadOnlyDictionary<string, JsonElement> ReadProviderFields(JsonElement item)
+    {
+        if (item.ValueKind != JsonValueKind.Object)
+            return new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+
+        var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in item.EnumerateObject())
+        {
+            if (property.Name.Contains("token", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("pkcs7", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("signature", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("authorization", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("password", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("secret", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            fields[property.Name] = property.Value.Clone();
+        }
+
+        return fields;
+    }
 
     private static DateOnly? ReadDate(JsonElement item, string propertyName) =>
         DateOnly.TryParse(ReadString(item, propertyName), CultureInfo.InvariantCulture, DateTimeStyles.None, out var value) ? value : null;
@@ -245,7 +569,7 @@ public sealed class DidoxEdoOperations(
 
     private static decimal? ReadDecimal(JsonElement item, string propertyName)
     {
-        if (!item.TryGetProperty(propertyName, out var property)
+        if (!TryGetPropertyIgnoreCase(item, propertyName, out var property)
             || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
             return null;
@@ -268,5 +592,40 @@ public sealed class DidoxEdoOperations(
         }
 
         return null;
+    }
+
+    private static decimal? ReadDecimalFromPayloads(JsonElement root, string propertyName)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            var value = ReadDecimal(payload, propertyName);
+            if (value.HasValue)
+                return value;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<JsonElement> EnumeratePayloads(JsonElement root)
+    {
+        yield return root;
+
+        if (!TryGetPropertyIgnoreCase(root, "data", out var data)
+            || data.ValueKind != JsonValueKind.Object)
+            yield break;
+
+        yield return data;
+
+        if (TryGetPropertyIgnoreCase(data, "document", out var document)
+            && document.ValueKind == JsonValueKind.Object)
+            yield return document;
+
+        if (TryGetPropertyIgnoreCase(data, "json", out var json)
+            && json.ValueKind == JsonValueKind.Object)
+            yield return json;
+
+        if (TryGetPropertyIgnoreCase(data, "document_json", out var documentJson)
+            && documentJson.ValueKind == JsonValueKind.Object)
+            yield return documentJson;
     }
 }

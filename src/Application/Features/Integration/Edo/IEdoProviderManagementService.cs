@@ -9,4 +9,7 @@ public interface IEdoProviderManagementService
     Task<EdoProviderDto> SetActiveProviderAsync(
         EdoActiveProviderRequestDto request,
         CancellationToken ct = default);
+
+    Task<EdoCapabilitiesResponseDto> GetCapabilitiesAsync(
+        CancellationToken ct = default);
 }

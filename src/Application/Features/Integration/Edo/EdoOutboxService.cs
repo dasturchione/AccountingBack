@@ -630,31 +630,60 @@ public sealed class EdoOutboxService(
     private static EdoDocumentDto MapDocument(EdoDocument document) => new()
     {
         Id = document.Id,
+        ProviderCode = Enum.TryParse<EdoProviderCode>(document.Provider, true, out var providerCode)
+            ? providerCode
+            : throw new InvalidOperationException("The stored EDO document contains an invalid provider code."),
         ProviderDocumentId = document.ProviderDocumentId,
         Direction = Enum.Parse<EdoDirection>(document.Direction),
+        Category = MapCategory(document.Status),
         DocumentType = document.DocumentType,
         DocumentNumber = document.DocumentNumber,
         DocumentDate = document.DocumentDate,
-        Status = MapStatus(document.Status),
+        Status = MapStatus(document.Status, document.ProviderStatusCode),
         CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(document.CreatedAt, DateTimeKind.Utc)),
         UpdatedAt = document.UpdatedAt is null
             ? null
             : new DateTimeOffset(DateTime.SpecifyKind(document.UpdatedAt.Value, DateTimeKind.Utc))
     };
 
-    private static EdoDocumentStatusDto MapStatus(string status) =>
+    private static EdoDocumentStatusDto MapStatus(string status, string? providerStatusCode = null) =>
         Enum.TryParse<EdoDocumentStatusCode>(status, out var code)
             ? new EdoDocumentStatusDto
             {
                 Code = code,
+                LocalCode = code,
+                ProviderStatusCode = providerStatusCode,
+                ProviderRawStatus = providerStatusCode,
                 IsTerminal = code is EdoDocumentStatusCode.SIGNED
                     or EdoDocumentStatusCode.COMPLETED
                     or EdoDocumentStatusCode.CANCELLED
+                    or EdoDocumentStatusCode.DELETED
+                    or EdoDocumentStatusCode.ARCHIVED
                     or EdoDocumentStatusCode.FAILED,
                 IsSuccessful = code is EdoDocumentStatusCode.SIGNED
                     or EdoDocumentStatusCode.COMPLETED
             }
-            : new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN };
+            : new EdoDocumentStatusDto
+            {
+                Code = EdoDocumentStatusCode.UNKNOWN,
+                LocalCode = EdoDocumentStatusCode.UNKNOWN,
+                ProviderStatusCode = providerStatusCode,
+                ProviderRawStatus = providerStatusCode
+            };
+
+    private static EdoDocumentCategory MapCategory(EdoDocumentStatusCode status) => status switch
+    {
+        EdoDocumentStatusCode.DRAFT => EdoDocumentCategory.DRAFTS,
+        EdoDocumentStatusCode.REJECTED => EdoDocumentCategory.REJECTED,
+        EdoDocumentStatusCode.DELETED or EdoDocumentStatusCode.ARCHIVED or EdoDocumentStatusCode.CANCELLED
+            => EdoDocumentCategory.DELETED_ARCHIVED,
+        _ => EdoDocumentCategory.OUTBOX
+    };
+
+    private static EdoDocumentCategory MapCategory(string status) =>
+        Enum.TryParse<EdoDocumentStatusCode>(status, true, out var code)
+            ? MapCategory(code)
+            : EdoDocumentCategory.OUTBOX;
 
     private static string RequireIdempotencyKey(
         string key,

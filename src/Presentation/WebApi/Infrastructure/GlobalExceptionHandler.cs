@@ -36,6 +36,13 @@ namespace WebApi.Infrastructure
                     Title = "OrganizationScopeRequired",
                     Detail = "A current organization scope is required for this request."
                 },
+                EdoProviderDocumentIdentityRequiredException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                    Title = "ProviderDocumentIdentityRequired",
+                    Detail = "A provider document identity is required for this request."
+                },
                 EdoActiveProviderNotConfiguredException => new ProblemDetails
                 {
                     Status = StatusCodes.Status404NotFound,
@@ -70,6 +77,13 @@ namespace WebApi.Infrastructure
                     Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
                     Title = "EdoDocumentDirectionMismatch",
                     Detail = "The requested EDO document direction does not match the stored document."
+                },
+                EdoDocumentNotFoundException => new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                    Title = "EdoDocumentNotFound",
+                    Detail = "The EDO document was not found in the current organization/provider scope."
                 },
                 EdoAuthSigningSessionException => new ProblemDetails
                 {

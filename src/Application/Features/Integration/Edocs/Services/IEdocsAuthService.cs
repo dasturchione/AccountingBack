@@ -5,6 +5,7 @@ namespace Application.Features.Integration.Edocs.Services;
 public sealed class EdocsAuthChallengeResultDto
 {
     public string AuthId { get; init; } = string.Empty;
+    public DateTimeOffset? ExpiresAt { get; init; }
 }
 
 public sealed class EdocsAuthCompleteRequestDto

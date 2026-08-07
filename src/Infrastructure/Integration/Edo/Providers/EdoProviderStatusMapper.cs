@@ -7,35 +7,40 @@ public static class EdoProviderStatusMapper
     public static EdoDocumentStatusDto Map(string? providerStatus) =>
         (providerStatus ?? string.Empty).Trim().ToUpperInvariant() switch
         {
-            "UNKNOWN" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = providerStatus },
-            "DRAFT" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.DRAFT, ProviderStatusCode = providerStatus },
-            "PENDING" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.PENDING, ProviderStatusCode = providerStatus },
-            "SUBMITTED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SENT, ProviderStatusCode = providerStatus },
-            "SENT" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SENT, ProviderStatusCode = providerStatus },
-            "SIGN_SENT" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SENT, ProviderStatusCode = providerStatus },
-            "SIGNED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SIGNED, IsSuccessful = true, ProviderStatusCode = providerStatus },
-            "RECEIVED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.RECEIVED, ProviderStatusCode = providerStatus },
-            "REJECTED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.REJECTED, IsTerminal = true, ProviderStatusCode = providerStatus },
-            "COMPLETED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.COMPLETED, IsTerminal = true, IsSuccessful = true, ProviderStatusCode = providerStatus },
-            "CANCELLED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.CANCELLED, IsTerminal = true, ProviderStatusCode = providerStatus },
-            "FAILED" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.FAILED, IsTerminal = true },
-            "RECONCILIATION_REQUIRED" => new EdoDocumentStatusDto
-            {
-                Code = EdoDocumentStatusCode.RECONCILIATION_REQUIRED,
-                IsTerminal = false
-            },
-            _ => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN }
+            "UNKNOWN" => Create(EdoDocumentStatusCode.UNKNOWN, providerStatus),
+            "PENDING_SIGNATURE" => Create(EdoDocumentStatusCode.PENDING_SIGNATURE, providerStatus),
+            "PARTNER_SIGNATURE_PENDING" => Create(EdoDocumentStatusCode.PARTNER_SIGNATURE_PENDING, providerStatus),
+            "AGENT_SIGNATURE_PENDING" => Create(EdoDocumentStatusCode.AGENT_SIGNATURE_PENDING, providerStatus),
+            "DRAFT" => Create(EdoDocumentStatusCode.DRAFT, providerStatus),
+            "PENDING" => Create(EdoDocumentStatusCode.PENDING, providerStatus),
+            "SUBMITTED" => Create(EdoDocumentStatusCode.SENT, providerStatus),
+            "SENT" => Create(EdoDocumentStatusCode.SENT, providerStatus),
+            "SIGN_SENT" => Create(EdoDocumentStatusCode.SENT, providerStatus),
+            "SIGNED" => Create(EdoDocumentStatusCode.SIGNED, providerStatus, isSuccessful: true),
+            "RECEIVED" => Create(EdoDocumentStatusCode.RECEIVED, providerStatus),
+            "REJECTED" => Create(EdoDocumentStatusCode.REJECTED, providerStatus, isTerminal: true),
+            "DELETED" => Create(EdoDocumentStatusCode.DELETED, providerStatus, isTerminal: true),
+            "ARCHIVED" => Create(EdoDocumentStatusCode.ARCHIVED, providerStatus, isTerminal: true),
+            "COMPLETED" => Create(EdoDocumentStatusCode.COMPLETED, providerStatus, isTerminal: true, isSuccessful: true),
+            "CANCELLED" => Create(EdoDocumentStatusCode.CANCELLED, providerStatus, isTerminal: true),
+            "FAILED" => Create(EdoDocumentStatusCode.FAILED, providerStatus, isTerminal: true),
+            "RECONCILIATION_REQUIRED" => Create(EdoDocumentStatusCode.RECONCILIATION_REQUIRED, providerStatus),
+            _ => Create(EdoDocumentStatusCode.UNKNOWN, providerStatus)
         };
 
     public static EdoDocumentStatusDto MapDidoxStatus(int status) => status switch
     {
-        0 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.DRAFT, ProviderStatusCode = status.ToString() },
-        1 or 2 or 6 or 60 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SENT, ProviderStatusCode = status.ToString() },
-        3 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SIGNED, ProviderStatusCode = status.ToString(), IsSuccessful = true },
-        4 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.REJECTED, ProviderStatusCode = status.ToString(), IsTerminal = true },
-        5 or 50 or 55 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.CANCELLED, ProviderStatusCode = status.ToString(), IsTerminal = true },
-        40 => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.FAILED, ProviderStatusCode = status.ToString(), IsTerminal = true },
-        _ => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = status.ToString() }
+        0 => Create(EdoDocumentStatusCode.DRAFT, status.ToString()),
+        1 => Create(EdoDocumentStatusCode.PARTNER_SIGNATURE_PENDING, status.ToString()),
+        2 => Create(EdoDocumentStatusCode.PENDING_SIGNATURE, status.ToString()),
+        6 => Create(EdoDocumentStatusCode.SENT, status.ToString()),
+        60 => Create(EdoDocumentStatusCode.AGENT_SIGNATURE_PENDING, status.ToString()),
+        3 => Create(EdoDocumentStatusCode.SIGNED, status.ToString(), isSuccessful: true),
+        4 => Create(EdoDocumentStatusCode.REJECTED, status.ToString(), isTerminal: true),
+        5 or 55 => Create(EdoDocumentStatusCode.DELETED, status.ToString(), isTerminal: true),
+        50 => Create(EdoDocumentStatusCode.ARCHIVED, status.ToString(), isTerminal: true),
+        40 => Create(EdoDocumentStatusCode.FAILED, status.ToString(), isTerminal: true),
+        _ => Create(EdoDocumentStatusCode.UNKNOWN, status.ToString())
     };
 
     public static EdoDocumentStatusDto MapEdocsStatus(string? status)
@@ -43,14 +48,52 @@ public static class EdoProviderStatusMapper
         var normalized = (status ?? string.Empty).Trim().ToLowerInvariant();
         return normalized switch
         {
-            "draft" or "drafts" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.DRAFT, ProviderStatusCode = status },
-            "sended" or "sent" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SENT, ProviderStatusCode = status },
-            "signed" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.SIGNED, ProviderStatusCode = status, IsSuccessful = true },
-            "rejected" or "reject" => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.REJECTED, ProviderStatusCode = status, IsTerminal = true },
-            _ => new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = status }
+            "draft" or "drafts" => Create(EdoDocumentStatusCode.DRAFT, status),
+            "sended" or "sent" => Create(EdoDocumentStatusCode.SENT, status),
+            "signed" => Create(EdoDocumentStatusCode.SIGNED, status, isSuccessful: true),
+            "received" => Create(EdoDocumentStatusCode.RECEIVED, status),
+            "rejected" or "reject" => Create(EdoDocumentStatusCode.REJECTED, status, isTerminal: true),
+            "deleted" => Create(EdoDocumentStatusCode.DELETED, status, isTerminal: true),
+            "cancelled" => Create(EdoDocumentStatusCode.CANCELLED, status, isTerminal: true),
+            _ => Create(EdoDocumentStatusCode.UNKNOWN, status)
         };
     }
 
+    public static EdoDocumentCategory MapCategory(
+        EdoDirection direction,
+        EdoDocumentStatusCode status,
+        EdoDocumentCategory? requestedCategory = null) =>
+        requestedCategory is EdoDocumentCategory.DRAFTS
+            or EdoDocumentCategory.REJECTED
+            or EdoDocumentCategory.DELETED_ARCHIVED
+            or EdoDocumentCategory.ALL
+            ? requestedCategory.Value
+            : status switch
+            {
+                EdoDocumentStatusCode.DRAFT => EdoDocumentCategory.DRAFTS,
+                EdoDocumentStatusCode.REJECTED => EdoDocumentCategory.REJECTED,
+                EdoDocumentStatusCode.DELETED
+                    or EdoDocumentStatusCode.ARCHIVED
+                    or EdoDocumentStatusCode.CANCELLED => EdoDocumentCategory.DELETED_ARCHIVED,
+                _ => direction == EdoDirection.INBOX
+                    ? EdoDocumentCategory.INBOX
+                    : EdoDocumentCategory.OUTBOX
+            };
+
     public static string ToStorageStatus(EdoDocumentStatusDto status) =>
         status.Code.ToString();
+
+    private static EdoDocumentStatusDto Create(
+        EdoDocumentStatusCode code,
+        string? providerStatus,
+        bool isTerminal = false,
+        bool isSuccessful = false) => new()
+        {
+            Code = code,
+            LocalCode = code,
+            ProviderStatusCode = providerStatus,
+            ProviderRawStatus = providerStatus,
+            IsTerminal = isTerminal,
+            IsSuccessful = isSuccessful
+        };
 }

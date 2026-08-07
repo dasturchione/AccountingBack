@@ -75,7 +75,16 @@ public sealed class EdocsAuthorizationHandler : DelegatingHandler
             request.RequestUri?.Host ?? baseUri.Host,
             organizationId);
 
-        return await base.SendAsync(request, cancellationToken);
+        var response = await base.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            response.Dispose();
+            _tokenCache.Clear(organizationId, IntegrationProviderConst.Edocs);
+            throw new EdocsAuthenticationRequiredException(
+                "Edocs provider 401 qaytardi; nazoratli qayta autentifikatsiya kerak.");
+        }
+
+        return response;
     }
 
     private static bool IsDocumentsRequest(HttpRequestMessage request)

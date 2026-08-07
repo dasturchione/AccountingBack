@@ -1,9 +1,11 @@
 using Application.Abstractions.Authentication;
 using Application.Features.Integration.Edocs.Services;
+using Integration.Edocs.Configs;
 using Integration.Edocs.Http;
 using Integration.Shared.Http;
 using SharedKernel.Constants;
 using SharedKernel.Exceptions;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -18,8 +20,6 @@ public sealed class EdocsAuthService : IEdocsAuthService
     private const int MaxErrorBodyBytes = 4096;
     private const int MaxErrorFieldLength = 512;
     private const int MaxProviderErrorDepth = 4;
-    private const int ExpectedChallengeTtlSeconds = 120;
-
     // Hujjat: "После успешной авторизации возвращается токен. Срок действия токена
     // 24 часа." Xavfsizlik zaxirasi sifatida biroz oldin yangilanadi (login/parol
     // yo'lida ham xuddi shu qiymat ishlatilgan edi).
@@ -34,12 +34,21 @@ public sealed class EdocsAuthService : IEdocsAuthService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly EdocsTokenCache _tokenCache;
     private readonly IUserContext _userContext;
+    private readonly EdocsOptions _options;
+    private readonly TimeProvider _timeProvider;
 
-    public EdocsAuthService(IHttpClientFactory httpClientFactory, EdocsTokenCache tokenCache, IUserContext userContext)
+    public EdocsAuthService(
+        IHttpClientFactory httpClientFactory,
+        EdocsTokenCache tokenCache,
+        IUserContext userContext,
+        IOptions<EdocsOptions> options,
+        TimeProvider timeProvider)
     {
         _httpClientFactory = httpClientFactory;
         _tokenCache = tokenCache;
         _userContext = userContext;
+        _options = options.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<JsonElement> GetProfileAsync(CancellationToken ct = default)
@@ -96,10 +105,11 @@ public sealed class EdocsAuthService : IEdocsAuthService
         if (!root.TryGetProperty("ttl", out var ttlProperty)
             || ttlProperty.ValueKind != JsonValueKind.Number
             || !ttlProperty.TryGetInt32(out var ttl)
-            || ttl != ExpectedChallengeTtlSeconds)
+            || ttl <= 0
+            || ttl > _options.ChallengeTtlSeconds)
         {
             throw new IntegrationHttpException(
-                $"Edocs challenge javobidagi ttl mavjud ChallengeTtlSeconds={ExpectedChallengeTtlSeconds} qiymatiga mos emas.",
+                $"Edocs challenge javobidagi ttl yaroqsiz yoki ChallengeTtlSeconds={_options.ChallengeTtlSeconds} limitidan katta.",
                 502);
         }
 
@@ -111,7 +121,11 @@ public sealed class EdocsAuthService : IEdocsAuthService
         if (string.IsNullOrWhiteSpace(challenge))
             throw new IntegrationHttpException("Edocs challenge javobida challenge topilmadi.", 502);
 
-        return new EdocsAuthChallengeResultDto { AuthId = challenge };
+        return new EdocsAuthChallengeResultDto
+        {
+            AuthId = challenge,
+            ExpiresAt = _timeProvider.GetUtcNow().AddSeconds(ttl)
+        };
     }
 
     public async Task<EdocsAuthCompleteResultDto> CompleteAuthAsync(EdocsAuthCompleteRequestDto request, CancellationToken ct = default)

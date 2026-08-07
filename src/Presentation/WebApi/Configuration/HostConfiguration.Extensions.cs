@@ -68,6 +68,8 @@ namespace WebApi.Configuration
             builder.Services.AddSwaggerGen(c =>
             {
                 c.OperationFilter<CustomHeadersOperationFilter>();
+                c.OperationFilter<EdoPublicContractOperationFilter>();
+                c.OperationFilter<EdoSwaggerContractOperationFilter>();
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {

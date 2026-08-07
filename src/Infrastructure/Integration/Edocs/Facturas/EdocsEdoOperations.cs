@@ -25,9 +25,59 @@ public sealed class EdocsEdoOperations(
         @"(?i)[""']?\b(?:pkcs7(?:_64)?|signature(?:hex)?|private(?:\s|_)?key|partner[-_]?authorization|authorization|access[_\s-]?token|auth[_\s-]?token|user[_\s-]?key|token|inn|tin|tax[_-]?id|(?:document|doc|factura|invoice)[-_]?(?:id|number|no|date)?|id)\b[""']?\s*[:=]\s*(?:""[^"" ]*""|'[^']*'|[^\s,;}\]]+)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public async Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct)
+    public Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct) =>
+        ListDocumentsAsync(new EdoDocumentQueryDto
+        {
+            Scope = EdoDocumentQueryScope.INBOX,
+            Page = request.Page,
+            Limit = request.PageSize,
+            Search = request.Search,
+            HasMarks = request.HasMarks,
+            Category = request.Category,
+            Status = request.Status,
+            DateFrom = request.FromDate,
+            DateTo = request.ToDate
+        }, ct);
+
+    public async Task<EdoInboxListDto> ListDocumentsAsync(EdoDocumentQueryDto request, CancellationToken ct)
     {
-        var query = $"documents?io=in&page={request.Page}&limit={request.PageSize}";
+        if (request.Scope == EdoDocumentQueryScope.ALL)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.EDOCS.ToString(),
+                EdoCapabilityKind.ListAll.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        if (request.Search is not null
+            || request.HasMarks is not null
+            || request.DateFrom is not null
+            || request.DateTo is not null
+            || request.ProviderFilters.Count > 0)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.EDOCS.ToString(),
+                EdoCapabilityKind.SearchFilter.ToString(),
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        if (request.Scope == EdoDocumentQueryScope.INBOX
+            && request.Category == EdoDocumentCategory.DELETED_ARCHIVED)
+            throw new EdoCapabilityUnavailableException(
+                EdoProviderCode.EDOCS.ToString(),
+                $"{EdoCapabilityKind.ListInbox}:{EdoDocumentCategory.DELETED_ARCHIVED}",
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        var queryParameters = new List<string>
+        {
+            $"sort={(request.Category == EdoDocumentCategory.DELETED_ARCHIVED ? "updatedAt" : "createdAt")}",
+            "order=-1",
+            $"page={request.Page}",
+            $"limit={request.Limit}",
+            $"io={(request.Scope == EdoDocumentQueryScope.OUTBOX ? "out" : "in")}",
+            "type=all"
+        };
+        var providerStatus = MapListStatus(request.Status, request.Category);
+        if (providerStatus is not null)
+            queryParameters.Add($"status={Uri.EscapeDataString(providerStatus)}");
+
+        var query = $"documents?{string.Join('&', queryParameters)}";
         using var response = await SendAsync(HttpMethod.Get, query, ct);
         await EnsureSuccessAsync(response, "Edocs inbox list");
         var body = await ReadBoundedResponseBodyAsync(response, ct);
@@ -74,12 +124,47 @@ public sealed class EdocsEdoOperations(
                 throw CreateUnsupportedInboxShapeException(root);
             }
 
-            var items = data.EnumerateArray().Select(item => ParseDocument(item, usesDocsShape)).ToList();
-            var total = root.ValueKind == JsonValueKind.Object
-                && root.TryGetProperty("total", out var totalProperty)
-                && totalProperty.TryGetInt32(out var totalValue) ? totalValue : (int?)null;
-            return new EdoInboxListDto { Items = items, Page = request.Page, PageSize = request.PageSize, TotalCount = total };
+            var items = data.EnumerateArray()
+                .Select(item => ParseDocument(item, usesDocsShape, request.Scope == EdoDocumentQueryScope.OUTBOX
+                    ? EdoDirection.OUTBOX
+                    : EdoDirection.INBOX, requestedCategory: request.Category))
+                .ToList();
+            var totalDocs = ReadInt(root, "totalDocs");
+            var limit = ReadInt(root, "limit");
+            return new EdoInboxListDto
+            {
+                Items = items,
+                Page = ReadInt(root, "page") ?? request.Page,
+                PageSize = limit ?? request.Limit,
+                TotalCount = totalDocs,
+                TotalDocs = totalDocs,
+                TotalPages = ReadInt(root, "totalPages"),
+                HasNextPage = ReadBool(root, "hasNextPage"),
+                HasPrevPage = ReadBool(root, "hasPrevPage"),
+                HasPreviousPage = ReadBool(root, "hasPrevPage"),
+                Limit = limit,
+                NextPage = ReadInt(root, "nextPage"),
+                PrevPage = ReadInt(root, "prevPage"),
+                PreviousPage = ReadInt(root, "prevPage"),
+                PagingCounter = ReadInt(root, "pagingCounter")
+            };
         }
+    }
+
+    public async Task<EdoInboxSummaryDto> GetInboxSummaryAsync(CancellationToken ct)
+    {
+        using var response = await SendAsync(HttpMethod.Get, "documents/all/get/stats", ct);
+        await EnsureSuccessAsync(response, "Edocs document statistics");
+        using var json = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct),
+            cancellationToken: ct);
+
+        return new EdoInboxSummaryDto
+        {
+            Provider = EdoProviderCode.EDOCS,
+            Inbox = ReadDirectionStatusCounts(json.RootElement, "in"),
+            Outbox = ReadDirectionStatusCounts(json.RootElement, "out")
+        };
     }
 
     public async Task<EdoInboxRejectDto> RejectInboxAsync(
@@ -159,24 +244,69 @@ public sealed class EdocsEdoOperations(
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         if (!json.RootElement.TryGetProperty("status", out var statusProperty)
             || statusProperty.ValueKind != JsonValueKind.String)
-            return new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = "UNKNOWN" };
+            return new EdoDocumentStatusDto
+            {
+                Code = EdoDocumentStatusCode.UNKNOWN,
+                LocalCode = EdoDocumentStatusCode.UNKNOWN,
+                ProviderStatusCode = "UNKNOWN"
+            };
 
         return EdoProviderStatusMapper.MapEdocsStatus(statusProperty.GetString());
     }
 
-    private EdoDocumentDto ParseDocument(JsonElement item, bool usesDocsShape)
+    public async Task<EdoDocumentDto> GetDocumentDetailsAsync(
+        EdoDirection direction,
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct)
     {
-        var providerDocumentId = ReadRequiredString(item, usesDocsShape ? "_id" : "id");
-        var documentType = ReadRequiredString(item, "type");
+        var type = MapStatusDocumentType(providerDocumentType);
+        var id = RequireStatusProviderDocumentId(providerDocumentId);
+        using var response = await SendAsync(
+            HttpMethod.Get,
+            $"documents/{Uri.EscapeDataString(type)}/{Uri.EscapeDataString(id)}",
+            ct);
+        await EnsureSuccessAsync(response, "Edocs document details");
+        using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+        var root = json.RootElement;
+        return ParseDocument(root, usesDocsShape: root.TryGetProperty("_id", out _), direction,
+            fallbackProviderDocumentId: id, fallbackDocumentType: providerDocumentType);
+    }
+
+    private EdoDocumentDto ParseDocument(
+        JsonElement item,
+        bool usesDocsShape,
+        EdoDirection direction,
+        string? fallbackProviderDocumentId = null,
+        string? fallbackDocumentType = null,
+        EdoDocumentCategory? requestedCategory = null)
+    {
+        var providerDocumentId = usesDocsShape
+            ? ReadOptionalString(item, "_id") ?? fallbackProviderDocumentId
+            : ReadOptionalString(item, "id") ?? fallbackProviderDocumentId;
+        var documentType = ReadOptionalString(item, "type") ?? fallbackDocumentType;
+        if (string.IsNullOrWhiteSpace(providerDocumentId) || string.IsNullOrWhiteSpace(documentType))
+            throw new IntegrationHttpException(
+                "Edocs document response did not contain a provider document ID and type.",
+                StatusCodes.Status502BadGateway);
 
         var status = item.TryGetProperty("status", out var statusProperty) && statusProperty.ValueKind == JsonValueKind.String
             ? EdoProviderStatusMapper.MapEdocsStatus(statusProperty.GetString())
-            : new EdoDocumentStatusDto { Code = EdoDocumentStatusCode.UNKNOWN, ProviderStatusCode = "UNKNOWN" };
+            : new EdoDocumentStatusDto
+            {
+                Code = EdoDocumentStatusCode.UNKNOWN,
+                LocalCode = EdoDocumentStatusCode.UNKNOWN,
+                ProviderStatusCode = "UNKNOWN",
+                ProviderRawStatus = "UNKNOWN"
+            };
 
         return new EdoDocumentDto
         {
+            ProviderCode = EdoProviderCode.EDOCS,
             ProviderDocumentId = providerDocumentId,
-            Direction = EdoDirection.INBOX,
+            Direction = direction,
+            Category = EdoProviderStatusMapper.MapCategory(direction, status.Code, requestedCategory),
             DocumentType = documentType,
             DocumentNumber = usesDocsShape ? null : ReadNestedString(item, "FacturaDoc", "FacturaNo"),
             DocumentDate = usesDocsShape ? null : ReadNestedDate(item, "FacturaDoc", "FacturaDate"),
@@ -184,7 +314,8 @@ public sealed class EdocsEdoOperations(
             Seller = usesDocsShape ? null : ReadParty(item, "Seller"),
             Buyer = usesDocsShape ? null : ReadParty(item, "Buyer"),
             TotalAmount = usesDocsShape ? null : ReadDecimal(item, "TotalAmount"),
-            CreatedAt = usesDocsShape ? ReadDateTimeOffset(item, "createdAt") : null
+            CreatedAt = usesDocsShape ? ReadDateTimeOffset(item, "createdAt") : null,
+            ProviderFields = ReadProviderFields(item)
         };
     }
 
@@ -439,4 +570,128 @@ public sealed class EdocsEdoOperations(
 
     private static string? ReadString(JsonElement item, string name) =>
         item.TryGetProperty(name, out var property) && property.ValueKind == JsonValueKind.String ? property.GetString() : null;
+
+    private static string? ReadOptionalString(JsonElement item, string name) => ReadString(item, name);
+
+    private static IReadOnlyDictionary<string, JsonElement> ReadProviderFields(JsonElement item)
+    {
+        if (item.ValueKind != JsonValueKind.Object)
+            return new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+
+        var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in item.EnumerateObject())
+        {
+            if (property.Name.Contains("token", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("pkcs7", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("signature", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("authorization", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("password", StringComparison.OrdinalIgnoreCase)
+                || property.Name.Contains("secret", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            fields[property.Name] = property.Value.Clone();
+        }
+
+        return fields;
+    }
+
+    private static IReadOnlyDictionary<string, int> ReadDirectionStatusCounts(JsonElement root, string direction)
+    {
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty(direction, out var directionProperty)
+            && directionProperty.ValueKind == JsonValueKind.Object)
+        {
+            return ReadStatusCounts(directionProperty);
+        }
+
+        return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IReadOnlyDictionary<string, int> ReadStatusCounts(JsonElement root)
+    {
+        var current = root;
+        for (var depth = 0; depth < 4; depth++)
+        {
+            if (current.ValueKind != JsonValueKind.Object)
+                break;
+
+            var directCounts = current.EnumerateObject()
+                .Where(property => property.Value.ValueKind == JsonValueKind.Number
+                                   && property.Value.TryGetInt32(out _))
+                .ToDictionary(
+                    property => property.Name,
+                    property => property.Value.GetInt32(),
+                    StringComparer.OrdinalIgnoreCase);
+            if (directCounts.Count > 0)
+                return directCounts;
+
+            var nested = new[] { "data", "stats", "counts", "in", "out" }
+                .Select(name => current.TryGetProperty(name, out var property)
+                    && property.ValueKind == JsonValueKind.Object
+                    ? property
+                    : (JsonElement?)null)
+                .FirstOrDefault(property => property is not null);
+            if (nested is null)
+                break;
+
+            current = nested.Value;
+        }
+
+        return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static int? ReadInt(JsonElement root, string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty(name, out var property))
+            return null;
+
+        if (property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return null;
+
+        if (property.ValueKind == JsonValueKind.Number
+            && property.TryGetInt32(out var value))
+            return value;
+
+        throw new IntegrationHttpException(
+            $"Edocs response field '{name}' must be an integer.",
+            StatusCodes.Status502BadGateway);
+    }
+
+    private static bool? ReadBool(JsonElement root, string name) =>
+        root.ValueKind == JsonValueKind.Object
+        && root.TryGetProperty(name, out var property)
+        && (property.ValueKind == JsonValueKind.True || property.ValueKind == JsonValueKind.False)
+            ? property.GetBoolean()
+            : null;
+
+    private static string? MapListStatus(
+        EdoDocumentStatusCode? status,
+        EdoDocumentCategory? category)
+    {
+        if (status is null)
+        {
+            return category switch
+            {
+                EdoDocumentCategory.DRAFTS => "drafts",
+                EdoDocumentCategory.REJECTED => "rejected",
+                EdoDocumentCategory.DELETED_ARCHIVED => "deleted",
+                _ => null
+            };
+        }
+
+        return status.Value switch
+        {
+            EdoDocumentStatusCode.DRAFT => "drafts",
+            EdoDocumentStatusCode.SENT => "sended",
+            EdoDocumentStatusCode.SIGNED => "signed",
+            EdoDocumentStatusCode.RECEIVED => "received",
+            EdoDocumentStatusCode.REJECTED => "rejected",
+            EdoDocumentStatusCode.DELETED
+                or EdoDocumentStatusCode.ARCHIVED
+                or EdoDocumentStatusCode.CANCELLED => "deleted",
+            _ => throw new InvalidOperationException(
+                $"Edocs status '{status}' has no confirmed provider query mapping.")
+        };
+    }
 }

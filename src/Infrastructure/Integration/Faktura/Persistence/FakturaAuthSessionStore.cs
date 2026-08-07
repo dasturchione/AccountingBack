@@ -71,6 +71,13 @@ public sealed class FakturaAuthSessionStore : IFakturaAuthSessionStore
             })
             .ToArray();
 
+        var earliestProviderExpiry = cookies
+            .Where(cookie => cookie.ExpiresAt is not null)
+            .Select(cookie => cookie.ExpiresAt!.Value)
+            .DefaultIfEmpty(DateTimeOffset.MaxValue)
+            .Min();
+        sessionExpiry = Min(sessionExpiry, earliestProviderExpiry);
+
         if (sessionExpiry <= now || !HasCompleteCookieSet(cookies.Select(cookie => cookie.Name)))
             throw new InvalidOperationException("Faktura authentication session is expired or has no valid cookies.");
 

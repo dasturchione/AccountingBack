@@ -48,7 +48,17 @@ public enum EdoCapabilityKind
     RejectInbox,
     GetFile,
     GetOutboxStatus,
-    GetInboxStatus
+    GetInboxStatus,
+    ListOutbox,
+    ListDrafts,
+    ListAll,
+    GetDetail,
+    Summary,
+    SearchFilter,
+    Delete,
+    Restore,
+    Export,
+    Marking
 }
 
 public sealed class EdoCapabilityDto
@@ -90,6 +100,50 @@ public sealed class EdoProviderSelectionDto
     public int Id { get; init; }
     public string Name { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
+}
+
+public sealed class EdoCapabilitiesResponseDto
+{
+    public EdoProviderCode Provider { get; init; }
+    public string DisplayName { get; init; } = string.Empty;
+    public IReadOnlyCollection<EdoAuthMode> AuthModes { get; init; } = [];
+    public IReadOnlyCollection<EdoSigningMode> SigningModes { get; init; } = [];
+    public EdoFrontendCapabilitiesDto Capabilities { get; init; } = new();
+    public IReadOnlyCollection<EdoCategoryCapabilityDto> CategoryCapabilities { get; init; } = [];
+    public IReadOnlyCollection<EdoStatusCapabilityDto> StatusCapabilities { get; init; } = [];
+    [JsonIgnore]
+    public IReadOnlyCollection<EdoCapabilityDto> RawCapabilities { get; init; } = [];
+}
+
+public sealed class EdoCategoryCapabilityDto
+{
+    public EdoDocumentCategory Category { get; init; }
+    public EdoCapabilityStatus Capability { get; init; }
+}
+
+public sealed class EdoStatusCapabilityDto
+{
+    public EdoDocumentStatusCode Status { get; init; }
+    public EdoCapabilityStatus Capability { get; init; }
+}
+
+public sealed class EdoFrontendCapabilitiesDto
+{
+    public EdoCapabilityStatus CanListInbox { get; init; }
+    public EdoCapabilityStatus CanListOutbox { get; init; }
+    public EdoCapabilityStatus CanListDrafts { get; init; }
+    public EdoCapabilityStatus CanListAll { get; init; }
+    public EdoCapabilityStatus CanAggregateAll { get; init; }
+    public EdoCapabilityStatus CanGetDetail { get; init; }
+    public EdoCapabilityStatus CanGetFile { get; init; }
+    public EdoCapabilityStatus CanGetStatus { get; init; }
+    public EdoCapabilityStatus CanCreate { get; init; }
+    public EdoCapabilityStatus CanSign { get; init; }
+    public EdoCapabilityStatus CanReject { get; init; }
+    public EdoCapabilityStatus CanDelete { get; init; }
+    public EdoCapabilityStatus CanRestore { get; init; }
+    public EdoCapabilityStatus CanExport { get; init; }
+    public EdoCapabilityStatus CanMarking { get; init; }
 }
 
 public static class EdoProviderFrontendCatalog

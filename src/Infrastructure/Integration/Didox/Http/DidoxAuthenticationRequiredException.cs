@@ -4,7 +4,8 @@ namespace Integration.Didox.Http;
 
 /// <summary>
 /// DidoxTokenCache'da tashkilot uchun amaldagi user-key token yo'q. Bu handler
-/// avtomatik login QILMAYDI — chaqiruvchi avval DidoxAuthController orqali
+/// avtomatik login QILMAYDI — chaqiruvchi avval /api/edo/auth/challenge va
+/// /api/edo/auth/complete common oqimi orqali
 /// (GET /auth/challenge → frontend/e-imzo bilan imzolash → POST /auth/complete)
 /// yangi token olishi kerak (EdocsAuthenticationRequiredException bilan bir xil naqsh).
 /// </summary>

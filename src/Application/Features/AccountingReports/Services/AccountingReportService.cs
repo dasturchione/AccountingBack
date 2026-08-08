@@ -439,6 +439,7 @@ public class AccountingReportService : IAccountingReportService
         {
             AccountId = row.AccountId,
             AccountCode = row.AccountCode,
+            AccountNumber = row.AccountNumber,
             AccountName = row.AccountName,
             OpeningDebit = openingNet > 0m ? openingNet : 0m,
             OpeningCredit = openingNet < 0m ? decimal.Abs(openingNet) : 0m,

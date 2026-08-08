@@ -15,8 +15,9 @@ public class TrialBalanceReadResult
 public class TrialBalanceReadRow
 {
     public int AccountId { get; set; }
-    public string AccountCode { get; set; } = null!;
     public string AccountName { get; set; } = null!;
+    public string AccountCode { get; set; } = null!;
+    public string AccountNumber { get; set; } = null!;
     public short? AccountTypeId { get; set; }
     public decimal OpeningDebitTurnover { get; set; }
     public decimal OpeningCreditTurnover { get; set; }

@@ -13,9 +13,15 @@ public static class ServiceCollectionExtensions
     {
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<EdocsOptions>, EdocsOptionsValidator>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<EdocsTokenStorageOptions>, EdocsTokenStorageOptionsValidator>());
 
         services.AddOptions<EdocsOptions>()
             .Bind(configuration.GetSection(EdocsOptions.SectionName))
+            .ValidateOnStart();
+
+        services.AddOptions<EdocsTokenStorageOptions>()
+            .Bind(configuration.GetSection(EdocsTokenStorageOptions.SectionName))
             .ValidateOnStart();
 
         services.AddSingleton<EdocsTokenCache>();

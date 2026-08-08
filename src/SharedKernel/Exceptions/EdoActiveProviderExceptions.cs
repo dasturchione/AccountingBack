@@ -8,6 +8,14 @@ public sealed class EdoOrganizationScopeRequiredException : InvalidOperationExce
     }
 }
 
+public sealed class EdoProviderDocumentIdentityRequiredException : InvalidOperationException
+{
+    public EdoProviderDocumentIdentityRequiredException()
+        : base("A provider document identity is required for this request.")
+    {
+    }
+}
+
 public sealed class EdoActiveProviderNotConfiguredException : InvalidOperationException
 {
     public EdoActiveProviderNotConfiguredException(int organizationId)

@@ -27,6 +27,11 @@ public sealed class EdocsOptionsValidator : IValidateOptions<EdocsOptions>
         if (string.IsNullOrWhiteSpace(options.PartnerId))
             failures.Add("Edocs:PartnerId is required.");
 
+        if (options.ChallengeTtlSeconds <= 0)
+            failures.Add("Edocs:ChallengeTtlSeconds must be greater than zero.");
+        else if (options.ChallengeTtlSeconds > 120)
+            failures.Add("Edocs:ChallengeTtlSeconds must not exceed the provider contract TTL of 120 seconds.");
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

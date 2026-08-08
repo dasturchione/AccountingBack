@@ -42,6 +42,11 @@ public sealed class FakturaEdoProvider(FakturaEdoOperations edoOperations) : IEd
         CancellationToken ct = default) =>
         edoOperations.ListInboxAsync(request, ct);
 
+    public Task<EdoInboxListDto> ListDocumentsAsync(
+        EdoDocumentQueryDto request,
+        CancellationToken ct = default) =>
+        edoOperations.ListDocumentsAsync(request, ct);
+
     public Task<EdoInboxRejectDto> RejectInboxAsync(
         string providerDocumentType,
         string providerDocumentId,
@@ -82,12 +87,15 @@ public sealed class FakturaEdoProvider(FakturaEdoOperations edoOperations) : IEd
                 .Select(kind => new EdoCapabilityDto
                 {
                     Kind = kind,
-                    Status = kind is EdoCapabilityKind.AuthComplete
-                        or EdoCapabilityKind.ListInbox
-                        or EdoCapabilityKind.GetFile
-                        or EdoCapabilityKind.GetInboxStatus
-                        ? EdoCapabilityStatus.SUPPORTED
-                        : EdoCapabilityStatus.UNKNOWN
+                    Status = kind switch
+                    {
+                        EdoCapabilityKind.AuthComplete
+                            or EdoCapabilityKind.ListInbox
+                            or EdoCapabilityKind.ListOutbox
+                            or EdoCapabilityKind.GetFile
+                            or EdoCapabilityKind.GetInboxStatus => EdoCapabilityStatus.SUPPORTED,
+                        _ => EdoCapabilityStatus.UNKNOWN
+                    }
                 })
                 .ToList()
         };

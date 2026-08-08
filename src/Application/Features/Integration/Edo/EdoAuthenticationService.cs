@@ -36,7 +36,10 @@ public sealed class EdoAuthenticationService(
 
         var providerChallenge = await provider.GetAuthChallengeAsync(request, ct);
         var challengeId = RequireValue(providerChallenge.ChallengeId, nameof(providerChallenge.ChallengeId));
-        var expiresAt = DateTimeOffset.UtcNow.Add(SigningSessionLifetime);
+        var expiresAt = EdoAuthSessionExpiry.Calculate(
+            DateTimeOffset.UtcNow,
+            SigningSessionLifetime,
+            providerChallenge.ExpiresAt);
         var signingMode = ResolveSigningMode(provider);
         var certificateSerialNumber = provider.Code == EdoProviderCode.EDOCS
             ? request.CertificateSerialNumber

@@ -29,7 +29,8 @@ public sealed class EdocsEdoProvider(
             ChallengeId = result.AuthId,
             AuthMode = EdoAuthMode.EImzo,
             Payload = challengePayload,
-            PayloadFormat = "Json"
+            PayloadFormat = "Json",
+            ExpiresAt = result.ExpiresAt
         };
     }
 
@@ -126,6 +127,21 @@ public sealed class EdocsEdoProvider(
         EdoInboxQueryDto request,
         CancellationToken ct = default) =>
         edoOperations.ListInboxAsync(request, ct);
+
+    public Task<EdoInboxListDto> ListDocumentsAsync(
+        EdoDocumentQueryDto request,
+        CancellationToken ct = default) =>
+        edoOperations.ListDocumentsAsync(request, ct);
+
+    public Task<EdoDocumentDto> GetDocumentDetailsAsync(
+        EdoDirection direction,
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        edoOperations.GetDocumentDetailsAsync(direction, providerDocumentType, providerDocumentId, ct);
+
+    public Task<EdoInboxSummaryDto> GetInboxSummaryAsync(CancellationToken ct = default) =>
+        edoOperations.GetInboxSummaryAsync(ct);
 
     public Task<EdoInboxRejectDto> RejectInboxAsync(
         string providerDocumentType,
@@ -225,16 +241,25 @@ public sealed class EdocsEdoProvider(
                 .Select(kind => new EdoCapabilityDto
                 {
                     Kind = kind,
-                    Status = kind is EdoCapabilityKind.AuthChallenge
-                        or EdoCapabilityKind.AuthComplete
-                        or EdoCapabilityKind.CreateFactura
-                        or EdoCapabilityKind.SignOutbox
-                        or EdoCapabilityKind.ListInbox
-                        or EdoCapabilityKind.GetFile
-                        or EdoCapabilityKind.GetOutboxStatus
-                        or EdoCapabilityKind.GetInboxStatus
-                        ? EdoCapabilityStatus.SUPPORTED
-                        : EdoCapabilityStatus.UNKNOWN
+                    Status = kind switch
+                    {
+                        EdoCapabilityKind.AuthChallenge
+                            or EdoCapabilityKind.AuthComplete
+                            or EdoCapabilityKind.CreateFactura
+                            or EdoCapabilityKind.SignOutbox
+                            or EdoCapabilityKind.ListInbox
+                            or EdoCapabilityKind.ListOutbox
+                            or EdoCapabilityKind.ListDrafts
+                            or EdoCapabilityKind.GetDetail
+                            or EdoCapabilityKind.GetFile
+                            or EdoCapabilityKind.GetOutboxStatus
+                            or EdoCapabilityKind.GetInboxStatus
+                            or EdoCapabilityKind.RejectInbox
+                            or EdoCapabilityKind.Summary => EdoCapabilityStatus.SUPPORTED,
+                        EdoCapabilityKind.SearchFilter
+                            or EdoCapabilityKind.Marking => EdoCapabilityStatus.PARTIAL,
+                        _ => EdoCapabilityStatus.UNKNOWN
+                    }
                 })
                 .ToList()
         };

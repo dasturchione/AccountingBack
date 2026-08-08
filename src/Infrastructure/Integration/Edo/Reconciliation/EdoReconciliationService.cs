@@ -31,11 +31,13 @@ public sealed class EdoReconciliationService(
         EdoDirection direction,
         CancellationToken ct = default)
     {
+        if (documentId <= 0)
+            throw new EdoDocumentNotFoundException();
+
         var organizationId = RequireOrganization();
         var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
         var document = await documentStore.GetAsync(organizationId, provider.Code, documentId, ct)
-            ?? throw new InvalidOperationException(
-                "The EDO document was not found in the current organization/provider scope.");
+            ?? throw new EdoDocumentNotFoundException();
 
         if (!string.Equals(document.Direction, direction.ToString(), StringComparison.Ordinal))
             throw new EdoDocumentDirectionMismatchException();

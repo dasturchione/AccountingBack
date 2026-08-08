@@ -9,6 +9,7 @@ using SharedKernel.Exceptions;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 using System.Globalization;
+using System.Text.Json;
 using ApplicationSigningSession = Application.Abstractions.Integration.Edo.EdoDocumentSigningSession;
 
 namespace Application.Features.Integration.Edo;
@@ -32,6 +33,7 @@ public sealed class EdoInboxService(
 
     public async Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct = default)
     {
+        EnsureCategoryMatchesDirection(EdoDirection.INBOX, request.Category);
         var organizationId = RequireOrganization();
         var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
         EnsureCapability(provider, EdoCapabilityKind.ListInbox);
@@ -46,7 +48,7 @@ public sealed class EdoInboxService(
             foreach (var providerDocument in providerResult.Items)
             {
                 var localDocument = await UpsertInboxDocumentAsync(organizationId, provider.Code, providerDocument, ct);
-                items.Add(MapDocument(localDocument, providerDocument));
+                items.Add(MapDocument(localDocument, providerDocument, provider.Code));
             }
 
             return Result.Success();
@@ -57,8 +59,231 @@ public sealed class EdoInboxService(
             Items = items,
             Page = providerResult.Page,
             PageSize = providerResult.PageSize,
-            TotalCount = providerResult.TotalCount
+            TotalCount = providerResult.TotalCount,
+            TotalDocs = providerResult.TotalDocs,
+            TotalPages = providerResult.TotalPages,
+            HasNextPage = providerResult.HasNextPage,
+            HasPrevPage = providerResult.HasPrevPage,
+            HasPreviousPage = providerResult.HasPreviousPage ?? providerResult.HasPrevPage,
+            Limit = providerResult.Limit,
+            NextPage = providerResult.NextPage,
+            PrevPage = providerResult.PrevPage,
+            PreviousPage = providerResult.PreviousPage ?? providerResult.PrevPage,
+            PagingCounter = providerResult.PagingCounter
         };
+    }
+
+    public async Task<EdoInboxListDto> ListDocumentsAsync(
+        EdoDocumentQueryDto request,
+        CancellationToken ct = default)
+    {
+        if (request.Scope != EdoDocumentQueryScope.ALL)
+        {
+            EnsureCategoryMatchesDirection(
+                request.Scope == EdoDocumentQueryScope.INBOX
+                    ? EdoDirection.INBOX
+                    : EdoDirection.OUTBOX,
+                request.Category);
+        }
+        var organizationId = RequireOrganization();
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+        var capability = request.Scope switch
+        {
+            EdoDocumentQueryScope.INBOX => EdoCapabilityKind.ListInbox,
+            EdoDocumentQueryScope.OUTBOX => EdoCapabilityKind.ListOutbox,
+            EdoDocumentQueryScope.ALL => EdoCapabilityKind.ListAll,
+            _ => EdoCapabilityKind.ListInbox
+        };
+        EnsureCapability(provider, capability);
+
+        if (request.Page < 1 || request.Limit is < 1 or > 100)
+            throw new InvalidOperationException("EDO page must be at least 1 and limit must be between 1 and 100.");
+
+        if (request.Scope == EdoDocumentQueryScope.INBOX)
+            return await ListInboxAsync(request.ToInboxQuery(), ct);
+
+        var providerResult = await provider.ListDocumentsAsync(request, ct);
+        var items = new List<EdoDocumentDto>(providerResult.Items.Count);
+        foreach (var providerDocument in providerResult.Items)
+        {
+            if (string.IsNullOrWhiteSpace(providerDocument.ProviderDocumentId))
+            {
+                items.Add(providerDocument);
+                continue;
+            }
+
+            var localDocument = await documentStore.FindByProviderDocumentIdAsync(
+                organizationId,
+                provider.Code,
+                providerDocument.ProviderDocumentId,
+                ct);
+            items.Add(localDocument is null
+                ? MapUnpersistedProviderDocument(providerDocument)
+                : MapDocument(localDocument, providerDocument, provider.Code));
+        }
+
+        return new EdoInboxListDto
+        {
+            Items = items,
+            Page = providerResult.Page,
+            PageSize = providerResult.PageSize,
+            TotalCount = providerResult.TotalCount,
+            TotalDocs = providerResult.TotalDocs,
+            TotalPages = providerResult.TotalPages,
+            HasNextPage = providerResult.HasNextPage,
+            HasPrevPage = providerResult.HasPrevPage,
+            HasPreviousPage = providerResult.HasPreviousPage ?? providerResult.HasPrevPage,
+            Limit = providerResult.Limit,
+            NextPage = providerResult.NextPage,
+            PrevPage = providerResult.PrevPage,
+            PreviousPage = providerResult.PreviousPage ?? providerResult.PrevPage,
+            PagingCounter = providerResult.PagingCounter
+        };
+    }
+
+    public async Task<EdoInboxListDto> ListAllDocumentsAsync(
+        EdoAllDocumentsQueryDto request,
+        CancellationToken ct = default)
+    {
+        var organizationId = RequireOrganization();
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+        var includeInbox = request.Category != EdoDocumentCategory.OUTBOX;
+        var includeOutbox = request.Category != EdoDocumentCategory.INBOX;
+        if (includeInbox)
+            EnsureCapability(provider, EdoCapabilityKind.ListInbox);
+        if (includeOutbox)
+            EnsureCapability(provider, EdoCapabilityKind.ListOutbox);
+
+        if (request.Page < 1 || request.EffectivePageSize is < 1 or > 100)
+            throw new InvalidOperationException("EDO page must be at least 1 and page size must be between 1 and 100.");
+
+        var pageSize = request.EffectivePageSize;
+
+        // Fetch both directions through their existing provider contracts. The
+        // provider ListAll contract is intentionally never used here.
+        var firstInboxPage = includeInbox
+            ? await provider.ListInboxAsync(request.ToInboxQuery(1), ct)
+            : null;
+        var firstOutboxPage = includeOutbox
+            ? await provider.ListDocumentsAsync(request.ToOutboxQuery(1), ct)
+            : null;
+        var inboxTotal = firstInboxPage is null
+            ? 0
+            : RequireProviderTotal(firstInboxPage, provider.Code, EdoDirection.INBOX);
+        var outboxTotal = firstOutboxPage is null
+            ? 0
+            : RequireProviderTotal(firstOutboxPage, provider.Code, EdoDirection.OUTBOX);
+        var totalCount = checked(inboxTotal + outboxTotal);
+        var totalPages = totalCount == 0
+            ? 0
+            : checked((totalCount + pageSize - 1) / pageSize);
+        var offset = checked((request.Page - 1) * pageSize);
+        var items = new List<EdoDocumentDto>(pageSize);
+
+        if (totalCount == 0)
+        {
+            return new EdoInboxListDto
+            {
+                Items = items,
+                Page = request.Page,
+                PageSize = pageSize,
+                TotalCount = 0,
+                TotalDocs = 0,
+                TotalPages = 0,
+                HasNextPage = false,
+                HasPrevPage = false,
+                HasPreviousPage = false,
+                NextPage = null,
+                PrevPage = null,
+                PreviousPage = null,
+                PagingCounter = 0
+            };
+        }
+
+        if (includeInbox && offset < inboxTotal)
+        {
+            var inboxPageNumber = offset / pageSize + 1;
+            var inboxPage = inboxPageNumber == 1
+                ? firstInboxPage!
+                : await provider.ListInboxAsync(request.ToInboxQuery(inboxPageNumber), ct);
+            var inboxItems = await MapReadOnlyProviderItemsAsync(
+                organizationId,
+                provider,
+                inboxPage,
+                ct);
+            items.AddRange(inboxItems.Skip(offset % pageSize).Take(pageSize));
+
+            if (includeOutbox && outboxTotal > 0 && items.Count < pageSize && offset + pageSize > inboxTotal)
+            {
+                var outboxItems = await MapReadOnlyProviderItemsAsync(
+                    organizationId,
+                    provider,
+                    firstOutboxPage!,
+                    ct);
+                items.AddRange(outboxItems.Take(pageSize - items.Count));
+            }
+        }
+        else if (includeOutbox && outboxTotal > 0)
+        {
+            var outboxOffset = offset - inboxTotal;
+            var outboxPageNumber = outboxOffset / pageSize + 1;
+            var outboxPage = outboxPageNumber == 1
+                ? firstOutboxPage!
+                : await provider.ListDocumentsAsync(request.ToOutboxQuery(outboxPageNumber), ct);
+            var outboxItems = await MapReadOnlyProviderItemsAsync(
+                organizationId,
+                provider,
+                outboxPage,
+                ct);
+            items.AddRange(outboxItems.Skip(outboxOffset % pageSize).Take(pageSize));
+        }
+
+        return new EdoInboxListDto
+        {
+            Items = items,
+            Page = request.Page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalDocs = totalCount,
+            TotalPages = totalPages,
+            HasNextPage = request.Page < totalPages,
+            HasPrevPage = request.Page > 1,
+            HasPreviousPage = request.Page > 1,
+            NextPage = request.Page < totalPages ? request.Page + 1 : null,
+            PrevPage = request.Page > 1 ? request.Page - 1 : null,
+            PreviousPage = request.Page > 1 ? request.Page - 1 : null,
+            PagingCounter = totalCount == 0 ? 0 : offset + 1
+        };
+    }
+
+    public async Task<EdoDocumentDto> GetDetailsAsync(
+        long id,
+        CancellationToken ct = default)
+    {
+        var organizationId = RequireOrganization();
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+        EnsureCapability(provider, EdoCapabilityKind.GetDetail);
+
+        var document = await documentStore.GetAsync(organizationId, provider.Code, id, ct)
+            ?? throw new InvalidOperationException("The EDO document was not found in the current organization/provider scope.");
+
+        if (string.IsNullOrWhiteSpace(document.ProviderDocumentId))
+            throw new InvalidOperationException("The EDO document has no provider document ID.");
+
+        var providerDocument = await provider.GetDocumentDetailsAsync(
+            ParseDirection(document.Direction),
+            document.DocumentType,
+            document.ProviderDocumentId,
+            ct);
+
+        return MapDocument(document, providerDocument, provider.Code);
+    }
+
+    public async Task<EdoInboxSummaryDto> GetSummaryAsync(CancellationToken ct = default)
+    {
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+        EnsureCapability(provider, EdoCapabilityKind.Summary);
+        return await provider.GetInboxSummaryAsync(ct);
     }
 
     public async Task<EdoInboxRejectDto> RejectAsync(
@@ -460,7 +685,35 @@ public sealed class EdoInboxService(
         long id,
         EdoDirection direction,
         CancellationToken ct = default)
-        => (await reconciliationService.ReconcileAsync(id, direction, ct)).Status;
+    {
+        if (id <= 0)
+            throw new EdoDocumentNotFoundException();
+
+        return (await reconciliationService.ReconcileAsync(id, direction, ct)).Status;
+    }
+
+    public async Task<EdoProviderDocumentStatusResponseDto> GetRemoteOutboxStatusAsync(
+        string providerDocumentId,
+        CancellationToken ct = default)
+    {
+        RequireOrganization();
+        if (string.IsNullOrWhiteSpace(providerDocumentId))
+            throw new EdoProviderDocumentIdentityRequiredException();
+
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+        EnsureCapability(provider, EdoCapabilityKind.GetOutboxStatus);
+
+        var identity = providerDocumentId.Trim();
+        var status = await provider.GetOutboxStatusAsync(identity, ct);
+        return new EdoProviderDocumentStatusResponseDto
+        {
+            DocumentIdentity = identity,
+            ProviderDocumentId = identity,
+            ProviderCode = provider.Code,
+            Direction = EdoDirection.OUTBOX,
+            Status = status
+        };
+    }
 
     private async Task<EdoDocument> UpsertInboxDocumentAsync(
         int organizationId,
@@ -525,6 +778,44 @@ public sealed class EdoInboxService(
         return document;
     }
 
+    private async Task<IReadOnlyCollection<EdoDocumentDto>> MapReadOnlyProviderItemsAsync(
+        int organizationId,
+        IEdoProvider provider,
+        EdoInboxListDto providerResult,
+        CancellationToken ct)
+    {
+        var items = new List<EdoDocumentDto>(providerResult.Items.Count);
+        foreach (var providerDocument in providerResult.Items)
+        {
+            if (string.IsNullOrWhiteSpace(providerDocument.ProviderDocumentId))
+            {
+                items.Add(providerDocument);
+                continue;
+            }
+
+            var localDocument = await documentStore.FindByProviderDocumentIdAsync(
+                organizationId,
+                provider.Code,
+                providerDocument.ProviderDocumentId,
+                ct);
+            items.Add(localDocument is null
+                ? MapUnpersistedProviderDocument(providerDocument)
+                : MapDocument(localDocument, providerDocument, provider.Code));
+        }
+
+        return items;
+    }
+
+    private static int RequireProviderTotal(
+        EdoInboxListDto response,
+        EdoProviderCode providerCode,
+        EdoDirection direction) =>
+        response.TotalCount
+            ?? response.TotalDocs
+            ?? throw new IntegrationHttpException(
+                $"{providerCode} {direction} response did not contain a total count metadata field.",
+                502);
+
     private async Task MarkRejectFailureAsync(EdoDocument document, Exception exception, CancellationToken ct)
     {
         var remoteStateUnknown = exception is OperationCanceledException
@@ -566,6 +857,21 @@ public sealed class EdoInboxService(
     private int RequireOrganization() => userContext.OrganizationId
         ?? throw new EdoOrganizationScopeRequiredException();
 
+    private static void EnsureCategoryMatchesDirection(
+        EdoDirection direction,
+        EdoDocumentCategory? category)
+    {
+        var isMismatch = direction == EdoDirection.INBOX
+            ? category == EdoDocumentCategory.OUTBOX
+            : category == EdoDocumentCategory.INBOX;
+        if (!isMismatch)
+            return;
+
+        throw new IntegrationHttpException(
+            $"Category '{category}' does not match the {direction} EDO endpoint.",
+            400);
+    }
+
     private static void EnsureCapability(IEdoProvider provider, EdoCapabilityKind capability)
     {
         var status = provider.Capabilities.Capabilities.SingleOrDefault(item => item.Kind == capability)?.Status
@@ -578,6 +884,8 @@ public sealed class EdoInboxService(
         or nameof(EdoDocumentStatusCode.SIGNED)
         or nameof(EdoDocumentStatusCode.COMPLETED)
         or nameof(EdoDocumentStatusCode.CANCELLED)
+        or nameof(EdoDocumentStatusCode.DELETED)
+        or nameof(EdoDocumentStatusCode.ARCHIVED)
         or nameof(EdoDocumentStatusCode.FAILED)
         or nameof(EdoDocumentStatusCode.RECONCILIATION_REQUIRED);
 
@@ -593,28 +901,234 @@ public sealed class EdoInboxService(
         SignatureHex = request.SignatureHex
     };
 
-    private static EdoDocumentDto MapDocument(EdoDocument document, EdoDocumentDto? providerDocument = null) => new()
+    private static EdoDocumentDto MapDocument(
+        EdoDocument document,
+        EdoDocumentDto? providerDocument = null,
+        EdoProviderCode? providerCode = null)
     {
-        Id = document.Id,
-        ProviderDocumentId = document.ProviderDocumentId,
-        Direction = ParseDirection(document.Direction),
-        DocumentType = document.DocumentType,
-        DocumentNumber = document.DocumentNumber,
-        DocumentDate = document.DocumentDate,
-        Status = new EdoDocumentStatusDto
+        var direction = ParseDirection(document.Direction);
+        var localStatus = ParseStatus(document.Status);
+        var status = providerDocument?.Status ?? new EdoDocumentStatusDto
         {
-            Code = ParseStatus(document.Status),
-            LocalCode = ParseStatus(document.Status),
+            Code = localStatus,
+            LocalCode = localStatus,
             ProviderStatusCode = document.ProviderStatusCode,
-            IsReconciliationRequired = document.Status == nameof(EdoDocumentStatusCode.RECONCILIATION_REQUIRED)
-        },
-        Seller = providerDocument?.Seller,
-        Buyer = providerDocument?.Buyer,
-        TotalAmount = providerDocument?.TotalAmount,
-        CurrencyCode = providerDocument?.CurrencyCode,
-        CreatedAt = document.CreatedAt,
-        UpdatedAt = document.UpdatedAt
+            ProviderRawStatus = document.ProviderStatusCode,
+            IsReconciliationRequired = localStatus == EdoDocumentStatusCode.RECONCILIATION_REQUIRED
+        };
+        var providerFields = providerDocument?.ProviderFields
+            ?? new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        var edocsFields = IsEdocs(providerDocument, providerCode)
+            ? ReadEdocsCommonFields(providerFields)
+            : EdocsCommonFields.Empty;
+
+        return new EdoDocumentDto
+        {
+            Id = document.Id,
+            StatusCheckable = document.Id > 0,
+            ProviderCode = providerDocument?.ProviderCode
+                ?? providerCode
+                ?? ParseProviderCode(document.Provider),
+            ProviderDocumentId = document.ProviderDocumentId,
+            Direction = providerDocument?.Direction ?? direction,
+            Category = providerDocument?.Category ?? MapCategory(direction, status.Code),
+            DocumentType = document.DocumentType,
+            DocumentNumber = providerDocument?.DocumentNumber
+                ?? edocsFields.DocumentNumber
+                ?? document.DocumentNumber,
+            DocumentDate = providerDocument?.DocumentDate
+                ?? edocsFields.DocumentDate
+                ?? document.DocumentDate,
+            Status = new EdoDocumentStatusDto
+            {
+                Code = status.Code,
+                LocalCode = localStatus,
+                ProviderStatusCode = status.ProviderStatusCode ?? document.ProviderStatusCode,
+                ProviderRawStatus = status.ProviderRawStatus ?? status.ProviderStatusCode ?? document.ProviderStatusCode,
+                Description = status.Description,
+                IsTerminal = status.IsTerminal,
+                IsSuccessful = status.IsSuccessful,
+                CheckedAt = status.CheckedAt,
+                IsReconciliationRequired = localStatus == EdoDocumentStatusCode.RECONCILIATION_REQUIRED
+                    || status.IsReconciliationRequired
+            },
+            Empowerment = providerDocument?.Empowerment,
+            Seller = providerDocument?.Seller ?? edocsFields.Seller,
+            Buyer = providerDocument?.Buyer ?? edocsFields.Buyer,
+            TotalAmount = providerDocument?.TotalAmount ?? edocsFields.TotalAmount,
+            CurrencyCode = providerDocument?.CurrencyCode,
+            MarkingCodes = providerDocument?.MarkingCodes ?? [],
+            ProviderFields = providerFields,
+            CreatedAt = document.CreatedAt,
+            UpdatedAt = document.UpdatedAt
+        };
+    }
+
+    private static EdoDocumentDto MapUnpersistedProviderDocument(EdoDocumentDto providerDocument)
+    {
+        var edocsFields = IsEdocs(providerDocument, null)
+            ? ReadEdocsCommonFields(providerDocument.ProviderFields)
+            : EdocsCommonFields.Empty;
+
+        return new EdoDocumentDto
+        {
+        // A provider document ID is not a common numeric document ID. Keep it
+        // in its dedicated field and make status/detail actions unavailable
+        // until a local EdoDocument has been resolved.
+        Id = null,
+        StatusCheckable = false,
+        ProviderCode = providerDocument.ProviderCode,
+        ProviderDocumentId = providerDocument.ProviderDocumentId,
+        Direction = providerDocument.Direction,
+        Category = providerDocument.Category,
+        DocumentType = providerDocument.DocumentType,
+        DocumentNumber = providerDocument.DocumentNumber ?? edocsFields.DocumentNumber,
+        DocumentDate = providerDocument.DocumentDate ?? edocsFields.DocumentDate,
+        Status = providerDocument.Status,
+        Empowerment = providerDocument.Empowerment,
+        Seller = providerDocument.Seller ?? edocsFields.Seller,
+        Buyer = providerDocument.Buyer ?? edocsFields.Buyer,
+        TotalAmount = providerDocument.TotalAmount ?? edocsFields.TotalAmount,
+        CurrencyCode = providerDocument.CurrencyCode,
+        CreatedAt = providerDocument.CreatedAt,
+        UpdatedAt = providerDocument.UpdatedAt,
+        MarkingCodes = providerDocument.MarkingCodes,
+        ProviderFields = providerDocument.ProviderFields,
+        LegacyDocumentId = providerDocument.LegacyDocumentId
+        };
+    }
+
+    private static bool IsEdocs(EdoDocumentDto? providerDocument, EdoProviderCode? providerCode) =>
+        (providerDocument?.ProviderCode ?? providerCode) == EdoProviderCode.EDOCS;
+
+    private static EdocsCommonFields ReadEdocsCommonFields(
+        IReadOnlyDictionary<string, JsonElement> fields)
+    {
+        var seller = ReadParty(
+            ReadStringField(fields, "ownerName"),
+            ReadStringField(fields, "ownerTin"));
+
+        return new EdocsCommonFields(
+            ReadStringField(fields, "docNumber"),
+            ReadDateField(fields, "docDate"),
+            ReadDecimalField(fields, "totalDocSum"),
+            seller,
+            ReadBuyer(fields));
+    }
+
+    private static EdoPartyDto? ReadBuyer(IReadOnlyDictionary<string, JsonElement> fields)
+    {
+        if (!fields.TryGetValue("targetTins", out var targetTins)
+            || targetTins.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var target in targetTins.EnumerateArray())
+        {
+            if (target.ValueKind != JsonValueKind.Object
+                || !string.Equals(
+                    ReadStringProperty(target, "side"),
+                    "buyer",
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var party = ReadParty(
+                ReadStringProperty(target, "name"),
+                ReadStringProperty(target, "tin"));
+            if (party is not null)
+                return party;
+        }
+
+        return null;
+    }
+
+    private static EdoPartyDto? ReadParty(string? name, string? taxIdentifier) =>
+        string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(taxIdentifier)
+            ? null
+            : new EdoPartyDto
+            {
+                Name = name ?? string.Empty,
+                TaxIdentifier = taxIdentifier ?? string.Empty
+            };
+
+    private static string? ReadStringField(
+        IReadOnlyDictionary<string, JsonElement> fields,
+        string name) => fields.TryGetValue(name, out var value)
+            ? ReadScalarString(value)
+            : null;
+
+    private static string? ReadStringProperty(JsonElement objectElement, string name) =>
+        objectElement.ValueKind == JsonValueKind.Object
+        && objectElement.TryGetProperty(name, out var value)
+            ? ReadScalarString(value)
+            : null;
+
+    private static string? ReadScalarString(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => string.IsNullOrWhiteSpace(value.GetString()) ? null : value.GetString()!.Trim(),
+        JsonValueKind.Number => value.GetRawText(),
+        _ => null
     };
+
+    private static DateOnly? ReadDateField(
+        IReadOnlyDictionary<string, JsonElement> fields,
+        string name)
+    {
+        var value = ReadStringField(fields, name);
+        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return date;
+
+        return DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+            out var timestamp)
+            ? DateOnly.FromDateTime(timestamp.UtcDateTime)
+            : null;
+    }
+
+    private static decimal? ReadDecimalField(
+        IReadOnlyDictionary<string, JsonElement> fields,
+        string name)
+    {
+        if (!fields.TryGetValue(name, out var value))
+            return null;
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number))
+            return number;
+
+        return value.ValueKind == JsonValueKind.String
+            && decimal.TryParse(
+                value.GetString(),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var parsed)
+            ? parsed
+            : null;
+    }
+
+    private sealed record EdocsCommonFields(
+        string? DocumentNumber,
+        DateOnly? DocumentDate,
+        decimal? TotalAmount,
+        EdoPartyDto? Seller,
+        EdoPartyDto? Buyer)
+    {
+        public static EdocsCommonFields Empty { get; } = new(null, null, null, null, null);
+    }
+
+    private static EdoDocumentCategory MapCategory(EdoDirection direction, EdoDocumentStatusCode status) => status switch
+    {
+        EdoDocumentStatusCode.DRAFT => EdoDocumentCategory.DRAFTS,
+        EdoDocumentStatusCode.REJECTED => EdoDocumentCategory.REJECTED,
+        EdoDocumentStatusCode.DELETED or EdoDocumentStatusCode.ARCHIVED or EdoDocumentStatusCode.CANCELLED
+            => EdoDocumentCategory.DELETED_ARCHIVED,
+        _ => direction == EdoDirection.INBOX ? EdoDocumentCategory.INBOX : EdoDocumentCategory.OUTBOX
+    };
+
+    private static EdoProviderCode ParseProviderCode(string value) =>
+        Enum.TryParse<EdoProviderCode>(value, true, out var result)
+            ? result
+            : throw new InvalidOperationException("The stored EDO document contains an invalid provider code.");
 
     private static string SanitizeFileName(string? fileName, long documentId)
     {

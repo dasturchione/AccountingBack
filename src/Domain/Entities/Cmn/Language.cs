@@ -34,8 +34,11 @@ public partial class Language
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("Language")]
+    [InverseProperty(nameof(Translation.Language))]
     public virtual ICollection<Translation> Translations { get; set; } = new List<Translation>();
+
+    [InverseProperty(nameof(PaymentMethodTranslation.Language))]
+    public virtual ICollection<PaymentMethodTranslation> PaymentMethodTranslations { get; set; } = new List<PaymentMethodTranslation>();
 
     [InverseProperty(nameof(DocumentAccountRoleTranslation.Language))]
     public virtual ICollection<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; } = new List<DocumentAccountRoleTranslation>();

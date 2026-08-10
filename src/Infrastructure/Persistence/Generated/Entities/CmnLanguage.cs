@@ -96,6 +96,9 @@ public partial class CmnLanguage
     [InverseProperty("DefaultLanguage")]
     public virtual ICollection<OrgOrganization> OrgOrganizations { get; set; } = new List<OrgOrganization>();
 
+    [InverseProperty("Language")]
+    public virtual ICollection<RtlPaymentMethodTranslation> RtlPaymentMethodTranslations { get; set; } = new List<RtlPaymentMethodTranslation>();
+
     [ForeignKey("StateId")]
     [InverseProperty("CmnLanguages")]
     public virtual CmnState State { get; set; } = null!;

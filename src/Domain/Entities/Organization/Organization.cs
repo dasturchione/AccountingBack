@@ -78,6 +78,9 @@ public partial class Organization
     [InverseProperty(nameof(AccountingRegisterEntry.Organization))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
+    [InverseProperty(nameof(BankTerminal.Organization))]
+    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+
     [InverseProperty(nameof(DocumentAccountSetting.Organization))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 

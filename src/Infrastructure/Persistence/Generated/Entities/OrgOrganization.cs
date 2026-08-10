@@ -102,6 +102,9 @@ public partial class OrgOrganization
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
 
     [InverseProperty("Organization")]

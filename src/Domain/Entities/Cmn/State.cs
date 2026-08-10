@@ -30,6 +30,9 @@ public partial class State
     [InverseProperty(nameof(DocumentAccountRole.State))]
     public virtual ICollection<DocumentAccountRole> DocumentAccountRoles { get; set; } = new List<DocumentAccountRole>();
 
+    [InverseProperty(nameof(BankTerminal.State))]
+    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+
     [InverseProperty(nameof(DocumentAccountSetting.State))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 

@@ -66,6 +66,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BankOperation> BankOperations { get; set; }
 
+    public virtual DbSet<BankTerminal> BankTerminals { get; set; }
+
     public virtual DbSet<CashBox> CashBoxes { get; set; }
 
     public virtual DbSet<CashOperation> CashOperations { get; set; }
@@ -337,6 +339,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PurDocProduct> PurDocProducts { get; set; }
 
     public virtual DbSet<PurDocTable> PurDocTables { get; set; }
+
+    public virtual DbSet<RtlPaymentMethod> RtlPaymentMethods { get; set; }
+
+    public virtual DbSet<RtlPaymentMethodTranslation> RtlPaymentMethodTranslations { get; set; }
 
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
 
@@ -809,6 +815,33 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Status).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_status_id_fkey");
+        });
+
+        modelBuilder.Entity<BankTerminal>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("bank_terminal_pkey");
+
+            entity.HasIndex(e => e.MerchantId, "ix_bank_terminal_merchant_id").HasFilter("(merchant_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.ExternalTerminalId }, "ux_bank_terminal_organization_external_terminal_id")
+                .IsUnique()
+                .HasFilter("(external_terminal_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }, "ux_bank_terminal_organization_serial_number")
+                .IsUnique()
+                .HasFilter("(serial_number IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.BankAccount).WithMany(p => p.BankTerminals).HasConstraintName("bank_terminal_bank_account_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.BankTerminals)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("bank_terminal_organization_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.BankTerminals)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("bank_terminal_state_id_fkey");
         });
 
         modelBuilder.Entity<CashBox>(entity =>
@@ -3286,6 +3319,20 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("pur_doc_table_product_table_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.PurDocTables).HasConstraintName("pur_doc_table_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<RtlPaymentMethod>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rtl_payment_method_pkey");
+        });
+
+        modelBuilder.Entity<RtlPaymentMethodTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.PaymentMethodId, e.LanguageId }).HasName("rtl_payment_method_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.RtlPaymentMethodTranslations).HasConstraintName("rtl_payment_method_translation_language_id_fkey");
+
+            entity.HasOne(d => d.PaymentMethod).WithMany(p => p.RtlPaymentMethodTranslations).HasConstraintName("rtl_payment_method_translation_payment_method_id_fkey");
         });
 
         modelBuilder.Entity<SaleCondition>(entity =>

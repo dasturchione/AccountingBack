@@ -430,6 +430,22 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFiscalCashRegisters)]
+    [HttpGet("fiscal-cash-registers")]
+    public async Task<IActionResult> GetFiscalCashRegisters(CancellationToken ct)
+    {
+        var result = await _manualService.GetFiscalCashRegistersAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFiscalCashRegisterTypes)]
+    [HttpGet("fiscal-cash-register-types")]
+    public async Task<IActionResult> GetFiscalCashRegisterTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetFiscalCashRegisterTypesAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetCashOperations)]
     [HttpGet("cash-operations")]
     public async Task<IActionResult> GetCashOperations([FromQuery] int? cashBoxId, CancellationToken ct)

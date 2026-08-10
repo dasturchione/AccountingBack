@@ -66,6 +66,14 @@ public static class PermissionCodeConst
     public const string CashBoxDelete     = "CASH_BOX_DELETE";
     #endregion
 
+    #region FiscalCashRegister
+    public const string FiscalCashRegisterView       = "FISCAL_CASH_REGISTER_VIEW";
+    public const string FiscalCashRegisterViewDetail = "FISCAL_CASH_REGISTER_VIEW_DETAIL";
+    public const string FiscalCashRegisterCreate     = "FISCAL_CASH_REGISTER_CREATE";
+    public const string FiscalCashRegisterUpdate     = "FISCAL_CASH_REGISTER_UPDATE";
+    public const string FiscalCashRegisterDelete     = "FISCAL_CASH_REGISTER_DELETE";
+    #endregion
+
     #region CashDocument
     public const string CashDocumentGetReceiptOrders    = "CASH_DOCUMENT_GET_RECEIPT_ORDERS";
     public const string CashDocumentGetPaymentOrders    = "CASH_DOCUMENT_GET_PAYMENT_ORDERS";
@@ -198,6 +206,8 @@ public static class PermissionCodeConst
     public const string ManualGetModuleSubGroups          = "MANUAL_GET_MODULE_SUB_GROUPS";
     public const string ManualGetBankTerminals            = "MANUAL_GET_BANK_TERMINALS";
     public const string ManualGetPaymentMethods           = "MANUAL_GET_PAYMENT_METHODS";
+    public const string ManualGetFiscalCashRegisters      = "MANUAL_GET_FISCAL_CASH_REGISTERS";
+    public const string ManualGetFiscalCashRegisterTypes  = "MANUAL_GET_FISCAL_CASH_REGISTER_TYPES";
     #endregion
 
     #region PricingCondition

@@ -25,6 +25,7 @@ using Application.Features.BankParsers;
 using Application.Features.Banks;
 using Application.Features.Branches;
 using Application.Features.CashBoxes;
+using Application.Features.FiscalCashRegisters;
 using Application.Features.CashOperations;
 using Application.Features.CashDocuments;
 using Application.Features.ChartAccounts;
@@ -279,6 +280,7 @@ namespace Infrastructure
             services.AddScoped<IBankStatementParserService, BankStatementParserService>();
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<ICashBoxService, CashBoxService>();
+            services.AddScoped<IFiscalCashRegisterService, FiscalCashRegisterService>();
             services.AddScoped<ICashOperationService, CashOperationService>();
             services.AddScoped<ICashDocumentService, CashDocumentService>();
             services.AddScoped<ICashBookService, CashBookService>();

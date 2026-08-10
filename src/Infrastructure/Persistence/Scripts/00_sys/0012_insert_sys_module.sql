@@ -295,6 +295,42 @@ set short_name = excluded.short_name,
     sort_order = excluded.sort_order,
     is_visible = excluded.is_visible;
 
+-- BANK TERMINAL
+insert into sys_module (
+    code,
+    short_name,
+    full_name,
+    sub_group_id,
+    state_id,
+    created_date,
+    sort_order,
+    is_visible
+)
+select
+    seed.code,
+    seed.short_name,
+    seed.full_name,
+    (select id from sys_module_sub_group where code = 'BANK_TERMINAL'),
+    1,
+    now(),
+    seed.sort_order,
+    seed.is_visible
+from (
+    values
+        ('BANK_TERMINAL_CREATE', 'Bank terminal yaratish', 'Yangi bank terminal qo''shish', 0, false),
+        ('BANK_TERMINAL_DELETE', 'Bank terminal o''chirish', 'Bank terminalni o''chirish', 0, false),
+        ('BANK_TERMINAL_UPDATE', 'Bank terminal tahrirlash', 'Bank terminalni tahrirlash', 0, false),
+        ('BANK_TERMINAL_VIEW', 'Bank terminallari', 'Bank terminallari ro''yxati', 0, false),
+        ('BANK_TERMINAL_VIEW_DETAIL', 'Bank terminal detail', 'Bank terminalni batafsil ko''rish', 0, false)
+) as seed (code, short_name, full_name, sort_order, is_visible)
+on conflict (code) do update
+set short_name = excluded.short_name,
+    full_name = excluded.full_name,
+    sub_group_id = excluded.sub_group_id,
+    state_id = excluded.state_id,
+    sort_order = excluded.sort_order,
+    is_visible = excluded.is_visible;
+
 -- CASH
 insert into sys_module (
     code,
@@ -346,6 +382,42 @@ from (
         ('CASH_REPORT_OPERATION_BY_ID', 'Cash Report Operation By Id', 'Cash Report Operation By Id', 0, false),
         ('CASH_REPORT_OPERATIONS', 'Cash Report Operations', 'Cash Report Operations', 0, false),
         ('CONFIRM_CASH_OPERATION', 'Kassa operatsiyasini tasdiqlash', 'Tasdiqlash', 0, false)
+) as seed (code, short_name, full_name, sort_order, is_visible)
+on conflict (code) do update
+set short_name = excluded.short_name,
+    full_name = excluded.full_name,
+    sub_group_id = excluded.sub_group_id,
+    state_id = excluded.state_id,
+    sort_order = excluded.sort_order,
+    is_visible = excluded.is_visible;
+
+-- FISCAL CASH REGISTER
+insert into sys_module (
+    code,
+    short_name,
+    full_name,
+    sub_group_id,
+    state_id,
+    created_date,
+    sort_order,
+    is_visible
+)
+select
+    seed.code,
+    seed.short_name,
+    seed.full_name,
+    (select id from sys_module_sub_group where code = 'FISCAL_CASH_REGISTER'),
+    1,
+    now(),
+    seed.sort_order,
+    seed.is_visible
+from (
+    values
+        ('FISCAL_CASH_REGISTER_CREATE', 'Fiskal kassa yaratish', 'Yangi fiskal kassa registri qo''shish', 0, false),
+        ('FISCAL_CASH_REGISTER_DELETE', 'Fiskal kassa o''chirish', 'Fiskal kassa registrini o''chirish', 0, false),
+        ('FISCAL_CASH_REGISTER_UPDATE', 'Fiskal kassa tahrirlash', 'Fiskal kassa registrini tahrirlash', 0, false),
+        ('FISCAL_CASH_REGISTER_VIEW', 'Fiskal kassalar', 'Fiskal kassa registrlari ro''yxati', 0, false),
+        ('FISCAL_CASH_REGISTER_VIEW_DETAIL', 'Fiskal kassa detail', 'Fiskal kassa registrini batafsil ko''rish', 0, false)
 ) as seed (code, short_name, full_name, sort_order, is_visible)
 on conflict (code) do update
 set short_name = excluded.short_name,
@@ -611,6 +683,7 @@ from (
         ('CURRENCY_VIEW_DETAIL', 'Valyuta detail', 'Valyutani batafsil ko''rish', 0, false),
         ('MANUAL_GET_ACCOUNTING_POLICIES', 'Manual Get Accounting Policies', 'Manual Get Accounting Policies', 0, false),
         ('MANUAL_GET_BANKS', 'Manual Get Banks', 'Manual Get Banks', 0, false),
+        ('MANUAL_GET_BANK_TERMINALS', 'Manual Get Bank Terminals', 'Manual Get Bank Terminals', 0, false),
         ('MANUAL_GET_BRANCHES', 'Manual Get Branches', 'Manual Get Branches', 0, false),
         ('MANUAL_GET_CASH_BOXES', 'Manual Get Cash Boxes', 'Manual Get Cash Boxes', 0, false),
         ('MANUAL_GET_CASH_OPERATIONS', 'Manual Get Cash Operations', 'Manual Get Cash Operations', 0, false),
@@ -630,6 +703,8 @@ from (
         ('MANUAL_GET_FA_DEPRECIATION_METHODS', 'Manual Get FA Depreciation Methods', 'Manual Get FA Depreciation Methods', 0, false),
         ('MANUAL_GET_FA_GROUPS', 'Manual Get FA Groups', 'Manual Get FA Groups', 0, false),
         ('MANUAL_GET_FA_OKOFS', 'Manual Get FA Okofs', 'Manual Get FA Okofs', 0, false),
+        ('MANUAL_GET_FISCAL_CASH_REGISTERS', 'Manual Get Fiscal Cash Registers', 'Manual Get Fiscal Cash Registers', 0, false),
+        ('MANUAL_GET_FISCAL_CASH_REGISTER_TYPES', 'Manual Get Fiscal Cash Register Types', 'Manual Get Fiscal Cash Register Types', 0, false),
         ('MANUAL_GET_INVENTORY_ADJUSTMENT_TYPES', 'Manual Get Inventory Adjustment Types', 'Manual Get Inventory Adjustment Types', 0, false),
         ('MANUAL_GET_LANGUAGES', 'Manual Get Languages', 'Manual Get Languages', 0, false),
         ('MANUAL_GET_MODULE_SUB_GROUPS', 'Manual Get Module Sub Groups', 'Manual Get Module Sub Groups', 0, false),
@@ -637,6 +712,7 @@ from (
         ('MANUAL_GET_ORG_BANK_ACCOUNTS', 'Manual Get Org Bank Accounts', 'Manual Get Org Bank Accounts', 0, false),
         ('MANUAL_GET_ORGANIZATIONS', 'Manual Get Organizations', 'Manual Get Organizations', 0, false),
         ('MANUAL_GET_PAYMENT_TYPES', 'Manual Get Payment Types', 'Manual Get Payment Types', 0, false),
+        ('MANUAL_GET_PAYMENT_METHODS', 'Manual Get Payment Methods', 'Manual Get Payment Methods', 0, false),
         ('MANUAL_GET_POSITIONS', 'Manual Get Positions', 'Manual Get Positions', 0, false),
         ('MANUAL_GET_PRICE_ROUNDING_METHODS', 'Manual Get Price Rounding Methods', 'Manual Get Price Rounding Methods', 0, false),
         ('MANUAL_GET_PRICING_METHODS', 'Manual Get Pricing Methods', 'Manual Get Pricing Methods', 0, false),

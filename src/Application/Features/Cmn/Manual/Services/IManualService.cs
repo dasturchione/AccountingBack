@@ -79,6 +79,8 @@ public interface IManualService
 
     // cash
     Task<List<SelectListDto>> GetCashBoxesAsync(int? branchId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFiscalCashRegistersAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetFiscalCashRegisterTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCashOperationsAsync(int? cashBoxId = null, CancellationToken ct = default);
 
     // languages

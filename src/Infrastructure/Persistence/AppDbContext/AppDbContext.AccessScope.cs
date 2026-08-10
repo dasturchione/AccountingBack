@@ -100,6 +100,7 @@ public partial class AppDbContext
         ApplyScopedFilter<CashOperation>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);
         ApplyScopedFilter<CashBox>(modelBuilder);
+        ApplyScopedFilter<FiscalCashRegister>(modelBuilder);
         //ApplyScopedFilter<UserOrganization>(modelBuilder);
         ApplyScopedFilter<FaAsset>(modelBuilder);
         ApplyScopedFilter<FaReceiptDoc>(modelBuilder);

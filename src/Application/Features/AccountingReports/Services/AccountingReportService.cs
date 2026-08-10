@@ -71,6 +71,7 @@ public class AccountingReportService : IAccountingReportService
             {
                 AccountId = row.AccountId,
                 AccountCode = row.AccountCode,
+                AccountNumber = row.AccountNumber,
                 AccountName = row.AccountName,
                 Balance = decimal.Abs(net)
             });
@@ -439,6 +440,7 @@ public class AccountingReportService : IAccountingReportService
         {
             AccountId = row.AccountId,
             AccountCode = row.AccountCode,
+            AccountNumber = row.AccountNumber,
             AccountName = row.AccountName,
             OpeningDebit = openingNet > 0m ? openingNet : 0m,
             OpeningCredit = openingNet < 0m ? decimal.Abs(openingNet) : 0m,
@@ -560,8 +562,10 @@ public class AccountingReportService : IAccountingReportService
         item.ClosingDebit != 0m ||
         item.ClosingCredit != 0m;
 
-    private static string NormalizeAccountCode(string accountCode) =>
-        accountCode.Split('.', 2)[0];
+    private static string NormalizeAccountCode(string? accountCode) =>
+        string.IsNullOrWhiteSpace(accountCode)
+            ? string.Empty
+            : accountCode.Trim().Split('.', 2)[0];
 
     private static bool IsAssetCode(string accountCode) =>
         NormalizeAccountCode(accountCode) is var code &&

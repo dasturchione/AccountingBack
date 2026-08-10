@@ -25,6 +25,7 @@ public class TrialBalanceReadRepository : ITrialBalanceReadRepository
             {
                 AccountId = x.Id,
                 AccountCode = x.Code!,
+                AccountNumber = x.Number,
                 AccountName = x.Name,
                 AccountTypeId = x.AccountTypeId
             })

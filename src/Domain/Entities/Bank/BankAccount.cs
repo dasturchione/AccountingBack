@@ -5,12 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("org_bank_account")]
-[Index("BankId", Name = "idx_org_bank_account_bank_id")]
-[Index("CurrencyId", Name = "idx_org_bank_account_currency_id")]
-[Index("OrganizationId", Name = "idx_org_bank_account_organization_id")]
-[Index("StateId", Name = "idx_org_bank_account_state_id")]
-[Index("Code", Name = "idx_org_bank_account_code")]
-[Index("Name", Name = "idx_org_bank_account_name")]
 public partial class BankAccount
 {
     [Key]
@@ -39,7 +33,6 @@ public partial class BankAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("code")]
     [StringLength(100)]
     public string? Code { get; set; }
@@ -60,6 +53,9 @@ public partial class BankAccount
 
     [InverseProperty("BankAccount")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
+
+    [InverseProperty(nameof(BankTerminal.BankAccount))]
+    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("BankAccounts")]

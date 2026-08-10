@@ -61,6 +61,9 @@ public partial class CmnState
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
     [InverseProperty("State")]
+    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
 
     [InverseProperty("State")]
@@ -167,6 +170,9 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty("State")]
     public virtual ICollection<HrAbsenceType> HrAbsenceTypes { get; set; } = new List<HrAbsenceType>();

@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Authentication;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -62,6 +62,7 @@ public partial class AppDbContext
 
 // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
         ApplyScopedFilter<BankAccount>(modelBuilder);
+        ApplyScopedFilter<BankTerminal>(modelBuilder);
         ApplyScopedFilter<AccountingPeriod>(modelBuilder);
         ApplyScopedFilter<PostingBatch>(modelBuilder);
         ApplyScopedFilter<DocumentNumberSequence>(modelBuilder);
@@ -99,6 +100,7 @@ public partial class AppDbContext
         ApplyScopedFilter<CashOperation>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);
         ApplyScopedFilter<CashBox>(modelBuilder);
+        ApplyScopedFilter<FiscalCashRegister>(modelBuilder);
         //ApplyScopedFilter<UserOrganization>(modelBuilder);
         ApplyScopedFilter<FaAsset>(modelBuilder);
         ApplyScopedFilter<FaReceiptDoc>(modelBuilder);

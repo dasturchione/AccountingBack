@@ -50,12 +50,28 @@ public static class PermissionCodeConst
     public const string OrgBankAccountDelete     = "ORG_BANK_ACCOUNT_DELETE";
     #endregion
 
+    #region BankTerminal
+    public const string BankTerminalView       = "BANK_TERMINAL_VIEW";
+    public const string BankTerminalViewDetail = "BANK_TERMINAL_VIEW_DETAIL";
+    public const string BankTerminalCreate     = "BANK_TERMINAL_CREATE";
+    public const string BankTerminalUpdate     = "BANK_TERMINAL_UPDATE";
+    public const string BankTerminalDelete     = "BANK_TERMINAL_DELETE";
+    #endregion
+
     #region CashBox
     public const string CashBoxView       = "CASH_BOX_VIEW";
     public const string CashBoxViewDetail = "CASH_BOX_VIEW_DETAIL";
     public const string CashBoxCreate     = "CASH_BOX_CREATE";
     public const string CashBoxUpdate     = "CASH_BOX_UPDATE";
     public const string CashBoxDelete     = "CASH_BOX_DELETE";
+    #endregion
+
+    #region FiscalCashRegister
+    public const string FiscalCashRegisterView       = "FISCAL_CASH_REGISTER_VIEW";
+    public const string FiscalCashRegisterViewDetail = "FISCAL_CASH_REGISTER_VIEW_DETAIL";
+    public const string FiscalCashRegisterCreate     = "FISCAL_CASH_REGISTER_CREATE";
+    public const string FiscalCashRegisterUpdate     = "FISCAL_CASH_REGISTER_UPDATE";
+    public const string FiscalCashRegisterDelete     = "FISCAL_CASH_REGISTER_DELETE";
     #endregion
 
     #region CashDocument
@@ -188,6 +204,10 @@ public static class PermissionCodeConst
     public const string ManualGetCashOperations           = "MANUAL_GET_CASH_OPERATIONS";
     public const string ManualGetLanguages                = "MANUAL_GET_LANGUAGES";
     public const string ManualGetModuleSubGroups          = "MANUAL_GET_MODULE_SUB_GROUPS";
+    public const string ManualGetBankTerminals            = "MANUAL_GET_BANK_TERMINALS";
+    public const string ManualGetPaymentMethods           = "MANUAL_GET_PAYMENT_METHODS";
+    public const string ManualGetFiscalCashRegisters      = "MANUAL_GET_FISCAL_CASH_REGISTERS";
+    public const string ManualGetFiscalCashRegisterTypes  = "MANUAL_GET_FISCAL_CASH_REGISTER_TYPES";
     #endregion
 
     #region PricingCondition

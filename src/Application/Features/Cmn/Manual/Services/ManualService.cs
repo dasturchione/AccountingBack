@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.FaAssets;
 using Domain.Entities;
@@ -13,6 +13,8 @@ public class ManualService : IManualService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
+    private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
+    private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<UserKind> _userKindQuery;
     private readonly IQueryRepository<User> _userQuery;
@@ -54,6 +56,8 @@ public class ManualService : IManualService
     private readonly IQueryRepository<BankAccount> _orgBankAccountQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
+    private readonly IQueryRepository<FiscalCashRegister> _fiscalCashRegisterQuery;
+    private readonly IQueryRepository<FiscalCashRegisterType> _fiscalCashRegisterTypeQuery;
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly IQueryRepository<Language> _languageQuery;
@@ -84,6 +88,8 @@ public class ManualService : IManualService
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
+        IQueryRepository<BankTerminal> bankTerminalQuery,
+        IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
         IQueryRepository<TaxType> taxTypeQuery,
@@ -100,6 +106,8 @@ public class ManualService : IManualService
         IQueryRepository<AccountingPolicy> accountingPolicyQuery,
         IQueryRepository<BankAccount> orgBankAccountQuery,
         IQueryRepository<CashBox> cashBoxQuery,
+        IQueryRepository<FiscalCashRegister> fiscalCashRegisterQuery,
+        IQueryRepository<FiscalCashRegisterType> fiscalCashRegisterTypeQuery,
         IQueryRepository<CashOperation> cashOperationQuery,
         IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
         IQueryRepository<Contract> contractQuery,
@@ -134,6 +142,8 @@ public class ManualService : IManualService
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
         _bankQuery = bankQuery;
+        _bankTerminalQuery = bankTerminalQuery;
+        _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
         _taxTypeQuery = taxTypeQuery;
@@ -151,6 +161,8 @@ public class ManualService : IManualService
         _orgBankAccountQuery = orgBankAccountQuery;
         _subkontoTypeQuery = subkontoTypeQuery;
         _cashBoxQuery = cashBoxQuery;
+        _fiscalCashRegisterQuery = fiscalCashRegisterQuery;
+        _fiscalCashRegisterTypeQuery = fiscalCashRegisterTypeQuery;
         _cashOperationQuery = cashOperationQuery;
         _contractQuery = contractQuery;
         _languageQuery = languageQuery;
@@ -865,6 +877,41 @@ public class ManualService : IManualService
         return await _orgBankAccountQuery.GetAllAsync(query, ct);
     }
 
+    public async Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<BankTerminal>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.ExternalTerminalId ?? x.SerialNumber
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankTerminalQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPaymentMethodsAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<PaymentMethod>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.PaymentMethodTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _paymentMethodQuery.GetAllAsync(query, ct);
+    }
+
     public async Task<List<SelectListDto>> GetCounterpartyBankAccountsAsync(int? counterpartyId = null, int? bankId = null, CancellationToken ct = default)
     {
         var query = _queryBuilder.For<CounterpartyBankAccount>()
@@ -896,6 +943,41 @@ public class ManualService : IManualService
                             .Build();
 
         return await _cashBoxQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetFiscalCashRegistersAsync(CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<FiscalCashRegister>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.ExternalRegisterId ?? x.SerialNumber
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _fiscalCashRegisterQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetFiscalCashRegisterTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<FiscalCashRegisterType>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.FiscalCashRegisterTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _fiscalCashRegisterTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCashOperationsAsync(int? cashBoxId = null, CancellationToken ct = default)

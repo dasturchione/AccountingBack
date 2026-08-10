@@ -25,6 +25,7 @@ public class BalanceSheetRowDto
 {
     public int? AccountId { get; set; }
     public string AccountCode { get; set; } = null!;
+    public string? AccountNumber { get; set; }
     public string AccountName { get; set; } = null!;
     public decimal Balance { get; set; }
 }
@@ -113,6 +114,7 @@ public class AccountTurnoverRowDto
     public int AccountId { get; set; }
     public string AccountCode { get; set; } = null!;
     public string AccountName { get; set; } = null!;
+    public string AccountNumber { get; set; } = null!;
     public decimal OpeningDebit { get; set; }
     public decimal OpeningCredit { get; set; }
     public decimal PeriodDebit { get; set; }

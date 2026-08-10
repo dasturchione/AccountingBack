@@ -398,6 +398,22 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetBankTerminals)]
+    [HttpGet("bank-terminals")]
+    public async Task<IActionResult> GetBankTerminals(CancellationToken ct)
+    {
+        var result = await _manualService.GetBankTerminalsAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentMethods)]
+    [HttpGet("payment-methods")]
+    public async Task<IActionResult> GetPaymentMethods(CancellationToken ct)
+    {
+        var result = await _manualService.GetPaymentMethodsAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetCounterpartyBankAccounts)]
     [HttpGet("counterparty-bank-accounts")]
     public async Task<IActionResult> GetCounterpartyBankAccounts([FromQuery] int? counterpartyId, [FromQuery] int? bankId, CancellationToken ct)
@@ -411,6 +427,22 @@ public class ManualController : ControllerBase
     public async Task<IActionResult> GetCashBoxes([FromQuery] int? branchId, CancellationToken ct)
     {
         var result = await _manualService.GetCashBoxesAsync(branchId, ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFiscalCashRegisters)]
+    [HttpGet("fiscal-cash-registers")]
+    public async Task<IActionResult> GetFiscalCashRegisters(CancellationToken ct)
+    {
+        var result = await _manualService.GetFiscalCashRegistersAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetFiscalCashRegisterTypes)]
+    [HttpGet("fiscal-cash-register-types")]
+    public async Task<IActionResult> GetFiscalCashRegisterTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetFiscalCashRegisterTypesAsync(ct);
         return Ok(result);
     }
 

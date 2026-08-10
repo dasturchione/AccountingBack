@@ -101,6 +101,7 @@ using Application.Features.Register.PostingEngines.Builders;
 using Application.Features.Roles;
 using Application.Features.SaleConditions;
 using Application.Features.SaleDocs;
+using Application.Features.RetailSaleDocs;
 using Application.Features.SaleShipments;
 using Application.Features.SaleDocTables;
 using Application.Features.Users;
@@ -292,6 +293,7 @@ namespace Infrastructure
             services.AddScoped<IPurchaseLifecycleService, PurchaseLifecycleService>();
             services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
             services.AddScoped<ISaleDocService, SaleDocService>();
+            services.AddScoped<IRetailSaleDocService, RetailSaleDocService>();
             services.AddScoped<ISaleShipmentService, SaleShipmentService>();
             services.AddScoped<ISaleLifecycleService, SaleLifecycleService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();
@@ -344,6 +346,7 @@ namespace Infrastructure
             services.AddScoped<IOrganizationAccountingPolicyResolver, OrganizationAccountingPolicyResolver>();
             services.AddScoped<IPostingContextBuilder<PurchaseDoc>, PurchaseDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<SaleDoc>, SaleDocContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<RetailSaleDoc>, RetailSaleDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<List<BankOperation>>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
@@ -357,6 +360,7 @@ namespace Infrastructure
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<SaleDoc>, SaleInventoryHandler>();
+            services.AddScoped<IInventoryDocumentHandler<RetailSaleDoc>, RetailSaleInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<WarehouseTransferDoc>, WarehouseTransferInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();

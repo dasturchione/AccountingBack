@@ -158,6 +158,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
     public virtual DbSet<SaleDocProductBatch> SaleDocProductBatches { get; set; }
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
+    public virtual DbSet<RetailSaleDoc> RetailSaleDocs { get; set; }
+    public virtual DbSet<RetailSaleDocProduct> RetailSaleDocProducts { get; set; }
+    public virtual DbSet<RetailSaleDocTable> RetailSaleDocTables { get; set; }
+    public virtual DbSet<RetailSaleDocPayment> RetailSaleDocPayments { get; set; }
     public virtual DbSet<SaleShipmentDoc> SaleShipmentDocs { get; set; }
     public virtual DbSet<SaleShipmentProduct> SaleShipmentProducts { get; set; }
     public virtual DbSet<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; }

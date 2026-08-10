@@ -85,6 +85,7 @@ public partial class AppDbContext
         ApplyScopedFilter<InventoryCountDoc>(modelBuilder);
         ApplyScopedFilter<OpeningInventory>(modelBuilder);
         ApplyScopedFilter<SaleDoc>(modelBuilder);
+        ApplyScopedFilter<RetailSaleDoc>(modelBuilder);
         ApplyScopedFilter<WarehouseTransferDoc>(modelBuilder);
         ApplyScopedFilter<Branch>(modelBuilder);
         ApplyScopedFilter<Department>(modelBuilder);
@@ -194,6 +195,27 @@ public partial class AppDbContext
                               && (CurrentOrganizationId != 0
                                   ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                   : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocProduct>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocTable>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocPayment>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
         modelBuilder.Entity<WarehouseTransferLine>()
             .HasQueryFilter(e => IsSuperAdmin

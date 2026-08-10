@@ -11,6 +11,7 @@ public class InventoryDispatcher : IInventoryDispatcher
 {
     private readonly IInventoryDocumentHandler<PurchaseDoc> _purchaseHandler;
     private readonly IInventoryDocumentHandler<SaleDoc> _saleHandler;
+    private readonly IInventoryDocumentHandler<RetailSaleDoc> _retailSaleHandler;
     private readonly IInventoryDocumentHandler<WarehouseTransferDoc> _warehouseTransferHandler;
     private readonly IInventoryDocumentHandler<InventoryAdjustmentDoc> _inventoryAdjustmentHandler;
     private readonly IInventoryDocumentHandler<OpeningInventory> _openingInventoryHandler;
@@ -21,6 +22,7 @@ public class InventoryDispatcher : IInventoryDispatcher
 
     public InventoryDispatcher(IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
                                IInventoryDocumentHandler<SaleDoc> saleHandler,
+                               IInventoryDocumentHandler<RetailSaleDoc> retailSaleHandler,
                                IInventoryDocumentHandler<WarehouseTransferDoc> warehouseTransferHandler,
                                IInventoryDocumentHandler<InventoryAdjustmentDoc> inventoryAdjustmentHandler,
                                IInventoryDocumentHandler<OpeningInventory> openingInventoryHandler,
@@ -31,6 +33,7 @@ public class InventoryDispatcher : IInventoryDispatcher
     {
         _purchaseHandler = purchaseHandler;
         _saleHandler = saleHandler;
+        _retailSaleHandler = retailSaleHandler;
         _warehouseTransferHandler = warehouseTransferHandler;
         _inventoryAdjustmentHandler = inventoryAdjustmentHandler;
         _openingInventoryHandler = openingInventoryHandler;
@@ -116,6 +119,7 @@ public class InventoryDispatcher : IInventoryDispatcher
         {
             PurchaseDoc purchase => _purchaseHandler.HandleAsync(purchase, ct),
             SaleDoc sale => _saleHandler.HandleAsync(sale, ct),
+            RetailSaleDoc retailSale => _retailSaleHandler.HandleAsync(retailSale, ct),
             WarehouseTransferDoc transfer => _warehouseTransferHandler.HandleAsync(transfer, ct),
             InventoryAdjustmentDoc adjustment => _inventoryAdjustmentHandler.HandleAsync(adjustment, ct),
             OpeningInventory openingInventory => _openingInventoryHandler.HandleAsync(openingInventory, ct),

@@ -21,37 +21,37 @@ public class RetailSaleDocController : ControllerBase
     }
 
     [HttpGet]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocView)]
+    [ModuleAuthorize(PermissionCodeConst.RetailSaleDocView)]
     public async Task<IResult> GetAllAsync([FromQuery] RetailSaleDocListFilter filter, CancellationToken ct = default) =>
         (await _service.GetAllAsync(filter, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpGet("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocViewDetail)]
+    [ModuleAuthorize(PermissionCodeConst.RetailSaleDocViewDetail)]
     public async Task<IResult> GetByIdAsync(long id, CancellationToken ct = default) =>
         (await _service.GetByIdAsync(id, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocCreate)]
+    [ModuleAuthorize(PermissionCodeConst.RetailSaleDocCreate)]
     public async Task<IResult> CreateAsync([FromBody] RetailSaleDocCreateDto dto, CancellationToken ct = default) =>
         (await _service.CreateAsync(dto, ct)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpPut("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocUpdate)]
+    [ModuleAuthorize(PermissionCodeConst.RetailSaleDocUpdate)]
     public async Task<IResult> UpdateAsync(long id, [FromBody] RetailSaleDocUpdateDto dto, CancellationToken ct = default) =>
         (await _service.UpdateAsync(id, dto, ct)).Match(Results.NoContent, CustomResults.Problem);
 
     [HttpPut("{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.ConfirmSale)]
+    [ModuleAuthorize(PermissionCodeConst.ConfirmRetailSale)]
     public async Task<IResult> ConfirmAsync(long id, [FromBody] RetailSaleDocConfirmDto dto, CancellationToken ct = default) =>
         (await _service.ConfirmAsync(id, dto, ct)).Match(Results.NoContent, CustomResults.Problem);
 
     [HttpPut("{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.CancelSale)]
+    [ModuleAuthorize(PermissionCodeConst.CancelRetailSale)]
     public async Task<IResult> CancelAsync(long id, CancellationToken ct = default) =>
         (await _service.CancelAsync(id, ct)).Match(Results.NoContent, CustomResults.Problem);
 
     [HttpDelete("{id:long}")]
-    [ModuleAuthorize(PermissionCodeConst.SaleDocDelete)]
+    [ModuleAuthorize(PermissionCodeConst.RetailSaleDocDelete)]
     public async Task<IResult> DeleteAsync(long id, CancellationToken ct = default) =>
         (await _service.DeleteAsync(id, ct)).Match(Results.NoContent, CustomResults.Problem);
 }

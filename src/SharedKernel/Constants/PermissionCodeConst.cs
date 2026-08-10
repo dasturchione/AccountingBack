@@ -607,6 +607,16 @@ public static class PermissionCodeConst
     public const string SaleDocDelete           = "SALE_DOC_DELETE";
     #endregion
 
+    #region RetailSaleDoc
+    public const string RetailSaleDocView       = "RETAIL_SALE_DOC_VIEW";
+    public const string RetailSaleDocViewDetail = "RETAIL_SALE_DOC_VIEW_DETAIL";
+    public const string RetailSaleDocCreate     = "RETAIL_SALE_DOC_CREATE";
+    public const string RetailSaleDocUpdate     = "RETAIL_SALE_DOC_UPDATE";
+    public const string RetailSaleDocDelete     = "RETAIL_SALE_DOC_DELETE";
+    public const string ConfirmRetailSale       = "CONFIRM_RETAIL_SALE";
+    public const string CancelRetailSale        = "CANCEL_RETAIL_SALE";
+    #endregion
+
     #region SaleDocTable
     public const string SaleDocTableView       = "SALE_DOC_TABLE_VIEW";
     public const string SaleDocTableViewDetail = "SALE_DOC_TABLE_VIEW_DETAIL";

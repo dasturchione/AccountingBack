@@ -525,6 +525,44 @@ set short_name = excluded.short_name,
     sort_order = excluded.sort_order,
     is_visible = excluded.is_visible;
 
+-- RETAIL_SALE
+insert into sys_module (
+    code,
+    short_name,
+    full_name,
+    sub_group_id,
+    state_id,
+    created_date,
+    sort_order,
+    is_visible
+)
+select
+    seed.code,
+    seed.short_name,
+    seed.full_name,
+    (select id from sys_module_sub_group where code = 'RETAIL_SALE'),
+    1,
+    now(),
+    seed.sort_order,
+    seed.is_visible
+from (
+    values
+        ('CANCEL_RETAIL_SALE', 'Chakana savdoni bekor qilish', 'Bekor qilish', 0, false),
+        ('CONFIRM_RETAIL_SALE', 'Chakana savdoni tasdiqlash', 'Tasdiqlash', 0, false),
+        ('RETAIL_SALE_DOC_CREATE', 'Chakana savdo yaratish', 'Yangi', 0, false),
+        ('RETAIL_SALE_DOC_DELETE', 'Chakana savdo o''chirish', 'O''chirish', 0, false),
+        ('RETAIL_SALE_DOC_UPDATE', 'Chakana savdo tahrirlash', 'Tahrirlash', 0, false),
+        ('RETAIL_SALE_DOC_VIEW', 'Chakana savdo', 'Ro''yxat', 0, false),
+        ('RETAIL_SALE_DOC_VIEW_DETAIL', 'Chakana savdo detail', 'Batafsil', 0, false)
+) as seed (code, short_name, full_name, sort_order, is_visible)
+on conflict (code) do update
+set short_name = excluded.short_name,
+    full_name = excluded.full_name,
+    sub_group_id = excluded.sub_group_id,
+    state_id = excluded.state_id,
+    sort_order = excluded.sort_order,
+    is_visible = excluded.is_visible;
+
 -- ACCOUNTING
 insert into sys_module (
     code,

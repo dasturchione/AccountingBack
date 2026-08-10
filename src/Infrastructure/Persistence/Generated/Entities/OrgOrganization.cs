@@ -173,6 +173,9 @@ public partial class OrgOrganization
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<HrAbsenceAttachment> HrAbsenceAttachments { get; set; } = new List<HrAbsenceAttachment>();
 
     [InverseProperty("Organization")]

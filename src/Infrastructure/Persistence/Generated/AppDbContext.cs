@@ -202,6 +202,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaRevaluationDocLine> FaRevaluationDocLines { get; set; }
 
+    public virtual DbSet<FiscalCashRegister> FiscalCashRegisters { get; set; }
+
+    public virtual DbSet<FiscalCashRegisterType> FiscalCashRegisterTypes { get; set; }
+
+    public virtual DbSet<FiscalCashRegisterTypeTranslation> FiscalCashRegisterTypeTranslations { get; set; }
+
     public virtual DbSet<HrAbsence> HrAbsences { get; set; }
 
     public virtual DbSet<HrAbsenceAttachment> HrAbsenceAttachments { get; set; }
@@ -1988,6 +1994,53 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fa_revaluation_doc_line_fa_asset_id_fkey");
 
             entity.HasOne(d => d.RevaluationDoc).WithMany(p => p.FaRevaluationDocLines).HasConstraintName("fa_revaluation_doc_line_revaluation_doc_id_fkey");
+        });
+
+        modelBuilder.Entity<FiscalCashRegister>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fiscal_cash_register_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.ExternalRegisterId }, "ux_fiscal_cash_register_org_external_register_id")
+                .IsUnique()
+                .HasFilter("(external_register_id IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.FiscalModuleNumber }, "ux_fiscal_cash_register_org_fiscal_module_number")
+                .IsUnique()
+                .HasFilter("(fiscal_module_number IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.SerialNumber }, "ux_fiscal_cash_register_org_serial_number")
+                .IsUnique()
+                .HasFilter("(serial_number IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FiscalCashRegisters)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fiscal_cash_register_organization_id_fkey");
+
+            entity.HasOne(d => d.RegisterType).WithMany(p => p.FiscalCashRegisters)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fiscal_cash_register_register_type_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FiscalCashRegisters)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fiscal_cash_register_state_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.FiscalCashRegisters).HasConstraintName("fiscal_cash_register_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<FiscalCashRegisterType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("fiscal_cash_register_type_pkey");
+        });
+
+        modelBuilder.Entity<FiscalCashRegisterTypeTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.CashRegisterTypeId, e.LanguageId }).HasName("fiscal_cash_register_type_translation_pkey");
+
+            entity.HasOne(d => d.CashRegisterType).WithMany(p => p.FiscalCashRegisterTypeTranslations).HasConstraintName("fiscal_cash_register_type_translatio_cash_register_type_id_fkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.FiscalCashRegisterTypeTranslations).HasConstraintName("fiscal_cash_register_type_translation_language_id_fkey");
         });
 
         modelBuilder.Entity<HrAbsence>(entity =>

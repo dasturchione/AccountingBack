@@ -40,6 +40,9 @@ public partial class Language
     [InverseProperty(nameof(PaymentMethodTranslation.Language))]
     public virtual ICollection<PaymentMethodTranslation> PaymentMethodTranslations { get; set; } = new List<PaymentMethodTranslation>();
 
+    [InverseProperty(nameof(FiscalCashRegisterTypeTranslation.Language))]
+    public virtual ICollection<FiscalCashRegisterTypeTranslation> FiscalCashRegisterTypeTranslations { get; set; } = new List<FiscalCashRegisterTypeTranslation>();
+
     [InverseProperty(nameof(DocumentAccountRoleTranslation.Language))]
     public virtual ICollection<DocumentAccountRoleTranslation> DocumentAccountRoleTranslations { get; set; } = new List<DocumentAccountRoleTranslation>();
 

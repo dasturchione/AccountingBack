@@ -172,6 +172,9 @@ public partial class CmnState
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocs { get; set; } = new List<FaRevaluationDoc>();
 
     [InverseProperty("State")]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
+
+    [InverseProperty("State")]
     public virtual ICollection<HrAbsenceType> HrAbsenceTypes { get; set; } = new List<HrAbsenceType>();
 
     [InverseProperty("State")]

@@ -46,12 +46,15 @@ public partial class Warehouse
     [ForeignKey(nameof(BusinessPlaceId))]
     public virtual MarkingBusinessPlace? BusinessPlace { get; set; }
 
-    [ForeignKey("BranchId")]
-    [InverseProperty("Warehouses")]
+    [ForeignKey(nameof(BranchId))]
+    [InverseProperty(nameof(Branch.Warehouses))]
     public virtual Branch? Branch { get; set; }
 
-    [InverseProperty("Warehouse")]
+    [InverseProperty(nameof(WarehouseProduct.Warehouse))]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
+
+    [InverseProperty(nameof(FiscalCashRegister.Warehouse))]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty(nameof(WarehouseProductTable.Warehouse))]
     public virtual ICollection<WarehouseProductTable> WarehouseProductTables { get; set; } = new List<WarehouseProductTable>();
@@ -68,17 +71,17 @@ public partial class Warehouse
     [InverseProperty(nameof(OpeningInventory.Warehouse))]
     public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
 
-    [InverseProperty("SourceWarehouse")]
+    [InverseProperty(nameof(WarehouseTransferDoc.SourceWarehouse))]
     public virtual ICollection<WarehouseTransferDoc> SourceWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();
 
-    [InverseProperty("DestinationWarehouse")]
+    [InverseProperty(nameof(WarehouseTransferDoc.DestinationWarehouse))]
     public virtual ICollection<WarehouseTransferDoc> DestinationWarehouseTransferDocs { get; set; } = new List<WarehouseTransferDoc>();
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("Warehouses")]
     public virtual Organization Organization { get; set; } = null!;
 
-    [InverseProperty("Warehouse")]
+    [InverseProperty(nameof(PurchaseDoc.Warehouse))]
     public virtual ICollection<PurchaseDoc> PurDocs { get; set; } = new List<PurchaseDoc>();
 
     [ForeignKey("ResponsibleUserId")]

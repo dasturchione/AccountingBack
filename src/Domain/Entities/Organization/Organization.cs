@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -77,6 +76,9 @@ public partial class Organization
 
     [InverseProperty(nameof(AccountingRegisterEntry.Organization))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
+
+    [InverseProperty(nameof(FiscalCashRegister.Organization))]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty(nameof(BankTerminal.Organization))]
     public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();

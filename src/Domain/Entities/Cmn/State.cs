@@ -21,11 +21,14 @@ public partial class State
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("State")]
+    [InverseProperty(nameof(AccountType.State))]
     public virtual ICollection<AccountType> AccountTypes { get; set; } = new List<AccountType>();
 
-    [InverseProperty("State")]
+    [InverseProperty(nameof(ChartAccountSubkonto.State))]
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
+
+    [InverseProperty(nameof(FiscalCashRegister.State))]
+    public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty(nameof(DocumentAccountRole.State))]
     public virtual ICollection<DocumentAccountRole> DocumentAccountRoles { get; set; } = new List<DocumentAccountRole>();

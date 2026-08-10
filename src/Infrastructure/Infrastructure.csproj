@@ -49,4 +49,8 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Persistence\Scripts\17_rtl\" />
+  </ItemGroup>
+
 </Project>

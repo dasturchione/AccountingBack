@@ -50,6 +50,9 @@ public partial class CmnUnit
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [InverseProperty("Unit")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProducts { get; set; } = new List<RtlSaleDocProduct>();
+
+    [InverseProperty("Unit")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [InverseProperty("Unit")]

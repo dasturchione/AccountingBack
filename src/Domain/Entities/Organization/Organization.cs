@@ -80,6 +80,9 @@ public partial class Organization
     [InverseProperty(nameof(FiscalCashRegister.Organization))]
     public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
+    [InverseProperty(nameof(RetailSaleDoc.Organization))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
+
     [InverseProperty(nameof(BankTerminal.Organization))]
     public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
 

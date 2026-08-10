@@ -49,4 +49,7 @@ public partial class BankTerminal
     [ForeignKey(nameof(StateId))]
     [InverseProperty(nameof(State.BankTerminals))]
     public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(RetailSaleDocPayment.BankTerminal))]
+    public virtual ICollection<RetailSaleDocPayment> RetailSaleDocPayments { get; set; } = null!;
 }

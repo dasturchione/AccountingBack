@@ -112,6 +112,9 @@ public partial class InvWarehouse
     public virtual SysUser? ResponsibleUser { get; set; }
 
     [InverseProperty("Warehouse")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("Warehouse")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [InverseProperty("Warehouse")]

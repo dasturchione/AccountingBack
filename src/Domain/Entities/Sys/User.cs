@@ -91,6 +91,12 @@ public partial class User
     [InverseProperty(nameof(UserOrganization.User))]
     public virtual ICollection<UserOrganization> UserOrganizations { get; set; } = new List<UserOrganization>();
 
+    [InverseProperty(nameof(RetailSaleDoc.PostedByUser))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocPostedByUsers { get; set; } = new List<RetailSaleDoc>();
+
+    [InverseProperty(nameof(RetailSaleDoc.CancelledByUser))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocCancelledByUsers { get; set; } = new List<RetailSaleDoc>();
+
     [InverseProperty(nameof(SaleShipmentDoc.AcceptedUser))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
 

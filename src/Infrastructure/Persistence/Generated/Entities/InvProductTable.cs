@@ -59,6 +59,9 @@ public partial class InvProductTable
     public virtual ICollection<PurDocTable> PurDocTables { get; set; } = new List<PurDocTable>();
 
     [InverseProperty("ProductTable")]
+    public virtual ICollection<RtlSaleDocTable> RtlSaleDocTables { get; set; } = new List<RtlSaleDocTable>();
+
+    [InverseProperty("ProductTable")]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
     [InverseProperty("ProductTable")]

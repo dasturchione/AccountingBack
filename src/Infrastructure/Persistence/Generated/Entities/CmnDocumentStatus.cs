@@ -74,6 +74,9 @@ public partial class CmnDocumentStatus
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("Status")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("Status")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [InverseProperty("Status")]

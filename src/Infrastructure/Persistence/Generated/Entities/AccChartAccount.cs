@@ -198,6 +198,24 @@ public partial class AccChartAccount
     [InverseProperty("SupplierAccount")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
+    [InverseProperty("DebitAccount")]
+    public virtual ICollection<RtlSaleDocPayment> RtlSaleDocPayments { get; set; } = new List<RtlSaleDocPayment>();
+
+    [InverseProperty("CostAccount")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProductCostAccounts { get; set; } = new List<RtlSaleDocProduct>();
+
+    [InverseProperty("IncomeAccount")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProductIncomeAccounts { get; set; } = new List<RtlSaleDocProduct>();
+
+    [InverseProperty("InventoryAccount")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProductInventoryAccounts { get; set; } = new List<RtlSaleDocProduct>();
+
+    [InverseProperty("ReceivableAccount")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocReceivableAccounts { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("VatAccount")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocVatAccounts { get; set; } = new List<RtlSaleDoc>();
+
     [InverseProperty("CustomerAccount")]
     public virtual ICollection<SaleDoc> SaleDocCustomerAccounts { get; set; } = new List<SaleDoc>();
 

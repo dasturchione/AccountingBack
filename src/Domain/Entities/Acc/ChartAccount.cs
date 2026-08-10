@@ -55,8 +55,26 @@ public partial class ChartAccount
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("Account")]
+    [InverseProperty(nameof(ChartAccountSubkonto.Account))]
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
+
+    [InverseProperty(nameof(RetailSaleDoc.VatAccount))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocVatAccounts { get; set; } = new List<RetailSaleDoc>();
+
+    [InverseProperty(nameof(RetailSaleDoc.ReceivableAccount))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocReceivableAccounts { get; set; } = new List<RetailSaleDoc>();
+
+    [InverseProperty(nameof(RetailSaleDocPayment.DebitAccount))]
+    public virtual ICollection<RetailSaleDocPayment> RetailSaleDocPayments { get; set; } = new List<RetailSaleDocPayment>();
+
+    [InverseProperty(nameof(RetailSaleDocProduct.CostAccount))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProductCostAccounts { get; set; } = new List<RetailSaleDocProduct>();
+
+    [InverseProperty(nameof(RetailSaleDocProduct.IncomeAccount))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProductIncomeAccounts { get; set; } = new List<RetailSaleDocProduct>();
+
+    [InverseProperty(nameof(RetailSaleDocProduct.InventoryAccount))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProductInventoryAccounts { get; set; } = new List<RetailSaleDocProduct>();
 
     [InverseProperty(nameof(DocumentAccountSetting.ChartAccount))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
@@ -67,21 +85,21 @@ public partial class ChartAccount
     [InverseProperty(nameof(OpeningBalanceAccount.ChartAccount))]
     public virtual ICollection<OpeningBalanceAccount> OpeningBalanceAccounts { get; set; } = new List<OpeningBalanceAccount>();
 
-    [InverseProperty("CreditAccount")]
+    [InverseProperty(nameof(AccountingRegisterEntry.CreditAccount))]
     public virtual ICollection<AccountingRegisterEntry> RegisterEntryCreditAccounts { get; set; } = new List<AccountingRegisterEntry>();
 
-    [ForeignKey("OrganizationId")]
-    [InverseProperty("ChartAccounts")]
+    [ForeignKey(nameof(OrganizationId))]
+    [InverseProperty(nameof(Organization.ChartAccounts))]
     public virtual Organization Organization { get; set; } = null!;
 
-    [InverseProperty("DebitAccount")]
+    [InverseProperty(nameof(AccountingRegisterEntry.DebitAccount))]
     public virtual ICollection<AccountingRegisterEntry> RegisterEntryDebitAccounts { get; set; } = new List<AccountingRegisterEntry>();
 
-    [ForeignKey("AccountTypeId")]
-    [InverseProperty("ChartAccounts")]
+    [ForeignKey(nameof(AccountTypeId))]
+    [InverseProperty(nameof(AccountType.ChartAccounts))]
     public virtual AccountType? AccountType { get; set; }
 
-    [InverseProperty("Parent")]
+    [InverseProperty(nameof(ChartAccount.Parent))]
     public virtual ICollection<ChartAccount> InverseParent { get; set; } = new List<ChartAccount>();
 
     [InverseProperty(nameof(SaleDoc.CustomerAccount))]
@@ -186,11 +204,11 @@ public partial class ChartAccount
     [InverseProperty(nameof(CashOperation.OffsetAccount))]
     public virtual ICollection<CashOperation> CashOperationOffsetAccounts { get; set; } = new List<CashOperation>();
 
-    [ForeignKey("ParentId")]
-    [InverseProperty("InverseParent")]
+    [ForeignKey(nameof(ParentId))]
+    [InverseProperty(nameof(ChartAccount.InverseParent))]
     public virtual ChartAccount? Parent { get; set; }
 
-    [ForeignKey("StateId")]
-    [InverseProperty("ChartAccounts")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.ChartAccounts))]
     public virtual State State { get; set; } = null!;
 }

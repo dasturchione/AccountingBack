@@ -140,6 +140,9 @@ public partial class InvProduct
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
 
     [InverseProperty("Product")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProducts { get; set; } = new List<RtlSaleDocProduct>();
+
+    [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [InverseProperty("Product")]

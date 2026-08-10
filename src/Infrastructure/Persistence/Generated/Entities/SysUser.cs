@@ -210,6 +210,12 @@ public partial class SysUser
     [InverseProperty("UpdatedByUser")]
     public virtual ICollection<PayTimesheet> PayTimesheetUpdatedByUsers { get; set; } = new List<PayTimesheet>();
 
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocCancelledByUsers { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocPostedByUsers { get; set; } = new List<RtlSaleDoc>();
+
     [InverseProperty("AcceptedUser")]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocAcceptedUsers { get; set; } = new List<SaleShipmentDoc>();
 

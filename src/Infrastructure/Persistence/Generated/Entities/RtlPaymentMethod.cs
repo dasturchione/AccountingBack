@@ -24,4 +24,7 @@ public partial class RtlPaymentMethod
 
     [InverseProperty("PaymentMethod")]
     public virtual ICollection<RtlPaymentMethodTranslation> RtlPaymentMethodTranslations { get; set; } = new List<RtlPaymentMethodTranslation>();
+
+    [InverseProperty("PaymentMethod")]
+    public virtual ICollection<RtlSaleDocPayment> RtlSaleDocPayments { get; set; } = new List<RtlSaleDocPayment>();
 }

@@ -350,6 +350,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<RtlPaymentMethodTranslation> RtlPaymentMethodTranslations { get; set; }
 
+    public virtual DbSet<RtlSaleDoc> RtlSaleDocs { get; set; }
+
+    public virtual DbSet<RtlSaleDocPayment> RtlSaleDocPayments { get; set; }
+
+    public virtual DbSet<RtlSaleDocProduct> RtlSaleDocProducts { get; set; }
+
+    public virtual DbSet<RtlSaleDocTable> RtlSaleDocTables { get; set; }
+
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
 
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
@@ -3386,6 +3394,101 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Language).WithMany(p => p.RtlPaymentMethodTranslations).HasConstraintName("rtl_payment_method_translation_language_id_fkey");
 
             entity.HasOne(d => d.PaymentMethod).WithMany(p => p.RtlPaymentMethodTranslations).HasConstraintName("rtl_payment_method_translation_payment_method_id_fkey");
+        });
+
+        modelBuilder.Entity<RtlSaleDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rtl_sale_doc_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.ExchangeRate).HasDefaultValue(1m);
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.RtlSaleDocCancelledByUsers).HasConstraintName("rtl_sale_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CashRegister).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_cash_register_id_fkey");
+
+            entity.HasOne(d => d.Counterparty).WithMany(p => p.RtlSaleDocs).HasConstraintName("rtl_sale_doc_counterparty_id_fkey");
+
+            entity.HasOne(d => d.Currency).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_currency_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.RtlSaleDocPostedByUsers).HasConstraintName("rtl_sale_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.ReceivableAccount).WithMany(p => p.RtlSaleDocReceivableAccounts).HasConstraintName("rtl_sale_doc_receivable_account_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_status_id_fkey");
+
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.RtlSaleDocVatAccounts).HasConstraintName("rtl_sale_doc_vat_account_id_fkey");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.RtlSaleDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<RtlSaleDocPayment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rtl_sale_doc_payment_pkey");
+
+            entity.HasOne(d => d.BankTerminal).WithMany(p => p.RtlSaleDocPayments).HasConstraintName("rtl_sale_doc_payment_bank_terminal_id_fkey");
+
+            entity.HasOne(d => d.DebitAccount).WithMany(p => p.RtlSaleDocPayments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_payment_debit_account_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.RtlSaleDocPayments).HasConstraintName("rtl_sale_doc_payment_owner_id_fkey");
+
+            entity.HasOne(d => d.PaymentMethod).WithMany(p => p.RtlSaleDocPayments)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_payment_payment_method_id_fkey");
+        });
+
+        modelBuilder.Entity<RtlSaleDocProduct>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rtl_sale_doc_product_pkey");
+
+            entity.HasOne(d => d.CostAccount).WithMany(p => p.RtlSaleDocProductCostAccounts).HasConstraintName("rtl_sale_doc_product_cost_account_id_fkey");
+
+            entity.HasOne(d => d.IncomeAccount).WithMany(p => p.RtlSaleDocProductIncomeAccounts).HasConstraintName("rtl_sale_doc_product_income_account_id_fkey");
+
+            entity.HasOne(d => d.InventoryAccount).WithMany(p => p.RtlSaleDocProductInventoryAccounts).HasConstraintName("rtl_sale_doc_product_inventory_account_id_fkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.RtlSaleDocProducts).HasConstraintName("rtl_sale_doc_product_owner_id_fkey");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.RtlSaleDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_product_product_id_fkey");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.RtlSaleDocProducts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_product_unit_id_fkey");
+
+            entity.HasOne(d => d.VatRate).WithMany(p => p.RtlSaleDocProducts).HasConstraintName("rtl_sale_doc_product_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<RtlSaleDocTable>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rtl_sale_doc_table_pkey");
+
+            entity.HasOne(d => d.Owner).WithMany(p => p.RtlSaleDocTables).HasConstraintName("rtl_sale_doc_table_owner_id_fkey");
+
+            entity.HasOne(d => d.ProductTable).WithMany(p => p.RtlSaleDocTables)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("rtl_sale_doc_table_product_table_id_fkey");
+
+            entity.HasOne(d => d.VatRate).WithMany(p => p.RtlSaleDocTables).HasConstraintName("rtl_sale_doc_table_vat_rate_id_fkey");
         });
 
         modelBuilder.Entity<SaleCondition>(entity =>

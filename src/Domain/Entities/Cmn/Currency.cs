@@ -25,47 +25,54 @@ public partial class Currency
     [Column("state_id")]
     public short StateId { get; set; }
 
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.Currencies))]
+    public virtual State State { get; set; } = null!;
+
     [InverseProperty(nameof(OpeningBalanceAccountDetail.Currency))]
     public virtual ICollection<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; } = new List<OpeningBalanceAccountDetail>();
 
     [InverseProperty(nameof(CurrencyTranslation.Currency))]
     public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(AccountingRegisterEntry.Currency))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(BankOperation.Currency))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(CashBox.Currency))]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(CashOperation.Currency))]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(CounterpartyBankAccount.Currency))]
     public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(CounterpartyRegisterBalance.Currency))]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(ProductPrice.Currency))]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(MoneyRegisterBalance.Currency))]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(BankAccount.Currency))]
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(PurchaseDoc.Currency))]
     public virtual ICollection<PurchaseDoc> PurchaseDocs { get; set; } = new List<PurchaseDoc>();
 
-    [InverseProperty("Currency")]
+    [InverseProperty(nameof(SaleDoc.Currency))]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [InverseProperty(nameof(CurrencyRate.BaseCurrency))]
     public virtual ICollection<CurrencyRate> BaseCurrencyRates { get; set; } = new List<CurrencyRate>();
+
+    [InverseProperty(nameof(RetailSaleDoc.Currency))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
 
     [InverseProperty(nameof(CurrencyRate.TargetCurrency))]
     public virtual ICollection<CurrencyRate> TargetCurrencyRates { get; set; } = new List<CurrencyRate>();
@@ -75,8 +82,4 @@ public partial class Currency
 
     [InverseProperty(nameof(CurrencyRevaluationLine.TargetCurrency))]
     public virtual ICollection<CurrencyRevaluationLine> CurrencyRevaluationTargetLines { get; set; } = new List<CurrencyRevaluationLine>();
-
-    [ForeignKey(nameof(StateId))]
-    [InverseProperty(nameof(State.Currencies))]
-    public virtual State State { get; set; } = null!;
 }

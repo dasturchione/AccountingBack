@@ -312,6 +312,9 @@ public partial class OrgOrganization
     public virtual CmnRegion Region { get; set; } = null!;
 
     [InverseProperty("Organization")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
 
     [InverseProperty("Organization")]

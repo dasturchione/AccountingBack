@@ -20,6 +20,7 @@ using Application.Features.Reports.Extensions;
 using Application.Features.Reports.Exports;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
+using Application.Features.BankTerminals;
 using Application.Features.BankParsers;
 using Application.Features.Banks;
 using Application.Features.Branches;
@@ -272,6 +273,7 @@ namespace Infrastructure
             services.AddScoped<IPricingConditionService, PricingConditionService>();
             services.AddScoped<ISaleConditionService, SaleConditionService>();
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
+            services.AddScoped<IBankTerminalService, BankTerminalService>();
             services.AddScoped<IBankOperationService, BankOperationService>();
             services.AddScoped<IBankLifecycleService, BankLifecycleService>();
             services.AddScoped<IBankStatementParserService, BankStatementParserService>();

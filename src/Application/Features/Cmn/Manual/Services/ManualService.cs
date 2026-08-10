@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.FaAssets;
 using Domain.Entities;
@@ -13,6 +13,8 @@ public class ManualService : IManualService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
+    private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
+    private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<UserKind> _userKindQuery;
     private readonly IQueryRepository<User> _userQuery;
@@ -84,6 +86,8 @@ public class ManualService : IManualService
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
+        IQueryRepository<BankTerminal> bankTerminalQuery,
+        IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
         IQueryRepository<TaxType> taxTypeQuery,
@@ -134,6 +138,8 @@ public class ManualService : IManualService
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
         _bankQuery = bankQuery;
+        _bankTerminalQuery = bankTerminalQuery;
+        _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
         _taxTypeQuery = taxTypeQuery;
@@ -863,6 +869,41 @@ public class ManualService : IManualService
                             .Build();
 
         return await _orgBankAccountQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<BankTerminal>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.ExternalTerminalId ?? x.SerialNumber
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankTerminalQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPaymentMethodsAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<PaymentMethod>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.PaymentMethodTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _paymentMethodQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetCounterpartyBankAccountsAsync(int? counterpartyId = null, int? bankId = null, CancellationToken ct = default)

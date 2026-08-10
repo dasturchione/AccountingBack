@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SharedKernel.Constants;
@@ -27,6 +27,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; }
     public virtual DbSet<OpeningBalanceAccountDetailSubkonto> OpeningBalanceAccountDetailSubkontos { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
+    public virtual DbSet<BankTerminal> BankTerminals { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
     public virtual DbSet<CashOperation> CashOperations { get; set; }
@@ -67,6 +68,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MxikCatalog> MxikCatalogs { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
+    public virtual DbSet<PaymentMethod> PaymentMethods { get; set; }
     public virtual DbSet<PriceRoundingMethod> PriceRoundingMethods { get; set; }
     public virtual DbSet<PricingCondition> PricingConditions { get; set; }
     public virtual DbSet<PricingMethod> PricingMethods { get; set; }
@@ -82,6 +84,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentTypeTranslation> DocumentTypeTranslations { get; set; }
     public virtual DbSet<OperationTypeTranslation> OperationTypeTranslations { get; set; }
     public virtual DbSet<PaymentTypeTranslation> PaymentTypeTranslations { get; set; }
+    public virtual DbSet<PaymentMethodTranslation> PaymentMethodTranslations { get; set; }
     public virtual DbSet<Unit> Units { get; set; }
     public virtual DbSet<VatRate> VatRates { get; set; }
     public virtual DbSet<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; }

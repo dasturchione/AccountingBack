@@ -1,4 +1,4 @@
-﻿namespace SharedKernel.Constants
+namespace SharedKernel.Constants
 {
     /// <summary>
     /// Document type identifiers.
@@ -15,6 +15,11 @@
         /// Sales document for goods or services.
         /// </summary>
         public const short SALE = 2;
+
+        /// <summary>
+        /// Retail sale document.
+        /// </summary>
+        public const short RETAIL_SALE = 7;
 
         /// <summary>
         /// Bank transaction document.

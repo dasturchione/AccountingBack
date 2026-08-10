@@ -52,7 +52,9 @@ public sealed class EdoProviderManagementService(
             RawCapabilities = provider.Capabilities,
             Capabilities = MapFrontendCapabilities(provider.Capabilities),
             CategoryCapabilities = MapCategoryCapabilities(provider.ProviderCode, provider.Capabilities),
-            StatusCapabilities = MapStatusCapabilities(provider.ProviderCode, provider.Capabilities)
+            StatusCapabilities = MapStatusCapabilities(provider.ProviderCode, provider.Capabilities),
+            FilterCapabilities = MapFilterCapabilities(provider.ProviderCode, provider.Capabilities),
+            StatusOptions = MapStatusOptions(provider.ProviderCode, provider.Capabilities)
         };
     }
 
@@ -143,9 +145,8 @@ public sealed class EdoProviderManagementService(
         EdoCapabilityStatus Get(EdoCapabilityKind kind) =>
             lookup.TryGetValue(kind, out var status) ? status : EdoCapabilityStatus.UNKNOWN;
 
-        var filterStatus = Get(EdoCapabilityKind.SearchFilter);
         var statusCategory = providerCode is EdoProviderCode.EDOCS or EdoProviderCode.DIDOX
-            ? filterStatus
+            ? EdoCapabilityStatus.SUPPORTED
             : EdoCapabilityStatus.UNKNOWN;
 
         return
@@ -162,6 +163,161 @@ public sealed class EdoProviderManagementService(
             }
         ];
     }
+
+    private static IReadOnlyCollection<EdoFilterCapabilityDto> MapFilterCapabilities(
+        EdoProviderCode providerCode,
+        IReadOnlyCollection<EdoCapabilityDto> capabilities)
+    {
+        var lookup = capabilities.ToDictionary(item => item.Kind, item => item.Status);
+        var result = new List<EdoFilterCapabilityDto>();
+        var inboxSupported = IsSupported(lookup, EdoCapabilityKind.ListInbox);
+        var outboxSupported = IsSupported(lookup, EdoCapabilityKind.ListOutbox);
+        var aggregateSupported = inboxSupported && outboxSupported;
+        var statusFilterSupported = providerCode is EdoProviderCode.EDOCS or EdoProviderCode.DIDOX;
+
+        AddListFilters(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, inboxSupported, statusFilterSupported);
+        AddListFilters(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, outboxSupported, statusFilterSupported);
+        AddListFilters(
+            result,
+            null,
+            EdoDocumentCategory.ALL,
+            aggregateSupported,
+            statusFilterSupported && providerCode == EdoProviderCode.DIDOX);
+        if (providerCode == EdoProviderCode.DIDOX)
+        {
+            AddFilter(result, null, EdoDocumentCategory.DRAFTS, "Status", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.REJECTED, "Status", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DELETED_ARCHIVED, "Status", aggregateSupported);
+        }
+
+        if (providerCode == EdoProviderCode.DIDOX)
+        {
+            AddFilter(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, "DateFrom", inboxSupported);
+            AddFilter(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, "DateTo", inboxSupported);
+            AddFilter(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, "DateFrom", outboxSupported);
+            AddFilter(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, "DateTo", outboxSupported);
+            AddFilter(result, null, EdoDocumentCategory.ALL, "DateFrom", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.ALL, "DateTo", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DRAFTS, "DateFrom", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DRAFTS, "DateTo", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.REJECTED, "DateFrom", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.REJECTED, "DateTo", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DELETED_ARCHIVED, "DateFrom", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DELETED_ARCHIVED, "DateTo", aggregateSupported);
+            AddFilter(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, "HasMarks", inboxSupported);
+            AddFilter(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, "HasMarks", outboxSupported);
+            AddFilter(result, null, EdoDocumentCategory.ALL, "HasMarks", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DRAFTS, "HasMarks", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.REJECTED, "HasMarks", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DELETED_ARCHIVED, "HasMarks", aggregateSupported);
+            AddFilter(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, "Search", inboxSupported);
+            AddFilter(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, "Search", outboxSupported);
+            AddFilter(result, null, EdoDocumentCategory.ALL, "Search", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DRAFTS, "Search", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.REJECTED, "Search", aggregateSupported);
+            AddFilter(result, null, EdoDocumentCategory.DELETED_ARCHIVED, "Search", aggregateSupported);
+        }
+
+        return result;
+    }
+
+    private static void AddListFilters(
+        ICollection<EdoFilterCapabilityDto> result,
+        EdoDirection? direction,
+        EdoDocumentCategory category,
+        bool supported,
+        bool statusSupported)
+    {
+        AddFilter(result, direction, category, "Page", supported);
+        AddFilter(result, direction, category, "PageSize", supported);
+        AddFilter(result, direction, category, "Status", supported && statusSupported);
+    }
+
+    private static void AddFilter(
+        ICollection<EdoFilterCapabilityDto> result,
+        EdoDirection? direction,
+        EdoDocumentCategory category,
+        string filter,
+        bool supported)
+    {
+        if (!supported)
+            return;
+
+        result.Add(new EdoFilterCapabilityDto
+        {
+            Direction = direction,
+            Category = category,
+            Filter = filter,
+            Capability = EdoCapabilityStatus.SUPPORTED
+        });
+    }
+
+    private static IReadOnlyCollection<EdoStatusOptionCapabilityDto> MapStatusOptions(
+        EdoProviderCode providerCode,
+        IReadOnlyCollection<EdoCapabilityDto> capabilities)
+    {
+        var lookup = capabilities.ToDictionary(item => item.Kind, item => item.Status);
+        var result = new List<EdoStatusOptionCapabilityDto>();
+        var inboxSupported = IsSupported(lookup, EdoCapabilityKind.ListInbox);
+        var outboxSupported = IsSupported(lookup, EdoCapabilityKind.ListOutbox);
+        var draftsSupported = IsSupported(lookup, EdoCapabilityKind.ListDrafts);
+
+        if (providerCode == EdoProviderCode.EDOCS)
+        {
+            AddStatusOptions(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, inboxSupported,
+                (nameof(EdoDocumentStatusCode.SIGNED), true));
+            AddStatusOptions(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, outboxSupported,
+                (nameof(EdoDocumentStatusCode.DELETED), true));
+        }
+        else if (providerCode == EdoProviderCode.DIDOX)
+        {
+            AddStatusOptions(result, EdoDirection.INBOX, EdoDocumentCategory.INBOX, inboxSupported,
+                ("ALL", false),
+                (nameof(EdoDocumentStatusCode.PENDING_SIGNATURE), true),
+                (nameof(EdoDocumentStatusCode.SIGNED), true),
+                (nameof(EdoDocumentStatusCode.REJECTED), true),
+                (nameof(EdoDocumentStatusCode.DELETED), true));
+            AddStatusOptions(result, EdoDirection.OUTBOX, EdoDocumentCategory.OUTBOX, outboxSupported,
+                (nameof(EdoDocumentStatusCode.PARTNER_SIGNATURE_PENDING), true),
+                (nameof(EdoDocumentStatusCode.AGENT_SIGNATURE_PENDING), true),
+                (nameof(EdoDocumentStatusCode.SIGNED), true),
+                (nameof(EdoDocumentStatusCode.REJECTED), true),
+                (nameof(EdoDocumentStatusCode.DELETED), true));
+            AddStatusOptions(result, null, EdoDocumentCategory.DRAFTS, draftsSupported,
+                (nameof(EdoDocumentStatusCode.DRAFT), true),
+                (nameof(EdoDocumentStatusCode.DELETED), true));
+        }
+
+        return result;
+    }
+
+    private static void AddStatusOptions(
+        ICollection<EdoStatusOptionCapabilityDto> result,
+        EdoDirection? direction,
+        EdoDocumentCategory category,
+        bool supported,
+        params (string Code, bool SendsProviderStatus)[] options)
+    {
+        if (!supported)
+            return;
+
+        foreach (var option in options)
+        {
+            result.Add(new EdoStatusOptionCapabilityDto
+            {
+                Direction = direction,
+                Category = category,
+                Code = option.Code,
+                Capability = EdoCapabilityStatus.SUPPORTED,
+                SendsProviderStatus = option.SendsProviderStatus
+            });
+        }
+    }
+
+    private static bool IsSupported(
+        IReadOnlyDictionary<EdoCapabilityKind, EdoCapabilityStatus> lookup,
+        EdoCapabilityKind kind) =>
+        lookup.GetValueOrDefault(kind, EdoCapabilityStatus.UNKNOWN) == EdoCapabilityStatus.SUPPORTED;
 
     private static EdoCapabilityStatus GetAggregateAllCapability(
         IReadOnlyDictionary<EdoCapabilityKind, EdoCapabilityStatus> lookup)
@@ -182,6 +338,17 @@ public sealed class EdoProviderManagementService(
         EdoProviderCode providerCode,
         IReadOnlyCollection<EdoCapabilityDto> capabilities)
     {
+        if (providerCode == EdoProviderCode.EDOCS)
+        {
+            var edocsLookup = capabilities.ToDictionary(item => item.Kind, item => item.Status);
+            var edocsResult = new List<EdoStatusCapabilityDto>();
+            if (IsSupported(edocsLookup, EdoCapabilityKind.ListInbox))
+                edocsResult.Add(new() { Status = EdoDocumentStatusCode.SIGNED, Capability = EdoCapabilityStatus.SUPPORTED });
+            if (IsSupported(edocsLookup, EdoCapabilityKind.ListOutbox))
+                edocsResult.Add(new() { Status = EdoDocumentStatusCode.DELETED, Capability = EdoCapabilityStatus.SUPPORTED });
+            return edocsResult;
+        }
+
         var lookup = capabilities.ToDictionary(item => item.Kind, item => item.Status);
         EdoCapabilityStatus Get(EdoCapabilityKind kind) =>
             lookup.TryGetValue(kind, out var status) ? status : EdoCapabilityStatus.UNKNOWN;
@@ -216,6 +383,8 @@ public sealed class EdoProviderManagementService(
                     _ => EdoCapabilityStatus.UNKNOWN
                 }
             })
+            .Where(item => item.Status != EdoDocumentStatusCode.UNKNOWN
+                && item.Capability == EdoCapabilityStatus.SUPPORTED)
             .ToArray();
 
         return result;

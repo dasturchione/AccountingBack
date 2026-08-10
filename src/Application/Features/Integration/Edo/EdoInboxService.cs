@@ -33,7 +33,7 @@ public sealed class EdoInboxService(
 
     public async Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct = default)
     {
-        EnsureCategoryMatchesDirection(EdoDirection.INBOX, request.Category);
+        EnsureDateRange(request.DateFrom, request.DateTo);
         var organizationId = RequireOrganization();
         var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
         EnsureCapability(provider, EdoCapabilityKind.ListInbox);
@@ -42,17 +42,13 @@ public sealed class EdoInboxService(
             throw new InvalidOperationException("Inbox page must be at least 1 and page size must be between 1 and 100.");
 
         var providerResult = await provider.ListInboxAsync(request, ct);
-        var items = new List<EdoDocumentDto>(providerResult.Items.Count);
-        await ExecuteInTransactionAsync("PersistInboxSync", async () =>
-        {
-            foreach (var providerDocument in providerResult.Items)
-            {
-                var localDocument = await UpsertInboxDocumentAsync(organizationId, provider.Code, providerDocument, ct);
-                items.Add(MapDocument(localDocument, providerDocument, provider.Code));
-            }
-
-            return Result.Success();
-        }, ct);
+        // Listing is a read-only operation. Local reconciliation/persistence is
+        // performed by explicit workflows, never as a side effect of GET.
+        var items = await MapReadOnlyProviderItemsAsync(
+            organizationId,
+            provider,
+            providerResult,
+            ct);
 
         return new EdoInboxListDto
         {
@@ -98,6 +94,7 @@ public sealed class EdoInboxService(
 
         if (request.Page < 1 || request.Limit is < 1 or > 100)
             throw new InvalidOperationException("EDO page must be at least 1 and limit must be between 1 and 100.");
+        EnsureDateRange(request.DateFrom, request.DateTo);
 
         if (request.Scope == EdoDocumentQueryScope.INBOX)
             return await ListInboxAsync(request.ToInboxQuery(), ct);
@@ -156,6 +153,7 @@ public sealed class EdoInboxService(
 
         if (request.Page < 1 || request.EffectivePageSize is < 1 or > 100)
             throw new InvalidOperationException("EDO page must be at least 1 and page size must be between 1 and 100.");
+        EnsureDateRange(request.DateFrom, request.DateTo);
 
         var pageSize = request.EffectivePageSize;
 
@@ -870,6 +868,14 @@ public sealed class EdoInboxService(
         throw new IntegrationHttpException(
             $"Category '{category}' does not match the {direction} EDO endpoint.",
             400);
+    }
+
+    private static void EnsureDateRange(DateOnly? dateFrom, DateOnly? dateTo)
+    {
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value > dateTo.Value)
+            throw new IntegrationHttpException(
+                "DateFrom must be earlier than or equal to DateTo.",
+                400);
     }
 
     private static void EnsureCapability(IEdoProvider provider, EdoCapabilityKind capability)

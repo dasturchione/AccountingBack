@@ -6,10 +6,9 @@ public sealed class EdoInboxQueryDto
     public int PageSize { get; init; } = 20;
     public string? Search { get; init; }
     public bool? HasMarks { get; init; }
-    public EdoDocumentCategory? Category { get; init; }
     public EdoDocumentStatusCode? Status { get; init; }
-    public DateOnly? FromDate { get; init; }
-    public DateOnly? ToDate { get; init; }
+    public DateOnly? DateFrom { get; init; }
+    public DateOnly? DateTo { get; init; }
 }
 
 public enum EdoDocumentQueryScope
@@ -40,10 +39,9 @@ public sealed class EdoDocumentQueryDto
         PageSize = Limit,
         Search = Search,
         HasMarks = HasMarks,
-        Category = Category,
         Status = Status,
-        FromDate = DateFrom,
-        ToDate = DateTo
+        DateFrom = DateFrom,
+        DateTo = DateTo
     };
 }
 
@@ -57,7 +55,6 @@ public sealed class EdoOutboxQueryDto
     public int? PageSize { get; init; }
     public string? Search { get; init; }
     public bool? HasMarks { get; init; }
-    public EdoDocumentCategory? Category { get; init; }
     public EdoDocumentStatusCode? Status { get; init; }
     public DateOnly? DateFrom { get; init; }
     public DateOnly? DateTo { get; init; }
@@ -73,7 +70,6 @@ public sealed class EdoOutboxQueryDto
         Limit = PageSize ?? Limit ?? 20,
         Search = Search,
         HasMarks = HasMarks,
-        Category = Category,
         Status = Status,
         DateFrom = DateFrom,
         DateTo = DateTo
@@ -103,10 +99,15 @@ public sealed class EdoAllDocumentsQueryDto
         PageSize = EffectivePageSize,
         Search = Search,
         HasMarks = HasMarks,
-        Category = Category,
-        Status = Status,
-        FromDate = DateFrom,
-        ToDate = DateTo
+        Status = Status ?? Category switch
+        {
+            EdoDocumentCategory.DRAFTS => EdoDocumentStatusCode.DRAFT,
+            EdoDocumentCategory.REJECTED => EdoDocumentStatusCode.REJECTED,
+            EdoDocumentCategory.DELETED_ARCHIVED => EdoDocumentStatusCode.CANCELLED,
+            _ => null
+        },
+        DateFrom = DateFrom,
+        DateTo = DateTo
     };
 
     public EdoDocumentQueryDto ToOutboxQuery(int page) => new()

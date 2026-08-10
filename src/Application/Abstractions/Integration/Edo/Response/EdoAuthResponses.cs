@@ -7,6 +7,7 @@ public sealed class EdoAuthChallengeDto
     public string Payload { get; init; } = string.Empty;
     public string PayloadFormat { get; init; } = string.Empty;
     public DateTimeOffset? ExpiresAt { get; init; }
+    public DateTimeOffset? ChallengeExpiresAt { get; init; }
     public string? SigningSessionId { get; init; }
 }
 
@@ -15,6 +16,7 @@ public sealed class EdoAuthCompleteDto
     public bool IsAuthenticated { get; init; }
     public string? SessionId { get; init; }
     public DateTimeOffset? ExpiresAt { get; init; }
+    public DateTimeOffset? AuthenticatedSessionExpiresAt { get; init; }
 }
 
 public sealed class EdoSigningSessionDto

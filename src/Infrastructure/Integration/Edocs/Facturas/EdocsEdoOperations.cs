@@ -33,10 +33,9 @@ public sealed class EdocsEdoOperations(
             Limit = request.PageSize,
             Search = request.Search,
             HasMarks = request.HasMarks,
-            Category = request.Category,
             Status = request.Status,
-            DateFrom = request.FromDate,
-            DateTo = request.ToDate
+            DateFrom = request.DateFrom,
+            DateTo = request.DateTo
         }, ct);
 
     public async Task<EdoInboxListDto> ListDocumentsAsync(EdoDocumentQueryDto request, CancellationToken ct)
@@ -475,6 +474,9 @@ public sealed class EdocsEdoOperations(
         {
             HttpStatusCode.Unauthorized => new IntegrationUnauthorizedException($"{operation} was rejected by Edocs."),
             HttpStatusCode.Forbidden => new IntegrationForbiddenException($"{operation} was denied by Edocs."),
+            HttpStatusCode.UnprocessableEntity => new IntegrationHttpException(
+                $"{operation} was rejected by Edocs with an invalid provider request.",
+                StatusCodes.Status502BadGateway),
             _ => new IntegrationHttpException($"{operation} failed with HTTP status {status}.", status)
         };
     }
@@ -685,13 +687,14 @@ public sealed class EdocsEdoOperations(
             EdoDocumentStatusCode.DRAFT => "drafts",
             EdoDocumentStatusCode.SENT => "sended",
             EdoDocumentStatusCode.SIGNED => "signed",
-            EdoDocumentStatusCode.RECEIVED => "received",
             EdoDocumentStatusCode.REJECTED => "rejected",
             EdoDocumentStatusCode.DELETED
                 or EdoDocumentStatusCode.ARCHIVED
                 or EdoDocumentStatusCode.CANCELLED => "deleted",
-            _ => throw new InvalidOperationException(
-                $"Edocs status '{status}' has no confirmed provider query mapping.")
+            _ => throw new EdoCapabilityUnavailableException(
+                "EDOCS",
+                "StatusFilter",
+                EdoCapabilityStatus.UNKNOWN.ToString())
         };
     }
 }

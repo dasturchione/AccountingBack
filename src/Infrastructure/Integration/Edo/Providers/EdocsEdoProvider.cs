@@ -54,7 +54,12 @@ public sealed class EdocsEdoProvider(
             },
             ct);
 
-        return new EdoAuthCompleteDto { IsAuthenticated = result.Success };
+        return new EdoAuthCompleteDto
+        {
+            IsAuthenticated = result.Success,
+            ExpiresAt = result.ExpiresAt,
+            AuthenticatedSessionExpiresAt = result.ExpiresAt
+        };
     }
 
     public async Task<EdoOutboxCreateDto> CreateFacturaAsync(

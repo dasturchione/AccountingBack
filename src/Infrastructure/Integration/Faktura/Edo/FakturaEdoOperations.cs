@@ -534,10 +534,9 @@ public sealed class FakturaEdoOperations(
             Limit = request.PageSize,
             Search = request.Search,
             HasMarks = request.HasMarks,
-            Category = request.Category,
             Status = request.Status,
-            DateFrom = request.FromDate,
-            DateTo = request.ToDate
+            DateFrom = request.DateFrom,
+            DateTo = request.DateTo
         }, ct);
 
     public async Task<EdoInboxListDto> ListDocumentsAsync(

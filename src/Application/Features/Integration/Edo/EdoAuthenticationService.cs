@@ -36,10 +36,16 @@ public sealed class EdoAuthenticationService(
 
         var providerChallenge = await provider.GetAuthChallengeAsync(request, ct);
         var challengeId = RequireValue(providerChallenge.ChallengeId, nameof(providerChallenge.ChallengeId));
+        var now = DateTimeOffset.UtcNow;
         var expiresAt = EdoAuthSessionExpiry.Calculate(
-            DateTimeOffset.UtcNow,
+            now,
             SigningSessionLifetime,
             providerChallenge.ExpiresAt);
+        // Provider TTL is measured before this service receives the response;
+        // allow a small transport skew for the exact two-minute contract.
+        if (expiresAt < now.Add(EdoAuthSessionExpiry.MinimumChallengeLifetime - TimeSpan.FromSeconds(1))
+            || expiresAt > now.Add(EdoAuthSessionExpiry.MaximumChallengeLifetime))
+            throw new IntegrationHttpException("EDO provider challenge expiry is outside the allowed 2-5 minute window.", 502);
         var signingMode = ResolveSigningMode(provider);
         var certificateSerialNumber = provider.Code == EdoProviderCode.EDOCS
             ? request.CertificateSerialNumber
@@ -81,6 +87,7 @@ public sealed class EdoAuthenticationService(
             Payload = providerChallenge.Payload,
             PayloadFormat = providerChallenge.PayloadFormat,
             ExpiresAt = session!.ExpiresAt,
+            ChallengeExpiresAt = session.ExpiresAt,
             SigningSessionId = session.SessionId
         };
     }
@@ -101,7 +108,7 @@ public sealed class EdoAuthenticationService(
             if (!fakturaResult.IsAuthenticated)
                 throw new IntegrationUnauthorizedException("Faktura authentication was not completed.");
 
-            return fakturaResult;
+            return WithAuthenticatedExpiry(fakturaResult, provider.Code);
         }
 
         if (string.IsNullOrWhiteSpace(request.ChallengeId)
@@ -149,11 +156,13 @@ public sealed class EdoAuthenticationService(
         if (!providerResult.IsAuthenticated)
             throw new IntegrationUnauthorizedException("EDO authentication was not completed.");
 
+        var authenticatedExpiresAt = RequireAuthenticatedExpiry(providerResult.ExpiresAt, provider.Code);
         return new EdoAuthCompleteDto
         {
             IsAuthenticated = true,
             SessionId = session!.SessionId,
-            ExpiresAt = session.ExpiresAt
+            ExpiresAt = authenticatedExpiresAt,
+            AuthenticatedSessionExpiresAt = authenticatedExpiresAt
         };
     }
 
@@ -184,7 +193,45 @@ public sealed class EdoAuthenticationService(
         if (!result.IsAuthenticated)
             throw new IntegrationUnauthorizedException("Faktura authentication was not completed.");
 
-        return result;
+        return WithAuthenticatedExpiry(result, provider.Code);
+    }
+
+    private static EdoAuthCompleteDto WithAuthenticatedExpiry(
+        EdoAuthCompleteDto result,
+        EdoProviderCode providerCode)
+    {
+        var expiresAt = RequireAuthenticatedExpiry(result.ExpiresAt, providerCode);
+        return new EdoAuthCompleteDto
+        {
+            IsAuthenticated = result.IsAuthenticated,
+            SessionId = result.SessionId,
+            ExpiresAt = expiresAt,
+            AuthenticatedSessionExpiresAt = expiresAt
+        };
+    }
+
+    private static DateTimeOffset RequireAuthenticatedExpiry(
+        DateTimeOffset? providerExpiresAt,
+        EdoProviderCode providerCode)
+    {
+        if (providerExpiresAt is null)
+            throw new EdoCapabilityUnavailableException(
+                providerCode.ToString(),
+                "AuthenticatedSessionExpiry",
+                EdoCapabilityStatus.UNKNOWN.ToString());
+
+        var now = DateTimeOffset.UtcNow;
+        var expiresAt = EdoAuthSessionExpiry.CapAuthenticatedExpiry(now, providerExpiresAt.Value);
+        // Provider TTL is measured before the response reaches this service. A
+        // small transport/processing skew must not reject an otherwise valid
+        // six-hour provider session.
+        if (expiresAt < now.Add(EdoAuthSessionExpiry.MinimumAuthenticatedSessionLifetime - TimeSpan.FromMinutes(1)))
+            throw new EdoCapabilityUnavailableException(
+                providerCode.ToString(),
+                "AuthenticatedSessionExpiry",
+                "OUTSIDE_ALLOWED_WINDOW");
+
+        return expiresAt;
     }
 
     private static void EnsureCapability(IEdoProvider provider, EdoCapabilityKind capability)

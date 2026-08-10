@@ -31,10 +31,9 @@ public sealed class DidoxEdoOperations(
             Limit = request.PageSize,
             Search = request.Search,
             HasMarks = request.HasMarks,
-            Category = request.Category,
             Status = request.Status,
-            DateFrom = request.FromDate,
-            DateTo = request.ToDate
+            DateFrom = request.DateFrom,
+            DateTo = request.DateTo
         }, ct);
 
     public async Task<EdoInboxListDto> ListDocumentsAsync(EdoDocumentQueryDto request, CancellationToken ct)
@@ -122,7 +121,7 @@ public sealed class DidoxEdoOperations(
         var id = RequireProviderDocumentId(providerDocumentId);
         using var response = await SendAsync(
             HttpMethod.Get,
-            $"v1/documents/{Uri.EscapeDataString(id)}",
+            $"v1/documents/{Uri.EscapeDataString(id)}?owner={(direction == EdoDirection.OUTBOX ? "1" : "0")}",
             ct);
         await EnsureSuccessAsync(response, "Didox document details");
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
@@ -207,11 +206,19 @@ public sealed class DidoxEdoOperations(
         };
     }
 
-    public async Task<EdoDocumentStatusDto> GetStatusAsync(string providerDocumentId, CancellationToken ct)
+    public Task<EdoDocumentStatusDto> GetStatusAsync(
+        string providerDocumentId,
+        CancellationToken ct) =>
+        GetStatusAsync(providerDocumentId, null, ct);
+
+    public async Task<EdoDocumentStatusDto> GetStatusAsync(
+        string providerDocumentId,
+        EdoDirection? direction,
+        CancellationToken ct)
     {
         using var response = await SendAsync(
             HttpMethod.Get,
-            $"v1/documents/{Uri.EscapeDataString(providerDocumentId)}",
+            $"v1/documents/{Uri.EscapeDataString(providerDocumentId)}{(direction is null ? string.Empty : $"?owner={(direction == EdoDirection.OUTBOX ? "1" : "0")}")}",
             ct);
         await EnsureSuccessAsync(response, "Didox document status");
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
@@ -357,7 +364,10 @@ public sealed class DidoxEdoOperations(
             EdoDocumentStatusCode.ARCHIVED => "50",
             EdoDocumentStatusCode.CANCELLED => "5,50,55",
             EdoDocumentStatusCode.FAILED => "40",
-            _ => null
+            _ => throw new EdoCapabilityUnavailableException(
+                "DIDOX",
+                "StatusFilter",
+                EdoCapabilityStatus.UNKNOWN.ToString())
         };
     }
 

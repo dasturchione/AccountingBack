@@ -19,7 +19,7 @@ public sealed class DidoxAuthService : IDidoxAuthService
 
     // INT_DIDOX.md §2.2: token — UUID, amal muddati 360 daqiqa. Xavfsizlik zaxirasi
     // sifatida biroz oldin yangilanadi (Edocs/AslBelgi'da ham shu naqsh — 5 daqiqa).
-    private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(360) - TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(360);
 
     // INT_DIDOX.md §2.3: "Yo'l parametrlari: taxId/companyTaxId ✅ (ИНН/ПИНФЛ),
     // locale ⬜ (ru default yoki uz)" — hujjatning o'zi TASDIQLAGAN standart qiymat,
@@ -94,8 +94,13 @@ public sealed class DidoxAuthService : IDidoxAuthService
         if (string.IsNullOrWhiteSpace(token))
             throw new IntegrationHttpException("Didox auth/token javobida token topilmadi.", 502);
 
+        var expiresAt = DateTimeOffset.UtcNow.Add(TokenLifetime);
         _tokenCache.Set(organizationId, token, TokenLifetime);
-        return new DidoxAuthCompleteResultDto { Success = true };
+        return new DidoxAuthCompleteResultDto
+        {
+            Success = true,
+            ExpiresAt = expiresAt
+        };
     }
 
     private async Task<string> RequireOrganizationInnAsync(int organizationId, CancellationToken ct)

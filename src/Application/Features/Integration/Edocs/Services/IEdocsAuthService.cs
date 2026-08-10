@@ -18,6 +18,7 @@ public sealed class EdocsAuthCompleteRequestDto
 public sealed class EdocsAuthCompleteResultDto
 {
     public bool Success { get; init; }
+    public DateTimeOffset? ExpiresAt { get; init; }
 }
 
 public interface IEdocsAuthService

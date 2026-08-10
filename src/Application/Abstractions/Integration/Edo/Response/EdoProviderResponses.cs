@@ -111,6 +111,8 @@ public sealed class EdoCapabilitiesResponseDto
     public EdoFrontendCapabilitiesDto Capabilities { get; init; } = new();
     public IReadOnlyCollection<EdoCategoryCapabilityDto> CategoryCapabilities { get; init; } = [];
     public IReadOnlyCollection<EdoStatusCapabilityDto> StatusCapabilities { get; init; } = [];
+    public IReadOnlyCollection<EdoFilterCapabilityDto> FilterCapabilities { get; init; } = [];
+    public IReadOnlyCollection<EdoStatusOptionCapabilityDto> StatusOptions { get; init; } = [];
     [JsonIgnore]
     public IReadOnlyCollection<EdoCapabilityDto> RawCapabilities { get; init; } = [];
 }
@@ -125,6 +127,23 @@ public sealed class EdoStatusCapabilityDto
 {
     public EdoDocumentStatusCode Status { get; init; }
     public EdoCapabilityStatus Capability { get; init; }
+}
+
+public sealed class EdoFilterCapabilityDto
+{
+    public EdoDirection? Direction { get; init; }
+    public EdoDocumentCategory Category { get; init; }
+    public string Filter { get; init; } = string.Empty;
+    public EdoCapabilityStatus Capability { get; init; }
+}
+
+public sealed class EdoStatusOptionCapabilityDto
+{
+    public EdoDirection? Direction { get; init; }
+    public EdoDocumentCategory Category { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public EdoCapabilityStatus Capability { get; init; }
+    public bool SendsProviderStatus { get; init; }
 }
 
 public sealed class EdoFrontendCapabilitiesDto

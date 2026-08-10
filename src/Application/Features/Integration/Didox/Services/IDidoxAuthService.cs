@@ -19,6 +19,7 @@ public sealed class DidoxAuthCompleteRequestDto
 public sealed class DidoxAuthCompleteResultDto
 {
     public bool Success { get; init; }
+    public DateTimeOffset? ExpiresAt { get; init; }
 }
 
 public interface IDidoxAuthService

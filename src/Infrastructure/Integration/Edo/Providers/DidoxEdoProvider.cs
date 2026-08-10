@@ -48,7 +48,12 @@ public sealed class DidoxEdoProvider(
             },
             ct);
 
-        return new EdoAuthCompleteDto { IsAuthenticated = result.Success };
+        return new EdoAuthCompleteDto
+        {
+            IsAuthenticated = result.Success,
+            ExpiresAt = result.ExpiresAt,
+            AuthenticatedSessionExpiresAt = result.ExpiresAt
+        };
     }
 
     public async Task<EdoOutboxCreateDto> CreateFacturaAsync(
@@ -179,12 +184,12 @@ public sealed class DidoxEdoProvider(
     public Task<EdoDocumentStatusDto> GetOutboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default) =>
-        edoOperations.GetStatusAsync(providerDocumentId, ct);
+        edoOperations.GetStatusAsync(providerDocumentId, EdoDirection.OUTBOX, ct);
 
     public Task<EdoDocumentStatusDto> GetInboxStatusAsync(
         string providerDocumentId,
         CancellationToken ct = default) =>
-        edoOperations.GetStatusAsync(providerDocumentId, ct);
+        edoOperations.GetStatusAsync(providerDocumentId, EdoDirection.INBOX, ct);
 
     private static DidoxFacturaPartyDto MapParty(EdoPartyDto party) => new()
     {

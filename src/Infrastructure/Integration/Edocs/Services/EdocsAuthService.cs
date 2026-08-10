@@ -156,8 +156,13 @@ public sealed class EdocsAuthService : IEdocsAuthService
         if (string.IsNullOrWhiteSpace(token))
             throw new IntegrationHttpException("Edocs login javobida token topilmadi.", 502);
 
+        var expiresAt = _timeProvider.GetUtcNow().Add(TokenLifetime);
         _tokenCache.Set(RequireOrganization(), IntegrationProviderConst.Edocs, token, TokenLifetime);
-        return new EdocsAuthCompleteResultDto { Success = true };
+        return new EdocsAuthCompleteResultDto
+        {
+            Success = true,
+            ExpiresAt = expiresAt
+        };
     }
 
     private static async Task<string> GetTimestampPkcs7Async(

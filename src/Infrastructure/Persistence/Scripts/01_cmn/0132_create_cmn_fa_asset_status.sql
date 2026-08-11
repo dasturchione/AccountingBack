@@ -18,7 +18,7 @@ insert into cmn_fa_asset_status
     state_id
 )
 values
-    (1, 'NOT_COMMISSIONED', 'Not commissioned', 1),
-    (2, 'ACTIVE',           'Active',           1),
-    (3, 'CONSERVATION',     'Conservation',     1),
-    (4, 'DISPOSED',         'Disposed',         1);
+    (1, 'NOT_COMMISSIONED', 'Foydalanishga topshirilmagan', 1),
+    (2, 'ACTIVE',           'Ekspluatatsiyada',             1),
+    (3, 'CONSERVATION',     'Konservatsiyada',              1),
+    (4, 'DISPOSED',         'Hisobdan chiqarilgan',         1);

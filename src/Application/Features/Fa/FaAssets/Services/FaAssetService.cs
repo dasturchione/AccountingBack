@@ -64,7 +64,7 @@ public class FaAssetService : BaseService, IFaAssetService
             var orgId = _userContext.OrganizationId.Value;
             var statusId = dto.ProcessingMode == FaAssetProcessingMode.Immediate
                 ? FaAssetStatusIdConst.ACTIVE
-                : FaAssetStatusIdConst.DRAFT;
+                : FaAssetStatusIdConst.NOT_COMMISSIONED;
             var validationError = await ValidateAsync(dto, orgId, statusId, null, ct);
             if (validationError is not null)
                 return Result.Failure<long>(validationError);
@@ -154,7 +154,7 @@ public class FaAssetService : BaseService, IFaAssetService
             if (entity is null)
                 return Result.Failure(FaAssetErrors.NotFound(id, _userContext.LanguageId));
 
-            if (entity.StateId != StateIdConst.ACTIVE || entity.StatusId != FaAssetStatusIdConst.DRAFT)
+            if (entity.StateId != StateIdConst.ACTIVE || entity.StatusId != FaAssetStatusIdConst.NOT_COMMISSIONED)
             {
                 return entity.StateId == StateIdConst.ACTIVE && entity.StatusId == FaAssetStatusIdConst.ACTIVE
                     ? Result.Success()
@@ -190,12 +190,12 @@ public class FaAssetService : BaseService, IFaAssetService
 
             if (entity.StateId != StateIdConst.ACTIVE || entity.StatusId != FaAssetStatusIdConst.ACTIVE)
             {
-                return entity.StateId == StateIdConst.ACTIVE && entity.StatusId == FaAssetStatusIdConst.DRAFT
+                return entity.StateId == StateIdConst.ACTIVE && entity.StatusId == FaAssetStatusIdConst.NOT_COMMISSIONED
                     ? Result.Success()
                     : Result.Failure(FaAssetErrors.CannotCancelInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
             }
 
-            entity.StatusId = FaAssetStatusIdConst.DRAFT;
+            entity.StatusId = FaAssetStatusIdConst.NOT_COMMISSIONED;
             entity.UpdatedDate = DateTime.Now;
             await _command.UpdateAsync(entity, ct);
             await _unitOfWork.SaveChangesAsync(ct);

@@ -262,7 +262,7 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                 foreach (var asset in doc.Lines.SelectMany(x => x.Assets).Select(x => x.FaAsset).Where(x => x is not null))
                 {
                     asset!.StateId = StateIdConst.PASSIVE;
-                    asset.StatusId = FaAssetStatusIdConst.DRAFT;
+                    asset.StatusId = FaAssetStatusIdConst.NOT_COMMISSIONED;
                     asset.CommissioningDate = null;
                     asset.DeprStartDate = null;
                     asset.UpdatedDate = now;

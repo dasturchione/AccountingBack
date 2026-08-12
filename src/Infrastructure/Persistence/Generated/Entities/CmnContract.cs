@@ -62,6 +62,9 @@ public partial class CmnContract
     [InverseProperty("CmnContracts")]
     public virtual CounterpartyCard Counterparty { get; set; } = null!;
 
+    [InverseProperty("SelectedContract")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
+
     [InverseProperty("Contract")]
     public virtual ICollection<InvOpeningInventory> InvOpeningInventories { get; set; } = new List<InvOpeningInventory>();
 

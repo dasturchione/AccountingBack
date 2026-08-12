@@ -114,6 +114,9 @@ public partial class CounterpartyCard
     [InverseProperty("CounterpartyCards")]
     public virtual CmnDistrict? District { get; set; }
 
+    [InverseProperty("SelectedCounterparty")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
+
     [InverseProperty("Counterparty")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 

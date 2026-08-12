@@ -80,6 +80,9 @@ public partial class SysUser
     [Column("user_kind_id")]
     public short UserKindId { get; set; }
 
+    [InverseProperty("InitiatedByUser")]
+    public virtual ICollection<EdoImportJob> EdoImportJobs { get; set; } = new List<EdoImportJob>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 

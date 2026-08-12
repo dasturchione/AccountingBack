@@ -82,6 +82,9 @@ public partial class EdoDocument
     [InverseProperty("Document")]
     public virtual ICollection<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; } = new List<EdoDocumentSigningSession>();
 
+    [InverseProperty("EdoDocument")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("EdoDocuments")]
     public virtual OrgOrganization Organization { get; set; } = null!;

@@ -155,6 +155,12 @@ public partial class OrgOrganization
     public virtual ICollection<EdoDocument> EdoDocuments { get; set; } = new List<EdoDocument>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
+
+    [InverseProperty("Organization")]
+    public virtual EdoImportJob? EdoImportJob { get; set; }
+
+    [InverseProperty("Organization")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("Organization")]

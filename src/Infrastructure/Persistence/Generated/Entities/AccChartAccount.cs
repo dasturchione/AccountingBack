@@ -94,6 +94,12 @@ public partial class AccChartAccount
     [InverseProperty("OffsetAccount")]
     public virtual ICollection<CashOperation> CashOperationOffsetAccounts { get; set; } = new List<CashOperation>();
 
+    [InverseProperty("SelectedDebitAccount")]
+    public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLineSelectedDebitAccounts { get; set; } = new List<EdoImportCandidateLine>();
+
+    [InverseProperty("SelectedVatAccount")]
+    public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLineSelectedVatAccounts { get; set; } = new List<EdoImportCandidateLine>();
+
     [InverseProperty("AccumulatedDepreciationAccount")]
     public virtual ICollection<FaAsset> FaAssetAccumulatedDepreciationAccounts { get; set; } = new List<FaAsset>();
 

@@ -9,8 +9,6 @@ public partial class FaReceiptDto
     public DateTime DocDate { get; set; }
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
-    public int? WarehouseId { get; set; }
-    public string? WarehouseName { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;
     public decimal TotalAmount { get; set; }
@@ -34,8 +32,6 @@ public partial class FaReceiptLineDto
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
-    public int? SourceProductId { get; set; }
-    public string? SourceProductName { get; set; }
     public string Name { get; set; } = null!;
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }

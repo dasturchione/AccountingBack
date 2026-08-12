@@ -4,7 +4,6 @@ public partial class FaReceiptBaseDto
 {
     public DateTime DocDate { get; set; }
     public int? CounterpartyId { get; set; }
-    public int? WarehouseId { get; set; }
     public short CurrencyId { get; set; }
     public short ReceiptTypeId { get; set; }
     public List<FaReceiptLineWriteDto> Lines { get; set; } = new();
@@ -12,7 +11,6 @@ public partial class FaReceiptBaseDto
 
 public partial class FaReceiptLineWriteDto
 {
-    public int? SourceProductId { get; set; }
     public string Name { get; set; } = null!;
     public decimal Quantity { get; set; }
     public decimal Price { get; set; }

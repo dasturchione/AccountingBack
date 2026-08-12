@@ -13,7 +13,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("FaGroupId", Name = "idx_fa_asset_fa_group_id")]
 [Index("OkofId", Name = "idx_fa_asset_okof_id")]
 [Index("ResponsibleUserId", Name = "idx_fa_asset_responsible_user_id")]
-[Index("SourceProductTableId", Name = "idx_fa_asset_source_product_table_id")]
 [Index("StateId", Name = "idx_fa_asset_state_id")]
 [Index("StatusId", Name = "idx_fa_asset_status_id")]
 [Index("AccumulatedDepreciationAccountId", Name = "ix_fa_asset_accum_depr_account")]
@@ -53,11 +52,11 @@ public partial class FaAsset
     public int UsefulLifeMonths { get; set; }
 
     [Column("initial_cost")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal InitialCost { get; set; }
 
     [Column("salvage_value")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal SalvageValue { get; set; }
 
     [Column("commissioning_date", TypeName = "timestamp without time zone")]
@@ -69,9 +68,6 @@ public partial class FaAsset
     [Column("planned_units_total")]
     [Precision(18, 3)]
     public decimal? PlannedUnitsTotal { get; set; }
-
-    [Column("source_product_table_id")]
-    public int? SourceProductTableId { get; set; }
 
     [Column("department_id")]
     public int? DepartmentId { get; set; }
@@ -147,10 +143,6 @@ public partial class FaAsset
     [ForeignKey("ResponsibleUserId")]
     [InverseProperty("FaAssets")]
     public virtual SysUser? ResponsibleUser { get; set; }
-
-    [ForeignKey("SourceProductTableId")]
-    [InverseProperty("FaAssets")]
-    public virtual InvProductTable? SourceProductTable { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("FaAssets")]

@@ -18,7 +18,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("StatusId", Name = "ix_rtl_sale_doc_status_id")]
 [Index("VatAccountId", Name = "ix_rtl_sale_doc_vat_account_id")]
 [Index("WarehouseId", Name = "ix_rtl_sale_doc_warehouse_id")]
-[Index("OrganizationId", "DocNumber", Name = "uq_rtl_sale_doc_org_number", IsUnique = true)]
 public partial class RtlSaleDoc
 {
     [Key]

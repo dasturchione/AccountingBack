@@ -1,12 +1,5 @@
 namespace Application.Features.FaAssets
 {
-    public partial class FaAssetBaseDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-        public int? DepreciationExpenseAccountId { get; set; }
-    }
-
     public partial class FaAssetDto
     {
         public int? AssetAccountId { get; set; }

@@ -14,9 +14,6 @@ public partial class FaReceiptDocLine
     [Column("owner_id")]
     public long OwnerId { get; set; }
 
-    [Column("source_product_id")]
-    public int? SourceProductId { get; set; }
-
     [Column("name")]
     [StringLength(250)]
     public string Name { get; set; } = null!;
@@ -64,9 +61,6 @@ public partial class FaReceiptDocLine
     [ForeignKey("OwnerId")]
     [InverseProperty("Lines")]
     public virtual FaReceiptDoc Owner { get; set; } = null!;
-
-    [ForeignKey("SourceProductId")]
-    public virtual Product? SourceProduct { get; set; }
 
     [ForeignKey("VatRateId")]
     public virtual VatRate? VatRate { get; set; }

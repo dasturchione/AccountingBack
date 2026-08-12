@@ -24,9 +24,6 @@ public partial class ProductTable
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty(nameof(FaAsset.SourceProductTable))]
-    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
-
     [InverseProperty(nameof(WarehouseProductBatchTable.ProductTable))]
     public virtual ICollection<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; } = new List<WarehouseProductBatchTable>();
 

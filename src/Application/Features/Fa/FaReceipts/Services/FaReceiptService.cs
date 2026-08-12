@@ -20,9 +20,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
     private readonly IAuditLogService _auditLogService;
     private readonly IQueryRepository<FaReceiptDoc> _query;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
-    private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
-    private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly IQueryRepository<FaGroup> _faGroupQuery;
     private readonly IQueryRepository<FaOkof> _okofQuery;
@@ -41,9 +39,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         IAuditLogService auditLogService,
         IQueryRepository<FaReceiptDoc> query,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
-        IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<Currency> currencyQuery,
-        IQueryRepository<Product> productQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<FaGroup> faGroupQuery,
         IQueryRepository<FaOkof> okofQuery,
@@ -63,9 +59,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
         _auditLogService = auditLogService;
         _query = query;
         _counterpartyQuery = counterpartyQuery;
-        _warehouseQuery = warehouseQuery;
         _currencyQuery = currencyQuery;
-        _productQuery = productQuery;
         _vatRateQuery = vatRateQuery;
         _faGroupQuery = faGroupQuery;
         _okofQuery = okofQuery;
@@ -126,7 +120,6 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = NormalizeDateTime(dto.DocDate),
                 CounterpartyId = dto.CounterpartyId,
-                WarehouseId = dto.WarehouseId,
                 CurrencyId = dto.CurrencyId,
                 TotalAmount = lines.Sum(x => x.Amount),
                 VatAmount = lines.Sum(x => x.VatAmount),
@@ -189,7 +182,6 @@ public class FaReceiptService : BaseService, IFaReceiptService
 
             doc.DocDate = NormalizeDateTime(dto.DocDate);
             doc.CounterpartyId = dto.CounterpartyId;
-            doc.WarehouseId = dto.WarehouseId;
             doc.CurrencyId = dto.CurrencyId;
             doc.TotalAmount = doc.Lines.Sum(x => x.Amount);
             doc.VatAmount = doc.Lines.Sum(x => x.VatAmount);
@@ -263,14 +255,6 @@ if (dto.CounterpartyId.HasValue &&
             return Result.Failure(FaReceiptErrors.CounterpartyNotFound(dto.CounterpartyId.Value, _userContext.LanguageId));
         }
 
-        if (dto.WarehouseId.HasValue &&
-            !await _warehouseQuery.AnyAsync(x => x.Id == dto.WarehouseId.Value &&
-                                                 x.OrganizationId == organizationId &&
-                                                 x.StateId == StateIdConst.ACTIVE, ct))
-        {
-            return Result.Failure(FaReceiptErrors.WarehouseNotFound(dto.WarehouseId.Value, _userContext.LanguageId));
-        }
-
         if (!await _currencyQuery.AnyAsync(x => x.Id == dto.CurrencyId && x.StateId == StateIdConst.ACTIVE, ct))
             return Result.Failure(FaReceiptErrors.CurrencyNotFound(dto.CurrencyId, _userContext.LanguageId));
 
@@ -282,7 +266,6 @@ if (dto.CounterpartyId.HasValue &&
         if (lineDtos.Count == 0)
             return Result.Failure<List<FaReceiptDocLine>>(FaReceiptErrors.LinesRequired(_userContext.LanguageId));
 
-        var sourceProductIds = lineDtos.Where(x => x.SourceProductId.HasValue).Select(x => x.SourceProductId!.Value).Distinct().ToList();
         var vatRateIds = lineDtos.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
         var faGroupIds = lineDtos.SelectMany(x => x.Assets).Select(x => x.FaGroupId).Distinct().ToList();
         var depreciationMethodIds = lineDtos.SelectMany(x => x.Assets).Select(x => x.DepreciationMethodId).Distinct().ToList();
@@ -291,7 +274,6 @@ if (dto.CounterpartyId.HasValue &&
         var userIds = lineDtos.SelectMany(x => x.Assets).Where(x => x.ResponsibleUserId.HasValue).Select(x => x.ResponsibleUserId!.Value).Distinct().ToList();
         var inventoryNumbers = lineDtos.SelectMany(x => x.Assets).Select(x => x.InventoryNumber.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var productById = await LoadProductsAsync(sourceProductIds, organizationId, ct);
         var vatRateById = await LoadVatRatesAsync(vatRateIds, ct);
         var faGroupById = await LoadFaGroupsAsync(faGroupIds, organizationId, ct);
         var depreciationMethodById = await LoadDepreciationMethodsAsync(depreciationMethodIds, ct);
@@ -315,9 +297,6 @@ if (dto.CounterpartyId.HasValue &&
 
         foreach (var lineDto in lineDtos)
         {
-            if (lineDto.SourceProductId.HasValue && !productById.ContainsKey(lineDto.SourceProductId.Value))
-                return Result.Failure<List<FaReceiptDocLine>>(FaReceiptErrors.ProductNotFound(lineDto.SourceProductId.Value, _userContext.LanguageId));
-
             if (lineDto.VatRateId.HasValue && !vatRateById.ContainsKey(lineDto.VatRateId.Value))
                 return Result.Failure<List<FaReceiptDocLine>>(FaReceiptErrors.VatRateNotFound(lineDto.VatRateId.Value, _userContext.LanguageId));
 
@@ -406,7 +385,6 @@ if (dto.CounterpartyId.HasValue &&
 
             lines.Add(new FaReceiptDocLine
             {
-                SourceProductId = lineDto.SourceProductId,
                 Name = lineDto.Name.Trim(),
                 Quantity = lineDto.Quantity,
                 Price = lineDto.Price,
@@ -434,18 +412,6 @@ if (dto.CounterpartyId.HasValue &&
     {
         var query = _queryBuilder.For<FaReceiptDoc>().Where(x => x.Id == id).As<FaReceiptDto>().Build();
         return await _query.GetAsync(query, ct);
-    }
-
-    private async Task<Dictionary<int, Product>> LoadProductsAsync(IReadOnlyCollection<int> ids, int organizationId, CancellationToken ct)
-    {
-        if (ids.Count == 0)
-            return new Dictionary<int, Product>();
-
-        var query = _queryBuilder.For<Product>()
-            .Where(x => ids.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .Build();
-        var entities = await _productQuery.GetAllAsync(query, ct);
-        return entities.ToDictionary(x => x.Id);
     }
 
     private async Task<Dictionary<short, VatRate>> LoadVatRatesAsync(IReadOnlyCollection<short> ids, CancellationToken ct)

@@ -36,10 +36,10 @@ public partial class FaAsset
     [Column("useful_life_months")]
     public int UsefulLifeMonths { get; set; }
 
-    [Column("initial_cost", TypeName = "numeric(18,2)")]
+    [Column("initial_cost", TypeName = "numeric(24,8)")]
     public decimal InitialCost { get; set; }
 
-    [Column("salvage_value", TypeName = "numeric(18,2)")]
+    [Column("salvage_value", TypeName = "numeric(24,8)")]
     public decimal SalvageValue { get; set; }
 
     [Column("commissioning_date", TypeName = "timestamp without time zone")]
@@ -50,9 +50,6 @@ public partial class FaAsset
 
     [Column("planned_units_total", TypeName = "numeric(18,3)")]
     public decimal? PlannedUnitsTotal { get; set; }
-
-    [Column("source_product_table_id")]
-    public int? SourceProductTableId { get; set; }
 
     [Column("department_id")]
     public int? DepartmentId { get; set; }
@@ -113,10 +110,6 @@ public partial class FaAsset
     [ForeignKey("ResponsibleUserId")]
     [InverseProperty("FaAssets")]
     public virtual User? ResponsibleUser { get; set; }
-
-    [ForeignKey("SourceProductTableId")]
-    [InverseProperty("FaAssets")]
-    public virtual ProductTable? SourceProductTable { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("FaAssets")]

@@ -89,6 +89,9 @@ public partial class InvProduct
     [StringLength(14)]
     public string? Gtin { get; set; }
 
+    [InverseProperty("SelectedProduct")]
+    public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLines { get; set; } = new List<EdoImportCandidateLine>();
+
     [InverseProperty("SourceProduct")]
     public virtual ICollection<FaReceiptDocLine> FaReceiptDocLines { get; set; } = new List<FaReceiptDocLine>();
 

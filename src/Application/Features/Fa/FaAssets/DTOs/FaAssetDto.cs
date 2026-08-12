@@ -22,9 +22,6 @@ public partial class FaAssetDto
     public DateTime? CommissioningDate { get; set; }
     public DateTime? DeprStartDate { get; set; }
     public decimal? PlannedUnitsTotal { get; set; }
-    public int? SourceProductTableId { get; set; }
-    public string? SourceProductTableSerialNumber { get; set; }
-    public string? SourceProductTableMarkingNumber { get; set; }
     public int? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
     public int? ResponsibleUserId { get; set; }

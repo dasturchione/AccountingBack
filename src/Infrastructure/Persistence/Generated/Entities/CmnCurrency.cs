@@ -65,6 +65,9 @@ public partial class CmnCurrency
     [InverseProperty("Currency")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
 
+    [InverseProperty("SelectedCurrency")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
+
     [InverseProperty("Currency")]
     public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
 

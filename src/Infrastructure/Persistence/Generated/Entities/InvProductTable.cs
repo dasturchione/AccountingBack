@@ -27,9 +27,6 @@ public partial class InvProductTable
     [StringLength(250)]
     public string? MarkingNumber { get; set; }
 
-    [InverseProperty("SourceProductTable")]
-    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
-
     [InverseProperty("ProductTable")]
     public virtual ICollection<InvInventoryAdjustmentDocTable> InvInventoryAdjustmentDocTables { get; set; } = new List<InvInventoryAdjustmentDocTable>();
 

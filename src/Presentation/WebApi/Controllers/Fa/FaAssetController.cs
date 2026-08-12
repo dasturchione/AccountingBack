@@ -36,35 +36,11 @@ public class FaAssetController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.FaAssetCreate)]
-    public async Task<IResult> Create([FromBody] FaAssetCreateDto dto, CancellationToken ct = default)
-    {
-        var result = await _service.CreateAsync(dto, ct);
-        return result.Match(Results.Ok, CustomResults.Problem);
-    }
-
     [HttpPut("{id:long}")]
     [ModuleAuthorize(PermissionCodeConst.FaAssetUpdate)]
     public async Task<IResult> Update([FromRoute] long id, [FromBody] FaAssetUpdateDto dto, CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPut("{id:long}/confirm")]
-    [ModuleAuthorize(PermissionCodeConst.FaAssetUpdate)]
-    public async Task<IResult> Confirm([FromRoute] long id, CancellationToken ct = default)
-    {
-        var result = await _service.ConfirmAsync(id, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPut("{id:long}/cancel")]
-    [ModuleAuthorize(PermissionCodeConst.FaAssetUpdate)]
-    public async Task<IResult> Cancel([FromRoute] long id, CancellationToken ct = default)
-    {
-        var result = await _service.CancelAsync(id, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 

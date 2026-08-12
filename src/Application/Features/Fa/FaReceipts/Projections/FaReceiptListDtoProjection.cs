@@ -16,8 +16,6 @@ public class FaReceiptListDtoProjection : IProjectionBuilder<FaReceiptDoc, FaRec
             DocDate = x.DocDate,
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty != null ? x.Counterparty.ShortName : null,
-            WarehouseId = x.WarehouseId,
-            WarehouseName = x.Warehouse != null ? x.Warehouse.Name : null,
             CurrencyId = x.CurrencyId,
             CurrencyName = x.Currency.Name,
             TotalAmount = x.TotalAmount,

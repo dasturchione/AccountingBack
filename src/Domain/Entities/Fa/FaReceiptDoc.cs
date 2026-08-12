@@ -27,9 +27,6 @@ public partial class FaReceiptDoc
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
 
-    [Column("warehouse_id")]
-    public int? WarehouseId { get; set; }
-
     [Column("currency_id")]
     public short CurrencyId { get; set; }
 
@@ -98,6 +95,4 @@ public partial class FaReceiptDoc
     [ForeignKey("StatusId")]
     public virtual DocumentStatus Status { get; set; } = null!;
 
-    [ForeignKey("WarehouseId")]
-    public virtual Warehouse? Warehouse { get; set; }
 }

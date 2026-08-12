@@ -157,7 +157,8 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                 }
             }
 
-            // FA-P4: бухгалтерские проводки прихода ОС.\r\n            var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Fixed asset receipt confirmed", ct);
+            // FA-P4: бухгалтерские проводки прихода ОС.
+            var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Fixed asset receipt confirmed", ct);
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
                 return Result.Failure(dispatch.Error);

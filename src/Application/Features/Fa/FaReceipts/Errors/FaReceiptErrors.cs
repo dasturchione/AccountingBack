@@ -21,43 +21,12 @@ public static class FaReceiptErrors
             _ => $"Counterparty with id {id} was not found."
         });
 
-    public static Error WarehouseNotFound(int id, short? languageId = null) =>
-        Error.NotFound("FaReceipt.WarehouseNotFound", languageId switch
-        {
-            LanguageIdConst.UZ => $"Id-si {id} bo'lgan ombor topilmadi.",
-            LanguageIdConst.RU => $"Sklad s id {id} ne nayden.",
-            _ => $"Warehouse with id {id} was not found."
-        });
-
-    public static Error WarehouseRequiredForSourceProduct(short? languageId = null) =>
-        Error.Business("FaReceipt.WarehouseRequiredForSourceProduct", languageId switch
-        {
-            LanguageIdConst.UZ => "Ombordagi mahsulotdan asosiy vosita yaratish uchun ombor tanlanishi shart.",
-            LanguageIdConst.RU => "Для создания основного средства из складского товара необходимо выбрать склад.",
-            _ => "A warehouse is required when creating a fixed asset from stock."
-        });
-
-    public static Error SourceProductTableRequired(long receiptAssetId, short? languageId = null) =>
-        Error.Business("FaReceipt.SourceProductTableRequired", languageId switch
-        {
-            LanguageIdConst.UZ => $"{receiptAssetId} qator uchun mahsulot nusxasi aniqlanmadi.",
-            LanguageIdConst.RU => $"Для строки ОС {receiptAssetId} не определён экземпляр товара со склада.",
-            _ => $"A source product table was not determined for fixed asset line {receiptAssetId}."
-        });
     public static Error CurrencyNotFound(short id, short? languageId = null) =>
         Error.NotFound("FaReceipt.CurrencyNotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan valyuta topilmadi.",
             LanguageIdConst.RU => $"Valyuta s id {id} ne naydena.",
             _ => $"Currency with id {id} was not found."
-        });
-
-    public static Error ProductNotFound(int id, short? languageId = null) =>
-        Error.NotFound("FaReceipt.ProductNotFound", languageId switch
-        {
-            LanguageIdConst.UZ => $"Id-si {id} bo'lgan manba mahsulot topilmadi.",
-            LanguageIdConst.RU => $"Iskhodnyy tovar s id {id} ne nayden.",
-            _ => $"Source product with id {id} was not found."
         });
 
     public static Error VatRateNotFound(short id, short? languageId = null) =>

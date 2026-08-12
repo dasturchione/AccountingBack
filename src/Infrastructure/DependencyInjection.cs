@@ -364,7 +364,6 @@ namespace Infrastructure
             services.AddScoped<IInventoryDocumentHandler<WarehouseTransferDoc>, WarehouseTransferInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<InventoryAdjustmentDoc>, InventoryAdjustmentInventoryHandler>();
             services.AddScoped<IInventoryDocumentHandler<OpeningInventory>, OpeningInventoryHandler>();
-            services.AddScoped<IInventoryDocumentHandler<FaReceiptDoc>, FaReceiptInventoryHandler>();
 
             //services.Scan(scan => scan
             //    .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)

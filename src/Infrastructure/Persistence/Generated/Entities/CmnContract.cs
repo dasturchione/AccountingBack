@@ -51,6 +51,9 @@ public partial class CmnContract
     [Column("contract_type_id")]
     public short ContractTypeId { get; set; }
 
+    [Column("description")]
+    public string? Description { get; set; }
+
     [InverseProperty("Contract")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 

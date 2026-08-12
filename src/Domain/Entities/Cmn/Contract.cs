@@ -23,6 +23,9 @@ public partial class Contract
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
 
+    [Column("description")]
+    public string? Description { get; set; }
+
     [Column("contract_date", TypeName = "timestamp without time zone")]
     public DateTime ContractDate { get; set; }
 

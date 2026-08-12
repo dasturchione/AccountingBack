@@ -21,6 +21,7 @@ public class ContractListDtoProjection : IProjectionBuilder<Contract, ContractLi
             StartDate = x.StartDate,
             EndDate = x.EndDate,
             StateId = x.StateId,
+            Comment = x.Comment,
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate
         };

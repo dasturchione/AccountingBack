@@ -37,7 +37,6 @@ public class ManualService : IManualService
     private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
     private readonly IQueryRepository<FaDisposalType> _faDisposalTypeQuery;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
-    private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
     private readonly IQueryRepository<PricingMethod> _pricingMethodQuery;
     private readonly IQueryRepository<CostingMethod> _costingMethodQuery;
@@ -83,7 +82,6 @@ public class ManualService : IManualService
         IQueryRepository<FaReceiptType> faReceiptTypeQuery,
         IQueryRepository<FaDisposalType> faDisposalTypeQuery,
         IQueryRepository<FaAsset> faAssetQuery,
-        IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
@@ -137,7 +135,6 @@ public class ManualService : IManualService
         _faReceiptTypeQuery = faReceiptTypeQuery;
         _faDisposalTypeQuery = faDisposalTypeQuery;
         _faAssetQuery = faAssetQuery;
-        _productTableQuery = productTableQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
@@ -737,27 +734,6 @@ public class ManualService : IManualService
                                  }).Build();
 
         return await _productQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default)
-    {
-        if (_userContext.OrganizationId is null)
-            return new List<SelectListDto>();
-
-        var query = _queryBuilder.For<ProductTable>()
-                            .Where(x => x.Product.StateId == StateIdConst.ACTIVE &&
-                                        x.Product.OrganizationId == _userContext.OrganizationId)
-                            .As(x => new SelectListDto
-                            {
-                                Id = x.Id,
-                                Name = string.IsNullOrWhiteSpace(x.SerialNumber)
-                                            ? (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.Id.ToString() : x.MarkingNumber)
-                                            : (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.SerialNumber : $"{x.SerialNumber} / {x.MarkingNumber}"),
-                                Code = x.Id.ToString()
-                            })
-                            .Build();
-
-        return await _productTableQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)

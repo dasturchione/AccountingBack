@@ -173,7 +173,6 @@ public static class PermissionCodeConst
     public const string ManualGetFaGroups                 = "MANUAL_GET_FA_GROUPS";
     public const string ManualGetFaOkofs                  = "MANUAL_GET_FA_OKOFS";
     public const string ManualGetFaDepreciationMethods    = "MANUAL_GET_FA_DEPRECIATION_METHODS";
-    public const string ManualGetSourceProductTables       = "MANUAL_GET_SOURCE_PRODUCT_TABLES";
     public const string ManualGetPriceRoundingMethods     = "MANUAL_GET_PRICE_ROUNDING_METHODS";
     public const string ManualGetPricingMethods           = "MANUAL_GET_PRICING_METHODS";
     public const string ManualGetCostingMethods           = "MANUAL_GET_COSTING_METHODS";
@@ -264,7 +263,6 @@ public static class PermissionCodeConst
     #region FaAsset
     public const string FaAssetView       = "FA_ASSET_VIEW";
     public const string FaAssetViewDetail = "FA_ASSET_VIEW_DETAIL";
-    public const string FaAssetCreate     = "FA_ASSET_CREATE";
     public const string FaAssetUpdate     = "FA_ASSET_UPDATE";
     public const string FaAssetDelete     = "FA_ASSET_DELETE";
     #endregion

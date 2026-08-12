@@ -350,14 +350,6 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetSourceProductTables)]
-    [HttpGet("source-product-tables")]
-    public async Task<IActionResult> GetSourceProductTables(CancellationToken ct)
-    {
-        var result = await _manualService.GetSourceProductTablesAsync(ct);
-        return Ok(result);
-    }
-
     [ModuleAuthorize(PermissionCodeConst.ManualGetWarehouses)]
     [HttpGet("warehouses")]
     public async Task<IActionResult> GetWarehouses([FromQuery] int? branchId, CancellationToken ct)

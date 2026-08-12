@@ -72,9 +72,7 @@ public partial class OpeningInventoryService
             await _adjustmentItemQuery.AnyAsync(
                 x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value), ct) ||
             await _countItemQuery.AnyAsync(
-                x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value), ct) ||
-            await _assetQuery.AnyAsync(
-                x => x.SourceProductTableId.HasValue && productTableIds.Contains(x.SourceProductTableId.Value), ct);
+                x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value), ct);
 
         return isReferenced
             ? Result.Failure(OpeningInventoryErrors.EffectsAlreadyUsed(document.Id))

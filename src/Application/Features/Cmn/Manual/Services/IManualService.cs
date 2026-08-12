@@ -61,7 +61,6 @@ public interface IManualService
         bool? isPurchased = null,
         CancellationToken ct = default);
     Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default);
 
     // acc
     Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default);

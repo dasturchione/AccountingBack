@@ -55,7 +55,6 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
     private readonly IQueryRepository<WarehouseTransferDocTable> _transferItemQuery;
     private readonly IQueryRepository<InventoryAdjustmentDocTable> _adjustmentItemQuery;
     private readonly IQueryRepository<InventoryCountDocTable> _countItemQuery;
-    private readonly IQueryRepository<FaAsset> _assetQuery;
     private readonly IInventoryDispatcher _inventoryDispatcher;
     private readonly IActiveInventoryCountGuardService _inventoryCountGuard;
     private readonly IDocumentPostingLock _documentLock;
@@ -101,7 +100,6 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         IQueryRepository<WarehouseTransferDocTable> transferItemQuery,
         IQueryRepository<InventoryAdjustmentDocTable> adjustmentItemQuery,
         IQueryRepository<InventoryCountDocTable> countItemQuery,
-        IQueryRepository<FaAsset> assetQuery,
         IInventoryDispatcher inventoryDispatcher,
         IActiveInventoryCountGuardService inventoryCountGuard,
         IDocumentPostingLock documentLock,
@@ -149,7 +147,6 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         _transferItemQuery = transferItemQuery;
         _adjustmentItemQuery = adjustmentItemQuery;
         _countItemQuery = countItemQuery;
-        _assetQuery = assetQuery;
         _inventoryDispatcher = inventoryDispatcher;
         _inventoryCountGuard = inventoryCountGuard;
         _documentLock = documentLock;

@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.Fa;
 using Application.Features.FaAssets;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
@@ -22,9 +23,11 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
+    private readonly IFaDocumentAccountValidator _accountValidator;
     private readonly IQueryRepository<FaRevaluationDoc> _query;
     private readonly IFaRevaluationCommandRepository _command;
     private readonly IFaAssetCommandRepository _faAssetCommand;
+    private readonly ICommandRepository<FaAssetAccounting> _faAssetAccountingCommand;
     private readonly IQueryRepository<FaDepreciationRunLine> _depreciationLineQuery;
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
@@ -39,9 +42,11 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
         IAccountingPeriodValidator periodValidator,
         IAuditLogService auditLogService,
         IAccountingDispatcher dispatcher,
+        IFaDocumentAccountValidator accountValidator,
         IQueryRepository<FaRevaluationDoc> query,
         IFaRevaluationCommandRepository command,
         IFaAssetCommandRepository faAssetCommand,
+        ICommandRepository<FaAssetAccounting> faAssetAccountingCommand,
         IQueryRepository<FaDepreciationRunLine> depreciationLineQuery,
         IQueryRepository<PostingBatch> postingBatchQuery,
         ICommandRepository<PostingBatch> postingBatchCommand,
@@ -57,9 +62,11 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
         _periodValidator = periodValidator;
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
+        _accountValidator = accountValidator;
         _query = query;
         _command = command;
         _faAssetCommand = faAssetCommand;
+        _faAssetAccountingCommand = faAssetAccountingCommand;
         _depreciationLineQuery = depreciationLineQuery;
         _postingBatchQuery = postingBatchQuery;
         _postingBatchCommand = postingBatchCommand;
@@ -106,13 +113,23 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
                 if (line.FaAsset.StatusId == FaAssetStatusIdConst.DISPOSED)
                     return Result.Failure(FaRevaluationErrors.AssetDisposed(line.FaAssetId, _userContext.LanguageId));
 
+                var accounting = line.FaAsset.FaAssetAccounting;
+                if (accounting is null)
+                    return Result.Failure(FaRevaluationErrors.AssetInactive(line.FaAssetId, _userContext.LanguageId));
+
                 var accumulated = await GetAccumulatedDepreciationAsync(line.FaAssetId, doc.RevaluationDate, ct);
-                line.OldValue = Math.Max(0m, line.FaAsset.InitialCost - accumulated);
+                line.OldValue = Math.Max(0m, accounting.InitialCost - accumulated);
                 line.RevaluationAmount = line.NewValue - line.OldValue;
-                line.FaAsset.InitialCost = accumulated + line.NewValue;
+                accounting.InitialCost = accumulated + line.NewValue;
+                accounting.UpdatedDate = DateTime.Now;
                 line.FaAsset.UpdatedDate = DateTime.Now;
+                await _faAssetAccountingCommand.UpdateAsync(accounting, ct);
                 await _faAssetCommand.UpdateAsync(line.FaAsset, ct);
             }
+
+            var accountValidation = await ValidateAccountsAsync(doc, ct);
+            if (!accountValidation.IsSuccess)
+                return accountValidation;
 
             var now = DateTime.Now;
             var postingBatch = new PostingBatch
@@ -220,9 +237,15 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
 
                 foreach (var line in doc.Lines)
                 {
+                    var accounting = line.FaAsset.FaAssetAccounting;
+                    if (accounting is null)
+                        return Result.Failure(FaRevaluationErrors.AssetInactive(line.FaAssetId, _userContext.LanguageId));
+
                     var accumulated = await GetAccumulatedDepreciationAsync(line.FaAssetId, doc.RevaluationDate, ct);
-                    line.FaAsset.InitialCost = accumulated + line.OldValue;
+                    accounting.InitialCost = accumulated + line.OldValue;
+                    accounting.UpdatedDate = now;
                     line.FaAsset.UpdatedDate = now;
+                    await _faAssetAccountingCommand.UpdateAsync(accounting, ct);
                     await _faAssetCommand.UpdateAsync(line.FaAsset, ct);
                 }
             }
@@ -245,10 +268,36 @@ public class FaRevaluationLifecycleService : BaseService, IFaRevaluationLifecycl
             return Result.Success();
         }, ct);
 
+    private Task<Result> ValidateAccountsAsync(
+        FaRevaluationDoc document,
+        CancellationToken ct)
+    {
+        var requirements = document.Lines
+            .Where(line => line.RevaluationAmount != 0m)
+            .Select(line => new FaDocumentAccountRequirement(
+                line.AssetAccountId,
+                FaDocumentAccountRoleCodeConst.FixedAsset))
+            .ToList();
+
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.RevaluationReserveAccountId,
+            FaDocumentAccountRoleCodeConst.RevaluationReserve,
+            document.Lines.Any(line => line.RevaluationAmount > 0m)));
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.RevaluationLossAccountId,
+            FaDocumentAccountRoleCodeConst.RevaluationLoss,
+            document.Lines.Any(line => line.RevaluationAmount < 0m)));
+
+        return _accountValidator.ValidateAsync(
+            document.OrganizationId,
+            DocumentTypeIdConst.FAREVALUATION,
+            requirements,
+            ct);
+    }
     private async Task<FaRevaluationDoc?> GetAggregateAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<FaRevaluationDoc>().Where(x => x.Id == id).Build();
-        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset).ThenInclude(a => a.FaAssetAccounting));
         return await _query.GetAsync(query, ct);
     }
 

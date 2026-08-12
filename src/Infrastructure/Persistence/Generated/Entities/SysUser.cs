@@ -87,6 +87,21 @@ public partial class SysUser
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocCancelledByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("CreatedByUser")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocCreatedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("ResponsibleUser")]
+    public virtual ICollection<FaCommissioningDocLine> FaCommissioningDocLines { get; set; } = new List<FaCommissioningDocLine>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocPostedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("UpdatedByUser")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocUpdatedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("CancelledByUser")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRunCancelledByUsers { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("CreatedByUser")]
@@ -128,8 +143,11 @@ public partial class SysUser
     [InverseProperty("UpdatedByUser")]
     public virtual ICollection<FaMovementDoc> FaMovementDocUpdatedByUsers { get; set; } = new List<FaMovementDoc>();
 
-    [InverseProperty("ResponsibleUser")]
-    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
+    [InverseProperty("CancelledByUser")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocCancelledByUsers { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty("PostedByUser")]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocPostedByUsers { get; set; } = new List<FaReceiptDoc>();
 
     [InverseProperty("CancelledByUser")]
     public virtual ICollection<FaRevaluationDoc> FaRevaluationDocCancelledByUsers { get; set; } = new List<FaRevaluationDoc>();

@@ -65,9 +65,6 @@ public partial class InvWarehouse
     public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
 
     [InverseProperty("Warehouse")]
-    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
-
-    [InverseProperty("Warehouse")]
     public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty("Warehouse")]

@@ -185,6 +185,7 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
             .Where(x => assetIds.Contains(x.Id) && x.OrganizationId == organizationId)
             .Build();
         assetQuery.AddIncludes(x => x.Include(a => a.Status));
+        assetQuery.AddIncludes(x => x.Include(a => a.FaAssetAccounting));
         var assets = await _faAssetQuery.GetAllAsync(assetQuery, ct);
         var assetById = assets.ToDictionary(x => x.Id);
 
@@ -200,13 +201,16 @@ public class FaRevaluationService : BaseService, IFaRevaluationService
             if (asset.StatusId == FaAssetStatusIdConst.DISPOSED)
                 return Result.Failure<List<FaRevaluationDocLine>>(FaRevaluationErrors.AssetDisposed(lineDto.FaAssetId, _userContext.LanguageId));
 
+            if (asset.FaAssetAccounting is null)
+                return Result.Failure<List<FaRevaluationDocLine>>(FaRevaluationErrors.AssetInactive(lineDto.FaAssetId, _userContext.LanguageId));
+
             lines.Add(new FaRevaluationDocLine
             {
                 FaAssetId = asset.Id,
                 NewValue = lineDto.NewValue,
                 Note = lineDto.Note?.Trim(),
-                AssetAccountId = lineDto.AssetAccountId,
-                AccumulatedDepreciationAccountId = lineDto.AccumulatedDepreciationAccountId
+                AssetAccountId = asset.FaAssetAccounting.AssetAccountId,
+                AccumulatedDepreciationAccountId = asset.FaAssetAccounting.AccumulatedDepreciationAccountId
             });
         }
 

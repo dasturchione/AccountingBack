@@ -374,22 +374,42 @@ public class ManualService : IManualService
         return await _faDisposalTypeQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default)
+    public async Task<List<FaAssetSelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default)
     {
-        var query = _queryBuilder.Build<FaAsset, FaAssetListDto, FaAssetListFilter>(filter);
+        var search = filter.Search?.Trim().ToLower();
 
-        var assets = await _faAssetQuery.GetAllAsync(query, ct);
-
-        return assets
-            .OrderBy(x => x.InventoryNumber)
-            .ThenBy(x => x.Name)
-            .Select(x => new SelectListDto
+        var query = _queryBuilder.For<FaAsset>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!filter.FaGroupId.HasValue || x.FaGroupId == filter.FaGroupId.Value) &&
+                        (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
+                        (string.IsNullOrEmpty(search) ||
+                         x.InventoryNumber.ToLower().Contains(search) ||
+                         x.Name.ToLower().Contains(search)))
+            .As(x => new FaAssetSelectListDto
             {
                 Id = x.Id,
                 Code = x.InventoryNumber,
-                Name = $"{x.InventoryNumber} - {x.Name}"
+                InventoryNumber = x.InventoryNumber,
+                Name = x.Name,
+                FaGroupId = x.FaGroupId,
+                FaGroupName = x.FaGroup.Name,
+                InitialCost = x.FaAssetAccounting != null ? x.FaAssetAccounting.InitialCost : 0m,
+                AssetAccountId = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccountId
+                    : null,
+                AssetAccountNumber = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccount.Number
+                    : null,
+                AssetAccountName = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccount.Name
+                    : null,
+                StatusId = x.StatusId,
+                StatusName = x.Status.Name
             })
-            .ToList();
+            .OrderBy(x => x.InventoryNumber)
+            .Build();
+
+        return await _faAssetQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)

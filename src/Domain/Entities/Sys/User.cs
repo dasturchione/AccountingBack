@@ -73,6 +73,27 @@ public partial class User
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty(nameof(FaCommissioningDoc.CancelledByUser))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocCancelledByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty(nameof(FaCommissioningDoc.CreatedByUser))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocCreatedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty(nameof(FaCommissioningDocLine.ResponsibleUser))]
+    public virtual ICollection<FaCommissioningDocLine> FaCommissioningDocLines { get; set; } = new List<FaCommissioningDocLine>();
+
+    [InverseProperty(nameof(FaCommissioningDoc.PostedByUser))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocPostedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty(nameof(FaCommissioningDoc.UpdatedByUser))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocUpdatedByUsers { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty(nameof(FaReceiptDoc.CancelledByUser))]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocCancelledByUsers { get; set; } = new List<FaReceiptDoc>();
+
+    [InverseProperty(nameof(FaReceiptDoc.PostedByUser))]
+    public virtual ICollection<FaReceiptDoc> FaReceiptDocPostedByUsers { get; set; } = new List<FaReceiptDoc>();
+
     [InverseProperty("ResponsibleUser")]
     public virtual ICollection<Warehouse> Warehouses { get; set; } = new List<Warehouse>();
 

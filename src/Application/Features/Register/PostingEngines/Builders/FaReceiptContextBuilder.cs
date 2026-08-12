@@ -1,157 +1,143 @@
 ﻿using Application.Abstractions;
-using Application.Features.Register;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 
-namespace Application.Features.Register.PostingEngines
+namespace Application.Features.Register.PostingEngines;
+
+public class FaReceiptContextBuilder : IPostingContextBuilder<FaReceiptDoc>
 {
-    /// <summary>
-    /// Строит контекст проводок для документа "Поступление основных средств" (fa_receipt_doc)
-    /// по схеме 1С (правило FA_RECEIPT):
-    ///   Dr 0800 → Cr 6010  (капитализация, сумма без НДС)
-    ///   Dr 4410.1 → Cr 6010 (входной НДС при приобретении ОС)
-    ///   Dr 0100 → Cr 0800  (ввод в эксплуатацию)
-    ///
-    /// Стоимость (Base) считается по каждому активу отдельно, чтобы прикрепить субконто
-    /// fixed_asset к счетам ОС/капвложений; НДС — по строке документа.
-    /// </summary>
-    public class FaReceiptContextBuilder : IPostingContextBuilder<FaReceiptDoc>
+    private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
+    private readonly IQueryBuilder _queryBuilder;
+    private readonly IQueryRepository<CounterpartyCard> _counterpartyCardQuery;
+
+    public FaReceiptContextBuilder(
+        IOrganizationAccountingPolicyResolver accountingPolicyResolver,
+        IQueryBuilder queryBuilder,
+        IQueryRepository<CounterpartyCard> counterpartyCardQuery)
     {
-        private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
-        private readonly IQueryBuilder _queryBuilder;
-        private readonly IQueryRepository<CounterpartyCard> _counterpartyCardQuery;
+        _accountingPolicyResolver = accountingPolicyResolver;
+        _queryBuilder = queryBuilder;
+        _counterpartyCardQuery = counterpartyCardQuery;
+    }
 
-        public FaReceiptContextBuilder(
-            IOrganizationAccountingPolicyResolver accountingPolicyResolver,
-            IQueryBuilder queryBuilder,
-            IQueryRepository<CounterpartyCard> counterpartyCardQuery)
+    public async Task<List<PostingContext>> BuildAsync(FaReceiptDoc document)
+    {
+        var result = new List<PostingContext>();
+        var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
+        var counterpartyName = document.CounterpartyId.HasValue
+            ? await GetCounterpartyNameAsync(document.CounterpartyId.Value)
+            : string.Empty;
+
+        foreach (var line in document.Lines)
         {
-            _accountingPolicyResolver = accountingPolicyResolver;
-            _queryBuilder = queryBuilder;
-            _counterpartyCardQuery = counterpartyCardQuery;
-        }
-
-        public async Task<List<PostingContext>> BuildAsync(FaReceiptDoc document)
-        {
-            var result = new List<PostingContext>();
-
-            var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
-            var counterpartyName = document.CounterpartyId.HasValue
-                ? await GetCounterpartyNameAsync(document.CounterpartyId.Value)
-                : string.Empty;
-
-            foreach (var line in document.Lines)
+            foreach (var asset in line.Assets)
             {
-                // Капитализация + ввод в эксплуатацию — по каждому активу строки отдельно.
-                foreach (var asset in line.Assets)
+                var context = new PostingContext
                 {
-                    var baseContext = new PostingContext
-                    {
-                        OrganizationId = document.OrganizationId,
-                        DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
-                        AccountingPolicyId = accountingPolicyId,
-                        DocumentId = document.Id,
-                        DocDate = document.DocDate,
-                        CurrencyId = document.CurrencyId,
-                        JournalNumber = document.DocNumber,
-                        SourceLineId = line.Id,
-                        FixedAssetId = asset.FaAssetId is { } faAssetId ? (int)faAssetId : null,
-                        Entries = new List<PostingEntryContext>
+                    OrganizationId = document.OrganizationId,
+                    DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
+                    AccountingPolicyId = accountingPolicyId,
+                    DocumentId = document.Id,
+                    DocDate = document.DocDate,
+                    CurrencyId = document.CurrencyId,
+                    JournalNumber = document.DocNumber,
+                    SourceLineId = line.Id,
+                    FixedAssetId = asset.FaAssetId.HasValue
+                        ? checked((int)asset.FaAssetId.Value)
+                        : null,
+                    Entries =
+                    [
+                        new PostingEntryContext
                         {
-                            new()
-                            {
-                                DebitAccountId = line.CapitalInvestmentAccountId,
-                                CreditAccountId = document.SupplierAccountId,
-                                Amount = asset.InitialCost,
-                                Content = "Fixed asset capitalization",
-                                SourceLineId = line.Id
-                            },
-                            new()
-                            {
-                                DebitAccountId = asset.AssetAccountId,
-                                CreditAccountId = line.CapitalInvestmentAccountId,
-                                Amount = asset.InitialCost,
-                                Content = "Fixed asset commissioning",
-                                SourceLineId = line.Id
-                            }
-                        },
-                        Subkontos = new List<SubkontoValue>
-                        {
-                            new()
-                            {
-                                SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
-                                DisplayValue = asset.Name,
-                                EntityId = asset.FaAssetId,
-                                SortOrder = 1,
-                            }
+                            DebitAccountId = line.CapitalInvestmentAccountId,
+                            CreditAccountId = document.SupplierAccountId,
+                            Amount = asset.InitialCost,
+                            Content = "Fixed asset receipt",
+                            SourceLineId = line.Id
                         }
-                    };
-
-                    if (document.CounterpartyId.HasValue)
-                    {
-                        baseContext.Subkontos.Add(new SubkontoValue
+                    ],
+                    Subkontos =
+                    [
+                        new SubkontoValue
                         {
-                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
-                            DisplayValue = counterpartyName,
-                            EntityId = document.CounterpartyId,
-                            SortOrder = 2,
-                        });
-                    }
+                            SubkontoTypeId = SubkontoTypeIdConst.FixedAssets,
+                            DisplayValue = asset.Name,
+                            EntityId = asset.FaAssetId,
+                            SortOrder = 1
+                        }
+                    ]
+                };
 
-                    result.Add(baseContext);
-                }
-
-                // Входной НДС — по строке (одна проводка Dr 4410.1 → Cr 6010).
-                if (line.VatAmount > 0m)
-                {
-                    var vatContext = new PostingContext
-                    {
-                        OrganizationId = document.OrganizationId,
-                        DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
-                        AccountingPolicyId = accountingPolicyId,
-                        DocumentId = document.Id,
-                        DocDate = document.DocDate,
-                        CurrencyId = document.CurrencyId,
-                        JournalNumber = document.DocNumber,
-                        SourceLineId = line.Id,
-                        Entries = new List<PostingEntryContext>
-                        {
-                            new()
-                            {
-                                DebitAccountId = line.VatAccountId,
-                                CreditAccountId = document.SupplierAccountId,
-                                Amount = line.VatAmount,
-                                Content = "Fixed asset receipt VAT",
-                                SourceLineId = line.Id
-                            }
-                        },
-                        Subkontos = new List<SubkontoValue>()
-                    };
-
-                    if (document.CounterpartyId.HasValue)
-                    {
-                        vatContext.Subkontos.Add(new SubkontoValue
-                        {
-                            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
-                            DisplayValue = counterpartyName,
-                            EntityId = document.CounterpartyId,
-                            SortOrder = 1,
-                        });
-                    }
-
-                    result.Add(vatContext);
-                }
+                AddCounterpartySubkonto(
+                    context,
+                    document.CounterpartyId,
+                    counterpartyName,
+                    2);
+                result.Add(context);
             }
 
-            return result;
+            if (line.VatAmount <= 0m)
+                continue;
+
+            var vatContext = new PostingContext
+            {
+                OrganizationId = document.OrganizationId,
+                DocumentTypeId = DocumentTypeIdConst.FARECEIPT,
+                AccountingPolicyId = accountingPolicyId,
+                DocumentId = document.Id,
+                DocDate = document.DocDate,
+                CurrencyId = document.CurrencyId,
+                JournalNumber = document.DocNumber,
+                SourceLineId = line.Id,
+                Entries =
+                [
+                    new PostingEntryContext
+                    {
+                        DebitAccountId = line.VatAccountId,
+                        CreditAccountId = document.SupplierAccountId,
+                        Amount = line.VatAmount,
+                        Content = "Fixed asset receipt VAT",
+                        SourceLineId = line.Id
+                    }
+                ]
+            };
+
+            AddCounterpartySubkonto(
+                vatContext,
+                document.CounterpartyId,
+                counterpartyName,
+                1);
+            result.Add(vatContext);
         }
 
-        private async Task<string> GetCounterpartyNameAsync(int counterpartyId)
+        return result;
+    }
+
+    private static void AddCounterpartySubkonto(
+        PostingContext context,
+        int? counterpartyId,
+        string counterpartyName,
+        int sortOrder)
+    {
+        if (!counterpartyId.HasValue)
+            return;
+
+        context.Subkontos.Add(new SubkontoValue
         {
-            var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == counterpartyId).Build();
-            var entity = await _counterpartyCardQuery.GetAsync(query);
-            return entity?.FullName ?? string.Empty;
-        }
+            SubkontoTypeId = SubkontoTypeIdConst.Counterparties,
+            DisplayValue = counterpartyName,
+            EntityId = counterpartyId,
+            SortOrder = sortOrder
+        });
+    }
+
+    private async Task<string> GetCounterpartyNameAsync(int counterpartyId)
+    {
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(counterparty => counterparty.Id == counterpartyId)
+            .As(counterparty => counterparty.FullName)
+            .Build();
+        return await _counterpartyCardQuery.GetAsync(query) ?? string.Empty;
     }
 }

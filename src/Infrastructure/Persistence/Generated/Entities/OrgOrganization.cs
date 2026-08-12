@@ -164,6 +164,9 @@ public partial class OrgOrganization
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("Organization")]

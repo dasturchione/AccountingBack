@@ -1,36 +1,32 @@
-namespace Application.Features.FaReceipts;
+﻿namespace Application.Features.FaReceipts;
 
-public partial class FaReceiptBaseDto
+public class FaReceiptBaseDto
 {
     public DateTime DocDate { get; set; }
     public int? CounterpartyId { get; set; }
     public short CurrencyId { get; set; }
     public short ReceiptTypeId { get; set; }
+    public int SupplierAccountId { get; set; }
     public List<FaReceiptLineWriteDto> Lines { get; set; } = new();
 }
 
-public partial class FaReceiptLineWriteDto
+public class FaReceiptLineWriteDto
 {
     public string Name { get; set; } = null!;
-    public decimal Quantity { get; set; }
+    public int Quantity { get; set; }
     public decimal Price { get; set; }
     public short? VatRateId { get; set; }
+    public int CapitalInvestmentAccountId { get; set; }
+    public int? VatAccountId { get; set; }
     public List<FaReceiptAssetWriteDto> Assets { get; set; } = new();
 }
 
-public partial class FaReceiptAssetWriteDto
+public class FaReceiptAssetWriteDto
 {
     public string InventoryNumber { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public decimal InitialCost { get; set; }
-    public decimal SalvageValue { get; set; }
-    public int UsefulLifeMonths { get; set; }
-    public short DepreciationMethodId { get; set; }
     public int FaGroupId { get; set; }
     public short? OkofId { get; set; }
-    public DateTime? CommissioningDate { get; set; }
-    public DateTime? DeprStartDate { get; set; }
-    public decimal? PlannedUnitsTotal { get; set; }
-    public int? DepartmentId { get; set; }
-    public int? ResponsibleUserId { get; set; }
+    public decimal InitialCost { get; set; }
+    public int AssetAccountId { get; set; }
 }

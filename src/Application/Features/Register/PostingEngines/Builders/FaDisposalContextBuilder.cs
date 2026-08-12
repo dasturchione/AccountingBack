@@ -1,4 +1,4 @@
-﻿using Application.Abstractions;
+using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -53,7 +53,7 @@ public class FaDisposalContextBuilder : IPostingContextBuilder<FaDisposalDoc>
     private static List<PostingEntryContext> BuildEntries(FaDisposalDoc document, FaDisposalDocLine line)
     {
         var entries = new List<PostingEntryContext>();
-        var accumulatedDepreciation = Math.Max(0m, line.FaAsset.InitialCost - line.BookValue);
+        var accumulatedDepreciation = Math.Max(0m, line.FaAsset.FaAssetAccounting!.InitialCost - line.BookValue);
 
         if (accumulatedDepreciation != 0m)
         {

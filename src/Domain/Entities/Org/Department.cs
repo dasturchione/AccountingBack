@@ -38,6 +38,9 @@ public partial class Department
     [InverseProperty("Department")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty(nameof(FaCommissioningDocLine.Department))]
+    public virtual ICollection<FaCommissioningDocLine> FaCommissioningDocLines { get; set; } = new List<FaCommissioningDocLine>();
+
     [ForeignKey("BranchId")]
     [InverseProperty("Departments")]
     public virtual Branch? Branch { get; set; }

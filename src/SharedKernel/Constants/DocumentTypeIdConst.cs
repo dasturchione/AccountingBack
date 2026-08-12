@@ -87,6 +87,11 @@ namespace SharedKernel.Constants
         public const short FAREVALUATION = 15;
 
         /// <summary>
+        /// Fixed asset commissioning document.
+        /// </summary>
+        public const short FACOMMISSIONING = 17;
+
+        /// <summary>
         /// Opening inventory receipt. It affects warehouse stock and opening
         /// balances, but never creates accounting postings.
         /// </summary>

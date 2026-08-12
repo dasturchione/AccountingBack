@@ -182,6 +182,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaAsset> FaAssets { get; set; }
 
+    public virtual DbSet<FaAssetAccounting> FaAssetAccountings { get; set; }
+
+    public virtual DbSet<FaCommissioningDoc> FaCommissioningDocs { get; set; }
+
+    public virtual DbSet<FaCommissioningDocLine> FaCommissioningDocLines { get; set; }
+
     public virtual DbSet<FaDepreciationRun> FaDepreciationRuns { get; set; }
 
     public virtual DbSet<FaDepreciationRunLine> FaDepreciationRunLines { get; set; }
@@ -1733,29 +1739,13 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FaAsset>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("fa_asset_pkey");
+            entity.HasKey(e => e.Id).HasName("pk_fa_asset");
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
 
-            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaAssetAccumulatedDepreciationAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_asset_accumulated_depreciation_account_id_fkey");
-
-            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaAssetAssetAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_asset_asset_account_id_fkey");
-
             entity.HasOne(d => d.Department).WithMany(p => p.FaAssets).HasConstraintName("fa_asset_department_id_fkey");
-
-            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaAssetDepreciationExpenseAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_asset_depreciation_expense_account_id_fkey");
-
-            entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaAssets)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fa_asset_depreciation_method_id_fkey");
 
             entity.HasOne(d => d.FaGroup).WithMany(p => p.FaAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1776,6 +1766,90 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Status).WithMany(p => p.FaAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_asset_status_id_fkey");
+        });
+
+        modelBuilder.Entity<FaAssetAccounting>(entity =>
+        {
+            entity.HasKey(e => e.AssetId).HasName("pk_fa_asset_accounting");
+
+            entity.Property(e => e.AssetId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaAssetAccountingAccumulatedDepreciationAccounts).HasConstraintName("fa_asset_accounting_accumulated_depreciation_account_id_fkey");
+
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaAssetAccountingAssetAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_asset_accounting_asset_account_id_fkey");
+
+            entity.HasOne(d => d.Asset).WithOne(p => p.FaAssetAccounting)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_asset_accounting_asset_id_fkey");
+
+            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaAssetAccountingDepreciationExpenseAccounts).HasConstraintName("fa_asset_accounting_depreciation_expense_account_id_fkey");
+
+            entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaAssetAccountings).HasConstraintName("fa_asset_accounting_depreciation_method_id_fkey");
+        });
+
+        modelBuilder.Entity<FaCommissioningDoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pk_fa_commissioning_doc");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaCommissioningDocCancelledByUsers).HasConstraintName("fa_commissioning_doc_cancelled_by_user_id_fkey");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.FaCommissioningDocCreatedByUsers).HasConstraintName("fa_commissioning_doc_created_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.FaCommissioningDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaCommissioningDocPostedByUsers).HasConstraintName("fa_commissioning_doc_posted_by_user_id_fkey");
+
+            entity.HasOne(d => d.State).WithMany(p => p.FaCommissioningDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_state_id_fkey");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.FaCommissioningDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_status_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.FaCommissioningDocUpdatedByUsers).HasConstraintName("fa_commissioning_doc_updated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<FaCommissioningDocLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("pk_fa_commissioning_doc_line");
+
+            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaCommissioningDocLineAccumulatedDepreciationAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_accumulated_depreciation_account_id_f");
+
+            entity.HasOne(d => d.CapitalInvestmentAccount).WithMany(p => p.FaCommissioningDocLineCapitalInvestmentAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_capital_investment_account_id_fkey");
+
+            entity.HasOne(d => d.CommissioningDoc).WithMany(p => p.FaCommissioningDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_commissioning_doc_id_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.FaCommissioningDocLines).HasConstraintName("fa_commissioning_doc_line_department_id_fkey");
+
+            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaCommissioningDocLineDepreciationExpenseAccounts)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_depreciation_expense_account_id_fkey");
+
+            entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaCommissioningDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_depreciation_method_id_fkey");
+
+            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaCommissioningDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_commissioning_doc_line_fa_asset_id_fkey");
+
+            entity.HasOne(d => d.ResponsibleUser).WithMany(p => p.FaCommissioningDocLines).HasConstraintName("fa_commissioning_doc_line_responsible_user_id_fkey");
         });
 
         modelBuilder.Entity<FaDepreciationRun>(entity =>
@@ -1976,11 +2050,13 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FaReceiptDoc>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("fa_receipt_doc_pkey");
+            entity.HasKey(e => e.Id).HasName("pk_fa_receipt_doc");
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.FaReceiptDocCancelledByUsers).HasConstraintName("fa_receipt_doc_cancelled_by_user_id_fkey");
 
             entity.HasOne(d => d.Counterparty).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_counterparty_id_fkey");
 
@@ -1991,6 +2067,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_organization_id_fkey");
+
+            entity.HasOne(d => d.PostedByUser).WithMany(p => p.FaReceiptDocPostedByUsers).HasConstraintName("fa_receipt_doc_posted_by_user_id_fkey");
 
             entity.HasOne(d => d.ReceiptType).WithMany(p => p.FaReceiptDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2004,38 +2082,24 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_status_id_fkey");
 
-            entity.HasOne(d => d.SupplierAccount).WithMany(p => p.FaReceiptDocs)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_receipt_doc_supplier_account_id_fkey");
-
-            entity.HasOne(d => d.Warehouse).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_warehouse_id_fkey");
+            entity.HasOne(d => d.SupplierAccount).WithMany(p => p.FaReceiptDocs).HasConstraintName("fa_receipt_doc_supplier_account_id_fkey");
         });
 
         modelBuilder.Entity<FaReceiptDocAsset>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("fa_receipt_doc_asset_pkey");
+            entity.HasKey(e => e.Id).HasName("pk_fa_receipt_doc_asset");
+
+            entity.HasIndex(e => e.FaAssetId, "uq_fa_receipt_doc_asset_fa_asset_id")
+                .IsUnique()
+                .HasFilter("(fa_asset_id IS NOT NULL)");
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
-            entity.HasOne(d => d.AccumulatedDepreciationAccount).WithMany(p => p.FaReceiptDocAssetAccumulatedDepreciationAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_receipt_doc_asset_accumulated_depreciation_account_id_fkey");
-
-            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaReceiptDocAssetAssetAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
+            entity.HasOne(d => d.AssetAccount).WithMany(p => p.FaReceiptDocAssets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fa_receipt_doc_asset_asset_account_id_fkey");
 
-            entity.HasOne(d => d.Department).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_department_id_fkey");
-
-            entity.HasOne(d => d.DepreciationExpenseAccount).WithMany(p => p.FaReceiptDocAssetDepreciationExpenseAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_receipt_doc_asset_depreciation_expense_account_id_fkey");
-
-            entity.HasOne(d => d.DepreciationMethod).WithMany(p => p.FaReceiptDocAssets)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fa_receipt_doc_asset_depreciation_method_id_fkey");
-
-            entity.HasOne(d => d.FaAsset).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_fa_asset_id_fkey");
+            entity.HasOne(d => d.FaAsset).WithOne(p => p.FaReceiptDocAsset).HasConstraintName("fa_receipt_doc_asset_fa_asset_id_fkey");
 
             entity.HasOne(d => d.FaGroup).WithMany(p => p.FaReceiptDocAssets)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2043,28 +2107,24 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Okof).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_okof_id_fkey");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_owner_id_fkey");
-
-            entity.HasOne(d => d.ResponsibleUser).WithMany(p => p.FaReceiptDocAssets).HasConstraintName("fa_receipt_doc_asset_responsible_user_id_fkey");
+            entity.HasOne(d => d.ReceiptDocLine).WithMany(p => p.FaReceiptDocAssets)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_doc_asset_receipt_doc_line_id_fkey");
         });
 
         modelBuilder.Entity<FaReceiptDocLine>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("fa_receipt_doc_line_pkey");
+            entity.HasKey(e => e.Id).HasName("pk_fa_receipt_doc_line");
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
-            entity.HasOne(d => d.CapitalInvestmentAccount).WithMany(p => p.FaReceiptDocLineCapitalInvestmentAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_receipt_doc_line_capital_investment_account_id_fkey");
+            entity.HasOne(d => d.CapitalInvestmentAccount).WithMany(p => p.FaReceiptDocLineCapitalInvestmentAccounts).HasConstraintName("fa_receipt_doc_line_capital_investment_account_id_fkey");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_owner_id_fkey");
+            entity.HasOne(d => d.ReceiptDoc).WithMany(p => p.FaReceiptDocLines)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fa_receipt_doc_line_receipt_doc_id_fkey");
 
-            entity.HasOne(d => d.SourceProduct).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_source_product_id_fkey");
-
-            entity.HasOne(d => d.VatAccount).WithMany(p => p.FaReceiptDocLineVatAccounts)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fa_receipt_doc_line_vat_account_id_fkey");
+            entity.HasOne(d => d.VatAccount).WithMany(p => p.FaReceiptDocLineVatAccounts).HasConstraintName("fa_receipt_doc_line_vat_account_id_fkey");
 
             entity.HasOne(d => d.VatRate).WithMany(p => p.FaReceiptDocLines).HasConstraintName("fa_receipt_doc_line_vat_rate_id_fkey");
         });

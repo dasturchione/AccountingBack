@@ -165,6 +165,13 @@ public static class FaReceiptErrors
             _ => $"Document with id {id} cannot be cancelled in status {statusId}."
         });
 
+    public static Error MissingPostingBatch(long id, short? languageId = null) =>
+        Error.Conflict("FaReceipt.MissingPostingBatch", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {id} bo'lgan qabul hujjati uchun faol o'tkazmalar paketi topilmadi.",
+            LanguageIdConst.RU => $"Для документа поступления с id {id} не найден активный пакет проводок.",
+            _ => $"Active posting batch for fixed asset receipt {id} was not found."
+        });
     public static Error AlreadyCancelled(long id, short? languageId = null) =>
         Error.Business("FaReceipt.AlreadyCancelled", languageId switch
         {

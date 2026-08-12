@@ -267,6 +267,15 @@ public static class PermissionCodeConst
     public const string FaAssetDelete     = "FA_ASSET_DELETE";
     #endregion
 
+    #region FaCommissioning
+    public const string FaCommissioningView       = "FA_COMMISSIONING_VIEW";
+    public const string FaCommissioningViewDetail = "FA_COMMISSIONING_VIEW_DETAIL";
+    public const string FaCommissioningCreate     = "FA_COMMISSIONING_CREATE";
+    public const string FaCommissioningUpdate     = "FA_COMMISSIONING_UPDATE";
+    public const string ConfirmFaCommissioning    = "FA_COMMISSIONING_CONFIRM";
+    public const string CancelFaCommissioning     = "FA_COMMISSIONING_CANCEL";
+    #endregion
+
     #region FaDepreciation
     public const string FaDepreciationView       = "FA_DEPRECIATION_VIEW";
     public const string FaDepreciationViewDetail = "FA_DEPRECIATION_VIEW_DETAIL";

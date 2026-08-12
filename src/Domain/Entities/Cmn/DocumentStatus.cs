@@ -45,6 +45,9 @@ public partial class DocumentStatus
     [InverseProperty(nameof(RetailSaleDoc.Status))]
     public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
 
+    [InverseProperty(nameof(FaCommissioningDoc.Status))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
     [ForeignKey(nameof(StateId))]
     [InverseProperty(nameof(State.DocumentStatuses))]
     public virtual State State { get; set; } = null!;

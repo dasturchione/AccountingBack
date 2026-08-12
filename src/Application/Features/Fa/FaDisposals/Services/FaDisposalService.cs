@@ -193,6 +193,7 @@ public class FaDisposalService : BaseService, IFaDisposalService
             .Where(x => assetIds.Contains(x.Id) && x.OrganizationId == organizationId)
             .Build();
         assetQuery.AddIncludes(x => x.Include(a => a.Status));
+        assetQuery.AddIncludes(x => x.Include(a => a.FaAssetAccounting));
         var assets = await _faAssetQuery.GetAllAsync(assetQuery, ct);
         var assetById = assets.ToDictionary(x => x.Id);
 
@@ -214,13 +215,16 @@ public class FaDisposalService : BaseService, IFaDisposalService
             if (asset.StatusId != FaAssetStatusIdConst.ACTIVE)
                 return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.AssetInactive(lineDto.FaAssetId, _userContext.LanguageId));
 
+            if (asset.FaAssetAccounting is null)
+                return Result.Failure<List<FaDisposalDocLine>>(FaDisposalErrors.AssetInactive(lineDto.FaAssetId, _userContext.LanguageId));
+
             lines.Add(new FaDisposalDocLine
             {
                 FaAssetId = asset.Id,
                 SaleAmount = lineDto.SaleAmount,
                 Note = lineDto.Note?.Trim(),
-                AssetAccountId = lineDto.AssetAccountId,
-                AccumulatedDepreciationAccountId = lineDto.AccumulatedDepreciationAccountId
+                AssetAccountId = asset.FaAssetAccounting.AssetAccountId,
+                AccumulatedDepreciationAccountId = asset.FaAssetAccounting.AccumulatedDepreciationAccountId
             });
         }
 

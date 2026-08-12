@@ -53,7 +53,9 @@ using Application.Features.Integration.Edo;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
+using Application.Features.Fa;
 using Application.Features.FaAssets;
+using Application.Features.FaCommissionings;
 using Application.Features.FaDepreciations;
 using Application.Features.FaDisposals;
 using Application.Features.FaRevaluations;
@@ -173,6 +175,40 @@ namespace Infrastructure
 
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
+            services.AddScoped<IProjectionBuilder<FaAsset, FaAssetDto>, FaAssetDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaAsset, FaAssetListDto>, FaAssetListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaAsset, FaAssetListFilter>, FaAssetByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaAssetListDto, FaAssetListFilter>, FaAssetListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaReceiptDoc, FaReceiptDto>, FaReceiptDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaReceiptDoc, FaReceiptListDto>, FaReceiptListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaReceiptDoc, FaReceiptListFilter>, FaReceiptByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaReceiptListDto, FaReceiptListFilter>, FaReceiptListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaCommissioningDoc, FaCommissioningDto>, FaCommissioningDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaCommissioningDoc, FaCommissioningListDto>, FaCommissioningListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaCommissioningDoc, FaCommissioningListFilter>, FaCommissioningByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaCommissioningListDto, FaCommissioningListFilter>, FaCommissioningListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaMovementDoc, FaMovementDto>, FaMovementDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaMovementDoc, FaMovementListDto>, FaMovementListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaMovementDoc, FaMovementListFilter>, FaMovementByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaMovementListDto, FaMovementListFilter>, FaMovementListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaDepreciationRun, FaDepreciationRunDto>, FaDepreciationRunDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaDepreciationRun, FaDepreciationRunListDto>, FaDepreciationRunListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaDepreciationRun, FaDepreciationRunListFilter>, FaDepreciationRunByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaDepreciationRunListDto, FaDepreciationRunListFilter>, FaDepreciationRunListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaRevaluationDoc, FaRevaluationDto>, FaRevaluationDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaRevaluationDoc, FaRevaluationListDto>, FaRevaluationListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaRevaluationDoc, FaRevaluationListFilter>, FaRevaluationByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaRevaluationListDto, FaRevaluationListFilter>, FaRevaluationListDtoByListFilterCriteriaBuilder>();
+
+            services.AddScoped<IProjectionBuilder<FaDisposalDoc, FaDisposalDto>, FaDisposalDtoProjection>();
+            services.AddScoped<IProjectionBuilder<FaDisposalDoc, FaDisposalListDto>, FaDisposalListDtoProjection>();
+            services.AddScoped<ICriteriaBuilder<FaDisposalDoc, FaDisposalListFilter>, FaDisposalByListFilterCriteriaBuilder>();
+            services.AddScoped<ICriteriaBuilder<FaDisposalListDto, FaDisposalListFilter>, FaDisposalListDtoByListFilterCriteriaBuilder>();
 
             services.AddMemoryCache();
             services.Configure<HrFileStorageOptions>(config.GetSection("HrFileStorage"));
@@ -238,8 +274,12 @@ namespace Infrastructure
             services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
             services.AddScoped<IPayrollReportService, PayrollReportService>();
             services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<IFaDocumentAccountValidator, FaDocumentAccountValidator>();
             services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
             services.AddScoped<IFaAssetService, FaAssetService>();
+            services.AddScoped<IFaCommissioningCommandRepository, FaCommissioningCommandRepository>();
+            services.AddScoped<IFaCommissioningService, FaCommissioningService>();
+            services.AddScoped<IFaCommissioningLifecycleService, FaCommissioningLifecycleService>();
             services.AddScoped<IFaMovementCommandRepository, FaMovementCommandRepository>();
             services.AddScoped<IFaMovementService, FaMovementService>();
             services.AddScoped<IFaMovementLifecycleService, FaMovementLifecycleService>();
@@ -351,6 +391,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CurrencyRevaluation>, CurrencyRevaluationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<FaCommissioningDoc>, FaCommissioningContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaDepreciationRun>, FaDepreciationRunContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaDisposalDoc>, FaDisposalContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaRevaluationDoc>, FaRevaluationContextBuilder>();

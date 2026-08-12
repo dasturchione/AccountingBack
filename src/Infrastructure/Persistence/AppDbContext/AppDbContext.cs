@@ -44,6 +44,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaAssetStatus> FaAssetStatuses { get; set; }
     public virtual DbSet<FaDepreciationMethod> FaDepreciationMethods { get; set; }
     public virtual DbSet<FaAsset> FaAssets { get; set; }
+    public virtual DbSet<FaAssetAccounting> FaAssetAccountings { get; set; }
+    public virtual DbSet<FaCommissioningDoc> FaCommissioningDocs { get; set; }
+    public virtual DbSet<FaCommissioningDocLine> FaCommissioningDocLines { get; set; }
     public virtual DbSet<FaReceiptDoc> FaReceiptDocs { get; set; }
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }

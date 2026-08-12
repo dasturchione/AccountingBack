@@ -35,6 +35,9 @@ public partial class CmnDocumentStatus
     public virtual ICollection<CmnDocumentStatusTranslation> CmnDocumentStatusTranslations { get; set; } = new List<CmnDocumentStatusTranslation>();
 
     [InverseProperty("Status")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("Status")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("Status")]

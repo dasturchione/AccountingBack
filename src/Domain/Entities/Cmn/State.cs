@@ -204,6 +204,9 @@ public partial class State
     [InverseProperty("State")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty(nameof(FaCommissioningDoc.State))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
     [InverseProperty(nameof(MxikCatalog.State))]
     public virtual ICollection<MxikCatalog> MxikCatalogs { get; set; } = new List<MxikCatalog>();
 }

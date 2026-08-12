@@ -1,6 +1,6 @@
-namespace Application.Features.FaReceipts;
+﻿namespace Application.Features.FaReceipts;
 
-public partial class FaReceiptListDto
+public class FaReceiptListDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -17,6 +17,8 @@ public partial class FaReceiptListDto
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public short ReceiptTypeId { get; set; }
+    public string ReceiptTypeName { get; set; } = null!;
+    public int? SupplierAccountId { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime UpdatedDate { get; set; }

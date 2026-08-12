@@ -1,4 +1,4 @@
-namespace Application.Features.FaAssets;
+﻿namespace Application.Features.FaAssets;
 
 public partial class FaAssetListDto
 {
@@ -9,8 +9,8 @@ public partial class FaAssetListDto
     public string Name { get; set; } = null!;
     public int FaGroupId { get; set; }
     public string FaGroupName { get; set; } = null!;
-    public short DepreciationMethodId { get; set; }
-    public string DepreciationMethodName { get; set; } = null!;
+    public short? DepreciationMethodId { get; set; }
+    public string? DepreciationMethodName { get; set; }
     public decimal InitialCost { get; set; }
     public DateTime? CommissioningDate { get; set; }
     public int? DepartmentId { get; set; }

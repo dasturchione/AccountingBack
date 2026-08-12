@@ -1,6 +1,6 @@
-namespace Application.Features.FaReceipts;
+﻿namespace Application.Features.FaReceipts;
 
-public partial class FaReceiptDto
+public class FaReceiptDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
@@ -17,6 +17,11 @@ public partial class FaReceiptDto
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public short ReceiptTypeId { get; set; }
+    public string ReceiptTypeCode { get; set; } = null!;
+    public string ReceiptTypeName { get; set; } = null!;
+    public int? SupplierAccountId { get; set; }
+    public string? SupplierAccountNumber { get; set; }
+    public string? SupplierAccountName { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
@@ -28,45 +33,42 @@ public partial class FaReceiptDto
     public List<FaReceiptLineDto> Lines { get; set; } = new();
 }
 
-public partial class FaReceiptLineDto
+public class FaReceiptLineDto
 {
     public long Id { get; set; }
-    public long OwnerId { get; set; }
+    public long ReceiptDocId { get; set; }
     public string Name { get; set; } = null!;
-    public decimal Quantity { get; set; }
+    public int Quantity { get; set; }
     public decimal Price { get; set; }
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }
     public string? VatRateName { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public int? CapitalInvestmentAccountId { get; set; }
+    public string? CapitalInvestmentAccountNumber { get; set; }
+    public string? CapitalInvestmentAccountName { get; set; }
+    public int? VatAccountId { get; set; }
+    public string? VatAccountNumber { get; set; }
+    public string? VatAccountName { get; set; }
     public List<FaReceiptAssetDto> Assets { get; set; } = new();
 }
 
-public partial class FaReceiptAssetDto
+public class FaReceiptAssetDto
 {
     public long Id { get; set; }
-    public long OwnerId { get; set; }
+    public long ReceiptDocLineId { get; set; }
     public long? FaAssetId { get; set; }
     public string InventoryNumber { get; set; } = null!;
     public string Name { get; set; } = null!;
     public decimal InitialCost { get; set; }
-    public decimal SalvageValue { get; set; }
-    public int UsefulLifeMonths { get; set; }
-    public short DepreciationMethodId { get; set; }
-    public string DepreciationMethodCode { get; set; } = null!;
-    public string DepreciationMethodName { get; set; } = null!;
     public int FaGroupId { get; set; }
     public string FaGroupCode { get; set; } = null!;
     public string FaGroupName { get; set; } = null!;
     public short? OkofId { get; set; }
     public string? OkofCode { get; set; }
     public string? OkofName { get; set; }
-    public DateTime? CommissioningDate { get; set; }
-    public DateTime? DeprStartDate { get; set; }
-    public decimal? PlannedUnitsTotal { get; set; }
-    public int? DepartmentId { get; set; }
-    public string? DepartmentName { get; set; }
-    public int? ResponsibleUserId { get; set; }
-    public string? ResponsibleUserName { get; set; }
+    public int AssetAccountId { get; set; }
+    public string AssetAccountNumber { get; set; } = null!;
+    public string AssetAccountName { get; set; } = null!;
 }

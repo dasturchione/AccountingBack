@@ -1,4 +1,4 @@
-using Domain.Entities;
+﻿using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -7,26 +7,27 @@ namespace Application.Features.FaReceipts;
 public class FaReceiptListDtoProjection : IProjectionBuilder<FaReceiptDoc, FaReceiptListDto>
 {
     public Expression<Func<FaReceiptDoc, FaReceiptListDto>> Build() =>
-        x => new FaReceiptListDto
+        receipt => new FaReceiptListDto
         {
-            Id = x.Id,
-            OrganizationId = x.OrganizationId,
-            OrganizationName = x.Organization.ShortName,
-            DocNumber = x.DocNumber,
-            DocDate = x.DocDate,
-            CounterpartyId = x.CounterpartyId,
-            CounterpartyName = x.Counterparty != null ? x.Counterparty.ShortName : null,
-            CurrencyId = x.CurrencyId,
-            CurrencyName = x.Currency.Name,
-            TotalAmount = x.TotalAmount,
-            VatAmount = x.VatAmount,
-            FinalAmount = x.FinalAmount,
-            StatusId = x.StatusId,
-            StatusName = x.Status.Name,
-            ReceiptTypeId = x.ReceiptTypeId,
-            SupplierAccountId = x.SupplierAccountId,
-            StateId = x.StateId,
-            StateName = x.State.FullName,
-            UpdatedDate = x.UpdatedDate
+            Id = receipt.Id,
+            OrganizationId = receipt.OrganizationId,
+            OrganizationName = receipt.Organization.ShortName,
+            DocNumber = receipt.DocNumber,
+            DocDate = receipt.DocDate,
+            CounterpartyId = receipt.CounterpartyId,
+            CounterpartyName = receipt.Counterparty != null ? receipt.Counterparty.ShortName : null,
+            CurrencyId = receipt.CurrencyId,
+            CurrencyName = receipt.Currency.Name,
+            TotalAmount = receipt.TotalAmount,
+            VatAmount = receipt.VatAmount,
+            FinalAmount = receipt.FinalAmount,
+            StatusId = receipt.StatusId,
+            StatusName = receipt.Status.Name,
+            ReceiptTypeId = receipt.ReceiptTypeId,
+            ReceiptTypeName = receipt.ReceiptType.Name,
+            SupplierAccountId = receipt.SupplierAccountId,
+            StateId = receipt.StateId,
+            StateName = receipt.State.FullName,
+            UpdatedDate = receipt.UpdatedDate
         };
 }

@@ -205,6 +205,9 @@ public partial class Organization
     [InverseProperty("Organization")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
+    [InverseProperty(nameof(FaCommissioningDoc.Organization))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
     [InverseProperty("Organization")]
     public virtual OrganizationConfig? OrganizationConfig { get; set; }
 }

@@ -7,30 +7,25 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("fa_receipt_doc_line")]
-[Index("OwnerId", Name = "idx_fa_receipt_doc_line_owner_id")]
-[Index("SourceProductId", Name = "idx_fa_receipt_doc_line_source_product_id")]
-[Index("VatRateId", Name = "idx_fa_receipt_doc_line_vat_rate_id")]
-[Index("CapitalInvestmentAccountId", Name = "ix_fa_receipt_line_capital_account")]
-[Index("VatAccountId", Name = "ix_fa_receipt_line_vat_account")]
+[Index("CapitalInvestmentAccountId", Name = "ix_fa_receipt_doc_line_capital_investment_account_id")]
+[Index("ReceiptDocId", Name = "ix_fa_receipt_doc_line_receipt_doc_id")]
+[Index("VatAccountId", Name = "ix_fa_receipt_doc_line_vat_account_id")]
+[Index("VatRateId", Name = "ix_fa_receipt_doc_line_vat_rate_id")]
 public partial class FaReceiptDocLine
 {
     [Key]
     [Column("id")]
     public long Id { get; set; }
 
-    [Column("owner_id")]
-    public long OwnerId { get; set; }
-
-    [Column("source_product_id")]
-    public int? SourceProductId { get; set; }
+    [Column("receipt_doc_id")]
+    public long ReceiptDocId { get; set; }
 
     [Column("name")]
-    [StringLength(250)]
+    [StringLength(500)]
     public string Name { get; set; } = null!;
 
     [Column("quantity")]
-    [Precision(19, 6)]
-    public decimal Quantity { get; set; }
+    public int Quantity { get; set; }
 
     [Column("price")]
     [Precision(24, 8)]
@@ -61,16 +56,12 @@ public partial class FaReceiptDocLine
     [InverseProperty("FaReceiptDocLineCapitalInvestmentAccounts")]
     public virtual AccChartAccount? CapitalInvestmentAccount { get; set; }
 
-    [InverseProperty("Owner")]
+    [InverseProperty("ReceiptDocLine")]
     public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
 
-    [ForeignKey("OwnerId")]
+    [ForeignKey("ReceiptDocId")]
     [InverseProperty("FaReceiptDocLines")]
-    public virtual FaReceiptDoc Owner { get; set; } = null!;
-
-    [ForeignKey("SourceProductId")]
-    [InverseProperty("FaReceiptDocLines")]
-    public virtual InvProduct? SourceProduct { get; set; }
+    public virtual FaReceiptDoc ReceiptDoc { get; set; } = null!;
 
     [ForeignKey("VatAccountId")]
     [InverseProperty("FaReceiptDocLineVatAccounts")]

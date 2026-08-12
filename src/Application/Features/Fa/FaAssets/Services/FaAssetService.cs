@@ -1,11 +1,10 @@
-using Application.Abstractions;
+﻿using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.FaAssets;
@@ -18,7 +17,6 @@ public class FaAssetService : BaseService, IFaAssetService
     private readonly IQueryRepository<FaAsset> _query;
     private readonly IQueryRepository<FaGroup> _faGroupQuery;
     private readonly IQueryRepository<FaOkof> _okofQuery;
-    private readonly IQueryRepository<FaDepreciationMethod> _depreciationMethodQuery;
     private readonly IFaAssetCommandRepository _command;
 
     public FaAssetService(
@@ -28,7 +26,6 @@ public class FaAssetService : BaseService, IFaAssetService
         IQueryRepository<FaAsset> query,
         IQueryRepository<FaGroup> faGroupQuery,
         IQueryRepository<FaOkof> okofQuery,
-        IQueryRepository<FaDepreciationMethod> depreciationMethodQuery,
         IFaAssetCommandRepository command,
         ILogger<FaAssetService> logger)
         : base(logger, unitOfWork)
@@ -39,9 +36,30 @@ public class FaAssetService : BaseService, IFaAssetService
         _query = query;
         _faGroupQuery = faGroupQuery;
         _okofQuery = okofQuery;
-        _depreciationMethodQuery = depreciationMethodQuery;
         _command = command;
     }
+
+    public Task<Result<PagedResponse<FaAssetListDto>>> GetAllAsync(FaAssetListFilter filter, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetAllAsync), async () =>
+        {
+            var query = _queryBuilder.BuildPaged<FaAsset, FaAssetListDto, FaAssetListFilter>(filter);
+            var pagedList = await _query.GetPagedAsync(query, ct);
+            return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
+        });
+
+    public Task<Result<FaAssetDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetByIdAsync), async () =>
+        {
+            var query = _queryBuilder.For<FaAsset>()
+                .Where(asset => asset.Id == id)
+                .As<FaAssetDto>()
+                .Build();
+            var entity = await _query.GetAsync(query, ct);
+
+            return entity is null
+                ? Result.Failure<FaAssetDto>(FaAssetErrors.NotFound(id, _userContext.LanguageId))
+                : Result.Success(entity);
+        });
 
     public Task<Result> UpdateAsync(long id, FaAssetUpdateDto dto, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(UpdateAsync), async () =>
@@ -51,7 +69,7 @@ public class FaAssetService : BaseService, IFaAssetService
 
             var organizationId = _userContext.OrganizationId.Value;
             var query = _queryBuilder.For<FaAsset>()
-                .Where(x => x.Id == id && x.OrganizationId == organizationId)
+                .Where(asset => asset.Id == id && asset.OrganizationId == organizationId)
                 .Build();
             var entity = await _query.GetAsync(query, ct);
 
@@ -66,12 +84,6 @@ public class FaAssetService : BaseService, IFaAssetService
             entity.Name = dto.Name.Trim();
             entity.FaGroupId = dto.FaGroupId;
             entity.OkofId = dto.OkofId;
-            entity.DepreciationMethodId = dto.DepreciationMethodId;
-            entity.UsefulLifeMonths = dto.UsefulLifeMonths;
-            entity.PlannedUnitsTotal = dto.PlannedUnitsTotal;
-            entity.AssetAccountId = dto.AssetAccountId;
-            entity.AccumulatedDepreciationAccountId = dto.AccumulatedDepreciationAccountId;
-            entity.DepreciationExpenseAccountId = dto.DepreciationExpenseAccountId;
             entity.UpdatedDate = DateTime.Now;
 
             await _command.UpdateAsync(entity, ct);
@@ -83,7 +95,9 @@ public class FaAssetService : BaseService, IFaAssetService
     public Task<Result> DeleteAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<FaAsset>().Where(x => x.Id == id).Build();
+            var query = _queryBuilder.For<FaAsset>()
+                .Where(asset => asset.Id == id)
+                .Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity is null)
@@ -98,25 +112,6 @@ public class FaAssetService : BaseService, IFaAssetService
             return Result.Success();
         }, ct);
 
-    public Task<Result<PagedResponse<FaAssetListDto>>> GetAllAsync(FaAssetListFilter filter, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(GetAllAsync), async () =>
-        {
-            var query = _queryBuilder.BuildPaged<FaAsset, FaAssetListDto, FaAssetListFilter>(filter);
-            var pagedList = await _query.GetPagedAsync(query, ct);
-            return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
-        });
-
-    public Task<Result<FaAssetDto>> GetByIdAsync(long id, CancellationToken ct = default) =>
-        ExecuteAsync(nameof(GetByIdAsync), async () =>
-        {
-            var query = _queryBuilder.For<FaAsset>().Where(x => x.Id == id).As<FaAssetDto>().Build();
-            var entity = await _query.GetAsync(query, ct);
-
-            return entity is null
-                ? Result.Failure<FaAssetDto>(FaAssetErrors.NotFound(id, _userContext.LanguageId))
-                : Result.Success(entity);
-        });
-
     private async Task<Error?> ValidateAsync(
         FaAssetUpdateDto dto,
         int organizationId,
@@ -124,34 +119,28 @@ public class FaAssetService : BaseService, IFaAssetService
         CancellationToken ct)
     {
         var inventoryNumber = dto.InventoryNumber.Trim();
-        if (await _query.AnyAsync(x => x.OrganizationId == organizationId &&
-                                       x.InventoryNumber == inventoryNumber &&
-                                       x.Id != currentId, ct))
+        if (await _query.AnyAsync(asset =>
+                asset.OrganizationId == organizationId &&
+                asset.InventoryNumber == inventoryNumber &&
+                asset.Id != currentId, ct))
         {
             return FaAssetErrors.InventoryNumberConflict(inventoryNumber, _userContext.LanguageId);
         }
 
-        if (!await _faGroupQuery.AnyAsync(x => x.Id == dto.FaGroupId && x.StateId == StateIdConst.ACTIVE, ct))
-            return FaAssetErrors.FaGroupNotFound(dto.FaGroupId, _userContext.LanguageId);
-
-        if (dto.OkofId.HasValue &&
-            !await _okofQuery.AnyAsync(x => x.Id == dto.OkofId.Value && x.StateId == StateIdConst.ACTIVE, ct))
+        if (!await _faGroupQuery.AnyAsync(group =>
+                group.Id == dto.FaGroupId &&
+                group.OrganizationId == organizationId &&
+                group.StateId == StateIdConst.ACTIVE, ct))
         {
-            return FaAssetErrors.OkofNotFound(dto.OkofId.Value, _userContext.LanguageId);
+            return FaAssetErrors.FaGroupNotFound(dto.FaGroupId, _userContext.LanguageId);
         }
 
-        var depreciationMethod = await _depreciationMethodQuery.GetAsync(new QuerySpecification<FaDepreciationMethod>
+        if (dto.OkofId.HasValue &&
+            !await _okofQuery.AnyAsync(okof =>
+                okof.Id == dto.OkofId.Value &&
+                okof.StateId == StateIdConst.ACTIVE, ct))
         {
-            Criteria = x => x.Id == dto.DepreciationMethodId && x.StateId == StateIdConst.ACTIVE
-        }, ct);
-
-        if (depreciationMethod is null)
-            return FaAssetErrors.DepreciationMethodNotFound(dto.DepreciationMethodId, _userContext.LanguageId);
-
-        if (depreciationMethod.Code == FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION &&
-            !dto.PlannedUnitsTotal.HasValue)
-        {
-            return FaAssetErrors.PlannedUnitsRequired(_userContext.LanguageId);
+            return FaAssetErrors.OkofNotFound(dto.OkofId.Value, _userContext.LanguageId);
         }
 
         return null;

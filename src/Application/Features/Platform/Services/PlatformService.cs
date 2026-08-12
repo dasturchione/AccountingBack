@@ -5,6 +5,7 @@ using Application.Common.Pagination;
 using Application.Features.Platform.Filters;
 using Application.Features.AuditLogs;
 using Application.Features.Organizations;
+using Application.Features.Roles;
 using Application.Features.Users.Services;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ using SharedKernel.Results;
 
 namespace Application.Features.Platform;
 
-public sealed class PlatformService : BaseService, IPlatformService
+public sealed partial class PlatformService : BaseService, IPlatformService
 {
     private readonly IUserContext _userContext;
     private readonly IPasswordHasher _passwordHasher;
@@ -27,6 +28,10 @@ public sealed class PlatformService : BaseService, IPlatformService
     private readonly IQueryRepository<User> _userQuery;
     private readonly ICommandRepository<User> _userCommand;
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
+    private readonly IQueryRepository<Role> _roleQuery;
+    private readonly ICommandRepository<Role> _roleCommand;
+    private readonly IQueryRepository<RoleModule> _roleModuleQuery;
+    private readonly ICommandRepository<RoleModule> _roleModuleCommand;
     private readonly IUserManagementCore _userManagementCore;
     private readonly IAuditLogQueryCore _auditLogQueryCore;
     private readonly IDashboardService _dashboardService;
@@ -42,6 +47,10 @@ public sealed class PlatformService : BaseService, IPlatformService
         IQueryRepository<User> userQuery,
         ICommandRepository<User> userCommand,
         IQueryRepository<UserOrganization> userOrganizationQuery,
+        IQueryRepository<Role> roleQuery,
+        ICommandRepository<Role> roleCommand,
+        IQueryRepository<RoleModule> roleModuleQuery,
+        ICommandRepository<RoleModule> roleModuleCommand,
         IUserManagementCore userManagementCore,
         IAuditLogQueryCore auditLogQueryCore,
         IDashboardService dashboardService,
@@ -59,6 +68,10 @@ public sealed class PlatformService : BaseService, IPlatformService
         _userQuery = userQuery;
         _userCommand = userCommand;
         _userOrganizationQuery = userOrganizationQuery;
+        _roleQuery = roleQuery;
+        _roleCommand = roleCommand;
+        _roleModuleQuery = roleModuleQuery;
+        _roleModuleCommand = roleModuleCommand;
         _userManagementCore = userManagementCore;
         _auditLogQueryCore = auditLogQueryCore;
         _dashboardService = dashboardService;
@@ -695,6 +708,7 @@ public sealed class PlatformService : BaseService, IPlatformService
             LastLoginIp = user.LastLoginIp,
             Timezone = user.Timezone,
             LastAccessTime = user.LastAccessTime,
+            UserKindCode = user.UserKindCode,
             StateId = user.StateId,
             StateName = user.StateName,
             CreatedDate = user.CreatedDate,

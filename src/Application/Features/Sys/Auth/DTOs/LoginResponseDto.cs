@@ -16,6 +16,7 @@ public class UserResponseDto
     public string LastName { get; set; } = null!;
     public int TenantId { get; set; }
     public short UserKindId { get; set; }
+    public string UserKindCode { get; set; } = null!;
     public DateTime? LastAccessTime { get; set; }
     public short StateId { get; set; }
     public DateTime CreatedDate { get; set; }

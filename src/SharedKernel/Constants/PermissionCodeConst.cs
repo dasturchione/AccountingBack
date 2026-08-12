@@ -467,6 +467,11 @@ public static class PermissionCodeConst
     public const string PlatformAttachUserToOrganization   = "PLATFORM_ATTACH_USER_TO_ORGANIZATION";
     public const string PlatformUpdateUserOrganization     = "PLATFORM_UPDATE_USER_ORGANIZATION";
     public const string PlatformRemoveUserFromOrganization = "PLATFORM_REMOVE_USER_FROM_ORGANIZATION";
+    public const string PlatformGetRoles                   = "PLATFORM_GET_ROLES";
+    public const string PlatformGetRoleById                = "PLATFORM_GET_ROLE_BY_ID";
+    public const string PlatformCreateRole                 = "PLATFORM_CREATE_ROLE";
+    public const string PlatformUpdateRole                 = "PLATFORM_UPDATE_ROLE";
+    public const string PlatformDeleteRole                 = "PLATFORM_DELETE_ROLE";
     public const string PlatformSetUserPassword            = "PLATFORM_SET_USER_PASSWORD";
     public const string PlatformGetAuditLogs               = "PLATFORM_GET_AUDIT_LOGS";
     #endregion

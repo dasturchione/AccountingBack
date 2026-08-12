@@ -161,6 +161,7 @@ public class AuthService : IAuthService
                 LastName = user.LastName,
                 TenantId = user.TenantId,
                 UserKindId = user.UserKindId,
+                UserKindCode = user.UserKind.Code,
                 StateName = user.State.FullName,
                 StateId = user.StateId,
                 LastAccessTime = user.LastAccessTime,

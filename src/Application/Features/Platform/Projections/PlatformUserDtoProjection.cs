@@ -16,6 +16,7 @@ public static class PlatformUserDtoProjection
         LastName = user.LastName,
         TenantId = user.TenantId,
         UserKindId = user.UserKindId,
+        UserKindCode = user.UserKind.Code,
         EmailVerified = user.EmailVerified,
         EmailVerifiedAt = user.EmailVerifiedAt,
         LastLoginIp = user.LastLoginIp,

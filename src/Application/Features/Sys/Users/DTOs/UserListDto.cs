@@ -10,6 +10,7 @@ public class UserListDto
     public string LastName { get; set; } = null!;
     public int TenantId { get; set; }
     public short UserKindId { get; set; }
+    public string UserKindCode { get; set; } = null!;
     public bool EmailVerified { get; set; }
     public DateTime? EmailVerifiedAt { get; set; }
     public string? LastLoginIp { get; set; }

@@ -94,7 +94,8 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddLogger(this WebApplicationBuilder builder)
         {
-            var logDirectory = "logs";
+            var logDirectory = Path.Combine(builder.Environment.ContentRootPath, "logs");
+            Directory.CreateDirectory(logDirectory);
             var logFileName = "log-.log";
             var fullPath = Path.Combine(logDirectory, logFileName);
 

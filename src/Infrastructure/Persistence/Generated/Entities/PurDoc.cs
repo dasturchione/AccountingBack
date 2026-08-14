@@ -106,6 +106,12 @@ public partial class PurDoc
     [InverseProperty("PurDocs")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
+    [InverseProperty("ExistingPurchase")]
+    public virtual ICollection<EdoImportCandidate> EdoImportCandidateExistingPurchases { get; set; } = new List<EdoImportCandidate>();
+
+    [InverseProperty("ImportedPurchase")]
+    public virtual EdoImportCandidate? EdoImportCandidateImportedPurchase { get; set; }
+
     [ForeignKey("OrganizationId")]
     [InverseProperty("PurDocs")]
     public virtual OrgOrganization Organization { get; set; } = null!;

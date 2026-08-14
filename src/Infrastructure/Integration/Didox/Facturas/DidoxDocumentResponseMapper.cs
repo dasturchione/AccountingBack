@@ -4,7 +4,8 @@ namespace Integration.Didox.Facturas;
 
 public static class DidoxDocumentResponseMapper
 {
-    private static readonly string[] MarkCodePropertyNames = ["mark_codes", "markCodes", "kiz"];
+    private static readonly string[] MarkCodePropertyNames =
+        ["mark_codes", "markCodes", "kiz", "identtransupak", "nomupak"];
     private static readonly string[] MarkContainerPropertyNames = ["marks", "Marks"];
     private static readonly string[] ProductListPropertyNames = ["productlist", "ProductList", "productList"];
 

@@ -40,6 +40,9 @@ public partial class CmnVatRate
     [Column("effective_to")]
     public DateOnly? EffectiveTo { get; set; }
 
+    [InverseProperty("SelectedVatRate")]
+    public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLines { get; set; } = new List<EdoImportCandidateLine>();
+
     [InverseProperty("VatRate")]
     public virtual ICollection<FaReceiptDocLine> FaReceiptDocLines { get; set; } = new List<FaReceiptDocLine>();
 

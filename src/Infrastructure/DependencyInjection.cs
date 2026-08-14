@@ -8,6 +8,7 @@ using Application.Features.Acc.DocumentAccountSettings;
 using Application.Features.Acc.OpeningBalances;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.AccountingReports;
+using Application.Features.AiAssistant;
 using Application.Features.Reports.BankReports;
 using Application.Features.Reports.CashReports;
 using Application.Features.Reports.FinancialReports;
@@ -131,6 +132,7 @@ using Integration.Didox.Configs;
 using Integration.Didox.Services;
 using Integration.Didox.Facturas;
 using Integration.Edo.Configs;
+using Integration.Edo.Historical;
 using Integration.CentralBank.Configs;
 using Integration.CentralBank.Services;
 using Integration.Tax.Configs;
@@ -156,10 +158,23 @@ namespace Infrastructure
             services.AddScoped<IIntegrationCredentialProvider, IntegrationCredentialProvider>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IDocumentPostingLock, DocumentPostingLock>();
+            services.AddScoped<INotificationDeduplicationLock, NotificationDeduplicationLock>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<ITokenProvider, TokenProvider>();
             services.AddScoped<IRequestContext, RequestContext>();
+            services.AddSingleton<IBackgroundOrganizationScope, BackgroundOrganizationScope>();
             services.AddScoped<IUserContext, UserContext>();
+            services.AddScoped<IAiProvider, UnavailableAiProvider>();
+            services.AddScoped<IAiOrganizationContextResolver, OrganizationContextResolver>();
+            services.AddScoped<ILanguageContextResolver, LanguageContextResolver>();
+            services.AddScoped<IAiToolExecutionGuard, AiToolExecutionGuard>();
+            services.AddScoped<IAiAssistantOrchestrator, AiAssistantOrchestrator>();
+            services.AddScoped<ContractExpiryLookupTool>();
+            services.AddScoped<IContractExpiryLookupTool>(serviceProvider =>
+                serviceProvider.GetRequiredService<ContractExpiryLookupTool>());
+            services.AddScoped<IAiReadOnlyToolExecutor>(serviceProvider =>
+                serviceProvider.GetRequiredService<ContractExpiryLookupTool>());
+            services.AddScoped<IAiReadOnlyToolRegistry, AiReadOnlyToolRegistry>();
             services.TryAddSingleton(TimeProvider.System);
             services.AddScoped<INotificationReadRepository, NotificationReadRepository>();
             services.AddScoped<IPermissionChecker, PermissionChecker>();
@@ -203,6 +218,13 @@ namespace Infrastructure
             services.AddScoped<IEdoOutboxService, EdoOutboxService>();
             services.AddScoped<IEdoInboxService, EdoInboxService>();
             services.AddScoped<IEdoSigningSessionCleanupService, EdoSigningSessionCleanupService>();
+            services.AddScoped<EdoImportPreflightService>();
+            services.AddScoped<IEdoImportPreflightService>(serviceProvider =>
+                serviceProvider.GetRequiredService<EdoImportPreflightService>());
+            services.AddScoped<IEdoBulkDraftImportProcessor>(serviceProvider =>
+                serviceProvider.GetRequiredService<EdoImportPreflightService>());
+            services.AddScoped<IEdoImportPreflightProcessor, EdoImportPreflightProcessor>();
+            services.AddSingleton<IEdoImportPreflightScheduler, QuartzEdoImportPreflightScheduler>();
             services.AddEdoProviderRegistry();
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);
@@ -237,6 +259,7 @@ namespace Infrastructure
             services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
             services.AddScoped<IPayrollReportService, PayrollReportService>();
             services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<IContractExpiryNotificationService, ContractExpiryNotificationService>();
             services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
             services.AddScoped<IFaAssetService, FaAssetService>();
             services.AddScoped<IFaMovementCommandRepository, FaMovementCommandRepository>();
@@ -289,6 +312,8 @@ namespace Infrastructure
             services.AddScoped<ICashCounterpartyRegisterService, CashCounterpartyRegisterService>();
             services.AddScoped<ICashMoneyRegisterService, CashMoneyRegisterService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();
+            services.AddScoped<IEdoHistoricalPurchaseDraftFactory>(provider =>
+                (IEdoHistoricalPurchaseDraftFactory)provider.GetRequiredService<IPurchaseDocService>());
             services.AddScoped<IPurchaseLifecycleService, PurchaseLifecycleService>();
             services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
             services.AddScoped<ISaleDocService, SaleDocService>();

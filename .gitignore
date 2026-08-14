@@ -247,7 +247,10 @@ appsettings.*.local.json
 appsettings.Production.json
 **/secrets.json
 **/credentials*.json
-src/Presentation/WebApi/appdata/drive/
+# Local integration credentials/tokens, sessions and database exports must never be committed.
+src/Presentation/WebApi/appdata/
+.codex/
+job*-*.json
 .env
 .env.*
 !.env.example

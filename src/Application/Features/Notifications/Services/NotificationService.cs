@@ -1,11 +1,13 @@
 using System.Linq.Expressions;
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.AuditLogs;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Results;
 using SharedKernel.Query.Specifications;
+using SharedKernel.Time;
 
 namespace Application.Features.Notifications;
 
@@ -19,6 +21,10 @@ public sealed class NotificationService : BaseService, INotificationService
     private readonly IQueryRepository<NotificationRead> _notificationReadQuery;
     private readonly ICommandRepository<NotificationRead> _notificationReadCommand;
     private readonly IQueryRepository<NotificationType> _notificationTypeQuery;
+    private readonly IQueryRepository<Organization> _organizationQuery;
+    private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
+    private readonly INotificationDeduplicationLock _deduplicationLock;
+    private readonly IAuditLogService _auditLogService;
     private readonly INotificationEmailDispatcher _notificationEmailDispatcher;
 
     public NotificationService(
@@ -30,6 +36,10 @@ public sealed class NotificationService : BaseService, INotificationService
         IQueryRepository<NotificationRead> notificationReadQuery,
         ICommandRepository<NotificationRead> notificationReadCommand,
         IQueryRepository<NotificationType> notificationTypeQuery,
+        IQueryRepository<Organization> organizationQuery,
+        IQueryRepository<UserOrganization> userOrganizationQuery,
+        INotificationDeduplicationLock deduplicationLock,
+        IAuditLogService auditLogService,
         INotificationEmailDispatcher notificationEmailDispatcher,
         ILogger<NotificationService> logger,
         IUnitOfWork unitOfWork)
@@ -43,6 +53,10 @@ public sealed class NotificationService : BaseService, INotificationService
         _notificationReadQuery = notificationReadQuery;
         _notificationReadCommand = notificationReadCommand;
         _notificationTypeQuery = notificationTypeQuery;
+        _organizationQuery = organizationQuery;
+        _userOrganizationQuery = userOrganizationQuery;
+        _deduplicationLock = deduplicationLock;
+        _auditLogService = auditLogService;
         _notificationEmailDispatcher = notificationEmailDispatcher;
     }
 
@@ -67,23 +81,80 @@ public sealed class NotificationService : BaseService, INotificationService
             if (!channelsResult.IsSuccess)
                 return Result.Failure<long>(channelsResult.Error);
 
+            var scopeResult = await ValidateCreationScopeAsync(request, ct);
+            if (!scopeResult.IsSuccess)
+                return Result.Failure<long>(scopeResult.Error);
+
+            var createdDate = TashkentTime.Now;
+            var entityType = NormalizeOptional(request.EntityType);
+            var title = request.Title.Trim();
+            var body = request.Body.Trim();
+
+            if (request.OrganizationId.HasValue && request.EntityId.HasValue && entityType is not null)
+            {
+                var dedupeKey = string.Join('|',
+                    request.OrganizationId.Value,
+                    typeResult.Value.Id,
+                    entityType,
+                    request.EntityId.Value,
+                    createdDate.Date.ToString("yyyy-MM-dd"));
+
+                await _deduplicationLock.AcquireAsync(dedupeKey, ct);
+
+                var existing = await _notificationQuery.GetAsync(new QuerySpecification<Notification>
+                {
+                    Criteria = x => x.OrganizationId == request.OrganizationId.Value
+                        && x.TypeId == typeResult.Value.Id
+                        && x.EntityType == entityType
+                        && x.EntityId == request.EntityId.Value
+                        && x.CreatedDate >= createdDate.Date
+                        && x.CreatedDate < createdDate.Date.AddDays(1)
+                }, ct);
+
+                if (existing is not null)
+                {
+                    createdNotification = existing;
+                    return existing.Id;
+                }
+            }
+
             createdNotification = new Notification
             {
                 OrganizationId = request.OrganizationId,
                 UserId = request.UserId,
                 TypeId = typeResult.Value.Id,
-                Title = request.Title.Trim(),
-                Body = request.Body.Trim(),
+                Title = title,
+                Body = body,
                 Link = NormalizeOptional(request.Link),
-                EntityType = NormalizeOptional(request.EntityType),
+                EntityType = entityType,
                 EntityId = request.EntityId,
                 StateId = StateIdConst.ACTIVE,
-                CreatedDate = DateTime.Now
+                CreatedDate = createdDate
             };
 
             await _notificationCommand.CreateAsync(createdNotification, ct);
 
-            var now = DateTime.Now;
+            _auditLogService.SetNewValues(new
+            {
+                createdNotification.Id,
+                createdNotification.OrganizationId,
+                createdNotification.UserId,
+                createdNotification.TypeId,
+                createdNotification.Title,
+                createdNotification.Link,
+                createdNotification.EntityType,
+                createdNotification.EntityId,
+                createdNotification.StateId,
+                createdNotification.CreatedDate
+            });
+            await _auditLogService.CreateAsync(
+                AuditLogTableConst.Notification,
+                createdNotification.Id.ToString(),
+                AuditLogOperationTypeConst.Create,
+                "Notification created",
+                request.OrganizationId);
+
+            var now = createdDate;
             var deliveries = channelsResult.Value.Select(channel => new NotificationDelivery
             {
                 NotificationId = createdNotification.Id,
@@ -114,12 +185,20 @@ public sealed class NotificationService : BaseService, INotificationService
                 return Result.Failure<NotificationListResponse>(CommonErrors.Unauthorized(_userContext.LanguageId));
 
             var userId = _userContext.Id.Value;
-            var orgId = _userContext.OrganizationId;
+            var explicitOrganizationId = query.OrganizationId;
+            if (explicitOrganizationId.HasValue &&
+                _userContext.UserKind != CurrentUserKind.SuperAdmin &&
+                !_userContext.AllowedOrganizationIds.Contains(explicitOrganizationId.Value))
+            {
+                return Result.Failure<NotificationListResponse>(CommonErrors.Forbidden(_userContext.LanguageId));
+            }
+
             var page = query.Page > 0 ? query.Page : 1;
             var pageSize = query.PageSize is > 0 ? query.PageSize.Value : 20;
 
-            var paged = await _notificationReadRepository.GetForUserAsync(userId, orgId, query, ct);
-            var unreadCount = await _notificationReadRepository.GetUnreadCountAsync(userId, orgId, ct);
+            var allowedOrganizationIds = _userContext.AllowedOrganizationIds;
+            var paged = await _notificationReadRepository.GetForUserAsync(userId, explicitOrganizationId, allowedOrganizationIds, query, ct);
+            var unreadCount = await _notificationReadRepository.GetUnreadCountAsync(userId, explicitOrganizationId, allowedOrganizationIds, ct);
             var typeLookup = await LoadNotificationTypeLookupAsync(paged.Items.Select(x => x.TypeId).Distinct().ToList(), ct);
 
             var items = paged.Items
@@ -130,7 +209,6 @@ public sealed class NotificationService : BaseService, INotificationService
                     return new NotificationDto
                     {
                         Id = x.Id,
-                        TypeCode = type?.Code ?? string.Empty,
                         TypeName = type?.Name ?? string.Empty,
                         Title = x.Title,
                         Body = x.Body,
@@ -158,7 +236,11 @@ public sealed class NotificationService : BaseService, INotificationService
             if (_userContext.Id is null)
                 return Result.Failure<int>(CommonErrors.Unauthorized(_userContext.LanguageId));
 
-            var unreadCount = await _notificationReadRepository.GetUnreadCountAsync(_userContext.Id.Value, _userContext.OrganizationId, ct);
+            var unreadCount = await _notificationReadRepository.GetUnreadCountAsync(
+                _userContext.Id.Value,
+                null,
+                _userContext.AllowedOrganizationIds,
+                ct);
             return Result.Success(unreadCount);
         });
 
@@ -169,7 +251,11 @@ public sealed class NotificationService : BaseService, INotificationService
                 return Result.Failure(CommonErrors.Unauthorized(_userContext.LanguageId));
 
             var userId = _userContext.Id.Value;
-            var isVisible = await _notificationReadRepository.IsVisibleAsync(notificationId, userId, _userContext.OrganizationId, ct);
+            var isVisible = await _notificationReadRepository.IsVisibleAsync(
+                notificationId,
+                userId,
+                _userContext.AllowedOrganizationIds,
+                ct);
             if (!isVisible)
                 return Result.Failure(NotificationErrors.NotFound(notificationId, _userContext.LanguageId));
 
@@ -181,8 +267,8 @@ public sealed class NotificationService : BaseService, INotificationService
             {
                 NotificationId = notificationId,
                 UserId = userId,
-                ReadAt = DateTime.Now,
-                CreatedDate = DateTime.Now
+                ReadAt = TashkentTime.Now,
+                CreatedDate = TashkentTime.Now
             }, ct);
             return Result.Success();
         }, ct);
@@ -194,11 +280,14 @@ public sealed class NotificationService : BaseService, INotificationService
                 return Result.Failure(CommonErrors.Unauthorized(_userContext.LanguageId));
 
             var userId = _userContext.Id.Value;
-            var unreadNotificationIds = await _notificationReadRepository.GetUnreadNotificationIdsAsync(userId, _userContext.OrganizationId, ct);
+            var unreadNotificationIds = await _notificationReadRepository.GetUnreadNotificationIdsAsync(
+                userId,
+                _userContext.AllowedOrganizationIds,
+                ct);
             if (unreadNotificationIds.Count == 0)
                 return Result.Success();
 
-            var now = DateTime.Now;
+            var now = TashkentTime.Now;
             var reads = unreadNotificationIds.Select(notificationId => new NotificationRead
             {
                 NotificationId = notificationId,
@@ -267,6 +356,52 @@ public sealed class NotificationService : BaseService, INotificationService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task<Result> ValidateCreationScopeAsync(CreateNotificationRequest request, CancellationToken ct)
+    {
+        if (request.OrganizationId is <= 0)
+            return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
+
+        if (request.UserId.HasValue && (!_userContext.Id.HasValue ||
+            (_userContext.UserKind != CurrentUserKind.SuperAdmin && request.UserId != _userContext.Id)))
+        {
+            return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
+        }
+
+        if (_userContext.Id.HasValue && _userContext.UserKind != CurrentUserKind.SuperAdmin)
+        {
+            if (!request.OrganizationId.HasValue || !_userContext.AllowedOrganizationIds.Contains(request.OrganizationId.Value))
+                return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
+        }
+
+        if (request.OrganizationId.HasValue)
+        {
+            var organization = await _organizationQuery.GetAsync(new QuerySpecification<Organization>
+            {
+                IgnoreQueryFilters = true,
+                Criteria = x => x.Id == request.OrganizationId.Value && x.StateId == StateIdConst.ACTIVE
+            }, ct);
+
+            if (organization is null)
+                return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
+
+            if (request.UserId.HasValue)
+            {
+                var membership = await _userOrganizationQuery.GetAsync(new QuerySpecification<UserOrganization>
+                {
+                    IgnoreQueryFilters = true,
+                    Criteria = x => x.UserId == request.UserId.Value
+                        && x.OrganizationId == request.OrganizationId.Value
+                        && x.StateId == StateIdConst.ACTIVE
+                }, ct);
+
+                if (membership is null)
+                    return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
+            }
+        }
+
+        return Result.Success();
+    }
 
     private Result<IReadOnlyCollection<NotificationChannel>> NormalizeChannels(IReadOnlyCollection<NotificationChannel>? channels)
     {

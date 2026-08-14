@@ -57,8 +57,6 @@ public sealed class DidoxFacturaService : IDidoxFacturaService
     // sukut bo'yicha ham aylanmaydi.
     private const string SignSentStatus = "SIGN_SENT";
 
-    private const int RawBodyErrorMessageMaxLength = 2000;
-
     private readonly AppDbContext _context;
     private readonly IUserContext _userContext;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -365,8 +363,8 @@ public sealed class DidoxFacturaService : IDidoxFacturaService
     //   3. topilmasa yoki kutilmagan shaklda bo'lsa — XATO TASHLAMAYDI: LogWarning
     //      yozadi va mahalliy statusni SIGN_SENT ga qo'yadi (SIGNED ga sukut
     //      bo'yicha AYLANMAYDI);
-    //   4. xom javob tanasi (kesilgan holda) document.ErrorMessage ga yoziladi —
-    //      jonli sinovda haqiqiy maydon nomini shundan aniqlash uchun.
+    //   4. provider javob tanasi log yoki document.ErrorMessage ga yozilmaydi;
+    //      faqat xavfsiz diagnostika kodi saqlanadi.
     //
     // JONLI SINOVDA BIRINCHI TEKSHIRILADIGAN NUQTA — agar doc_status boshqa nom
     // bilan chiqsa, faqat shu metod ichini o'zgartirish kifoya.
@@ -383,33 +381,58 @@ public sealed class DidoxFacturaService : IDidoxFacturaService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Didox GET /v1/documents/{ProviderDocumentId} returned HTTP {StatusCode} after a successful sign. Raw body: {RawBody}",
-                    providerDocumentId, (int)response.StatusCode, rawBody);
-                return (SignSentStatus, null, Truncate($"GET /v1/documents/{providerDocumentId} -> HTTP {(int)response.StatusCode}: {rawBody}"));
+                    "Didox post-sign status read returned HTTP {StatusCode} for organization {OrganizationId}.",
+                    (int)response.StatusCode, organizationId);
+                return (SignSentStatus, null, "DIDOX_POST_SIGN_STATUS_HTTP_ERROR");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Didox GET /v1/documents/{ProviderDocumentId} could not be read after a successful sign.", providerDocumentId);
-            return (SignSentStatus, null, Truncate($"GET /v1/documents/{providerDocumentId} so'rovida xato: {ex.Message}"));
+            _logger.LogWarning(
+                "Didox post-sign status read failed for organization {OrganizationId}. FailureType={FailureType}.",
+                organizationId, ex.GetType().Name);
+            return (SignSentStatus, null, "DIDOX_POST_SIGN_STATUS_READ_FAILED");
         }
 
-        using var document = JsonDocument.Parse(rawBody);
-
-        if (document.RootElement.TryGetProperty("doc_status", out var statusProperty) &&
-            statusProperty.ValueKind == JsonValueKind.Number &&
-            statusProperty.TryGetInt32(out var docStatus))
+        JsonDocument document;
+        try
         {
-            return (MapDidoxStatusToLocal(docStatus), docStatus, null);
+            document = JsonDocument.Parse(rawBody);
+        }
+        catch (JsonException)
+        {
+            _logger.LogWarning(
+                "Didox post-sign status response was not valid JSON for organization {OrganizationId}.",
+                organizationId);
+            return (SignSentStatus, null, "DIDOX_POST_SIGN_STATUS_INVALID_JSON");
+        }
+
+        using (document)
+        {
+            if (document.RootElement.TryGetProperty("doc_status", out var statusProperty)
+                && TryReadDidoxStatus(statusProperty, out var docStatus))
+            {
+                return (MapDidoxStatusToLocal(docStatus), docStatus, null);
+            }
         }
 
         _logger.LogWarning(
-            "Didox GET /v1/documents/{ProviderDocumentId} response did not contain a recognizable doc_status field after a successful sign. Raw body: {RawBody}",
-            providerDocumentId, rawBody);
-        return (SignSentStatus, null, Truncate($"doc_status maydoni topilmadi. Xom javob: {rawBody}"));
+            "Didox post-sign status response did not contain a valid doc_status for organization {OrganizationId}.",
+            organizationId);
+        return (SignSentStatus, null, "DIDOX_POST_SIGN_STATUS_INVALID");
     }
 
-    private static string Truncate(string value) => value.Length <= RawBodyErrorMessageMaxLength ? value : value[..RawBodyErrorMessageMaxLength];
+    internal static bool TryReadDidoxStatus(JsonElement value, out int status)
+    {
+        if (value.ValueKind == JsonValueKind.Number)
+            return value.TryGetInt32(out status);
+
+        if (value.ValueKind == JsonValueKind.String)
+            return int.TryParse(value.GetString(), out status);
+
+        status = default;
+        return false;
+    }
 
     // ============================================================================
     // Didox status kodi → mahalliy status. YAGONA joy — boshqa hech qayerda bu

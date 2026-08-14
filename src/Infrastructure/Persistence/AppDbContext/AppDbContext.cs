@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -7,7 +8,14 @@ namespace Infrastructure.Persistence;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly IBackgroundOrganizationScope? _backgroundOrganizationScope;
+
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IBackgroundOrganizationScope? backgroundOrganizationScope = null) : base(options)
+    {
+        _backgroundOrganizationScope = backgroundOrganizationScope;
+    }
     public virtual DbSet<AccountType> AccountTypes { get; set; }
     public virtual DbSet<ChartAccount> ChartAccounts { get; set; }
     public virtual DbSet<ChartAccountSubkonto> ChartAccountSubkontos { get; set; }
@@ -193,6 +201,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<EdoDocument> EdoDocuments { get; set; }
     public virtual DbSet<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; }
     public virtual DbSet<EdoAuthSigningSession> EdoAuthSigningSessions { get; set; }
+    public virtual DbSet<EdoImportJob> EdoImportJobs { get; set; }
+    public virtual DbSet<EdoImportJobProvider> EdoImportJobProviders { get; set; }
+    public virtual DbSet<EdoImportCandidate> EdoImportCandidates { get; set; }
+    public virtual DbSet<EdoImportCandidateLine> EdoImportCandidateLines { get; set; }
+    public virtual DbSet<EdoImportCandidateMarking> EdoImportCandidateMarkings { get; set; }
+    public virtual DbSet<EdoProviderProductMapping> EdoProviderProductMappings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -807,8 +821,305 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("sale_condition_vat_rate_id_fkey");
         });
 
+        ConfigureEdoHistoricalImport(modelBuilder);
         ConfigureIdentityPrimaryKeys(modelBuilder);
         ApplyAccessFilters(modelBuilder);
+    }
+
+    private static void ConfigureEdoHistoricalImport(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Contract>(entity =>
+        {
+            entity.HasIndex(e => new
+                {
+                    e.OrganizationId,
+                    e.CounterpartyId,
+                    e.ProviderCode,
+                    e.ProviderContractNumber,
+                    e.ProviderContractDate
+                })
+                .IsUnique()
+                .HasFilter("provider_code IS NOT NULL AND provider_contract_number IS NOT NULL AND provider_contract_date IS NOT NULL")
+                .HasDatabaseName("ux_cmn_contract_provider_identity");
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_cmn_contract_provider_code",
+                "provider_code IS NULL OR provider_code IN ('EDOCS', 'DIDOX')"));
+        });
+
+        modelBuilder.Entity<EdoImportJob>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_job_pkey");
+            entity.HasAlternateKey(e => new { e.Id, e.OrganizationId })
+                .HasName("ux_edo_import_job_id_organization");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.BulkImportStatus).HasMaxLength(30);
+            entity.Property(e => e.BulkLineValuesInvalidPolicy).HasMaxLength(30);
+            entity.Property(e => e.BulkMarkingAlreadyUsedPolicy).HasMaxLength(80);
+            entity.Property(e => e.BulkLastSafeErrorCode).HasMaxLength(100);
+
+            entity.HasIndex(e => e.OrganizationId)
+                .HasDatabaseName("ux_edo_import_job_active_organization")
+                .IsUnique()
+                .HasFilter("status IN ('QUEUED', 'SCANNING', 'WAITING_AUTH', 'PREFLIGHT_READY', 'IMPORTING', 'PARTIAL', 'CANCEL_REQUESTED')");
+            entity.HasIndex(e => new { e.Status, e.LeaseExpiresAt })
+                .HasDatabaseName("idx_edo_import_job_status_lease");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_edo_import_job_date_range", "date_from <= date_to");
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_status",
+                    "status IN ('QUEUED', 'SCANNING', 'WAITING_AUTH', 'PREFLIGHT_READY', 'IMPORTING', 'PARTIAL', 'COMPLETED', 'FAILED', 'CANCEL_REQUESTED', 'CANCELLED')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_counts",
+                    "discovered_count >= 0 AND ready_count >= 0 AND mapping_required_count >= 0 AND duplicate_count >= 0 AND imported_count >= 0 AND failed_count >= 0 AND skipped_count >= 0");
+            });
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_job_organization_id_fkey");
+            entity.HasOne(e => e.InitiatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.InitiatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_job_initiated_by_user_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportJobProvider>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_job_provider_pkey");
+            entity.HasAlternateKey(e => new { e.JobId, e.ProviderCode })
+                .HasName("ux_edo_import_job_provider_job_provider");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.Status, e.NextRetryAt })
+                .HasDatabaseName("idx_edo_import_job_provider_status_retry");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_provider_provider",
+                    "provider_code IN ('EDOCS', 'DIDOX')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_provider_status",
+                    "status IN ('QUEUED', 'SCANNING', 'WAITING_AUTH', 'PARTIAL', 'COMPLETED', 'FAILED', 'CANCELLED')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_provider_paging",
+                    "current_page >= 1 AND page_size >= 1 AND scanned_count >= 0 AND attempt_count >= 0 AND (provider_total IS NULL OR provider_total >= 0) AND (last_successful_page IS NULL OR last_successful_page >= 1)");
+                table.HasCheckConstraint(
+                    "ck_edo_import_job_provider_waiting_auth",
+                    "is_waiting_auth = (status = 'WAITING_AUTH')");
+            });
+
+            entity.HasOne(e => e.Job)
+                .WithMany(e => e.Providers)
+                .HasForeignKey(e => e.JobId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_import_job_provider_job_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidate>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasIndex(e => new { e.JobId, e.ProviderCode, e.ProviderDocumentId })
+                .HasDatabaseName("ux_edo_import_candidate_job_provider_document")
+                .IsUnique();
+            entity.HasIndex(e => new { e.OrganizationId, e.HeaderFingerprint })
+                .HasDatabaseName("idx_edo_import_candidate_header_fingerprint")
+                .HasFilter("header_fingerprint IS NOT NULL");
+            entity.HasIndex(e => new { e.OrganizationId, e.ContentFingerprint })
+                .HasDatabaseName("idx_edo_import_candidate_content_fingerprint")
+                .HasFilter("content_fingerprint IS NOT NULL");
+            entity.HasIndex(e => new { e.OrganizationId, e.SharedDocumentIdentity })
+                .HasDatabaseName("idx_edo_import_candidate_shared_identity")
+                .HasFilter("shared_document_identity IS NOT NULL");
+            entity.HasIndex(e => e.ImportedPurchaseId)
+                .HasDatabaseName("ux_edo_import_candidate_imported_purchase")
+                .IsUnique()
+                .HasFilter("imported_purchase_id IS NOT NULL");
+            entity.HasIndex(e => new { e.JobId, e.Status, e.MappingStatus })
+                .HasDatabaseName("idx_edo_import_candidate_job_status_mapping");
+            entity.HasIndex(e => new { e.Status, e.AttemptCount })
+                .HasDatabaseName("idx_edo_import_candidate_status_attempt");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_edo_import_candidate_provider", "provider_code IN ('EDOCS', 'DIDOX')");
+                table.HasCheckConstraint("ck_edo_import_candidate_direction", "direction IS NULL OR direction IN ('INBOX', 'OUTBOX')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_candidate_status",
+                    "status IN ('DISCOVERED', 'MAPPING_REQUIRED', 'READY', 'POSSIBLE_DUPLICATE', 'DUPLICATE', 'IMPORTING', 'IMPORTED', 'FAILED', 'SKIPPED')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_candidate_mapping_status",
+                    "mapping_status IN ('UNRESOLVED', 'PARTIAL', 'RESOLVED')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_candidate_duplicate_state",
+                    "duplicate_state IN ('NONE', 'POSSIBLE', 'CONFIRMED')");
+                table.HasCheckConstraint("ck_edo_import_candidate_attempt_count", "attempt_count >= 0");
+            });
+
+            entity.HasOne(e => e.Job)
+                .WithMany(e => e.Candidates)
+                .HasForeignKey(e => new { e.JobId, e.OrganizationId })
+                .HasPrincipalKey(e => new { e.Id, e.OrganizationId })
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_import_candidate_job_organization_fkey");
+            entity.HasOne(e => e.JobProvider)
+                .WithMany(e => e.Candidates)
+                .HasForeignKey(e => new { e.JobId, e.ProviderCode })
+                .HasPrincipalKey(e => new { e.JobId, e.ProviderCode })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_candidate_job_provider_fkey");
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_candidate_organization_id_fkey");
+            entity.HasOne(e => e.EdoDocument)
+                .WithMany()
+                .HasForeignKey(e => e.EdoDocumentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_edo_document_id_fkey");
+            entity.HasOne(e => e.ExistingPurchase)
+                .WithMany()
+                .HasForeignKey(e => e.ExistingPurchaseId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_existing_purchase_id_fkey");
+            entity.HasOne(e => e.ImportedPurchase)
+                .WithMany()
+                .HasForeignKey(e => e.ImportedPurchaseId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_imported_purchase_id_fkey");
+            entity.HasOne(e => e.SelectedCounterparty)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedCounterpartyId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_counterparty_id_fkey");
+            entity.HasOne(e => e.SelectedContract)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedContractId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_contract_id_fkey");
+            entity.HasOne(e => e.SelectedCurrency)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedCurrencyId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_currency_id_fkey");
+            entity.HasOne(e => e.SelectedWarehouse)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedWarehouseId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_warehouse_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidateLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_line_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.ProviderProductName).HasMaxLength(500);
+            entity.HasIndex(e => new { e.CandidateId, e.ProviderLineNumber })
+                .HasDatabaseName("ux_edo_import_candidate_line_candidate_number")
+                .IsUnique();
+            entity.HasIndex(e => new { e.MappingStatus, e.SelectedProductId })
+                .HasDatabaseName("idx_edo_import_candidate_line_mapping_product");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_edo_import_candidate_line_number", "provider_line_number >= 1");
+                table.HasCheckConstraint(
+                    "ck_edo_import_candidate_line_mapping_status",
+                    "mapping_status IN ('UNRESOLVED', 'PARTIAL', 'RESOLVED')");
+            });
+
+            entity.HasOne(e => e.Candidate)
+                .WithMany(e => e.Lines)
+                .HasForeignKey(e => e.CandidateId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_import_candidate_line_candidate_id_fkey");
+            entity.HasOne(e => e.SelectedProduct)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedProductId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_product_id_fkey");
+            entity.HasOne(e => e.SelectedUnit)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedUnitId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_unit_id_fkey");
+            entity.HasOne(e => e.SelectedVatRate)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedVatRateId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_vat_rate_id_fkey");
+            entity.HasOne(e => e.SelectedDebitAccount)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedDebitAccountId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_debit_account_id_fkey");
+            entity.HasOne(e => e.SelectedVatAccount)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedVatAccountId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_vat_account_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidateMarking>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_marking_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.CandidateLineId, e.MarkingNumber })
+                .HasDatabaseName("ux_edo_import_candidate_marking_line_number")
+                .IsUnique();
+            entity.HasIndex(e => e.ProviderVerificationState)
+                .HasDatabaseName("idx_edo_import_candidate_marking_verification");
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_edo_import_candidate_marking_verification",
+                "provider_verification_state IN ('UNVERIFIED', 'VERIFIED', 'MISMATCH')"));
+
+            entity.HasOne(e => e.CandidateLine)
+                .WithMany(e => e.Markings)
+                .HasForeignKey(e => e.CandidateLineId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_import_candidate_marking_candidate_line_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoProviderProductMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_provider_product_mapping_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.OrganizationId, e.IdentityHash })
+                .HasDatabaseName("ux_edo_provider_product_mapping_identity")
+                .IsUnique();
+            entity.HasIndex(e => new
+                {
+                    e.OrganizationId,
+                    e.ProviderCode,
+                    e.CatalogCode,
+                    e.PackageCode,
+                    e.ProviderProductNameHash,
+                    e.IsService
+                })
+                .HasDatabaseName("ux_edo_provider_product_mapping_natural_identity")
+                .IsUnique();
+            entity.HasIndex(e => new { e.OrganizationId, e.ProductId })
+                .HasDatabaseName("idx_edo_provider_product_mapping_product");
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_provider_product_mapping_organization_id_fkey");
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.ProductId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_provider_product_mapping_product_organization_fkey");
+        });
     }
 
     private static void ConfigureIdentityPrimaryKeys(ModelBuilder modelBuilder)

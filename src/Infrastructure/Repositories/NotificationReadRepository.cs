@@ -14,12 +14,12 @@ public sealed class NotificationReadRepository : INotificationReadRepository
         _context = context;
     }
 
-    public async Task<NotificationReadPageResult> GetForUserAsync(int userId, int? organizationId, NotificationQuery query, CancellationToken ct = default)
+    public async Task<NotificationReadPageResult> GetForUserAsync(int userId, int? explicitOrganizationId, IReadOnlyCollection<int> allowedOrganizationIds, NotificationQuery query, CancellationToken ct = default)
     {
         var page = query.Page > 0 ? query.Page : 1;
         var pageSize = query.PageSize is > 0 ? query.PageSize.Value : 20;
 
-        var baseQuery = BuildVisibleNotificationsQuery(userId, organizationId, query.TypeId);
+        var baseQuery = BuildVisibleNotificationsQuery(userId, explicitOrganizationId, allowedOrganizationIds, query.TypeId);
         var projectedQuery = BuildNotificationReadProjection(baseQuery, userId);
 
         if (query.IsRead.HasValue)
@@ -39,10 +39,10 @@ public sealed class NotificationReadRepository : INotificationReadRepository
         };
     }
 
-    public Task<int> GetUnreadCountAsync(int userId, int? organizationId, CancellationToken ct = default)
+    public Task<int> GetUnreadCountAsync(int userId, int? explicitOrganizationId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default)
     {
         var query =
-            from notification in BuildVisibleNotificationsQuery(userId, organizationId, null)
+            from notification in BuildVisibleNotificationsQuery(userId, explicitOrganizationId, allowedOrganizationIds, null)
             join read in _context.NotificationReads.AsNoTracking().Where(x => x.UserId == userId)
                 on notification.Id equals read.NotificationId into reads
             from read in reads.DefaultIfEmpty()
@@ -52,14 +52,14 @@ public sealed class NotificationReadRepository : INotificationReadRepository
         return query.CountAsync(ct);
     }
 
-    public Task<bool> IsVisibleAsync(long notificationId, int userId, int? organizationId, CancellationToken ct = default) =>
-        BuildVisibleNotificationsQuery(userId, organizationId, null)
+    public Task<bool> IsVisibleAsync(long notificationId, int userId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default) =>
+        BuildVisibleNotificationsQuery(userId, null, allowedOrganizationIds, null)
             .AnyAsync(x => x.Id == notificationId, ct);
 
-    public Task<List<long>> GetUnreadNotificationIdsAsync(int userId, int? organizationId, CancellationToken ct = default)
+    public Task<List<long>> GetUnreadNotificationIdsAsync(int userId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default)
     {
         var query =
-            from notification in BuildVisibleNotificationsQuery(userId, organizationId, null)
+            from notification in BuildVisibleNotificationsQuery(userId, null, allowedOrganizationIds, null)
             join read in _context.NotificationReads.AsNoTracking().Where(x => x.UserId == userId)
                 on notification.Id equals read.NotificationId into reads
             from read in reads.DefaultIfEmpty()
@@ -70,14 +70,17 @@ public sealed class NotificationReadRepository : INotificationReadRepository
         return query.ToListAsync(ct);
     }
 
-    private IQueryable<Notification> BuildVisibleNotificationsQuery(int userId, int? organizationId, short? typeId)
+    private IQueryable<Notification> BuildVisibleNotificationsQuery(int userId, int? explicitOrganizationId, IReadOnlyCollection<int> allowedOrganizationIds, short? typeId)
     {
         var query = _context.Notifications.AsNoTracking().AsQueryable();
 
         query = query.Where(x =>
-            x.UserId == userId
-            || (x.UserId == null && organizationId.HasValue && x.OrganizationId == organizationId.Value)
-            || (x.UserId == null && x.OrganizationId == null));
+            (x.UserId == userId && (!x.OrganizationId.HasValue || (explicitOrganizationId.HasValue
+                ? x.OrganizationId == explicitOrganizationId.Value
+                : allowedOrganizationIds.Contains(x.OrganizationId.Value))))
+            || (x.UserId == null && (x.OrganizationId == null || (explicitOrganizationId.HasValue
+                ? x.OrganizationId == explicitOrganizationId.Value
+                : allowedOrganizationIds.Contains(x.OrganizationId.Value)))));
 
         if (typeId.HasValue)
             query = query.Where(x => x.TypeId == typeId.Value);

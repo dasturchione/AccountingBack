@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace Integration.Didox.Http;
 
@@ -36,7 +37,19 @@ public sealed class DidoxGetRetryHandler : DelegatingHandler
                     attempt,
                     MaxAttempts);
 
+                var retryDelay = GetRetryDelay(response, attempt);
                 response.Dispose();
+                await Task.Delay(retryDelay, cancellationToken);
+                retryRequest = CloneGetRequest(request);
+                continue;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested
+                                                     && attempt < MaxAttempts)
+            {
+                _logger.LogWarning(
+                    "Didox GET request timed out on attempt {Attempt}/{Attempts}.",
+                    attempt,
+                    MaxAttempts);
             }
             catch (OperationCanceledException)
             {
@@ -58,10 +71,23 @@ public sealed class DidoxGetRetryHandler : DelegatingHandler
     }
 
     private static bool IsTransient(HttpResponseMessage response)
-        => (int)response.StatusCode is >= 500 and <= 599;
+        => response.StatusCode == HttpStatusCode.TooManyRequests
+           || (int)response.StatusCode is >= 500 and <= 599;
 
     private static TimeSpan GetRetryDelay(int attempt)
-        => TimeSpan.FromMilliseconds(Math.Min(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1), 2000));
+        => TimeSpan.FromMilliseconds(
+            Math.Min(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1), 2000)
+            + Random.Shared.Next(25, 126));
+
+    private static TimeSpan GetRetryDelay(HttpResponseMessage response, int attempt)
+    {
+        var retryAfter = response.Headers.RetryAfter;
+        var delay = retryAfter?.Delta
+            ?? (retryAfter?.Date - DateTimeOffset.UtcNow);
+        return delay is { } value && value > TimeSpan.Zero
+            ? TimeSpan.FromSeconds(Math.Min(value.TotalSeconds, 30))
+            : GetRetryDelay(attempt);
+    }
 
     private static HttpRequestMessage CloneGetRequest(HttpRequestMessage request)
     {

@@ -170,6 +170,18 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; }
 
+    public virtual DbSet<EdoImportCandidate> EdoImportCandidates { get; set; }
+
+    public virtual DbSet<EdoImportCandidateLine> EdoImportCandidateLines { get; set; }
+
+    public virtual DbSet<EdoImportCandidateMarking> EdoImportCandidateMarkings { get; set; }
+
+    public virtual DbSet<EdoImportJob> EdoImportJobs { get; set; }
+
+    public virtual DbSet<EdoImportJobProvider> EdoImportJobProviders { get; set; }
+
+    public virtual DbSet<EdoProviderProductMapping> EdoProviderProductMappings { get; set; }
+
     public virtual DbSet<FaAsset> FaAssets { get; set; }
 
     public virtual DbSet<FaDepreciationRun> FaDepreciationRuns { get; set; }
@@ -929,6 +941,20 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new
+                {
+                    e.OrganizationId,
+                    e.CounterpartyId,
+                    e.ProviderCode,
+                    e.ProviderContractNumber,
+                    e.ProviderContractDate
+                })
+                .IsUnique()
+                .HasFilter("provider_code IS NOT NULL AND provider_contract_number IS NOT NULL AND provider_contract_date IS NOT NULL")
+                .HasDatabaseName("ux_cmn_contract_provider_identity");
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_cmn_contract_provider_code",
+                "provider_code IS NULL OR provider_code IN ('EDOCS', 'DIDOX')"));
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1578,6 +1604,155 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Organization).WithMany(p => p.EdoDocumentSigningSessions)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("edo_document_signing_session_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidate>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_pkey");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.ContentFingerprint }, "idx_edo_import_candidate_content_fingerprint").HasFilter("(content_fingerprint IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.HeaderFingerprint }, "idx_edo_import_candidate_header_fingerprint").HasFilter("(header_fingerprint IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.SharedDocumentIdentity }, "idx_edo_import_candidate_shared_identity").HasFilter("(shared_document_identity IS NOT NULL)");
+
+            entity.HasIndex(e => e.ImportedPurchaseId, "ux_edo_import_candidate_imported_purchase")
+                .IsUnique()
+                .HasFilter("(imported_purchase_id IS NOT NULL)");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.DuplicateState).HasDefaultValueSql("'NONE'::character varying");
+            entity.Property(e => e.MappingStatus).HasDefaultValueSql("'UNRESOLVED'::character varying");
+            entity.Property(e => e.Status).HasDefaultValueSql("'DISCOVERED'::character varying");
+
+            entity.HasOne(d => d.EdoDocument).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_edo_document_id_fkey");
+
+            entity.HasOne(d => d.ExistingPurchase).WithMany(p => p.EdoImportCandidateExistingPurchases)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_existing_purchase_id_fkey");
+
+            entity.HasOne(d => d.ImportedPurchase).WithOne(p => p.EdoImportCandidateImportedPurchase)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_imported_purchase_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_import_candidate_organization_id_fkey");
+
+            entity.HasOne(d => d.SelectedContract).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_contract_id_fkey");
+
+            entity.HasOne(d => d.SelectedCounterparty).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_counterparty_id_fkey");
+
+            entity.HasOne(d => d.SelectedCurrency).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_currency_id_fkey");
+
+            entity.HasOne(d => d.SelectedWarehouse).WithMany(p => p.EdoImportCandidates)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_selected_warehouse_id_fkey");
+
+            entity.HasOne(d => d.EdoImportJob).WithMany(p => p.EdoImportCandidates)
+                .HasPrincipalKey(p => new { p.Id, p.OrganizationId })
+                .HasForeignKey(d => new { d.JobId, d.OrganizationId })
+                .HasConstraintName("edo_import_candidate_job_organization_fkey");
+
+            entity.HasOne(d => d.EdoImportJobProvider).WithMany(p => p.EdoImportCandidates)
+                .HasPrincipalKey(p => new { p.JobId, p.ProviderCode })
+                .HasForeignKey(d => new { d.JobId, d.ProviderCode })
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_import_candidate_job_provider_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidateLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_line_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.MappingStatus).HasDefaultValueSql("'UNRESOLVED'::character varying");
+            entity.Property(e => e.ProviderProductName).HasMaxLength(500);
+
+            entity.HasOne(d => d.Candidate).WithMany(p => p.EdoImportCandidateLines).HasConstraintName("edo_import_candidate_line_candidate_id_fkey");
+
+            entity.HasOne(d => d.SelectedDebitAccount).WithMany(p => p.EdoImportCandidateLineSelectedDebitAccounts)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_debit_account_id_fkey");
+
+            entity.HasOne(d => d.SelectedProduct).WithMany(p => p.EdoImportCandidateLines)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_product_id_fkey");
+
+            entity.HasOne(d => d.SelectedUnit).WithMany(p => p.EdoImportCandidateLines)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_unit_id_fkey");
+
+            entity.HasOne(d => d.SelectedVatAccount).WithMany(p => p.EdoImportCandidateLineSelectedVatAccounts)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_vat_account_id_fkey");
+
+            entity.HasOne(d => d.SelectedVatRate).WithMany(p => p.EdoImportCandidateLines)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("edo_import_candidate_line_selected_vat_rate_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportCandidateMarking>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_candidate_marking_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.ProviderVerificationState).HasDefaultValueSql("'UNVERIFIED'::character varying");
+
+            entity.HasOne(d => d.CandidateLine).WithMany(p => p.EdoImportCandidateMarkings).HasConstraintName("edo_import_candidate_marking_candidate_line_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoProviderProductMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_provider_product_mapping_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne<OrgOrganization>().WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_provider_product_mapping_organization_id_fkey");
+            entity.HasOne<InvProduct>().WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.ProductId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_provider_product_mapping_product_organization_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportJob>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_job_pkey");
+
+            entity.HasIndex(e => e.OrganizationId, "ux_edo_import_job_active_organization")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['QUEUED'::character varying, 'SCANNING'::character varying, 'WAITING_AUTH'::character varying, 'PREFLIGHT_READY'::character varying, 'IMPORTING'::character varying, 'PARTIAL'::character varying, 'CANCEL_REQUESTED'::character varying])::text[]))");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.InitiatedByUser).WithMany(p => p.EdoImportJobs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_import_job_initiated_by_user_id_fkey");
+
+            entity.HasOne(d => d.Organization).WithOne(p => p.EdoImportJob)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_import_job_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportJobProvider>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_job_provider_pkey");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.CurrentPage).HasDefaultValue(1);
+            entity.Property(e => e.PageSize).HasDefaultValue(20);
+
+            entity.HasOne(d => d.Job).WithMany(p => p.EdoImportJobProviders).HasConstraintName("edo_import_job_provider_job_id_fkey");
         });
 
         modelBuilder.Entity<FaAsset>(entity =>

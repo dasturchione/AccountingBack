@@ -4,4 +4,5 @@ public interface IEdoProviderRegistry
 {
     IReadOnlyCollection<EdoProviderCapabilityDto> GetProviders();
     IEdoProvider Resolve(EdoProviderCode providerCode);
+    IEdoHistoricalDocumentSource ResolveHistoricalSource(EdoProviderCode providerCode);
 }

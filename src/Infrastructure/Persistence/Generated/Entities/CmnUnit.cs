@@ -25,6 +25,9 @@ public partial class CmnUnit
     [Column("state_id")]
     public short StateId { get; set; }
 
+    [InverseProperty("SelectedUnit")]
+    public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLines { get; set; } = new List<EdoImportCandidateLine>();
+
     [InverseProperty("Unit")]
     public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();
 

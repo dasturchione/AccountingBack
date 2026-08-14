@@ -3,25 +3,33 @@ using Application.Abstractions.Integration.Edo;
 using Integration.Didox.Http;
 using Integration.Didox.Services;
 using Integration.Edo.Http;
+using Integration.Edo.Historical;
 using Integration.Edo.Providers;
 using Integration.Shared.Http;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using SharedKernel.Exceptions;
+using SharedKernel.Text;
 
 namespace Integration.Didox.Facturas;
 
 public sealed class DidoxEdoOperations(
     IUserContext userContext,
     IHttpClientFactory httpClientFactory,
-    DidoxTimestampClient timestampClient)
+    DidoxTimestampClient timestampClient,
+    ILogger<DidoxEdoOperations>? logger = null)
 {
     private const int MaxFileLength = 25 * 1024 * 1024;
+    private const int MaxHistoricalEmbeddedJsonLength = 1024 * 1024;
+    private const int MaxHistoricalEmbeddedJsonDepth = 32;
+    private const int MaxHistoricalEmbeddedJsonUnwrapDepth = 4;
     private static readonly JsonSerializerOptions JsonOptions = new();
+    private static readonly string[] HistoricalDetailPayloadPropertyNames = ["json", "document_json", "document"];
 
     public Task<EdoInboxListDto> ListInboxAsync(EdoInboxQueryDto request, CancellationToken ct) =>
         ListDocumentsAsync(new EdoDocumentQueryDto
@@ -110,6 +118,137 @@ public sealed class DidoxEdoOperations(
                 ?? ReadOptionalInt(json.RootElement, "prevPage"),
             PagingCounter = ReadOptionalInt(json.RootElement, "pagingCounter")
         };
+    }
+
+    public async Task<EdoHistoricalPageResultDto> ListHistoricalSignedInboxAsync(
+        int organizationId,
+        EdoHistoricalPageRequestDto request,
+        CancellationToken ct)
+    {
+        ValidateHistoricalPageRequest(organizationId, request);
+        var query = string.Join('&',
+            $"page={request.Page}",
+            $"limit={request.PageSize}",
+            "owner=0",
+            "status=3",
+            "doctype=002");
+
+        using var response = await SendAsync(
+            organizationId,
+            HttpMethod.Get,
+            $"v2/documents?{query}",
+            ct);
+        await EnsureSuccessAsync(response, "Didox historical inbox list");
+
+        try
+        {
+            using var json = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(ct),
+                cancellationToken: ct);
+            if (!json.RootElement.TryGetProperty("data", out var data)
+                || data.ValueKind != JsonValueKind.Array)
+            {
+                throw new EdoHistoricalMappingException("DIDOX_HISTORICAL_DATA_ARRAY_REQUIRED");
+            }
+
+            var items = data.EnumerateArray()
+                .Select(item => MapHistoricalSummary(ParseDocument(
+                    item,
+                    EdoDirection.INBOX,
+                    fallbackDocumentType: "002")))
+                .ToArray();
+            var providerTotal = ReadOptionalInt(json.RootElement, "total");
+            var page = ReadOptionalInt(json.RootElement, "page") ?? request.Page;
+            var pageSize = ReadOptionalInt(json.RootElement, "limit") ?? request.PageSize;
+            var hasNextUrlMetadata = TryGetPropertyIgnoreCase(
+                json.RootElement,
+                "next_page_url",
+                out var nextPageUrlProperty);
+            string? nextPageUrl = null;
+            if (hasNextUrlMetadata
+                && nextPageUrlProperty.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
+            {
+                if (nextPageUrlProperty.ValueKind != JsonValueKind.String)
+                    throw new EdoHistoricalMappingException("DIDOX_NEXT_PAGE_URL_INVALID");
+
+                nextPageUrl = nextPageUrlProperty.GetString();
+            }
+
+            bool? hasNextPage = hasNextUrlMetadata
+                ? !string.IsNullOrWhiteSpace(nextPageUrl)
+                : providerTotal.HasValue
+                    ? page * pageSize < providerTotal.Value
+                    : null;
+            int? nextPage = !string.IsNullOrWhiteSpace(nextPageUrl)
+                ? ReadPageFromUrl(nextPageUrl) ?? page + 1
+                : hasNextPage == true
+                    ? page + 1
+                    : null;
+
+            return EdoHistoricalSourceSupport.BuildSuccessfulPage(
+                EdoProviderCode.DIDOX,
+                request,
+                page,
+                pageSize,
+                providerTotal,
+                hasNextPage,
+                nextPage,
+                hasCompleteMetadata: providerTotal.HasValue || hasNextUrlMetadata,
+                providerRequiresOverlapRescan: true,
+                items);
+        }
+        catch (EdoHistoricalMappingException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is JsonException or IntegrationHttpException)
+        {
+            throw new EdoHistoricalMappingException("DIDOX_HISTORICAL_RESPONSE_INVALID", exception);
+        }
+    }
+
+    public async Task<EdoDocumentDto> GetHistoricalDocumentDetailsAsync(
+        int organizationId,
+        string providerDocumentType,
+        string providerDocumentId,
+        CancellationToken ct)
+    {
+        if (organizationId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(organizationId));
+
+        var id = RequireProviderDocumentId(providerDocumentId);
+        using var response = await SendAsync(
+            organizationId,
+            HttpMethod.Get,
+            $"v1/documents/{Uri.EscapeDataString(id)}?owner=0",
+            ct);
+        await EnsureSuccessAsync(response, "Didox historical document details");
+
+        try
+        {
+            using var json = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(ct),
+                cancellationToken: ct);
+            var root = json.RootElement;
+            try
+            {
+                ValidateHistoricalDetailEnvelope(root);
+                ValidateHistoricalDetailIdentity(root, id);
+                ValidateHistoricalDetailStatus(root);
+
+                return ParseDocument(root, EdoDirection.INBOX, providerDocumentType, id);
+            }
+            catch (EdoHistoricalMappingException exception)
+            {
+                LogHistoricalDetailDiagnostic(exception.SafeFailureCode, root);
+                throw;
+            }
+        }
+        catch (JsonException)
+        {
+            LogHistoricalDetailDiagnostic("DIDOX_DETAIL_ENVELOPE_INVALID", root: null);
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
+        }
     }
 
     public async Task<EdoDocumentDto> GetDocumentDetailsAsync(
@@ -241,8 +380,8 @@ public sealed class DidoxEdoOperations(
         EdoDocumentCategory? requestedCategory = null)
     {
         var detail = ReadDetailPayload(item);
-        var providerDocumentId = ReadString(item, "doc_id")
-            ?? ReadString(detail, "doc_id")
+        var previewLines = ReadPreviewLines(item);
+        var providerDocumentId = ReadStringFromPayloads(item, "doc_id")
             ?? fallbackProviderDocumentId;
         if (string.IsNullOrWhiteSpace(providerDocumentId))
             throw new IntegrationHttpException(
@@ -274,25 +413,43 @@ public sealed class DidoxEdoOperations(
                 ?? ReadString(detail, "doctype")
                 ?? fallbackDocumentType
                 ?? "UNKNOWN",
-            DocumentNumber = ReadString(item, "name")
+            DocumentNumber = ReadStringFromPayloads(item, "documentNumber")
+                ?? ReadString(item, "name")
                 ?? ReadNestedString(detail, "FacturaDoc", "FacturaNo"),
-            DocumentDate = ReadDate(item, "doc_date")
+            DocumentDate = ReadDateFromPayloads(item, "documentDate")
+                ?? ReadDate(item, "doc_date")
                 ?? ReadNestedDate(detail, "FacturaDoc", "FacturaDate"),
             Status = status,
             Seller = seller,
             Buyer = buyer ?? ReadDidoxListPartner(item),
-            TotalAmount = ReadDecimalFromPayloads(item, "total_sum"),
+            TotalAmount = ReadDecimalFromPayloads(item, "totalWithVat")
+                ?? SumLineTotals(previewLines)
+                ?? ReadDecimalFromPayloads(item, "total_sum"),
             CreatedAt = ReadDateTime(item, "created"),
             UpdatedAt = ReadDateTime(item, "updated"),
             MarkingCodes = markingCodes,
+            PreviewSellerTin = ReadStringFromPayloads(item, "sellerTin")
+                ?? seller?.TaxIdentifier,
+            PreviewContractNumber = ReadContractNumberFromPayloads(item),
+            PreviewContractDate = ReadContractDateFromPayloads(item),
+            PreviewLines = previewLines,
             ProviderFields = ReadProviderFields(item)
         };
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, CancellationToken ct)
     {
+        return await SendAsync(RequireOrganization(), method, path, ct);
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        int organizationId,
+        HttpMethod method,
+        string path,
+        CancellationToken ct)
+    {
         var request = new HttpRequestMessage(method, path);
-        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, RequireOrganization());
+        request.Options.Set(IntegrationHttpRequestOptions.OrganizationId, organizationId);
         return await httpClientFactory.CreateClient(DidoxHttpClientNames.Client)
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
     }
@@ -378,7 +535,7 @@ public sealed class DidoxEdoOperations(
 
     private static string? ReadString(JsonElement item, string propertyName) =>
         TryGetPropertyIgnoreCase(item, propertyName, out var property) && property.ValueKind == JsonValueKind.String
-            ? property.GetString()
+            ? Utf8MojibakeNormalizer.Normalize(property.GetString())
             : null;
 
     private static EdoDocumentStatusDto MapDidoxProviderStatus(int statusCode)
@@ -400,7 +557,7 @@ public sealed class DidoxEdoOperations(
 
     private static bool TryReadDidoxStatus(JsonElement item, out int status)
     {
-        status = default;
+        int? resolvedStatus = null;
         foreach (var payload in EnumeratePayloads(item))
         {
             foreach (var propertyName in new[] { "doc_status", "status" })
@@ -409,39 +566,36 @@ public sealed class DidoxEdoOperations(
                     || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                     continue;
 
-                if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out status))
-                    return true;
+                if (!TryReadStrictInteger(property, out var parsedStatus))
+                    throw new FormatException("Didox status must be an integer or an invariant numeric string.");
 
-                throw new IntegrationHttpException(
-                    $"Didox response field '{propertyName}' must be an integer.",
-                    StatusCodes.Status502BadGateway);
+                if (resolvedStatus.HasValue && resolvedStatus.Value != parsedStatus)
+                    throw new FormatException("Didox status fields are inconsistent.");
+
+                resolvedStatus = parsedStatus;
             }
         }
 
-        return false;
+        status = resolvedStatus.GetValueOrDefault();
+        return resolvedStatus.HasValue;
     }
 
     private static JsonElement ReadDetailPayload(JsonElement root)
     {
-        if (TryGetPropertyIgnoreCase(root, "data", out var data)
-            && data.ValueKind == JsonValueKind.Object)
+        if (!TryGetPropertyIgnoreCase(root, "data", out var data))
+            return root;
+
+        if (data.ValueKind != JsonValueKind.Object)
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
+
+        foreach (var propertyName in HistoricalDetailPayloadPropertyNames)
         {
-            if (TryGetPropertyIgnoreCase(data, "json", out var json)
-                && json.ValueKind == JsonValueKind.Object)
-                return json;
-
-            if (TryGetPropertyIgnoreCase(data, "document_json", out var documentJson)
-                && documentJson.ValueKind == JsonValueKind.Object)
-                return documentJson;
-
-            if (TryGetPropertyIgnoreCase(data, "document", out var document)
-                && document.ValueKind == JsonValueKind.Object)
-                return document;
-
-            return data;
+            if (TryGetPropertyIgnoreCase(data, propertyName, out var payload)
+                && payload.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
+                return ReadEmbeddedDetailPayload(payload);
         }
 
-        return root;
+        return data;
     }
 
     private static EdoPartyDto? ReadDidoxParty(
@@ -516,12 +670,12 @@ public sealed class DidoxEdoOperations(
 
     private static int? ReadOptionalInt(JsonElement root, string propertyName)
     {
-        if (!root.TryGetProperty(propertyName, out var property)
+        if (!TryGetPropertyIgnoreCase(root, propertyName, out var property)
             || property.ValueKind == JsonValueKind.Null
             || property.ValueKind == JsonValueKind.Undefined)
             return null;
 
-        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var value))
+        if (TryReadStrictInteger(property, out var value))
             return value;
 
         throw new IntegrationHttpException(
@@ -574,6 +728,18 @@ public sealed class DidoxEdoOperations(
     private static DateOnly? ReadDate(JsonElement item, string propertyName) =>
         DateOnly.TryParse(ReadString(item, propertyName), CultureInfo.InvariantCulture, DateTimeStyles.None, out var value) ? value : null;
 
+    private static DateOnly? ReadDateFromPayloads(JsonElement root, string propertyName)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            var value = ReadDate(payload, propertyName);
+            if (value.HasValue)
+                return value;
+        }
+
+        return null;
+    }
+
     private static DateTimeOffset? ReadDateTime(JsonElement item, string propertyName) =>
         DateTimeOffset.TryParse(ReadString(item, propertyName), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var value) ? value : null;
 
@@ -616,26 +782,389 @@ public sealed class DidoxEdoOperations(
         return null;
     }
 
+    private static string? ReadStringFromPayloads(JsonElement root, string propertyName)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            var value = ReadString(payload, propertyName);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        return null;
+    }
+
+    private static string? ReadContractNumberFromPayloads(JsonElement root)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            var direct = ReadString(payload, "contractNumber")
+                ?? ReadString(payload, "ContractNo");
+            if (!string.IsNullOrWhiteSpace(direct))
+                return direct;
+
+            var nested = ReadNestedString(payload, "ContractDoc", "ContractNo");
+            if (!string.IsNullOrWhiteSpace(nested))
+                return nested;
+        }
+
+        return null;
+    }
+
+    private static DateOnly? ReadContractDateFromPayloads(JsonElement root)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            var direct = ReadDate(payload, "contractDate")
+                ?? ReadDate(payload, "ContractDate");
+            if (direct.HasValue)
+                return direct;
+
+            var nested = ReadNestedDate(payload, "ContractDoc", "ContractDate");
+            if (nested.HasValue)
+                return nested;
+        }
+
+        return null;
+    }
+
+    private static EdoHistoricalDocumentSummaryDto MapHistoricalSummary(EdoDocumentDto document)
+    {
+        var isConfirmedSigned = string.Equals(
+            document.Status.ProviderStatusCode,
+            "3",
+            StringComparison.Ordinal);
+        return new EdoHistoricalDocumentSummaryDto
+        {
+            ProviderDocumentId = document.ProviderDocumentId ?? string.Empty,
+            Direction = EdoDirection.INBOX,
+            Status = isConfirmedSigned
+                ? EdoDocumentStatusCode.SIGNED
+                : EdoDocumentStatusCode.UNKNOWN,
+            DocumentType = document.DocumentType,
+            DocumentNumber = document.DocumentNumber,
+            DocumentDate = document.DocumentDate,
+            SellerTin = document.Seller?.TaxIdentifier ?? document.PreviewSellerTin,
+            BuyerTin = document.Buyer?.TaxIdentifier,
+            SellerName = document.Seller?.Name,
+            Total = document.TotalAmount,
+            UpdatedAt = document.UpdatedAt
+        };
+    }
+
+    private static int? ReadPageFromUrl(string url)
+    {
+        var queryIndex = url.IndexOf('?', StringComparison.Ordinal);
+        if (queryIndex < 0 || queryIndex == url.Length - 1)
+            return null;
+
+        foreach (var pair in url[(queryIndex + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separator = pair.IndexOf('=', StringComparison.Ordinal);
+            if (separator <= 0
+                || !string.Equals(pair[..separator], "page", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return int.TryParse(
+                Uri.UnescapeDataString(pair[(separator + 1)..]),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var page)
+                ? page
+                : null;
+        }
+
+        return null;
+    }
+
+    private static void ValidateHistoricalPageRequest(
+        int organizationId,
+        EdoHistoricalPageRequestDto request)
+    {
+        if (organizationId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(organizationId));
+        if (request.Page < 1)
+            throw new ArgumentOutOfRangeException(nameof(request.Page));
+        if (request.PageSize is < 1 or > 100)
+            throw new ArgumentOutOfRangeException(nameof(request.PageSize));
+    }
+
+    private static IReadOnlyCollection<EdoDocumentPreviewLineDto> ReadPreviewLines(JsonElement root)
+    {
+        foreach (var payload in EnumeratePayloads(root))
+        {
+            if (TryGetPropertyIgnoreCase(payload, "productlist", out var productList))
+            {
+                if (productList.ValueKind != JsonValueKind.Object)
+                    throw new EdoHistoricalMappingException("DIDOX_DETAIL_LINES_INVALID");
+
+                if (!TryGetPropertyIgnoreCase(productList, "products", out var products))
+                    continue;
+                if (products.ValueKind != JsonValueKind.Array)
+                    throw new EdoHistoricalMappingException("DIDOX_DETAIL_LINES_INVALID");
+
+                var lines = new List<EdoDocumentPreviewLineDto>();
+                foreach (var product in products.EnumerateArray())
+                {
+                    if (product.ValueKind != JsonValueKind.Object)
+                        throw new EdoHistoricalMappingException("DIDOX_DETAIL_LINES_INVALID");
+
+                    if (!TryGetPropertyIgnoreCase(product, "ordno", out var ordinal)
+                        || !TryReadStrictInteger(ordinal, out var number))
+                    {
+                        throw new EdoHistoricalMappingException("DIDOX_DETAIL_LINES_INVALID");
+                    }
+                    var packageName = ReadString(product, "packagename");
+
+                    lines.Add(new EdoDocumentPreviewLineDto
+                    {
+                        Number = number,
+                        CatalogCode = ReadString(product, "catalogcode"),
+                        CatalogName = ReadString(product, "catalogname"),
+                        PackageCode = ReadString(product, "packagecode"),
+                        PackageName = packageName,
+                        IsService = string.Equals(
+                            packageName?.Trim(),
+                            "услуга (сум)",
+                            StringComparison.OrdinalIgnoreCase),
+                        NetAmount = ReadDecimal(product, "deliverysum"),
+                        VatAmount = ReadDecimal(product, "vatsum"),
+                        Quantity = ReadDecimal(product, "count"),
+                        UnitPrice = ReadDecimal(product, "summa"),
+                        VatRate = ReadDecimal(product, "vatrate"),
+                        TotalWithVat = ReadDecimal(product, "deliverysumwithvat"),
+                        MarkingCodes = DidoxDocumentResponseMapper.ReadMarkingCodes(product)
+                    });
+                }
+
+                return lines;
+            }
+
+            var line = new EdoDocumentPreviewLineDto
+            {
+                Number = 1,
+                CatalogCode = ReadString(payload, "catalogCode"),
+                CatalogName = ReadString(payload, "catalogName"),
+                PackageCode = ReadString(payload, "packageCode"),
+                PackageName = ReadString(payload, "packageName"),
+                IsService = string.Equals(
+                    ReadString(payload, "packageName")?.Trim(),
+                    "услуга (сум)",
+                    StringComparison.OrdinalIgnoreCase),
+                Quantity = ReadDecimal(payload, "quantity"),
+                UnitPrice = ReadDecimal(payload, "unitPrice"),
+                VatRate = ReadDecimal(payload, "vatRate"),
+                TotalWithVat = ReadDecimal(payload, "totalWithVat"),
+                MarkingCodes = DidoxDocumentResponseMapper.ReadMarkingCodes(payload)
+            };
+
+            if (line.CatalogCode is not null
+                || line.PackageCode is not null
+                || line.Quantity.HasValue
+                || line.UnitPrice.HasValue
+                || line.TotalWithVat.HasValue)
+                return [line];
+        }
+
+        return [];
+    }
+
+    private static decimal? SumLineTotals(IReadOnlyCollection<EdoDocumentPreviewLineDto> lines) =>
+        lines.Count > 0 && lines.All(line => line.TotalWithVat.HasValue)
+            ? lines.Sum(line => line.TotalWithVat!.Value)
+            : null;
+
+    private static void ValidateHistoricalDetailEnvelope(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
+
+        if (TryGetPropertyIgnoreCase(root, "data", out var data)
+            && data.ValueKind != JsonValueKind.Object)
+        {
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
+        }
+
+        _ = EnumeratePayloads(root).ToArray();
+    }
+
+    private static void ValidateHistoricalDetailIdentity(JsonElement root, string requestedIdentity)
+    {
+        var responseIdentities = EnumeratePayloads(root)
+            .Select(payload => ReadString(payload, "doc_id"))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (responseIdentities.Length == 0
+            || responseIdentities.Any(value => !string.Equals(value, requestedIdentity, StringComparison.Ordinal)))
+        {
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_IDENTITY_MISMATCH");
+        }
+    }
+
+    private static void ValidateHistoricalDetailStatus(JsonElement root)
+    {
+        try
+        {
+            if (!TryReadDidoxStatus(root, out _))
+                throw new EdoHistoricalMappingException("DIDOX_DETAIL_STATUS_INVALID");
+        }
+        catch (FormatException)
+        {
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_STATUS_INVALID");
+        }
+    }
+
+    private static JsonElement ReadEmbeddedDetailPayload(JsonElement payload)
+    {
+        if (payload.ValueKind == JsonValueKind.Object)
+            return payload;
+        if (payload.ValueKind != JsonValueKind.String)
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_DOCUMENT_JSON_INVALID");
+
+        var serializedPayload = payload.GetString();
+        for (var unwrapDepth = 0; unwrapDepth < MaxHistoricalEmbeddedJsonUnwrapDepth; unwrapDepth++)
+        {
+            if (string.IsNullOrWhiteSpace(serializedPayload)
+                || Encoding.UTF8.GetByteCount(serializedPayload) > MaxHistoricalEmbeddedJsonLength)
+            {
+                throw new EdoHistoricalMappingException("DIDOX_DETAIL_DOCUMENT_JSON_INVALID");
+            }
+
+            try
+            {
+                using var parsed = JsonDocument.Parse(
+                    serializedPayload,
+                    new JsonDocumentOptions { MaxDepth = MaxHistoricalEmbeddedJsonDepth });
+                if (parsed.RootElement.ValueKind == JsonValueKind.Object)
+                    return parsed.RootElement.Clone();
+                if (parsed.RootElement.ValueKind == JsonValueKind.String)
+                {
+                    serializedPayload = parsed.RootElement.GetString();
+                    continue;
+                }
+            }
+            catch (JsonException)
+            {
+                throw new EdoHistoricalMappingException("DIDOX_DETAIL_DOCUMENT_JSON_INVALID");
+            }
+
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_DOCUMENT_JSON_INVALID");
+        }
+
+        throw new EdoHistoricalMappingException("DIDOX_DETAIL_DOCUMENT_JSON_INVALID");
+    }
+
+    private static bool TryReadStrictInteger(JsonElement property, out int value)
+    {
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out value))
+            return true;
+
+        if (property.ValueKind == JsonValueKind.String
+            && int.TryParse(
+                property.GetString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out value))
+        {
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private void LogHistoricalDetailDiagnostic(string safeFailureCode, JsonElement? root)
+    {
+        if (logger is null)
+            return;
+
+        logger.LogWarning(
+            "DIDOX historical detail normalization failed. Validation={Validation}; Structure={Structure}",
+            safeFailureCode,
+            DescribeHistoricalDetailStructure(root));
+    }
+
+    private static string DescribeHistoricalDetailStructure(JsonElement? root)
+    {
+        if (root is not { } value)
+            return "ROOT=INVALID_JSON";
+
+        var fields = new List<string> { $"ROOT={value.ValueKind}" };
+        if (!TryGetPropertyIgnoreCase(value, "data", out var data))
+            return string.Join(';', fields);
+
+        fields.Add($"data={data.ValueKind}");
+        if (data.ValueKind != JsonValueKind.Object)
+            return string.Join(';', fields);
+
+        foreach (var propertyName in HistoricalDetailPayloadPropertyNames)
+        {
+            if (TryGetPropertyIgnoreCase(data, propertyName, out var payload))
+                fields.Add($"data.{propertyName}={payload.ValueKind}");
+        }
+
+        try
+        {
+            var payloadIndex = 0;
+            foreach (var payload in EnumeratePayloads(value))
+            {
+                AddHistoricalDetailFieldKinds(fields, $"payload[{payloadIndex++}]", payload);
+            }
+        }
+        catch (EdoHistoricalMappingException)
+        {
+            // The envelope shape above is sufficient when an embedded JSON payload cannot be decoded.
+        }
+
+        return string.Join(';', fields);
+    }
+
+    private static void AddHistoricalDetailFieldKinds(
+        ICollection<string> fields,
+        string prefix,
+        JsonElement payload)
+    {
+        foreach (var propertyName in new[]
+                 {
+                     "doc_id", "doc_status", "status", "doctype", "documentDate",
+                     "contractNumber", "ContractNo", "ContractDate", "ContractDoc", "productlist"
+                 })
+        {
+            if (TryGetPropertyIgnoreCase(payload, propertyName, out var property))
+                fields.Add($"{prefix}.{propertyName}={property.ValueKind}");
+        }
+
+        if (TryGetPropertyIgnoreCase(payload, "productlist", out var productList)
+            && productList.ValueKind == JsonValueKind.Object
+            && TryGetPropertyIgnoreCase(productList, "products", out var products))
+        {
+            fields.Add($"{prefix}.productlist.products={products.ValueKind}");
+        }
+    }
+
     private static IEnumerable<JsonElement> EnumeratePayloads(JsonElement root)
     {
+        if (root.ValueKind != JsonValueKind.Object)
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
+
         yield return root;
 
-        if (!TryGetPropertyIgnoreCase(root, "data", out var data)
-            || data.ValueKind != JsonValueKind.Object)
+        if (!TryGetPropertyIgnoreCase(root, "data", out var data))
             yield break;
+
+        if (data.ValueKind != JsonValueKind.Object)
+            throw new EdoHistoricalMappingException("DIDOX_DETAIL_ENVELOPE_INVALID");
 
         yield return data;
 
-        if (TryGetPropertyIgnoreCase(data, "document", out var document)
-            && document.ValueKind == JsonValueKind.Object)
-            yield return document;
-
-        if (TryGetPropertyIgnoreCase(data, "json", out var json)
-            && json.ValueKind == JsonValueKind.Object)
-            yield return json;
-
-        if (TryGetPropertyIgnoreCase(data, "document_json", out var documentJson)
-            && documentJson.ValueKind == JsonValueKind.Object)
-            yield return documentJson;
+        foreach (var propertyName in HistoricalDetailPayloadPropertyNames)
+        {
+            if (TryGetPropertyIgnoreCase(data, propertyName, out var payload)
+                && payload.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
+            {
+                yield return ReadEmbeddedDetailPayload(payload);
+            }
+        }
     }
 }

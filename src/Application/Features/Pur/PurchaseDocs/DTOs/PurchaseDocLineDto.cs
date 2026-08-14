@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocLineDto
@@ -10,6 +12,14 @@ public class PurchaseDocLineDto
     public int? DebitAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public List<PurchaseDocLineItemDto> Items { get; set; } = new();
+
+    // Set only from a verified EDO detail payload; never accepted from public JSON.
+    [JsonIgnore]
+    public decimal? ProviderNetAmount { get; set; }
+    [JsonIgnore]
+    public decimal? ProviderVatAmount { get; set; }
+    [JsonIgnore]
+    public decimal? ProviderTotalAmount { get; set; }
 }
 
 public class PurchaseDocLineItemDto

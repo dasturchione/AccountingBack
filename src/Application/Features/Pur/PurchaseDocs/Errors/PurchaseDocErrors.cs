@@ -130,6 +130,13 @@ public static class PurchaseDocErrors
             _ => $"Service product id {productId} must not contain marking or serial items."
         });
 
+    public static Error ProductPieceTrackingRequired(int productId, short? languageId = null) =>
+        Error.Business("PRODUCT_PIECE_TRACKING_REQUIRED", languageId switch
+        {
+            LanguageIdConst.UZ => $"Id-si {productId} bo'lgan markingli tovar dona bo'yicha kuzatiladigan bo'lishi kerak.",
+            _ => $"Marked goods product id {productId} must be piece-tracked."
+        });
+
     public static Error MissingAccountingRegisterEntries(long id, short? languageId = null) =>
         Error.Conflict("PurchaseDoc.MissingAccountingRegisterEntries", languageId switch
         {

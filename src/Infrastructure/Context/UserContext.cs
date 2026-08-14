@@ -11,8 +11,15 @@ public class UserContext : IUserContext
     private const string CurrentRoleIdKey = "CurrentRoleId";
 
     private readonly IHttpContextAccessor _accessor;
+    private readonly IBackgroundOrganizationScope _backgroundOrganizationScope;
 
-    public UserContext(IHttpContextAccessor accessor) => _accessor = accessor;
+    public UserContext(
+        IHttpContextAccessor accessor,
+        IBackgroundOrganizationScope backgroundOrganizationScope)
+    {
+        _accessor = accessor;
+        _backgroundOrganizationScope = backgroundOrganizationScope;
+    }
 
     public int? Id => GetClaimInt(System.Security.Claims.ClaimTypes.NameIdentifier);
 
@@ -30,10 +37,16 @@ public class UserContext : IUserContext
         _ => CurrentUserKind.None
     };
 
-    public int? OrganizationId => _accessor.HttpContext?.Items[CurrentOrgIdKey] is int id && id > 0 ? id : null;
+    public int? OrganizationId => _accessor.HttpContext?.Items[CurrentOrgIdKey] is int id && id > 0
+        ? id
+        : _backgroundOrganizationScope.OrganizationId;
 
     public List<int> AllowedOrganizationIds =>
-        _accessor.HttpContext?.Items[AllowedOrgIdsKey] is List<int> ids ? ids : [];
+        _accessor.HttpContext?.Items[AllowedOrgIdsKey] is List<int> ids
+            ? ids
+            : _backgroundOrganizationScope.OrganizationId is { } organizationId
+                ? [organizationId]
+                : [];
 
     public int? BranchId => GetHeaderInt("X-BranchId");
 

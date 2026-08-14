@@ -614,16 +614,35 @@ public class ManualService : IManualService
         if (_userContext.OrganizationId is null)
             return Result.Failure<List<SelectListDto>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        var date = choosedDate ?? DateTime.Now.Date;
-        var endDate = date.AddDays(1).AddTicks(-1);
+        if (choosedDate is { } requestedDate && requestedDate == default)
+        {
+            return Result.Failure<List<SelectListDto>>(
+                new Error(
+                    "Manual.InvalidContractDate",
+                    "Contract selection date is invalid.",
+                    ErrorType.Validation));
+        }
+
+        var organizationId = _userContext.OrganizationId.Value;
+        var date = (choosedDate ?? DateTime.Now).Date;
+
+        if (counterpartyId.HasValue)
+        {
+            var counterpartyBelongsToOrganization = await _counterpartyQuery.AnyAsync(
+                x => x.Id == counterpartyId.Value && x.OrganizationId == organizationId,
+                ct);
+
+            if (!counterpartyBelongsToOrganization)
+                return Result.Success(new List<SelectListDto>());
+        }
 
         var query = _queryBuilder.For<Contract>()
-                        .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                    x.OrganizationId == _userContext.OrganizationId &&
-                                    (x.StartDate == null || x.StartDate <= date) &&
-                                    (x.EndDate == null || x.EndDate >= endDate) &&
-                                    (counterpartyId == null || x.CounterpartyId == counterpartyId) &&
-                                    (contractTypeId == null || x.ContractTypeId == contractTypeId))
+                        .Where(x => x.StateId == StateIdConst.ACTIVE
+                                    && x.OrganizationId == organizationId
+                                    && (x.StartDate == null || x.StartDate <= date)
+                                    && (x.EndDate == null || x.EndDate >= date)
+                                    && (counterpartyId == null || x.CounterpartyId == counterpartyId)
+                                    && (contractTypeId == null || x.ContractTypeId == contractTypeId))
                         .As(a => new SelectListDto
                         {
                             Id = a.Id,

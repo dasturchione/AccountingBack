@@ -62,6 +62,7 @@
 01_cmn/0144_create_table_cmn_document_number_sequence.sql
 01_cmn/0145_drop_table_cmn_document_sequence.sql
 02_org/0201_create_org_organization.sql
+01_cmn/0147_harden_org_organization_tenant_id.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql
@@ -210,6 +211,7 @@
 15_integration/1524_create_edo_provider_product_mapping.sql
 15_integration/1525_add_edo_import_job_bulk_import.sql
 15_integration/1526_verify_edo_historical_import_schema.sql
+15_integration/1527_verify_org_organization_tenant_id_contract.sql
 16_pay/1601_create_pay_employee.sql
 16_pay/1602_create_pay_employment.sql
 16_pay/1603_create_pay_component.sql

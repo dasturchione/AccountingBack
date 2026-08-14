@@ -35,4 +35,9 @@
     <ProjectReference Include="..\..\src\Domain\Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\01_cmn\0147_harden_org_organization_tenant_id.sql" Link="SchemaContracts\0147_harden_org_organization_tenant_id.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1527_verify_org_organization_tenant_id_contract.sql" Link="SchemaContracts\1527_verify_org_organization_tenant_id_contract.sql" />
+  </ItemGroup>
+
 </Project>

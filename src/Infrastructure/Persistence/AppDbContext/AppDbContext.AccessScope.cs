@@ -106,6 +106,7 @@ public partial class AppDbContext
         ApplyScopedFilter<DocumentAccountSetting>(modelBuilder);
         ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
         ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
+        ApplyScopedFilter<InvRegBalance>(modelBuilder);
         ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
         ApplyScopedFilter<CashOperation>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);

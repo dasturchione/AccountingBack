@@ -115,6 +115,66 @@ values
         'Ekvayring bo‘yicha oraliq hisob',
         'Bank kartasi va mobil to‘lovlar bo‘yicha mablag‘lar bank hisobvarag‘iga tushguniga qadar ishlatiladigan oraliq hisob roli.',
         1
+    ),
+    (
+        'capital_investment',
+        'Kapital qo‘yilmalar hisobi',
+        'Asosiy vositani xarid qilish va ishga tushirishgacha bo‘lgan xarajatlarni hisobga olish roli.',
+        1
+    ),
+    (
+        'fixed_asset',
+        'Asosiy vositalar hisobi',
+        'Asosiy vositaning boshlang‘ich qiymatini hisobga olish roli.',
+        1
+    ),
+    (
+        'input_vat',
+        'Kirim QQS hisobi',
+        'Asosiy vositalarni qabul qilish bo‘yicha kirim QQS summasini hisobga olish roli.',
+        1
+    ),
+    (
+        'accumulated_depreciation',
+        'Jamg‘arilgan amortizatsiya hisobi',
+        'Asosiy vositalar bo‘yicha jamg‘arilgan amortizatsiyani hisobga olish roli.',
+        1
+    ),
+    (
+        'depreciation_expense',
+        'Amortizatsiya xarajatlari hisobi',
+        'Asosiy vositalar amortizatsiyasi xarajatlarini hisobga olish roli.',
+        1
+    ),
+    (
+        'revaluation_reserve',
+        'Qayta baholash zaxirasi hisobi',
+        'Asosiy vositalar qiymati oshganda qayta baholash zaxirasini hisobga olish roli.',
+        1
+    ),
+    (
+        'revaluation_loss',
+        'Qayta baholash zarari hisobi',
+        'Asosiy vositalar qiymati kamayganda qayta baholash zararini hisobga olish roli.',
+        1
+    ),
+    (
+        'disposal',
+        'Asosiy vositalarning chiqib ketishi hisobi',
+        'Asosiy vositalarni sotish yoki hisobdan chiqarish operatsiyalarini hisobga olish roli.',
+        1
+    ),
+    (
+        'disposal_gain',
+        'Asosiy vositalar chiqib ketishidan foyda hisobi',
+        'Asosiy vositalarning chiqib ketishidan olingan foydani hisobga olish roli.',
+        1
+    ),
+    (
+        'disposal_loss',
+        'Asosiy vositalar chiqib ketishidan zarar hisobi',
+        'Asosiy vositalarning chiqib ketishidan yuzaga kelgan zararni hisobga olish roli.',
+        1
     )
 on conflict (code)
 do update set

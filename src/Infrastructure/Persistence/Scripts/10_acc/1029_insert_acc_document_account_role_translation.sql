@@ -282,7 +282,157 @@ from (
 
         ('acquiring_clearing', 'en',
          'Acquiring clearing account',
-         'Clearing account role for card and mobile payments until the funds are actually credited to the bank account.')
+         'Clearing account role for card and mobile payments until the funds are actually credited to the bank account.'),
+
+        -- =========================================================
+        -- capital_investment
+        -- =========================================================
+        ('capital_investment', 'uz',
+         'Kapital qo‘yilmalar hisobi',
+         'Asosiy vositani xarid qilish va ishga tushirishgacha bo‘lgan xarajatlarni hisobga olish roli.'),
+
+        ('capital_investment', 'ru',
+         'Счёт капитальных вложений',
+         'Роль счёта для учёта затрат на приобретение основного средства до ввода в эксплуатацию.'),
+
+        ('capital_investment', 'en',
+         'Capital investment account',
+         'Account role for fixed asset acquisition costs before commissioning.'),
+
+        -- =========================================================
+        -- fixed_asset
+        -- =========================================================
+        ('fixed_asset', 'uz',
+         'Asosiy vositalar hisobi',
+         'Asosiy vositaning boshlang‘ich qiymatini hisobga olish roli.'),
+
+        ('fixed_asset', 'ru',
+         'Счёт основных средств',
+         'Роль счёта для учёта первоначальной стоимости основного средства.'),
+
+        ('fixed_asset', 'en',
+         'Fixed asset account',
+         'Account role for the initial cost of a fixed asset.'),
+
+        -- =========================================================
+        -- input_vat
+        -- =========================================================
+        ('input_vat', 'uz',
+         'Kirim QQS hisobi',
+         'Asosiy vositalarni qabul qilish bo‘yicha kirim QQS summasini hisobga olish roli.'),
+
+        ('input_vat', 'ru',
+         'Счёт входящего НДС',
+         'Роль счёта для учёта входящего НДС при поступлении основных средств.'),
+
+        ('input_vat', 'en',
+         'Input VAT account',
+         'Account role for input VAT on fixed asset receipts.'),
+
+        -- =========================================================
+        -- accumulated_depreciation
+        -- =========================================================
+        ('accumulated_depreciation', 'uz',
+         'Jamg‘arilgan amortizatsiya hisobi',
+         'Asosiy vositalar bo‘yicha jamg‘arilgan amortizatsiyani hisobga olish roli.'),
+
+        ('accumulated_depreciation', 'ru',
+         'Счёт накопленной амортизации',
+         'Роль счёта для учёта накопленной амортизации основных средств.'),
+
+        ('accumulated_depreciation', 'en',
+         'Accumulated depreciation account',
+         'Account role for accumulated depreciation of fixed assets.'),
+
+        -- =========================================================
+        -- depreciation_expense
+        -- =========================================================
+        ('depreciation_expense', 'uz',
+         'Amortizatsiya xarajatlari hisobi',
+         'Asosiy vositalar amortizatsiyasi xarajatlarini hisobga olish roli.'),
+
+        ('depreciation_expense', 'ru',
+         'Счёт расходов по амортизации',
+         'Роль счёта для учёта расходов по амортизации основных средств.'),
+
+        ('depreciation_expense', 'en',
+         'Depreciation expense account',
+         'Account role for fixed asset depreciation expense.'),
+
+        -- =========================================================
+        -- revaluation_reserve
+        -- =========================================================
+        ('revaluation_reserve', 'uz',
+         'Qayta baholash zaxirasi hisobi',
+         'Asosiy vositalar qiymati oshganda qayta baholash zaxirasini hisobga olish roli.'),
+
+        ('revaluation_reserve', 'ru',
+         'Счёт резерва переоценки',
+         'Роль счёта для учёта резерва при увеличении стоимости основных средств.'),
+
+        ('revaluation_reserve', 'en',
+         'Revaluation reserve account',
+         'Account role for the reserve arising from an increase in fixed asset value.'),
+
+        -- =========================================================
+        -- revaluation_loss
+        -- =========================================================
+        ('revaluation_loss', 'uz',
+         'Qayta baholash zarari hisobi',
+         'Asosiy vositalar qiymati kamayganda qayta baholash zararini hisobga olish roli.'),
+
+        ('revaluation_loss', 'ru',
+         'Счёт убытка от переоценки',
+         'Роль счёта для учёта убытка при уменьшении стоимости основных средств.'),
+
+        ('revaluation_loss', 'en',
+         'Revaluation loss account',
+         'Account role for a loss arising from a decrease in fixed asset value.'),
+
+        -- =========================================================
+        -- disposal
+        -- =========================================================
+        ('disposal', 'uz',
+         'Asosiy vositalarning chiqib ketishi hisobi',
+         'Asosiy vositalarni sotish yoki hisobdan chiqarish operatsiyalarini hisobga olish roli.'),
+
+        ('disposal', 'ru',
+         'Счёт выбытия основных средств',
+         'Роль счёта для учёта операций продажи или списания основных средств.'),
+
+        ('disposal', 'en',
+         'Fixed asset disposal account',
+         'Account role for fixed asset sale or write-off operations.'),
+
+        -- =========================================================
+        -- disposal_gain
+        -- =========================================================
+        ('disposal_gain', 'uz',
+         'Asosiy vositalar chiqib ketishidan foyda hisobi',
+         'Asosiy vositalarning chiqib ketishidan olingan foydani hisobga olish roli.'),
+
+        ('disposal_gain', 'ru',
+         'Счёт дохода от выбытия основных средств',
+         'Роль счёта для учёта дохода от выбытия основных средств.'),
+
+        ('disposal_gain', 'en',
+         'Fixed asset disposal gain account',
+         'Account role for gains on disposal of fixed assets.'),
+
+        -- =========================================================
+        -- disposal_loss
+        -- =========================================================
+        ('disposal_loss', 'uz',
+         'Asosiy vositalar chiqib ketishidan zarar hisobi',
+         'Asosiy vositalarning chiqib ketishidan yuzaga kelgan zararni hisobga olish roli.'),
+
+        ('disposal_loss', 'ru',
+         'Счёт убытка от выбытия основных средств',
+         'Роль счёта для учёта убытка от выбытия основных средств.'),
+
+        ('disposal_loss', 'en',
+         'Fixed asset disposal loss account',
+         'Account role for losses on disposal of fixed assets.')
 
 ) as v
 (

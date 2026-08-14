@@ -479,4 +479,167 @@ do update set
     is_required  = excluded.is_required,
     sort_order   = excluded.sort_order;
 
+-- fa_receipt
+insert into acc_document_account_type_role
+(
+    document_account_type_id,
+    document_account_role_id,
+    account_side,
+    is_required,
+    sort_order
+)
+select
+    t.id,
+    r.id,
+    v.account_side,
+    v.is_required,
+    v.sort_order
+from (
+    values
+        ('supplier_settlement', 'credit', true,  1),
+        ('capital_investment',   'debit',  true,  2),
+        ('input_vat',            'debit',  false, 3),
+        ('fixed_asset',          'debit',  true,  4)
+) as v(role_code, account_side, is_required, sort_order)
+join acc_document_account_type t
+    on t.code = 'fa_receipt'
+join acc_document_account_role r
+    on r.code = v.role_code
+on conflict (document_account_type_id, document_account_role_id)
+do update set
+    account_side = excluded.account_side,
+    is_required  = excluded.is_required,
+    sort_order   = excluded.sort_order;
+
+
+-- fa_commissioning
+insert into acc_document_account_type_role
+(
+    document_account_type_id,
+    document_account_role_id,
+    account_side,
+    is_required,
+    sort_order
+)
+select
+    t.id,
+    r.id,
+    v.account_side,
+    v.is_required,
+    v.sort_order
+from (
+    values
+        ('fixed_asset',                 'debit',  true, 1),
+        ('capital_investment',          'credit', true, 2),
+        ('accumulated_depreciation',    'credit', true, 3),
+        ('depreciation_expense',        'debit',  true, 4)
+) as v(role_code, account_side, is_required, sort_order)
+join acc_document_account_type t
+    on t.code = 'fa_commissioning'
+join acc_document_account_role r
+    on r.code = v.role_code
+on conflict (document_account_type_id, document_account_role_id)
+do update set
+    account_side = excluded.account_side,
+    is_required  = excluded.is_required,
+    sort_order   = excluded.sort_order;
+
+
+-- fa_depreciation
+insert into acc_document_account_type_role
+(
+    document_account_type_id,
+    document_account_role_id,
+    account_side,
+    is_required,
+    sort_order
+)
+select
+    t.id,
+    r.id,
+    v.account_side,
+    v.is_required,
+    v.sort_order
+from (
+    values
+        ('depreciation_expense',     'debit',  true, 1),
+        ('accumulated_depreciation', 'credit', true, 2)
+) as v(role_code, account_side, is_required, sort_order)
+join acc_document_account_type t
+    on t.code = 'fa_depreciation'
+join acc_document_account_role r
+    on r.code = v.role_code
+on conflict (document_account_type_id, document_account_role_id)
+do update set
+    account_side = excluded.account_side,
+    is_required  = excluded.is_required,
+    sort_order   = excluded.sort_order;
+
+
+-- fa_revaluation
+insert into acc_document_account_type_role
+(
+    document_account_type_id,
+    document_account_role_id,
+    account_side,
+    is_required,
+    sort_order
+)
+select
+    t.id,
+    r.id,
+    v.account_side,
+    v.is_required,
+    v.sort_order
+from (
+    values
+        ('fixed_asset',         'debit',  true,  1),
+        ('revaluation_reserve', 'credit', false, 2),
+        ('revaluation_loss',    'debit',  false, 3)
+) as v(role_code, account_side, is_required, sort_order)
+join acc_document_account_type t
+    on t.code = 'fa_revaluation'
+join acc_document_account_role r
+    on r.code = v.role_code
+on conflict (document_account_type_id, document_account_role_id)
+do update set
+    account_side = excluded.account_side,
+    is_required  = excluded.is_required,
+    sort_order   = excluded.sort_order;
+
+
+-- fa_disposal
+insert into acc_document_account_type_role
+(
+    document_account_type_id,
+    document_account_role_id,
+    account_side,
+    is_required,
+    sort_order
+)
+select
+    t.id,
+    r.id,
+    v.account_side,
+    v.is_required,
+    v.sort_order
+from (
+    values
+        ('fixed_asset',              'credit', true,  1),
+        ('accumulated_depreciation', 'debit',  false, 2),
+        ('disposal',                 'debit',  true,  3),
+        ('customer_settlement',      'debit',  false, 4),
+        ('disposal_gain',            'credit', false, 5),
+        ('disposal_loss',            'debit',  false, 6)
+) as v(role_code, account_side, is_required, sort_order)
+join acc_document_account_type t
+    on t.code = 'fa_disposal'
+join acc_document_account_role r
+    on r.code = v.role_code
+on conflict (document_account_type_id, document_account_role_id)
+do update set
+    account_side = excluded.account_side,
+    is_required  = excluded.is_required,
+    sort_order   = excluded.sort_order;
+
 commit;

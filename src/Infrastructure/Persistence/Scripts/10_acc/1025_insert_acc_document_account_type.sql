@@ -27,7 +27,13 @@ values
     ('retail_payment_card', 'Chakana savdo karta to‘lov', 'Chakana savdo uchun karta orqali to‘lov hujjati.', 1),
     ('retail_payment_acquiring', 'Chakana savdo mobil to‘lovi', 'Chakana savdoda mobil va elektron to‘lov xizmatlari orqali amalga oshirilgan to‘lov.', 1),
     ('retail_payment_bank_transfer', 'Chakana savdo bank o‘tkazma to‘lov', 'Chakana savdo uchun bank o‘tkazmasi orqali to‘lov hujjati.', 1),
-    ('retail_acquiring_settlement', 'Ekvayring bo‘yicha tushum', 'Ekvayring orqali qabul qilingan mablag‘larning bank hisobvarag‘iga kelib tushishi.', 1)
+    ('retail_acquiring_settlement', 'Ekvayring bo‘yicha tushum', 'Ekvayring orqali qabul qilingan mablag‘larning bank hisobvarag‘iga kelib tushishi.', 1),
+
+    ('fa_receipt',       'Asosiy vositalarni qabul qilish',       'Asosiy vositalarni qabul qilish hujjati.', 1),
+    ('fa_commissioning', 'Asosiy vositalarni ishga tushirish',    'Asosiy vositalarni foydalanishga topshirish hujjati.', 1),
+    ('fa_depreciation',  'Asosiy vositalar amortizatsiyasi',      'Asosiy vositalar bo‘yicha amortizatsiyani hisoblash hujjati.', 1),
+    ('fa_revaluation',   'Asosiy vositalarni qayta baholash',     'Asosiy vositalarning balans qiymatini qayta baholash hujjati.', 1),
+    ('fa_disposal',      'Asosiy vositalarning chiqib ketishi',   'Asosiy vositalarni sotish yoki hisobdan chiqarish hujjati.', 1)
 on conflict (code)
 do update set
     name        = excluded.name,

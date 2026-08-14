@@ -342,6 +342,116 @@ from
             'en',
             'Acquiring settlement',
             'Receipt to the bank account of funds previously accepted through acquiring.'
+        ),
+
+        -- =========================================================
+        -- fa_receipt
+        -- =========================================================
+        (
+            'fa_receipt',
+            'uz',
+            'Asosiy vositalarni qabul qilish',
+            'Asosiy vositalarni qabul qilish hujjati.'
+        ),
+        (
+            'fa_receipt',
+            'ru',
+            'Поступление основных средств',
+            'Документ поступления основных средств.'
+        ),
+        (
+            'fa_receipt',
+            'en',
+            'Fixed asset receipt',
+            'Document for the receipt of fixed assets.'
+        ),
+
+        -- =========================================================
+        -- fa_commissioning
+        -- =========================================================
+        (
+            'fa_commissioning',
+            'uz',
+            'Asosiy vositalarni ishga tushirish',
+            'Asosiy vositalarni foydalanishga topshirish hujjati.'
+        ),
+        (
+            'fa_commissioning',
+            'ru',
+            'Ввод основных средств в эксплуатацию',
+            'Документ ввода основных средств в эксплуатацию.'
+        ),
+        (
+            'fa_commissioning',
+            'en',
+            'Fixed asset commissioning',
+            'Document for commissioning fixed assets.'
+        ),
+
+        -- =========================================================
+        -- fa_depreciation
+        -- =========================================================
+        (
+            'fa_depreciation',
+            'uz',
+            'Asosiy vositalar amortizatsiyasi',
+            'Asosiy vositalar bo‘yicha amortizatsiyani hisoblash hujjati.'
+        ),
+        (
+            'fa_depreciation',
+            'ru',
+            'Амортизация основных средств',
+            'Документ начисления амортизации основных средств.'
+        ),
+        (
+            'fa_depreciation',
+            'en',
+            'Fixed asset depreciation',
+            'Document for calculating fixed asset depreciation.'
+        ),
+
+        -- =========================================================
+        -- fa_revaluation
+        -- =========================================================
+        (
+            'fa_revaluation',
+            'uz',
+            'Asosiy vositalarni qayta baholash',
+            'Asosiy vositalarning balans qiymatini qayta baholash hujjati.'
+        ),
+        (
+            'fa_revaluation',
+            'ru',
+            'Переоценка основных средств',
+            'Документ переоценки балансовой стоимости основных средств.'
+        ),
+        (
+            'fa_revaluation',
+            'en',
+            'Fixed asset revaluation',
+            'Document for revaluing the carrying amount of fixed assets.'
+        ),
+
+        -- =========================================================
+        -- fa_disposal
+        -- =========================================================
+        (
+            'fa_disposal',
+            'uz',
+            'Asosiy vositalarning chiqib ketishi',
+            'Asosiy vositalarni sotish yoki hisobdan chiqarish hujjati.'
+        ),
+        (
+            'fa_disposal',
+            'ru',
+            'Выбытие основных средств',
+            'Документ продажи или списания основных средств.'
+        ),
+        (
+            'fa_disposal',
+            'en',
+            'Fixed asset disposal',
+            'Document for the sale or write-off of fixed assets.'
         )
 
 ) as v

@@ -1,4 +1,5 @@
-using Domain.Entities;
+﻿using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -7,32 +8,42 @@ namespace Application.Features.FaAssets;
 public class FaAssetListDtoProjection : IProjectionBuilder<FaAsset, FaAssetListDto>
 {
     public Expression<Func<FaAsset, FaAssetListDto>> Build() =>
-        x => new FaAssetListDto
+        asset => new FaAssetListDto
         {
-            Id = x.Id,
-            OrganizationId = x.OrganizationId,
-            OrganizationName = x.Organization.ShortName,
-            InventoryNumber = x.InventoryNumber,
-            Name = x.Name,
-            FaGroupId = x.FaGroupId,
-            FaGroupName = x.FaGroup.Name,
-            DepreciationMethodId = x.DepreciationMethodId,
-            DepreciationMethodName = x.DepreciationMethod.Name,
-            InitialCost = x.InitialCost,
-            CommissioningDate = x.CommissioningDate,
-            DepartmentId = x.DepartmentId,
-            DepartmentName = x.Department != null ? x.Department.Name : null,
-            ResponsibleUserId = x.ResponsibleUserId,
-            AssetAccountId = x.AssetAccountId,
-            AccumulatedDepreciationAccountId = x.AccumulatedDepreciationAccountId,
-            DepreciationExpenseAccountId = x.DepreciationExpenseAccountId,
-            ResponsibleUserName = x.ResponsibleUser != null
-                ? x.ResponsibleUser.FirstName + " " + x.ResponsibleUser.LastName
+            Id = asset.Id,
+            OrganizationId = asset.OrganizationId,
+            OrganizationName = asset.Organization.ShortName,
+            InventoryNumber = asset.InventoryNumber,
+            Name = asset.Name,
+            FaGroupId = asset.FaGroupId,
+            FaGroupName = asset.FaGroup.Name,
+            DepreciationMethodId = asset.FaAssetAccounting != null ? asset.FaAssetAccounting.DepreciationMethodId : null,
+            DepreciationMethodName = asset.FaAssetAccounting != null && asset.FaAssetAccounting.DepreciationMethod != null
+                ? asset.FaAssetAccounting.DepreciationMethod.Name
                 : null,
-            StatusId = x.StatusId,
-            StatusName = x.Status.Name,
-            StateId = x.StateId,
-            StateName = x.State.FullName,
-            UpdatedDate = x.UpdatedDate
+            InitialCost = asset.FaAssetAccounting != null ? asset.FaAssetAccounting.InitialCost : 0m,
+            CommissioningDate = asset.FaCommissioningDocLines
+                .Where(line => line.CommissioningDoc.StatusId == DocumentStatusIdConst.POSTED)
+                .OrderByDescending(line => line.CommissioningDoc.DocDate)
+                .Select(line => (DateTime?)line.CommissioningDoc.DocDate)
+                .FirstOrDefault(),
+            DepartmentId = asset.DepartmentId,
+            DepartmentName = asset.Department != null ? asset.Department.Name : null,
+            ResponsibleUserId = asset.ResponsibleUserId,
+            ResponsibleUserName = asset.ResponsibleUser != null
+                ? asset.ResponsibleUser.FirstName + " " + asset.ResponsibleUser.LastName
+                : null,
+            AssetAccountId = asset.FaAssetAccounting != null ? asset.FaAssetAccounting.AssetAccountId : null,
+            AccumulatedDepreciationAccountId = asset.FaAssetAccounting != null
+                ? asset.FaAssetAccounting.AccumulatedDepreciationAccountId
+                : null,
+            DepreciationExpenseAccountId = asset.FaAssetAccounting != null
+                ? asset.FaAssetAccounting.DepreciationExpenseAccountId
+                : null,
+            StatusId = asset.StatusId,
+            StatusName = asset.Status.Name,
+            StateId = asset.StateId,
+            StateName = asset.State.FullName,
+            UpdatedDate = asset.UpdatedDate
         };
 }

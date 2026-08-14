@@ -164,6 +164,9 @@ public partial class OrgOrganization
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("Organization")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("Organization")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("Organization")]
@@ -316,6 +319,9 @@ public partial class OrgOrganization
     [ForeignKey("RegionId")]
     [InverseProperty("OrgOrganizations")]
     public virtual CmnRegion Region { get; set; } = null!;
+
+    [InverseProperty("Organization")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
 
     [InverseProperty("Organization")]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();

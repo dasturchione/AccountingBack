@@ -80,6 +80,9 @@ public partial class Organization
     [InverseProperty(nameof(FiscalCashRegister.Organization))]
     public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
+    [InverseProperty(nameof(RetailSaleDoc.Organization))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
+
     [InverseProperty(nameof(BankTerminal.Organization))]
     public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
 
@@ -201,6 +204,9 @@ public partial class Organization
 
     [InverseProperty("Organization")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty(nameof(FaCommissioningDoc.Organization))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
 
     [InverseProperty("Organization")]
     public virtual OrganizationConfig? OrganizationConfig { get; set; }

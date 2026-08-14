@@ -34,6 +34,9 @@ public partial class Contract
     [Column("provider_contract_date")]
     public DateOnly? ProviderContractDate { get; set; }
 
+    [Column("description")]
+    public string? Description { get; set; }
+
     [Column("contract_date", TypeName = "timestamp without time zone")]
     public DateTime ContractDate { get; set; }
 

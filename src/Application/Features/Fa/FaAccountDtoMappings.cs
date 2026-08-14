@@ -1,12 +1,5 @@
 namespace Application.Features.FaAssets
 {
-    public partial class FaAssetBaseDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-        public int? DepreciationExpenseAccountId { get; set; }
-    }
-
     public partial class FaAssetDto
     {
         public int? AssetAccountId { get; set; }
@@ -22,50 +15,6 @@ namespace Application.Features.FaAssets
     }
 }
 
-namespace Application.Features.FaReceipts
-{
-    public partial class FaReceiptBaseDto
-    {
-        public int? SupplierAccountId { get; set; }
-    }
-
-    public partial class FaReceiptLineWriteDto
-    {
-        public int? CapitalInvestmentAccountId { get; set; }
-        public int? VatAccountId { get; set; }
-    }
-
-    public partial class FaReceiptAssetWriteDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-        public int? DepreciationExpenseAccountId { get; set; }
-    }
-
-    public partial class FaReceiptDto
-    {
-        public int? SupplierAccountId { get; set; }
-    }
-
-    public partial class FaReceiptListDto
-    {
-        public int? SupplierAccountId { get; set; }
-    }
-
-    public partial class FaReceiptLineDto
-    {
-        public int? CapitalInvestmentAccountId { get; set; }
-        public int? VatAccountId { get; set; }
-    }
-
-    public partial class FaReceiptAssetDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-        public int? DepreciationExpenseAccountId { get; set; }
-    }
-}
-
 namespace Application.Features.FaRevaluations
 {
     public partial class FaRevaluationBaseDto
@@ -73,14 +22,7 @@ namespace Application.Features.FaRevaluations
         public int? RevaluationReserveAccountId { get; set; }
         public int? RevaluationLossAccountId { get; set; }
     }
-
-    public partial class FaRevaluationLineWriteDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-    }
-
-    public partial class FaRevaluationDto
+public partial class FaRevaluationDto
     {
         public int? RevaluationReserveAccountId { get; set; }
         public int? RevaluationLossAccountId { get; set; }
@@ -104,11 +46,6 @@ namespace Application.Features.FaDisposals
         public int? LossAccountId { get; set; }
     }
 
-    public partial class FaDisposalLineWriteDto
-    {
-        public int? AssetAccountId { get; set; }
-        public int? AccumulatedDepreciationAccountId { get; set; }
-    }
 
     public partial class FaDisposalDto
     {

@@ -157,6 +157,9 @@ public partial class CmnState
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
 
     [InverseProperty("State")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("State")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("State")]
@@ -245,6 +248,9 @@ public partial class CmnState
 
     [InverseProperty("State")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
+
+    [InverseProperty("State")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
 
     [InverseProperty("State")]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();

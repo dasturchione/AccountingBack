@@ -5,6 +5,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("fa_receipt_doc")]
+[Index(nameof(CounterpartyId), Name = "ix_fa_receipt_doc_counterparty_id")]
+[Index(nameof(OrganizationId), nameof(DocDate), Name = "ix_fa_receipt_doc_org_date")]
+[Index(nameof(ReceiptTypeId), Name = "ix_fa_receipt_doc_receipt_type_id")]
+[Index(nameof(StatusId), Name = "ix_fa_receipt_doc_status_id")]
+[Index(nameof(SupplierAccountId), Name = "ix_fa_receipt_doc_supplier_account_id")]
+[Index(nameof(OrganizationId), nameof(DocNumber), Name = "uq_fa_receipt_doc_org_number", IsUnique = true)]
 public partial class FaReceiptDoc
 {
     [Key]
@@ -18,7 +24,7 @@ public partial class FaReceiptDoc
     public short StateId { get; set; }
 
     [Column("doc_number")]
-    [StringLength(100)]
+    [StringLength(50)]
     public string DocNumber { get; set; } = null!;
 
     [Column("doc_date", TypeName = "timestamp without time zone")]
@@ -26,9 +32,6 @@ public partial class FaReceiptDoc
 
     [Column("counterparty_id")]
     public int? CounterpartyId { get; set; }
-
-    [Column("warehouse_id")]
-    public int? WarehouseId { get; set; }
 
     [Column("currency_id")]
     public short CurrencyId { get; set; }
@@ -72,13 +75,9 @@ public partial class FaReceiptDoc
     [Column("supplier_account_id")]
     public int? SupplierAccountId { get; set; }
 
-    [ForeignKey(nameof(SupplierAccountId))]
-    [InverseProperty(nameof(ChartAccount.FaReceiptDocs))]
-    public virtual ChartAccount? SupplierAccount { get; set; }
-
-    [ForeignKey(nameof(ReceiptTypeId))]
-    [InverseProperty(nameof(FaReceiptType.FaReceiptDocs))]
-    public virtual FaReceiptType ReceiptType { get; set; } = null!;
+    [ForeignKey(nameof(CancelledByUserId))]
+    [InverseProperty(nameof(User.FaReceiptDocCancelledByUsers))]
+    public virtual User? CancelledByUser { get; set; }
 
     [ForeignKey("CounterpartyId")]
     public virtual CounterpartyCard? Counterparty { get; set; }
@@ -86,11 +85,19 @@ public partial class FaReceiptDoc
     [ForeignKey("CurrencyId")]
     public virtual Currency Currency { get; set; } = null!;
 
-    [InverseProperty("Owner")]
+    [InverseProperty(nameof(FaReceiptDocLine.ReceiptDoc))]
     public virtual ICollection<FaReceiptDocLine> Lines { get; set; } = new List<FaReceiptDocLine>();
 
     [ForeignKey("OrganizationId")]
     public virtual Organization Organization { get; set; } = null!;
+
+    [ForeignKey(nameof(PostedByUserId))]
+    [InverseProperty(nameof(User.FaReceiptDocPostedByUsers))]
+    public virtual User? PostedByUser { get; set; }
+
+    [ForeignKey(nameof(ReceiptTypeId))]
+    [InverseProperty(nameof(FaReceiptType.FaReceiptDocs))]
+    public virtual FaReceiptType ReceiptType { get; set; } = null!;
 
     [ForeignKey("StateId")]
     public virtual State State { get; set; } = null!;
@@ -98,6 +105,7 @@ public partial class FaReceiptDoc
     [ForeignKey("StatusId")]
     public virtual DocumentStatus Status { get; set; } = null!;
 
-    [ForeignKey("WarehouseId")]
-    public virtual Warehouse? Warehouse { get; set; }
+    [ForeignKey(nameof(SupplierAccountId))]
+    [InverseProperty(nameof(ChartAccount.FaReceiptDocs))]
+    public virtual ChartAccount? SupplierAccount { get; set; }
 }

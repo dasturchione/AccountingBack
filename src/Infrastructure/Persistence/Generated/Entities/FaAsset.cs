@@ -7,19 +7,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("fa_asset")]
-[Index("CommissioningDate", Name = "idx_fa_asset_commissioning_date")]
-[Index("DepartmentId", Name = "idx_fa_asset_department_id")]
-[Index("DepreciationMethodId", Name = "idx_fa_asset_depreciation_method_id")]
-[Index("FaGroupId", Name = "idx_fa_asset_fa_group_id")]
-[Index("OkofId", Name = "idx_fa_asset_okof_id")]
-[Index("ResponsibleUserId", Name = "idx_fa_asset_responsible_user_id")]
-[Index("SourceProductTableId", Name = "idx_fa_asset_source_product_table_id")]
-[Index("StateId", Name = "idx_fa_asset_state_id")]
-[Index("StatusId", Name = "idx_fa_asset_status_id")]
-[Index("AccumulatedDepreciationAccountId", Name = "ix_fa_asset_accum_depr_account")]
-[Index("AssetAccountId", Name = "ix_fa_asset_asset_account")]
-[Index("DepreciationExpenseAccountId", Name = "ix_fa_asset_depr_exp_account")]
-[Index("OrganizationId", "InventoryNumber", Name = "uidx_fa_asset_org_inventory_number", IsUnique = true)]
+[Index("DepartmentId", Name = "ix_fa_asset_department_id")]
+[Index("FaGroupId", Name = "ix_fa_asset_fa_group_id")]
+[Index("OkofId", Name = "ix_fa_asset_okof_id")]
+[Index("OrganizationId", Name = "ix_fa_asset_organization_id")]
+[Index("ResponsibleUserId", Name = "ix_fa_asset_responsible_user_id")]
+[Index("StatusId", Name = "ix_fa_asset_status_id")]
+[Index("OrganizationId", "InventoryNumber", Name = "uq_fa_asset_org_inventory_number", IsUnique = true)]
 public partial class FaAsset
 {
     [Key]
@@ -37,7 +31,7 @@ public partial class FaAsset
     public string InventoryNumber { get; set; } = null!;
 
     [Column("name")]
-    [StringLength(250)]
+    [StringLength(500)]
     public string Name { get; set; } = null!;
 
     [Column("fa_group_id")]
@@ -45,33 +39,6 @@ public partial class FaAsset
 
     [Column("okof_id")]
     public short? OkofId { get; set; }
-
-    [Column("depreciation_method_id")]
-    public short DepreciationMethodId { get; set; }
-
-    [Column("useful_life_months")]
-    public int UsefulLifeMonths { get; set; }
-
-    [Column("initial_cost")]
-    [Precision(18, 2)]
-    public decimal InitialCost { get; set; }
-
-    [Column("salvage_value")]
-    [Precision(18, 2)]
-    public decimal SalvageValue { get; set; }
-
-    [Column("commissioning_date", TypeName = "timestamp without time zone")]
-    public DateTime? CommissioningDate { get; set; }
-
-    [Column("depr_start_date", TypeName = "timestamp without time zone")]
-    public DateTime? DeprStartDate { get; set; }
-
-    [Column("planned_units_total")]
-    [Precision(18, 3)]
-    public decimal? PlannedUnitsTotal { get; set; }
-
-    [Column("source_product_table_id")]
-    public int? SourceProductTableId { get; set; }
 
     [Column("department_id")]
     public int? DepartmentId { get; set; }
@@ -88,34 +55,15 @@ public partial class FaAsset
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime UpdatedDate { get; set; }
 
-    [Column("asset_account_id")]
-    public int? AssetAccountId { get; set; }
-
-    [Column("accumulated_depreciation_account_id")]
-    public int? AccumulatedDepreciationAccountId { get; set; }
-
-    [Column("depreciation_expense_account_id")]
-    public int? DepreciationExpenseAccountId { get; set; }
-
-    [ForeignKey("AccumulatedDepreciationAccountId")]
-    [InverseProperty("FaAssetAccumulatedDepreciationAccounts")]
-    public virtual AccChartAccount? AccumulatedDepreciationAccount { get; set; }
-
-    [ForeignKey("AssetAccountId")]
-    [InverseProperty("FaAssetAssetAccounts")]
-    public virtual AccChartAccount? AssetAccount { get; set; }
-
     [ForeignKey("DepartmentId")]
     [InverseProperty("FaAssets")]
     public virtual OrgDepartment? Department { get; set; }
 
-    [ForeignKey("DepreciationExpenseAccountId")]
-    [InverseProperty("FaAssetDepreciationExpenseAccounts")]
-    public virtual AccChartAccount? DepreciationExpenseAccount { get; set; }
+    [InverseProperty("Asset")]
+    public virtual FaAssetAccounting? FaAssetAccounting { get; set; }
 
-    [ForeignKey("DepreciationMethodId")]
-    [InverseProperty("FaAssets")]
-    public virtual CmnFaDepreciationMethod DepreciationMethod { get; set; } = null!;
+    [InverseProperty("FaAsset")]
+    public virtual ICollection<FaCommissioningDocLine> FaCommissioningDocLines { get; set; } = new List<FaCommissioningDocLine>();
 
     [InverseProperty("FaAsset")]
     public virtual ICollection<FaDepreciationRunLine> FaDepreciationRunLines { get; set; } = new List<FaDepreciationRunLine>();
@@ -131,7 +79,7 @@ public partial class FaAsset
     public virtual ICollection<FaMovementDocLine> FaMovementDocLines { get; set; } = new List<FaMovementDocLine>();
 
     [InverseProperty("FaAsset")]
-    public virtual ICollection<FaReceiptDocAsset> FaReceiptDocAssets { get; set; } = new List<FaReceiptDocAsset>();
+    public virtual FaReceiptDocAsset? FaReceiptDocAsset { get; set; }
 
     [InverseProperty("FaAsset")]
     public virtual ICollection<FaRevaluationDocLine> FaRevaluationDocLines { get; set; } = new List<FaRevaluationDocLine>();
@@ -147,10 +95,6 @@ public partial class FaAsset
     [ForeignKey("ResponsibleUserId")]
     [InverseProperty("FaAssets")]
     public virtual SysUser? ResponsibleUser { get; set; }
-
-    [ForeignKey("SourceProductTableId")]
-    [InverseProperty("FaAssets")]
-    public virtual InvProductTable? SourceProductTable { get; set; }
 
     [ForeignKey("StateId")]
     [InverseProperty("FaAssets")]

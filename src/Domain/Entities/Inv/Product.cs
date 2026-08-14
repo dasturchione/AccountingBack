@@ -77,16 +77,19 @@ public partial class Product
     [Precision(18, 3)]
     public decimal? MinStock { get; set; }
 
-    [InverseProperty("Product")]
+    [InverseProperty(nameof(ProductPrice.Product))]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
-    [InverseProperty("Product")]
+    [InverseProperty(nameof(RetailSaleDocProduct.Product))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProducts { get; set; } = new List<RetailSaleDocProduct>();
+
+    [InverseProperty(nameof(ProductTable.Product))]
     public virtual ICollection<ProductTable> ProductTables { get; set; } = new List<ProductTable>();
 
-    [InverseProperty("Product")]
+    [InverseProperty(nameof(PurchaseDocProduct.Product))]
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
-    [InverseProperty("Product")]
+    [InverseProperty(nameof(WarehouseProduct.Product))]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
     [InverseProperty(nameof(WarehouseProductMovement.Product))]

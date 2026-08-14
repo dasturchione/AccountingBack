@@ -207,7 +207,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                 Lines = linesResult.Value
             };
             await _command.CreateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(entity.Id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(entity.Id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayTimesheet, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
             return Result.Success(entity.Id);
         }, ct);
@@ -241,7 +241,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             if (!linesResult.IsSuccess)
                 return linesResult;
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             await _lineCommand.DeleteAsync(x => x.TimesheetId == id, ct);
             foreach (var line in linesResult.Value)
                 line.TimesheetId = id;
@@ -254,7 +254,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             entity.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(entity, ct);
 
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayTimesheet, id.ToString(), AuditLogOperationTypeConst.Update);
             return Result.Success();
         }, ct);
@@ -274,14 +274,14 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             if (entity.Lines.Count == 0)
                 return Result.Failure(PayrollErrors.Business("EmptyTimesheet", "Tabelda kamida bitta xodim bo‘lishi kerak."));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             entity.StatusId = DocumentStatusIdConst.POSTED;
             entity.PostedAt = DateTime.Now;
             entity.PostedByUserId = _userContext.Id;
             entity.UpdatedDate = DateTime.Now;
             entity.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayTimesheet, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
             return Result.Success();
         }, ct);
@@ -302,14 +302,14 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     x.StatusId != DocumentStatusIdConst.CANCELLED, ct))
                 return Result.Failure(PayrollErrors.Conflict("TimesheetUsedByPayroll", "Ushbu davr uchun faol oylik hisoblash hujjati mavjudligi sababli tabelni bekor qilib bo‘lmaydi."));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             entity.StatusId = DocumentStatusIdConst.CANCELLED;
             entity.CancelledAt = DateTime.Now;
             entity.CancelledByUserId = _userContext.Id;
             entity.UpdatedDate = DateTime.Now;
             entity.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayTimesheet, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
             return Result.Success();
         }, ct);
@@ -504,4 +504,8 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             .Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private async Task<PayrollTimesheetDto> GetRequiredDtoInternalAsync(long id, CancellationToken ct) =>
+        await GetDtoInternalAsync(id, ct)
+        ?? throw new InvalidOperationException("Payroll timesheet audit snapshot is unavailable.");
 }

@@ -37,7 +37,6 @@ public class ManualService : IManualService
     private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
     private readonly IQueryRepository<FaDisposalType> _faDisposalTypeQuery;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
-    private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<PriceRoundingMethod> _priceRoundingMethodQuery;
     private readonly IQueryRepository<PricingMethod> _pricingMethodQuery;
     private readonly IQueryRepository<CostingMethod> _costingMethodQuery;
@@ -83,7 +82,6 @@ public class ManualService : IManualService
         IQueryRepository<FaReceiptType> faReceiptTypeQuery,
         IQueryRepository<FaDisposalType> faDisposalTypeQuery,
         IQueryRepository<FaAsset> faAssetQuery,
-        IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<PriceRoundingMethod> priceRoundingMethodQuery,
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
@@ -137,7 +135,6 @@ public class ManualService : IManualService
         _faReceiptTypeQuery = faReceiptTypeQuery;
         _faDisposalTypeQuery = faDisposalTypeQuery;
         _faAssetQuery = faAssetQuery;
-        _productTableQuery = productTableQuery;
         _priceRoundingMethodQuery = priceRoundingMethodQuery;
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
@@ -377,22 +374,42 @@ public class ManualService : IManualService
         return await _faDisposalTypeQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default)
+    public async Task<List<FaAssetSelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default)
     {
-        var query = _queryBuilder.Build<FaAsset, FaAssetListDto, FaAssetListFilter>(filter);
+        var search = filter.Search?.Trim().ToLower();
 
-        var assets = await _faAssetQuery.GetAllAsync(query, ct);
-
-        return assets
-            .OrderBy(x => x.InventoryNumber)
-            .ThenBy(x => x.Name)
-            .Select(x => new SelectListDto
+        var query = _queryBuilder.For<FaAsset>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!filter.FaGroupId.HasValue || x.FaGroupId == filter.FaGroupId.Value) &&
+                        (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
+                        (string.IsNullOrEmpty(search) ||
+                         x.InventoryNumber.ToLower().Contains(search) ||
+                         x.Name.ToLower().Contains(search)))
+            .As(x => new FaAssetSelectListDto
             {
                 Id = x.Id,
                 Code = x.InventoryNumber,
-                Name = $"{x.InventoryNumber} - {x.Name}"
+                InventoryNumber = x.InventoryNumber,
+                Name = x.Name,
+                FaGroupId = x.FaGroupId,
+                FaGroupName = x.FaGroup.Name,
+                InitialCost = x.FaAssetAccounting != null ? x.FaAssetAccounting.InitialCost : 0m,
+                AssetAccountId = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccountId
+                    : null,
+                AssetAccountNumber = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccount.Number
+                    : null,
+                AssetAccountName = x.FaAssetAccounting != null
+                    ? x.FaAssetAccounting.AssetAccount.Name
+                    : null,
+                StatusId = x.StatusId,
+                StatusName = x.Status.Name
             })
-            .ToList();
+            .OrderBy(x => x.InventoryNumber)
+            .Build();
+
+        return await _faAssetQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default)
@@ -756,27 +773,6 @@ public class ManualService : IManualService
                                  }).Build();
 
         return await _productQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default)
-    {
-        if (_userContext.OrganizationId is null)
-            return new List<SelectListDto>();
-
-        var query = _queryBuilder.For<ProductTable>()
-                            .Where(x => x.Product.StateId == StateIdConst.ACTIVE &&
-                                        x.Product.OrganizationId == _userContext.OrganizationId)
-                            .As(x => new SelectListDto
-                            {
-                                Id = x.Id,
-                                Name = string.IsNullOrWhiteSpace(x.SerialNumber)
-                                            ? (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.Id.ToString() : x.MarkingNumber)
-                                            : (string.IsNullOrWhiteSpace(x.MarkingNumber) ? x.SerialNumber : $"{x.SerialNumber} / {x.MarkingNumber}"),
-                                Code = x.Id.ToString()
-                            })
-                            .Build();
-
-        return await _productTableQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetOrganizationsAsync(CancellationToken ct = default)

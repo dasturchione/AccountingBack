@@ -24,28 +24,28 @@ public partial class ProductTable
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [InverseProperty("SourceProductTable")]
-    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
-
     [InverseProperty(nameof(WarehouseProductBatchTable.ProductTable))]
     public virtual ICollection<WarehouseProductBatchTable> WarehouseProductBatchTables { get; set; } = new List<WarehouseProductBatchTable>();
 
     [InverseProperty(nameof(OpeningInventoryTable.ProductTable))]
     public virtual ICollection<OpeningInventoryTable> OpeningInventoryTables { get; set; } = new List<OpeningInventoryTable>();
 
-    [ForeignKey("ProductId")]
-    [InverseProperty("ProductTables")]
+    [InverseProperty(nameof(RetailSaleDocTable.ProductTable))]
+    public virtual ICollection<RetailSaleDocTable> RetailSaleDocTables { get; set; } = new List<RetailSaleDocTable>();
+
+    [ForeignKey(nameof(ProductId))]
+    [InverseProperty(nameof(Product.ProductTables))]
     public virtual Product Product { get; set; } = null!;
 
     [InverseProperty(nameof(WarehouseProductTable.ProductTable))]
     public virtual WarehouseProductTable? WarehouseProductTable { get; set; }
 
-    [InverseProperty("ProductTable")]
+    [InverseProperty(nameof(PurchaseDocTable.ProductTable))]
     public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
 
     [InverseProperty(nameof(SaleShipmentTable.ProductTable))]
     public virtual ICollection<SaleShipmentTable> SaleShipmentTables { get; set; } = new List<SaleShipmentTable>();
 
-    [InverseProperty("ProductTable")]
+    [InverseProperty(nameof(SaleDocTable.ProductTable))]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 }

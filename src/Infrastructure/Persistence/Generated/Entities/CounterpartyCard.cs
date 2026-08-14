@@ -138,6 +138,9 @@ public partial class CounterpartyCard
     public virtual CmnRegion? Region { get; set; }
 
     [InverseProperty("Counterparty")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("Counterparty")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [InverseProperty("Counterparty")]

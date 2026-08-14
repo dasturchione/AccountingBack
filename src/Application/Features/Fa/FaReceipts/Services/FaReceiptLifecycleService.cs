@@ -2,9 +2,8 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.Fa;
 using Application.Features.FaAssets;
-using Application.Features.InventoryMovements;
-using Application.Features.Inv.WarehouseProducts;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -23,11 +22,16 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
-    private readonly IInventoryDispatcher _inventoryDispatcher;
-    private readonly IQueryRepository<WarehouseProductTable> _warehouseProductTableQuery;
+    private readonly IFaDocumentAccountValidator _accountValidator;
     private readonly IQueryRepository<FaReceiptDoc> _query;
     private readonly IFaReceiptCommandRepository _command;
     private readonly IFaAssetCommandRepository _faAssetCommand;
+    private readonly ICommandRepository<FaAssetAccounting> _assetAccountingCommand;
+    private readonly IQueryRepository<FaCommissioningDocLine> _commissioningLineQuery;
+    private readonly IQueryRepository<FaMovementDocLine> _movementLineQuery;
+    private readonly IQueryRepository<FaDepreciationRunLine> _depreciationLineQuery;
+    private readonly IQueryRepository<FaRevaluationDocLine> _revaluationLineQuery;
+    private readonly IQueryRepository<FaDisposalDocLine> _disposalLineQuery;
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingRegisterQuery;
@@ -41,11 +45,16 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         IAccountingPeriodValidator periodValidator,
         IAuditLogService auditLogService,
         IAccountingDispatcher dispatcher,
-        IInventoryDispatcher inventoryDispatcher,
-        IQueryRepository<WarehouseProductTable> warehouseProductTableQuery,
+        IFaDocumentAccountValidator accountValidator,
         IQueryRepository<FaReceiptDoc> query,
         IFaReceiptCommandRepository command,
         IFaAssetCommandRepository faAssetCommand,
+        ICommandRepository<FaAssetAccounting> assetAccountingCommand,
+        IQueryRepository<FaCommissioningDocLine> commissioningLineQuery,
+        IQueryRepository<FaMovementDocLine> movementLineQuery,
+        IQueryRepository<FaDepreciationRunLine> depreciationLineQuery,
+        IQueryRepository<FaRevaluationDocLine> revaluationLineQuery,
+        IQueryRepository<FaDisposalDocLine> disposalLineQuery,
         IQueryRepository<PostingBatch> postingBatchQuery,
         ICommandRepository<PostingBatch> postingBatchCommand,
         IQueryRepository<AccountingRegisterEntry> accountingRegisterQuery,
@@ -60,11 +69,16 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         _periodValidator = periodValidator;
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
-        _inventoryDispatcher = inventoryDispatcher;
-        _warehouseProductTableQuery = warehouseProductTableQuery;
+        _accountValidator = accountValidator;
         _query = query;
         _command = command;
         _faAssetCommand = faAssetCommand;
+        _assetAccountingCommand = assetAccountingCommand;
+        _commissioningLineQuery = commissioningLineQuery;
+        _movementLineQuery = movementLineQuery;
+        _depreciationLineQuery = depreciationLineQuery;
+        _revaluationLineQuery = revaluationLineQuery;
+        _disposalLineQuery = disposalLineQuery;
         _postingBatchQuery = postingBatchQuery;
         _postingBatchCommand = postingBatchCommand;
         _accountingRegisterQuery = accountingRegisterQuery;
@@ -87,12 +101,26 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
                 return Result.Failure(FaReceiptErrors.AlreadyCancelled(id, _userContext.LanguageId));
 
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
-                return Result.Success();
+            {
+                var existingBatch = await GetActivePostingBatchAsync(id, ct);
+                return existingBatch is not null
+                    ? Result.Success()
+                    : Result.Failure(
+                        FaReceiptErrors.MissingPostingBatch(
+                            id,
+                            _userContext.LanguageId));
+            }
 
-            if (doc.StatusId != DocumentStatusIdConst.DRAFT && doc.StatusId != DocumentStatusIdConst.PENDING)
-                return Result.Failure(FaReceiptErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+            if (doc.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.PENDING))
+            {
+                return Result.Failure(
+                    FaReceiptErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+            }
 
-            var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
+            var periodValidation = await _periodValidator.EnsureOpenAsync(
+                doc.OrganizationId,
+                doc.DocDate,
+                ct);
             if (!periodValidation.IsSuccess)
                 return periodValidation;
 
@@ -100,83 +128,79 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             if (!businessValidation.IsSuccess)
                 return businessValidation;
 
-            var sourceProductTableResult = await AllocateSourceProductTablesAsync(doc, ct);
-            if (!sourceProductTableResult.IsSuccess)
-                return Result.Failure(sourceProductTableResult.Error);
+            var accountValidation = await ValidateAccountsAsync(doc, ct);
+            if (!accountValidation.IsSuccess)
+                return accountValidation;
 
-            var sourceProductTableIds = sourceProductTableResult.Value;
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto is not null)
                 _auditLogService.SetOldValues(oldDocDto);
 
             var now = DateTime.Now;
-            foreach (var receiptAsset in doc.Lines.SelectMany(x => x.Assets))
+            var newAssets = new List<(FaReceiptDocAsset ReceiptAsset, FaAsset Asset)>();
+
+            foreach (var receiptAsset in doc.Lines.SelectMany(line => line.Assets))
             {
-                var asset = receiptAsset.FaAsset;
-                if (asset is null)
-                {
-                    asset = new FaAsset
-                    {
-                        OrganizationId = doc.OrganizationId,
-                        StateId = StateIdConst.ACTIVE,
-                        InventoryNumber = receiptAsset.InventoryNumber,
-                        Name = receiptAsset.Name,
-                        FaGroupId = receiptAsset.FaGroupId,
-                        OkofId = receiptAsset.OkofId,
-                        DepreciationMethodId = receiptAsset.DepreciationMethodId,
-                        UsefulLifeMonths = receiptAsset.UsefulLifeMonths,
-                        InitialCost = receiptAsset.InitialCost,
-                        SalvageValue = receiptAsset.SalvageValue,
-                        CommissioningDate = NormalizeDateTime(receiptAsset.CommissioningDate ?? doc.DocDate),
-                        DeprStartDate = NormalizeDateTime(receiptAsset.DeprStartDate ?? receiptAsset.CommissioningDate ?? doc.DocDate),
-                        PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal,
-                        SourceProductTableId = sourceProductTableIds.GetValueOrDefault(receiptAsset.Id),
-                        DepartmentId = receiptAsset.DepartmentId,
-                        ResponsibleUserId = receiptAsset.ResponsibleUserId,
-                        AssetAccountId = receiptAsset.AssetAccountId,
-                        AccumulatedDepreciationAccountId = receiptAsset.AccumulatedDepreciationAccountId,
-                        DepreciationExpenseAccountId = receiptAsset.DepreciationExpenseAccountId,
-                        StatusId = FaAssetStatusIdConst.ACTIVE,
-                        CreatedDate = now,
-                        UpdatedDate = now
-                    };
+                if (receiptAsset.FaAssetId.HasValue)
+                    continue;
 
-                    await _faAssetCommand.CreateAsync(asset, ct);
-                    receiptAsset.FaAsset = asset;
-                    receiptAsset.FaAssetId = asset.Id;
-                }
-                else
+                var asset = new FaAsset
                 {
-                    asset.StateId = StateIdConst.ACTIVE;
-                    asset.InventoryNumber = receiptAsset.InventoryNumber;
-                    asset.Name = receiptAsset.Name;
-                    asset.FaGroupId = receiptAsset.FaGroupId;
-                    asset.OkofId = receiptAsset.OkofId;
-                    asset.DepreciationMethodId = receiptAsset.DepreciationMethodId;
-                    asset.UsefulLifeMonths = receiptAsset.UsefulLifeMonths;
-                    asset.InitialCost = receiptAsset.InitialCost;
-                    asset.SalvageValue = receiptAsset.SalvageValue;
-                    asset.CommissioningDate = NormalizeDateTime(receiptAsset.CommissioningDate ?? doc.DocDate);
-                    asset.DeprStartDate = NormalizeDateTime(receiptAsset.DeprStartDate ?? receiptAsset.CommissioningDate ?? doc.DocDate);
-                    asset.PlannedUnitsTotal = receiptAsset.PlannedUnitsTotal;
-                    asset.SourceProductTableId = sourceProductTableIds.GetValueOrDefault(receiptAsset.Id);
-                    asset.DepartmentId = receiptAsset.DepartmentId;
-                    asset.ResponsibleUserId = receiptAsset.ResponsibleUserId;
-                    asset.AssetAccountId = receiptAsset.AssetAccountId;
-                    asset.AccumulatedDepreciationAccountId = receiptAsset.AccumulatedDepreciationAccountId;
-                    asset.DepreciationExpenseAccountId = receiptAsset.DepreciationExpenseAccountId;
-                    asset.StatusId = FaAssetStatusIdConst.ACTIVE;
-                    asset.UpdatedDate = now;
+                    OrganizationId = doc.OrganizationId,
+                    StateId = StateIdConst.ACTIVE,
+                    InventoryNumber = receiptAsset.InventoryNumber,
+                    Name = receiptAsset.Name,
+                    FaGroupId = receiptAsset.FaGroupId,
+                    OkofId = receiptAsset.OkofId,
+                    DepartmentId = null,
+                    ResponsibleUserId = null,
+                    StatusId = FaAssetStatusIdConst.NOT_COMMISSIONED,
+                    CreatedDate = now,
+                    UpdatedDate = now
+                };
 
-                    await _faAssetCommand.UpdateAsync(asset, ct);
-                }
+                await _faAssetCommand.CreateAsync(asset, ct);
+                newAssets.Add((receiptAsset, asset));
             }
 
-            // FA-P4: бухгалтерские проводки прихода ОС (Dr 0800→Cr 6010, Dr 4410.1→Cr 6010, Dr 0100→Cr 0800).
-            var inventoryResult = await _inventoryDispatcher.ProcessAsync(doc, ct);
-            if (!inventoryResult.IsSuccess)
-                return Result.Failure(inventoryResult.Error);
-            var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Fixed asset receipt confirmed", ct);
+            if (newAssets.Count > 0)
+            {
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var accountingRows = new List<FaAssetAccounting>();
+                foreach (var item in newAssets)
+                {
+                    item.ReceiptAsset.FaAssetId = item.Asset.Id;
+                    item.ReceiptAsset.FaAsset = item.Asset;
+
+                    accountingRows.Add(new FaAssetAccounting
+                    {
+                        AssetId = item.Asset.Id,
+                        InitialCost = item.ReceiptAsset.InitialCost,
+                        AssetAccountId = item.ReceiptAsset.AssetAccountId,
+                        SalvageValue = null,
+                        DepreciationMethodId = null,
+                        UsefulLifeMonths = null,
+                        DeprStartDate = null,
+                        PlannedUnitsTotal = null,
+                        AccumulatedDepreciationAccountId = null,
+                        DepreciationExpenseAccountId = null,
+                        CreatedDate = now,
+                        UpdatedDate = now
+                    });
+                }
+
+                await _assetAccountingCommand.CreateAsync(accountingRows, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }
+
+            var postingBatch = await CreatePostingBatchAsync(
+                doc,
+                PostingBatchStatusConst.POSTED,
+                "Fixed asset receipt confirmed",
+                ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
             var dispatch = await _dispatcher.ProcessAsync(doc, ct, postingBatch.Id);
             if (!dispatch.IsSuccess)
                 return Result.Failure(dispatch.Error);
@@ -193,7 +217,11 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             if (newDocDto is not null)
             {
                 _auditLogService.SetNewValues(newDocDto);
-                await _auditLogService.CreateAsync(AuditLogTableConst.FaReceiptDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.FaReceiptDoc,
+                    id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    "Confirmed");
             }
 
             return Result.Success();
@@ -214,24 +242,35 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             if (doc.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
 
-            if (doc.StatusId != DocumentStatusIdConst.DRAFT &&
-                doc.StatusId != DocumentStatusIdConst.PENDING &&
-                doc.StatusId != DocumentStatusIdConst.POSTED)
+            if (doc.StatusId is not (
+                    DocumentStatusIdConst.DRAFT or
+                    DocumentStatusIdConst.PENDING or
+                    DocumentStatusIdConst.POSTED))
             {
-                return Result.Failure(FaReceiptErrors.CannotCancelInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+                return Result.Failure(
+                    FaReceiptErrors.CannotCancelInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
             }
 
-            var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
+            var periodValidation = await _periodValidator.EnsureOpenAsync(
+                doc.OrganizationId,
+                doc.DocDate,
+                ct);
             if (!periodValidation.IsSuccess)
                 return periodValidation;
 
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
             {
-                var reversalPeriodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, DateTime.Now, ct);
+                var dependencyValidation = await EnsureNoPostedDependenciesAsync(doc, ct);
+                if (!dependencyValidation.IsSuccess)
+                    return dependencyValidation;
+
+                var reversalPeriodValidation = await _periodValidator.EnsureOpenAsync(
+                    doc.OrganizationId,
+                    DateTime.Now,
+                    ct);
                 if (!reversalPeriodValidation.IsSuccess)
                     return reversalPeriodValidation;
             }
-
 
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto is not null)
@@ -240,31 +279,44 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             var now = DateTime.Now;
             if (doc.StatusId == DocumentStatusIdConst.POSTED)
             {
-                // FA-P4: сторнируем бухгалтерские проводки прихода ОС (reversal-проводки).
                 var activePostingBatch = await GetActivePostingBatchAsync(id, ct);
-                if (activePostingBatch is not null)
+                if (activePostingBatch is null)
                 {
-                    var reversalBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.REVERSAL, "Fixed asset receipt cancelled", ct);
-
-                    var accountingReverse = await ReverseAccountingEntriesAsync(id, reversalBatch.Id, ct);
-                    if (!accountingReverse.IsSuccess)
-                        return accountingReverse;
-
-                    activePostingBatch.Status = PostingBatchStatusConst.REVERSED;
-                    activePostingBatch.ReversedAt = now;
-                    activePostingBatch.ReversedByUserId = _userContext.Id;
-                    await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
+                    return Result.Failure(
+                        FaReceiptErrors.MissingPostingBatch(
+                            id,
+                            _userContext.LanguageId));
                 }
 
-                var inventoryReverse = await _inventoryDispatcher.ReverseAsync(doc, ct);
-                if (!inventoryReverse.IsSuccess)
-                    return inventoryReverse;
-                foreach (var asset in doc.Lines.SelectMany(x => x.Assets).Select(x => x.FaAsset).Where(x => x is not null))
+                var reversalBatch = await CreatePostingBatchAsync(
+                    doc,
+                    PostingBatchStatusConst.REVERSAL,
+                    "Fixed asset receipt cancelled",
+                    ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var accountingReverse = await ReverseAccountingEntriesAsync(
+                    id,
+                    reversalBatch.Id,
+                    ct);
+                if (!accountingReverse.IsSuccess)
+                    return accountingReverse;
+
+                activePostingBatch.Status = PostingBatchStatusConst.REVERSED;
+                activePostingBatch.ReversedAt = now;
+                activePostingBatch.ReversedByUserId = _userContext.Id;
+                await _postingBatchCommand.UpdateAsync(activePostingBatch, ct);
+
+                foreach (var asset in doc.Lines
+                             .SelectMany(line => line.Assets)
+                             .Select(receiptAsset => receiptAsset.FaAsset)
+                             .Where(asset => asset is not null)
+                             .DistinctBy(asset => asset!.Id))
                 {
                     asset!.StateId = StateIdConst.PASSIVE;
-                    asset.StatusId = FaAssetStatusIdConst.DRAFT;
-                    asset.CommissioningDate = null;
-                    asset.DeprStartDate = null;
+                    asset.StatusId = FaAssetStatusIdConst.NOT_COMMISSIONED;
+                    asset.DepartmentId = null;
+                    asset.ResponsibleUserId = null;
                     asset.UpdatedDate = now;
                     await _faAssetCommand.UpdateAsync(asset, ct);
                 }
@@ -282,87 +334,16 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             if (newDocDto is not null)
             {
                 _auditLogService.SetNewValues(newDocDto);
-                await _auditLogService.CreateAsync(AuditLogTableConst.FaReceiptDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.FaReceiptDoc,
+                    id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    "Cancelled");
             }
 
             return Result.Success();
         }, ct);
 
-
-    private async Task<Result<IReadOnlyDictionary<long, int?>>> AllocateSourceProductTablesAsync(
-        FaReceiptDoc doc,
-        CancellationToken ct)
-    {
-        var sourceProductLines = doc.Lines.Where(line => line.SourceProductId.HasValue).ToList();
-        foreach (var line in sourceProductLines.Where(line => line.SourceProduct is null))
-        {
-            return Result.Failure<IReadOnlyDictionary<long, int?>>(FaReceiptErrors.ProductNotFound(
-                line.SourceProductId!.Value,
-                _userContext.LanguageId));
-        }
-
-        var stockSourceLines = sourceProductLines
-            .Where(line => !line.SourceProduct!.IsService)
-            .ToList();
-        if (stockSourceLines.Count == 0)
-            return Result.Success<IReadOnlyDictionary<long, int?>>(new Dictionary<long, int?>());
-
-        if (!doc.WarehouseId.HasValue)
-        {
-            return Result.Failure<IReadOnlyDictionary<long, int?>>(
-                FaReceiptErrors.WarehouseRequiredForSourceProduct(_userContext.LanguageId));
-        }
-
-        var pieceTrackedLines = stockSourceLines
-            .Where(line => line.SourceProduct!.IsPieceTracked)
-            .ToList();
-        if (pieceTrackedLines.Count == 0)
-            return Result.Success<IReadOnlyDictionary<long, int?>>(new Dictionary<long, int?>());
-
-        var productIds = pieceTrackedLines
-            .Select(line => line.SourceProductId!.Value)
-            .Distinct()
-            .ToList();
-        var availableTablesQuery = _queryBuilder.For<WarehouseProductTable>()
-            .Where(table => table.WarehouseId == doc.WarehouseId.Value &&
-                            table.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                            productIds.Contains(table.ProductTable.ProductId))
-            .As(table => new AvailableSourceProductTable(
-                table.ProductTableId,
-                table.ProductTable.ProductId,
-                table.ReceivedDate))
-            .Build();
-        var availableTables = (await _warehouseProductTableQuery.GetAllAsync(availableTablesQuery, ct))
-            .OrderBy(table => table.ReceivedDate)
-            .ThenBy(table => table.ProductTableId)
-            .ToList();
-        var tablesByProductId = availableTables
-            .GroupBy(table => table.ProductId)
-            .ToDictionary(
-                group => group.Key,
-                group => new Queue<AvailableSourceProductTable>(group));
-        var sourceProductTableIds = new Dictionary<long, int?>();
-
-        foreach (var line in pieceTrackedLines)
-        {
-            var productId = line.SourceProductId!.Value;
-            var requiredQuantity = line.Assets.Count;
-            if (!tablesByProductId.TryGetValue(productId, out var tables) || tables.Count < requiredQuantity)
-            {
-                return Result.Failure<IReadOnlyDictionary<long, int?>>(WarehouseProductErrors.NotEnoughQuantity(
-                    doc.WarehouseId.Value,
-                    productId,
-                    requiredQuantity,
-                    tables?.Count ?? 0,
-                    _userContext.LanguageId));
-            }
-
-            foreach (var receiptAsset in line.Assets)
-                sourceProductTableIds[receiptAsset.Id] = tables.Dequeue().ProductTableId;
-        }
-
-        return Result.Success<IReadOnlyDictionary<long, int?>>(sourceProductTableIds);
-    }
     private Result ValidateForConfirm(FaReceiptDoc doc)
     {
         if (doc.Lines.Count == 0)
@@ -371,35 +352,136 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         foreach (var line in doc.Lines)
         {
             if (line.Assets.Count == 0)
-                return Result.Failure(FaReceiptErrors.AssetLinesRequired(line.Name, _userContext.LanguageId));
-
-            if (line.Quantity != decimal.Truncate(line.Quantity) || line.Quantity != line.Assets.Count)
             {
                 return Result.Failure(
-                    FaReceiptErrors.LineQuantityMismatch(line.Name, line.Quantity, line.Assets.Count, _userContext.LanguageId));
+                    FaReceiptErrors.AssetLinesRequired(line.Name, _userContext.LanguageId));
+            }
+
+            if (line.Quantity != line.Assets.Count)
+            {
+                return Result.Failure(
+                    FaReceiptErrors.LineQuantityMismatch(
+                        line.Name,
+                        line.Quantity,
+                        line.Assets.Count,
+                        _userContext.LanguageId));
+            }
+
+            if (Math.Abs(line.Assets.Sum(asset => asset.InitialCost) - line.Amount) > 0.01m)
+            {
+                return Result.Failure(
+                    FaReceiptErrors.LineAmountMismatch(
+                        line.Name,
+                        line.Amount,
+                        line.Assets.Sum(asset => asset.InitialCost),
+                        _userContext.LanguageId));
             }
         }
 
         return Result.Success();
     }
 
-    private sealed record AvailableSourceProductTable(int ProductTableId, int ProductId, DateTime ReceivedDate);
+    private Task<Result> ValidateAccountsAsync(FaReceiptDoc doc, CancellationToken ct)
+    {
+        var requirements = new List<FaDocumentAccountRequirement>
+        {
+            new(
+                doc.SupplierAccountId,
+                FaDocumentAccountRoleCodeConst.SupplierSettlement)
+        };
+
+        foreach (var line in doc.Lines)
+        {
+            requirements.Add(new(
+                line.CapitalInvestmentAccountId,
+                FaDocumentAccountRoleCodeConst.CapitalInvestment));
+            requirements.Add(new(
+                line.VatAccountId,
+                FaDocumentAccountRoleCodeConst.InputVat,
+                line.VatAmount > 0m));
+            requirements.AddRange(line.Assets.Select(asset =>
+                new FaDocumentAccountRequirement(
+                    asset.AssetAccountId,
+                    FaDocumentAccountRoleCodeConst.FixedAsset)));
+        }
+
+        return _accountValidator.ValidateAsync(
+            doc.OrganizationId,
+            DocumentTypeIdConst.FARECEIPT,
+            requirements,
+            ct);
+    }
+
+    private async Task<Result> EnsureNoPostedDependenciesAsync(
+        FaReceiptDoc doc,
+        CancellationToken ct)
+    {
+        var assetIds = doc.Lines
+            .SelectMany(line => line.Assets)
+            .Where(asset => asset.FaAssetId.HasValue)
+            .Select(asset => asset.FaAssetId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (assetIds.Count == 0)
+            return Result.Success();
+
+        var hasCommissioning = await _commissioningLineQuery.AnyAsync(line =>
+            assetIds.Contains(line.FaAssetId) &&
+            line.CommissioningDoc.StatusId == DocumentStatusIdConst.POSTED, ct);
+        var hasMovement = await _movementLineQuery.AnyAsync(line =>
+            assetIds.Contains(line.FaAssetId) &&
+            line.MovementDoc.StatusId == DocumentStatusIdConst.POSTED, ct);
+        var hasDepreciation = await _depreciationLineQuery.AnyAsync(line =>
+            assetIds.Contains(line.FaAssetId) &&
+            line.DepreciationRun.StatusId == DocumentStatusIdConst.POSTED, ct);
+        var hasRevaluation = await _revaluationLineQuery.AnyAsync(line =>
+            assetIds.Contains(line.FaAssetId) &&
+            line.RevaluationDoc.StatusId == DocumentStatusIdConst.POSTED, ct);
+        var hasDisposal = await _disposalLineQuery.AnyAsync(line =>
+            assetIds.Contains(line.FaAssetId) &&
+            line.DisposalDoc.StatusId == DocumentStatusIdConst.POSTED, ct);
+
+        if (!hasCommissioning && !hasMovement && !hasDepreciation && !hasRevaluation && !hasDisposal)
+            return Result.Success();
+
+        return Result.Failure(Error.Conflict(
+            "FaReceipt.PostedDependenciesExist",
+            _userContext.LanguageId switch
+            {
+                LanguageIdConst.UZ => "Qabul hujjatini bekor qilib bo'lmaydi: unga bog'liq o'tkazilgan FA hujjatlari mavjud.",
+                LanguageIdConst.RU => "Нельзя отменить поступление: существуют проведённые зависимые документы ОС.",
+                _ => "The receipt cannot be cancelled because posted dependent fixed-asset documents exist."
+            }));
+    }
 
     private async Task<FaReceiptDoc?> GetAggregateAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<FaReceiptDoc>().Where(x => x.Id == id).Build();
-        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.Assets).ThenInclude(a => a.FaAsset));
-        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.SourceProduct));
+        var query = _queryBuilder.For<FaReceiptDoc>()
+            .Where(receipt => receipt.Id == id)
+            .Build();
+        query.AddIncludes(include =>
+            include.Include(receipt => receipt.Lines)
+                .ThenInclude(line => line.Assets)
+                .ThenInclude(receiptAsset => receiptAsset.FaAsset)
+                .ThenInclude(asset => asset!.FaAssetAccounting));
         return await _query.GetAsync(query, ct);
     }
 
     private async Task<FaReceiptDto?> GetByIdInternalAsync(long id, CancellationToken ct)
     {
-        var query = _queryBuilder.For<FaReceiptDoc>().Where(x => x.Id == id).As<FaReceiptDto>().Build();
+        var query = _queryBuilder.For<FaReceiptDoc>()
+            .Where(receipt => receipt.Id == id)
+            .As<FaReceiptDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<PostingBatch> CreatePostingBatchAsync(FaReceiptDoc doc, string status, string comment, CancellationToken ct)
+    private async Task<PostingBatch> CreatePostingBatchAsync(
+        FaReceiptDoc doc,
+        string status,
+        string comment,
+        CancellationToken ct)
     {
         var batch = new PostingBatch
         {
@@ -416,25 +498,33 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         return batch;
     }
 
-    private async Task<PostingBatch?> GetActivePostingBatchAsync(long faReceiptDocId, CancellationToken ct)
+    private async Task<PostingBatch?> GetActivePostingBatchAsync(
+        long faReceiptDocId,
+        CancellationToken ct)
     {
         var query = _queryBuilder.For<PostingBatch>()
-            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.FARECEIPT &&
-                        x.DocumentId == faReceiptDocId &&
-                        x.Status == PostingBatchStatusConst.POSTED)
+            .Where(batch =>
+                batch.DocumentTypeId == DocumentTypeIdConst.FARECEIPT &&
+                batch.DocumentId == faReceiptDocId &&
+                batch.Status == PostingBatchStatusConst.POSTED)
             .Build();
 
         return await _postingBatchQuery.GetAsync(query, ct);
     }
 
-    private async Task<Result> ReverseAccountingEntriesAsync(long faReceiptDocId, long reversalBatchId, CancellationToken ct)
+    private async Task<Result> ReverseAccountingEntriesAsync(
+        long faReceiptDocId,
+        long reversalBatchId,
+        CancellationToken ct)
     {
         var query = _queryBuilder.For<AccountingRegisterEntry>()
-            .Where(x => x.DocumentTypeId == DocumentTypeIdConst.FARECEIPT &&
-                        x.DocumentId == faReceiptDocId &&
-                        x.ReversalEntryId == null)
+            .Where(entry =>
+                entry.DocumentTypeId == DocumentTypeIdConst.FARECEIPT &&
+                entry.DocumentId == faReceiptDocId &&
+                entry.ReversalEntryId == null)
             .Build();
-        query.AddIncludes(b => b.Include(x => x.RegisterEntrySubkontos));
+        query.AddIncludes(include =>
+            include.Include(entry => entry.RegisterEntrySubkontos));
 
         var entries = await _accountingRegisterQuery.GetAllAsync(query, ct);
         if (entries.Count == 0)
@@ -460,26 +550,21 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
             PostingBatchId = reversalBatchId,
             SourceLineId = entry.SourceLineId,
             ReversalEntryId = entry.Id,
-            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = ReverseSubkontoSide(subkonto.Side),
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
+            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto =>
+                new RegisterEntrySubkonto
+                {
+                    Side = subkonto.Side == SubkontoSideConst.DEBIT
+                        ? SubkontoSideConst.CREDIT
+                        : SubkontoSideConst.DEBIT,
+                    SubkontoTypeId = subkonto.SubkontoTypeId,
+                    SortOrder = subkonto.SortOrder,
+                    EntityId = subkonto.EntityId,
+                    DisplayValue = subkonto.DisplayValue,
+                    CreatedDate = now
+                }).ToList()
         }).ToList();
 
         await _accountingRegisterCommand.CreateAsync(reversalEntries, ct);
         return Result.Success();
     }
-
-    private static string ReverseSubkontoSide(string side) =>
-        side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT :
-        side == SubkontoSideConst.CREDIT ? SubkontoSideConst.DEBIT :
-        side;
-
-    private static DateTime NormalizeDateTime(DateTime value) =>
-        DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
 }

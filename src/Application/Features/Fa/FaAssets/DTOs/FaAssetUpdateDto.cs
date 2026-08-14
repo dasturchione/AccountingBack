@@ -1,6 +1,9 @@
-namespace Application.Features.FaAssets;
+﻿namespace Application.Features.FaAssets;
 
-public class FaAssetUpdateDto : FaAssetBaseDto
+public class FaAssetUpdateDto
 {
-    public short StateId { get; set; }
+    public string InventoryNumber { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public int FaGroupId { get; set; }
+    public short? OkofId { get; set; }
 }

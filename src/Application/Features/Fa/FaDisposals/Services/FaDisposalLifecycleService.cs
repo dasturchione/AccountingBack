@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.Fa;
 using Application.Features.FaAssets;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
@@ -22,6 +23,7 @@ public class FaDisposalLifecycleService : BaseService, IFaDisposalLifecycleServi
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAuditLogService _auditLogService;
     private readonly IAccountingDispatcher _dispatcher;
+    private readonly IFaDocumentAccountValidator _accountValidator;
     private readonly IQueryRepository<FaDisposalDoc> _query;
     private readonly IFaDisposalCommandRepository _command;
     private readonly IFaAssetCommandRepository _faAssetCommand;
@@ -39,6 +41,7 @@ public class FaDisposalLifecycleService : BaseService, IFaDisposalLifecycleServi
         IAccountingPeriodValidator periodValidator,
         IAuditLogService auditLogService,
         IAccountingDispatcher dispatcher,
+        IFaDocumentAccountValidator accountValidator,
         IQueryRepository<FaDisposalDoc> query,
         IFaDisposalCommandRepository command,
         IFaAssetCommandRepository faAssetCommand,
@@ -57,6 +60,7 @@ public class FaDisposalLifecycleService : BaseService, IFaDisposalLifecycleServi
         _periodValidator = periodValidator;
         _auditLogService = auditLogService;
         _dispatcher = dispatcher;
+        _accountValidator = accountValidator;
         _query = query;
         _command = command;
         _faAssetCommand = faAssetCommand;
@@ -106,14 +110,22 @@ public class FaDisposalLifecycleService : BaseService, IFaDisposalLifecycleServi
                 if (line.FaAsset.StatusId == FaAssetStatusIdConst.DISPOSED)
                     return Result.Failure(FaDisposalErrors.AssetAlreadyDisposed(line.FaAssetId, _userContext.LanguageId));
 
+                var accounting = line.FaAsset.FaAssetAccounting;
+                if (accounting is null)
+                    return Result.Failure(FaDisposalErrors.AssetInactive(line.FaAssetId, _userContext.LanguageId));
+
                 var accumulated = await GetAccumulatedDepreciationAsync(line.FaAssetId, doc.DisposalDate, ct);
-                line.BookValue = Math.Max(0m, line.FaAsset.InitialCost - accumulated);
+                line.BookValue = Math.Max(0m, accounting.InitialCost - accumulated);
                 line.GainLoss = line.SaleAmount - line.BookValue;
 
                 line.FaAsset.StatusId = FaAssetStatusIdConst.DISPOSED;
                 line.FaAsset.UpdatedDate = DateTime.Now;
                 await _faAssetCommand.UpdateAsync(line.FaAsset, ct);
             }
+
+            var accountValidation = await ValidateAccountsAsync(doc, ct);
+            if (!accountValidation.IsSuccess)
+                return accountValidation;
 
             var now = DateTime.Now;
             var postingBatch = new PostingBatch
@@ -245,10 +257,57 @@ public class FaDisposalLifecycleService : BaseService, IFaDisposalLifecycleServi
             return Result.Success();
         }, ct);
 
+    private Task<Result> ValidateAccountsAsync(
+        FaDisposalDoc document,
+        CancellationToken ct)
+    {
+        var requirements = document.Lines
+            .SelectMany(line => new[]
+            {
+                new FaDocumentAccountRequirement(
+                    line.AssetAccountId,
+                    FaDocumentAccountRoleCodeConst.FixedAsset),
+                new FaDocumentAccountRequirement(
+                    line.AccumulatedDepreciationAccountId,
+                    FaDocumentAccountRoleCodeConst.AccumulatedDepreciation,
+                    line.FaAsset.FaAssetAccounting!.InitialCost > line.BookValue)
+            })
+            .ToList();
+
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.DisposalAccountId,
+            FaDocumentAccountRoleCodeConst.Disposal,
+            document.Lines.Any(line =>
+                line.BookValue != 0m ||
+                line.SaleAmount != 0m ||
+                line.GainLoss != 0m)));
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.CustomerAccountId,
+            FaDocumentAccountRoleCodeConst.CustomerSettlement,
+            document.Lines.Any(line => line.SaleAmount != 0m)));
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.GainAccountId,
+            FaDocumentAccountRoleCodeConst.DisposalGain,
+            document.Lines.Any(line => line.GainLoss > 0m)));
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.LossAccountId,
+            FaDocumentAccountRoleCodeConst.DisposalLoss,
+            document.Lines.Any(line => line.GainLoss < 0m)));
+        requirements.Add(new FaDocumentAccountRequirement(
+            document.VatAccountId,
+            FaDocumentAccountRoleCodeConst.InputVat,
+            false));
+
+        return _accountValidator.ValidateAsync(
+            document.OrganizationId,
+            DocumentTypeIdConst.FADISPOSAL,
+            requirements,
+            ct);
+    }
     private async Task<FaDisposalDoc?> GetAggregateAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<FaDisposalDoc>().Where(x => x.Id == id).Build();
-        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset).ThenInclude(a => a.FaAssetAccounting));
         return await _query.GetAsync(query, ct);
     }
 

@@ -60,4 +60,7 @@ public partial class FiscalCashRegister
     [ForeignKey(nameof(WarehouseId))]
     [InverseProperty(nameof(Warehouse.FiscalCashRegisters))]
     public virtual Warehouse? Warehouse { get; set; }
+
+    [InverseProperty(nameof(RetailSaleDoc.CashRegister))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
 }

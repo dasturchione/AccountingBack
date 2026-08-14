@@ -93,6 +93,9 @@ public partial class CmnCurrency
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
 
     [InverseProperty("Currency")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
+    [InverseProperty("Currency")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();
 
     [ForeignKey("StateId")]

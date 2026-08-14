@@ -1,6 +1,7 @@
 using Application.Common.Pagination;
 using Application.Features.Organizations;
 using Application.Features.Platform.Filters;
+using Application.Features.Roles;
 using SharedKernel.Results;
 
 namespace Application.Features.Platform;
@@ -29,5 +30,31 @@ public interface IPlatformService
     Task<Result> ActivateTenantOrganizationAsync(int tenantId, int organizationId, CancellationToken ct = default);
     Task<Result> DeactivateTenantOrganizationAsync(int tenantId, int organizationId, CancellationToken ct = default);
 
+    Task<Result<PagedResponse<RoleListDto>>> GetOrganizationRolesAsync(
+        int tenantId,
+        int organizationId,
+        RoleListFilter filter,
+        CancellationToken ct = default);
+    Task<Result<RoleDto>> GetOrganizationRoleByIdAsync(
+        int tenantId,
+        int organizationId,
+        int roleId,
+        CancellationToken ct = default);
+    Task<Result<int>> CreateOrganizationRoleAsync(
+        int tenantId,
+        int organizationId,
+        RoleCreateDto dto,
+        CancellationToken ct = default);
+    Task<Result> UpdateOrganizationRoleAsync(
+        int tenantId,
+        int organizationId,
+        int roleId,
+        RoleUpdateDto dto,
+        CancellationToken ct = default);
+    Task<Result> DeleteOrganizationRoleAsync(
+        int tenantId,
+        int organizationId,
+        int roleId,
+        CancellationToken ct = default);
     Task<Result<PagedResponse<PlatformAuditLogDto>>> GetAuditLogsAsync(PlatformAuditLogListFilter filter, CancellationToken ct = default);
 }

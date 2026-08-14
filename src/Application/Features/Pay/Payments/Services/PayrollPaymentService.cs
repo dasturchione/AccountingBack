@@ -258,7 +258,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 }).ToList()
             };
             await _command.CreateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(entity.Id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(entity.Id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPaymentBatch, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
             return Result.Success(entity.Id);
         }, ct);
@@ -301,7 +301,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 return Result.Failure(accountsResult.Error);
             var offsetAccountId = accountsResult.Value[roleCode];
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             Result operationResult;
             if (batch.SourceType == PayrollPaymentSourceConst.Bank)
             {
@@ -364,7 +364,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             batch.PostedAt = DateTime.Now;
             batch.PostedByUserId = _userContext.Id;
             await _command.UpdateAsync(batch, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPaymentBatch, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
             return Result.Success();
         }, ct);
@@ -385,7 +385,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (batch.Period.Status != PayrollPeriodStatusConst.Open)
                 return Result.Failure(PayrollErrors.PeriodClosed(batch.PeriodId));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             Result operationResult = Result.Success();
             if (batch.BankOperationId.HasValue)
                 operationResult = await _bankOperationService.CancelAsync(batch.BankOperationId.Value, ct);
@@ -398,7 +398,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             batch.CancelledAt = DateTime.Now;
             batch.CancelledByUserId = _userContext.Id;
             await _command.UpdateAsync(batch, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPaymentBatch, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
             return Result.Success();
         }, ct);
@@ -545,4 +545,8 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             .Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private async Task<PayrollPaymentDto> GetRequiredDtoInternalAsync(long id, CancellationToken ct) =>
+        await GetDtoInternalAsync(id, ct)
+        ?? throw new InvalidOperationException("Payroll payment audit snapshot is unavailable.");
 }

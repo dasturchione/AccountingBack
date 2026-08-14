@@ -173,7 +173,6 @@ public static class PermissionCodeConst
     public const string ManualGetFaGroups                 = "MANUAL_GET_FA_GROUPS";
     public const string ManualGetFaOkofs                  = "MANUAL_GET_FA_OKOFS";
     public const string ManualGetFaDepreciationMethods    = "MANUAL_GET_FA_DEPRECIATION_METHODS";
-    public const string ManualGetSourceProductTables       = "MANUAL_GET_SOURCE_PRODUCT_TABLES";
     public const string ManualGetPriceRoundingMethods     = "MANUAL_GET_PRICE_ROUNDING_METHODS";
     public const string ManualGetPricingMethods           = "MANUAL_GET_PRICING_METHODS";
     public const string ManualGetCostingMethods           = "MANUAL_GET_COSTING_METHODS";
@@ -264,9 +263,17 @@ public static class PermissionCodeConst
     #region FaAsset
     public const string FaAssetView       = "FA_ASSET_VIEW";
     public const string FaAssetViewDetail = "FA_ASSET_VIEW_DETAIL";
-    public const string FaAssetCreate     = "FA_ASSET_CREATE";
     public const string FaAssetUpdate     = "FA_ASSET_UPDATE";
     public const string FaAssetDelete     = "FA_ASSET_DELETE";
+    #endregion
+
+    #region FaCommissioning
+    public const string FaCommissioningView       = "FA_COMMISSIONING_VIEW";
+    public const string FaCommissioningViewDetail = "FA_COMMISSIONING_VIEW_DETAIL";
+    public const string FaCommissioningCreate     = "FA_COMMISSIONING_CREATE";
+    public const string FaCommissioningUpdate     = "FA_COMMISSIONING_UPDATE";
+    public const string ConfirmFaCommissioning    = "FA_COMMISSIONING_CONFIRM";
+    public const string CancelFaCommissioning     = "FA_COMMISSIONING_CANCEL";
     #endregion
 
     #region FaDepreciation
@@ -460,6 +467,11 @@ public static class PermissionCodeConst
     public const string PlatformAttachUserToOrganization   = "PLATFORM_ATTACH_USER_TO_ORGANIZATION";
     public const string PlatformUpdateUserOrganization     = "PLATFORM_UPDATE_USER_ORGANIZATION";
     public const string PlatformRemoveUserFromOrganization = "PLATFORM_REMOVE_USER_FROM_ORGANIZATION";
+    public const string PlatformGetRoles                   = "PLATFORM_GET_ROLES";
+    public const string PlatformGetRoleById                = "PLATFORM_GET_ROLE_BY_ID";
+    public const string PlatformCreateRole                 = "PLATFORM_CREATE_ROLE";
+    public const string PlatformUpdateRole                 = "PLATFORM_UPDATE_ROLE";
+    public const string PlatformDeleteRole                 = "PLATFORM_DELETE_ROLE";
     public const string PlatformSetUserPassword            = "PLATFORM_SET_USER_PASSWORD";
     public const string PlatformGetAuditLogs               = "PLATFORM_GET_AUDIT_LOGS";
     #endregion
@@ -605,6 +617,16 @@ public static class PermissionCodeConst
     public const string ConfirmSale             = "CONFIRM_SALE";
     public const string CancelSale              = "CANCEL_SALE";
     public const string SaleDocDelete           = "SALE_DOC_DELETE";
+    #endregion
+
+    #region RetailSaleDoc
+    public const string RetailSaleDocView       = "RETAIL_SALE_DOC_VIEW";
+    public const string RetailSaleDocViewDetail = "RETAIL_SALE_DOC_VIEW_DETAIL";
+    public const string RetailSaleDocCreate     = "RETAIL_SALE_DOC_CREATE";
+    public const string RetailSaleDocUpdate     = "RETAIL_SALE_DOC_UPDATE";
+    public const string RetailSaleDocDelete     = "RETAIL_SALE_DOC_DELETE";
+    public const string ConfirmRetailSale       = "CONFIRM_RETAIL_SALE";
+    public const string CancelRetailSale        = "CANCEL_RETAIL_SALE";
     #endregion
 
     #region SaleDocTable

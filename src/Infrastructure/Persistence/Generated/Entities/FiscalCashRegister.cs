@@ -61,6 +61,9 @@ public partial class FiscalCashRegister
     [InverseProperty("FiscalCashRegisters")]
     public virtual FiscalCashRegisterType RegisterType { get; set; } = null!;
 
+    [InverseProperty("CashRegister")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
+
     [ForeignKey("StateId")]
     [InverseProperty("FiscalCashRegisters")]
     public virtual CmnState State { get; set; } = null!;

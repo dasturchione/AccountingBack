@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_unit")]
-[Index("Code", Name = "idx_cmn_unit_code", IsUnique = true)]
 public partial class Unit
 {
     [Key]
@@ -23,28 +21,31 @@ public partial class Unit
     [Column("state_id")]
     public short StateId { get; set; }
 
-    [InverseProperty("Unit")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.Units))]
+    public virtual State State { get; set; } = null!;
+
+    [InverseProperty(nameof(Product.Unit))]
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
-    [InverseProperty("Unit")]
+    [InverseProperty(nameof(PurchaseDocProduct.Unit))]
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
-    [InverseProperty("Unit")]
+    [InverseProperty(nameof(ProductPrice.Unit))]
     public virtual ICollection<ProductPrice> ProductPrices { get; set; } = new List<ProductPrice>();
 
-    [InverseProperty("Unit")]
+    [InverseProperty(nameof(WarehouseProduct.Unit))]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 
-    [InverseProperty("Unit")]
+    [InverseProperty(nameof(SaleDocProduct.Unit))]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
     [InverseProperty(nameof(SaleShipmentProduct.Unit))]
     public virtual ICollection<SaleShipmentProduct> SaleShipmentProducts { get; set; } = new List<SaleShipmentProduct>();
 
+    [InverseProperty(nameof(RetailSaleDocProduct.Unit))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProducts { get; set; } = new List<RetailSaleDocProduct>();
+
     [InverseProperty(nameof(OpeningInventoryProduct.Unit))]
     public virtual ICollection<OpeningInventoryProduct> OpeningInventoryProducts { get; set; } = new List<OpeningInventoryProduct>();
-
-    [ForeignKey("StateId")]
-    [InverseProperty("Units")]
-    public virtual State State { get; set; } = null!;
 }

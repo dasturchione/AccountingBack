@@ -52,6 +52,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FaAssetStatus> FaAssetStatuses { get; set; }
     public virtual DbSet<FaDepreciationMethod> FaDepreciationMethods { get; set; }
     public virtual DbSet<FaAsset> FaAssets { get; set; }
+    public virtual DbSet<FaAssetAccounting> FaAssetAccountings { get; set; }
+    public virtual DbSet<FaCommissioningDoc> FaCommissioningDocs { get; set; }
+    public virtual DbSet<FaCommissioningDocLine> FaCommissioningDocLines { get; set; }
     public virtual DbSet<FaReceiptDoc> FaReceiptDocs { get; set; }
     public virtual DbSet<FaReceiptDocLine> FaReceiptDocLines { get; set; }
     public virtual DbSet<FaReceiptDocAsset> FaReceiptDocAssets { get; set; }
@@ -167,6 +170,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SaleDocProduct> SaleDocProducts { get; set; }
     public virtual DbSet<SaleDocProductBatch> SaleDocProductBatches { get; set; }
     public virtual DbSet<SaleDocTable> SaleDocTables { get; set; }
+    public virtual DbSet<RetailSaleDoc> RetailSaleDocs { get; set; }
+    public virtual DbSet<RetailSaleDocProduct> RetailSaleDocProducts { get; set; }
+    public virtual DbSet<RetailSaleDocTable> RetailSaleDocTables { get; set; }
+    public virtual DbSet<RetailSaleDocPayment> RetailSaleDocPayments { get; set; }
     public virtual DbSet<SaleShipmentDoc> SaleShipmentDocs { get; set; }
     public virtual DbSet<SaleShipmentProduct> SaleShipmentProducts { get; set; }
     public virtual DbSet<SaleShipmentProductBatch> SaleShipmentProductBatches { get; set; }

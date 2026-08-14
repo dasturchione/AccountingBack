@@ -32,28 +32,34 @@ public partial class VatRate
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-
     [Column("effective_from")]
     public DateOnly? EffectiveFrom { get; set; }
 
     [Column("effective_to")]
     public DateOnly? EffectiveTo { get; set; }
-    [InverseProperty("VatRate")]
+
+    [InverseProperty(nameof(PurchaseDocProduct.VatRate))]
     public virtual ICollection<PurchaseDocProduct> PurchaseDocProducts { get; set; } = new List<PurchaseDocProduct>();
 
-    [InverseProperty("VatRate")]
+    [InverseProperty(nameof(RetailSaleDocProduct.VatRate))]
+    public virtual ICollection<RetailSaleDocProduct> RetailSaleDocProducts { get; set; } = new List<RetailSaleDocProduct>();
+
+    [InverseProperty(nameof(RetailSaleDocTable.VatRate))]
+    public virtual ICollection<RetailSaleDocTable> RetailSaleDocTables { get; set; } = new List<RetailSaleDocTable>();
+
+    [InverseProperty(nameof(PurchaseDocTable.VatRate))]
     public virtual ICollection<PurchaseDocTable> PurchaseDocTables { get; set; } = new List<PurchaseDocTable>();
 
-    [InverseProperty("VatRate")]
+    [InverseProperty(nameof(SaleCondition.VatRate))]
     public virtual ICollection<SaleCondition> SaleConditions { get; set; } = new List<SaleCondition>();
 
-    [InverseProperty("VatRate")]
+    [InverseProperty(nameof(SaleDocTable.VatRate))]
     public virtual ICollection<SaleDocTable> SaleDocTables { get; set; } = new List<SaleDocTable>();
 
-    [InverseProperty("VatRate")]
+    [InverseProperty(nameof(SaleDocProduct.VatRate))]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();
 
-    [ForeignKey("StateId")]
-    [InverseProperty("VatRates")]
+    [ForeignKey(nameof(StateId))]
+    [InverseProperty(nameof(State.VatRates))]
     public virtual State State { get; set; } = null!;
 }

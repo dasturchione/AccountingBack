@@ -1,4 +1,4 @@
-namespace Application.Features.FaAssets;
+﻿namespace Application.Features.FaAssets;
 
 public partial class FaAssetDto
 {
@@ -13,18 +13,15 @@ public partial class FaAssetDto
     public short? OkofId { get; set; }
     public string? OkofCode { get; set; }
     public string? OkofName { get; set; }
-    public short DepreciationMethodId { get; set; }
-    public string DepreciationMethodCode { get; set; } = null!;
-    public string DepreciationMethodName { get; set; } = null!;
-    public int UsefulLifeMonths { get; set; }
+    public short? DepreciationMethodId { get; set; }
+    public string? DepreciationMethodCode { get; set; }
+    public string? DepreciationMethodName { get; set; }
+    public int? UsefulLifeMonths { get; set; }
     public decimal InitialCost { get; set; }
-    public decimal SalvageValue { get; set; }
+    public decimal? SalvageValue { get; set; }
     public DateTime? CommissioningDate { get; set; }
     public DateTime? DeprStartDate { get; set; }
     public decimal? PlannedUnitsTotal { get; set; }
-    public int? SourceProductTableId { get; set; }
-    public string? SourceProductTableSerialNumber { get; set; }
-    public string? SourceProductTableMarkingNumber { get; set; }
     public int? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
     public int? ResponsibleUserId { get; set; }

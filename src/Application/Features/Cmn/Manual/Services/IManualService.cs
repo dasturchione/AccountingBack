@@ -20,7 +20,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaReceiptTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaDisposalTypesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default);
+    Task<List<FaAssetSelectListDto>> GetFaAssetsAsync(FaAssetListFilter filter, CancellationToken ct = default);
     Task<List<SelectListDto>> GetPriceRoundingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default);
@@ -61,7 +61,6 @@ public interface IManualService
         bool? isPurchased = null,
         CancellationToken ct = default);
     Task<List<SelectListDto>> GetWarehousesAsync(int? branchId = null, CancellationToken ct = default);
-    Task<List<SelectListDto>> GetSourceProductTablesAsync(CancellationToken ct = default);
 
     // acc
     Task<List<SelectListDto>> GetSubkontoTypesAsync(CancellationToken ct = default);

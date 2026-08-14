@@ -53,6 +53,9 @@ public partial class BankTerminal
     [InverseProperty("BankTerminals")]
     public virtual OrgOrganization Organization { get; set; } = null!;
 
+    [InverseProperty("BankTerminal")]
+    public virtual ICollection<RtlSaleDocPayment> RtlSaleDocPayments { get; set; } = new List<RtlSaleDocPayment>();
+
     [ForeignKey("StateId")]
     [InverseProperty("BankTerminals")]
     public virtual CmnState State { get; set; } = null!;

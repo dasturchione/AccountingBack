@@ -24,8 +24,11 @@ public partial class FaDepreciationMethod
     [Column("state_id")]
     public short StateId { get; set; }
 
-    [InverseProperty("DepreciationMethod")]
-    public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+    [InverseProperty(nameof(FaAssetAccounting.DepreciationMethod))]
+    public virtual ICollection<FaAssetAccounting> FaAssetAccountings { get; set; } = new List<FaAssetAccounting>();
+
+    [InverseProperty(nameof(FaCommissioningDocLine.DepreciationMethod))]
+    public virtual ICollection<FaCommissioningDocLine> FaCommissioningDocLines { get; set; } = new List<FaCommissioningDocLine>();
 
     [ForeignKey("StateId")]
     [InverseProperty("FaDepreciationMethods")]

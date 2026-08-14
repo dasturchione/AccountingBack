@@ -35,6 +35,9 @@ public partial class CmnDocumentStatus
     public virtual ICollection<CmnDocumentStatusTranslation> CmnDocumentStatusTranslations { get; set; } = new List<CmnDocumentStatusTranslation>();
 
     [InverseProperty("Status")]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
+
+    [InverseProperty("Status")]
     public virtual ICollection<FaDepreciationRun> FaDepreciationRuns { get; set; } = new List<FaDepreciationRun>();
 
     [InverseProperty("Status")]
@@ -72,6 +75,9 @@ public partial class CmnDocumentStatus
 
     [InverseProperty("Status")]
     public virtual ICollection<PurDoc> PurDocs { get; set; } = new List<PurDoc>();
+
+    [InverseProperty("Status")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
 
     [InverseProperty("Status")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();

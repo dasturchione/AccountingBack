@@ -65,9 +65,6 @@ public partial class InvWarehouse
     public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();
 
     [InverseProperty("Warehouse")]
-    public virtual ICollection<FaReceiptDoc> FaReceiptDocs { get; set; } = new List<FaReceiptDoc>();
-
-    [InverseProperty("Warehouse")]
     public virtual ICollection<FiscalCashRegister> FiscalCashRegisters { get; set; } = new List<FiscalCashRegister>();
 
     [InverseProperty("Warehouse")]
@@ -113,6 +110,9 @@ public partial class InvWarehouse
     [ForeignKey("ResponsibleUserId")]
     [InverseProperty("InvWarehouses")]
     public virtual SysUser? ResponsibleUser { get; set; }
+
+    [InverseProperty("Warehouse")]
+    public virtual ICollection<RtlSaleDoc> RtlSaleDocs { get; set; } = new List<RtlSaleDoc>();
 
     [InverseProperty("Warehouse")]
     public virtual ICollection<SaleDoc> SaleDocs { get; set; } = new List<SaleDoc>();

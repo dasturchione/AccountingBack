@@ -49,6 +49,11 @@ from (
         ('PLATFORM_GET_TENANTS', 'Platform Get Tenants', 'Platform Get Tenants', 0, false),
         ('PLATFORM_GET_USER_BY_ID', 'Platform Get User By Id', 'Platform Get User By Id', 0, false),
         ('PLATFORM_GET_USERS', 'Platform Get Users', 'Platform Get Users', 0, false),
+        ('PLATFORM_GET_ROLES', 'Platform Get Roles', 'Platform Get Roles', 0, false),
+        ('PLATFORM_GET_ROLE_BY_ID', 'Platform Get Role By Id', 'Platform Get Role By Id', 0, false),
+        ('PLATFORM_CREATE_ROLE', 'Platform Create Role', 'Platform Create Role', 0, false),
+        ('PLATFORM_UPDATE_ROLE', 'Platform Update Role', 'Platform Update Role', 0, false),
+        ('PLATFORM_DELETE_ROLE', 'Platform Delete Role', 'Platform Delete Role', 0, false),
         ('PLATFORM_REMOVE_USER_FROM_ORGANIZATION', 'Platform Remove User From Organization', 'Platform Remove User From Organization', 0, false),
         ('PLATFORM_SET_USER_PASSWORD', 'Platform Set User Password', 'Platform Set User Password', 0, false),
         ('PLATFORM_UNBLOCK_USER', 'Platform Unblock User', 'Platform Unblock User', 0, false),
@@ -516,6 +521,44 @@ from (
         ('SALES_REPORT_EXPORT', 'Sales Report Export', 'Sales Report Export', 0, false),
         ('SALES_REPORT_GET_ALL', 'Sales Report Get All', 'Sales Report Get All', 0, false),
         ('SALES_REPORT_GET_BY_ID', 'Sales Report Get By Id', 'Sales Report Get By Id', 0, false)
+) as seed (code, short_name, full_name, sort_order, is_visible)
+on conflict (code) do update
+set short_name = excluded.short_name,
+    full_name = excluded.full_name,
+    sub_group_id = excluded.sub_group_id,
+    state_id = excluded.state_id,
+    sort_order = excluded.sort_order,
+    is_visible = excluded.is_visible;
+
+-- RETAIL_SALE
+insert into sys_module (
+    code,
+    short_name,
+    full_name,
+    sub_group_id,
+    state_id,
+    created_date,
+    sort_order,
+    is_visible
+)
+select
+    seed.code,
+    seed.short_name,
+    seed.full_name,
+    (select id from sys_module_sub_group where code = 'RETAIL_SALE'),
+    1,
+    now(),
+    seed.sort_order,
+    seed.is_visible
+from (
+    values
+        ('CANCEL_RETAIL_SALE', 'Chakana savdoni bekor qilish', 'Bekor qilish', 0, false),
+        ('CONFIRM_RETAIL_SALE', 'Chakana savdoni tasdiqlash', 'Tasdiqlash', 0, false),
+        ('RETAIL_SALE_DOC_CREATE', 'Chakana savdo yaratish', 'Yangi', 0, false),
+        ('RETAIL_SALE_DOC_DELETE', 'Chakana savdo o''chirish', 'O''chirish', 0, false),
+        ('RETAIL_SALE_DOC_UPDATE', 'Chakana savdo tahrirlash', 'Tahrirlash', 0, false),
+        ('RETAIL_SALE_DOC_VIEW', 'Chakana savdo', 'Ro''yxat', 0, false),
+        ('RETAIL_SALE_DOC_VIEW_DETAIL', 'Chakana savdo detail', 'Batafsil', 0, false)
 ) as seed (code, short_name, full_name, sort_order, is_visible)
 on conflict (code) do update
 set short_name = excluded.short_name,
@@ -1112,6 +1155,12 @@ from (
         ('FA_ASSET_UPDATE', 'Asosiy vosita tahrirlash', 'Asosiy vositani tahrirlash', 0, false),
         ('FA_ASSET_VIEW', 'Asosiy vositalar', 'Asosiy vositalar ro''yxatini ko''rish', 0, false),
         ('FA_ASSET_VIEW_DETAIL', 'Asosiy vosita detail', 'Asosiy vositani batafsil ko''rish', 0, false),
+        ('FA_COMMISSIONING_CANCEL', 'Fa Commissioning Cancel', 'Fa Commissioning Cancel', 0, false),
+        ('FA_COMMISSIONING_CONFIRM', 'Fa Commissioning Confirm', 'Fa Commissioning Confirm', 0, false),
+        ('FA_COMMISSIONING_CREATE', 'Fa Commissioning Create', 'Fa Commissioning Create', 0, false),
+        ('FA_COMMISSIONING_UPDATE', 'Fa Commissioning Update', 'Fa Commissioning Update', 0, false),
+        ('FA_COMMISSIONING_VIEW', 'Fa Commissioning View', 'Fa Commissioning View', 0, false),
+        ('FA_COMMISSIONING_VIEW_DETAIL', 'Fa Commissioning View Detail', 'Fa Commissioning View Detail', 0, false),
         ('FA_DEPRECIATION_CANCEL', 'Fa Depreciation Cancel', 'Fa Depreciation Cancel', 0, false),
         ('FA_DEPRECIATION_RUN', 'Fa Depreciation Run', 'Fa Depreciation Run', 0, false),
         ('FA_DEPRECIATION_VIEW', 'Fa Depreciation View', 'Fa Depreciation View', 0, false),

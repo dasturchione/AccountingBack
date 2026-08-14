@@ -4,6 +4,7 @@ using Application.Common.Pagination;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.DocumentNumbers;
+using Application.Features.Fa;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
     private readonly IDocumentPostingLock _postingLock;
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAccountingDispatcher _dispatcher;
+    private readonly IFaDocumentAccountValidator _accountValidator;
     private readonly IQueryRepository<FaDepreciationRun> _query;
     private readonly IQueryRepository<FaAsset> _faAssetQuery;
     private readonly IQueryRepository<FaDepreciationRunLine> _runLineQuery;
@@ -42,6 +44,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
         IDocumentPostingLock postingLock,
         IAccountingPeriodValidator periodValidator,
         IAccountingDispatcher dispatcher,
+        IFaDocumentAccountValidator accountValidator,
         IQueryRepository<FaDepreciationRun> query,
         IQueryRepository<FaAsset> faAssetQuery,
         IQueryRepository<FaDepreciationRunLine> runLineQuery,
@@ -62,6 +65,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
         _postingLock = postingLock;
         _periodValidator = periodValidator;
         _dispatcher = dispatcher;
+        _accountValidator = accountValidator;
         _query = query;
         _faAssetQuery = faAssetQuery;
         _runLineQuery = runLineQuery;
@@ -111,6 +115,25 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
             var linesResult = await BuildRunLinesAsync(organizationId, periodMonth, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
+
+            var accountRequirements = linesResult.Value
+                .SelectMany(line => new[]
+                {
+                    new FaDocumentAccountRequirement(
+                        line.ExpenseAccountId,
+                        FaDocumentAccountRoleCodeConst.DepreciationExpense),
+                    new FaDocumentAccountRequirement(
+                        line.AccumulatedDepreciationAccountId,
+                        FaDocumentAccountRoleCodeConst.AccumulatedDepreciation)
+                })
+                .ToList();
+            var accountValidation = await _accountValidator.ValidateAsync(
+                organizationId,
+                DocumentTypeIdConst.FADEPRECIATION,
+                accountRequirements,
+                ct);
+            if (!accountValidation.IsSuccess)
+                return Result.Failure<long>(accountValidation.Error);
 
             var documentNumberResult = await _documentNumberService.GetNextAsync(
                 organizationId,
@@ -237,10 +260,11 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
             .Where(x => x.OrganizationId == organizationId &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StatusId == FaAssetStatusIdConst.ACTIVE &&
-                        x.DeprStartDate.HasValue &&
-                        x.DeprStartDate.Value <= periodEnd)
+                        x.FaAssetAccounting != null &&
+                        x.FaAssetAccounting.DeprStartDate.HasValue &&
+                        x.FaAssetAccounting.DeprStartDate.Value <= periodEnd)
             .Build();
-        assetQuery.AddIncludes(x => x.Include(a => a.DepreciationMethod));
+        assetQuery.AddIncludes(x => x.Include(a => a.FaAssetAccounting).ThenInclude(a => a!.DepreciationMethod));
 
         var assets = await _faAssetQuery.GetAllAsync(assetQuery, ct);
         if (assets.Count == 0)
@@ -263,26 +287,36 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
 
         foreach (var asset in assets)
         {
-            var startMonth = StartOfMonth(asset.DeprStartDate!.Value);
+            var accounting = asset.FaAssetAccounting;
+            if (accounting?.DeprStartDate is null ||
+                accounting.UsefulLifeMonths is null ||
+                accounting.DepreciationMethod is null ||
+                accounting.DepreciationExpenseAccountId is null ||
+                accounting.AccumulatedDepreciationAccountId is null)
+            {
+                continue;
+            }
+
+            var startMonth = StartOfMonth(accounting.DeprStartDate.Value);
             if (periodMonth < startMonth)
                 continue;
 
             var elapsedMonths = MonthsBetween(startMonth, periodMonth) + 1;
-            if (elapsedMonths <= 0 || elapsedMonths > asset.UsefulLifeMonths)
+            if (elapsedMonths <= 0 || elapsedMonths > accounting.UsefulLifeMonths.Value)
                 continue;
 
             var previousAmount = totalsByAsset.GetValueOrDefault(asset.Id);
-            var amount = CalculateAmount(asset, elapsedMonths, previousAmount);
+            var amount = CalculateAmount(accounting, elapsedMonths, previousAmount);
             if (amount <= 0m)
                 continue;
 
             result.Add(new FaDepreciationRunLine
             {
                 FaAssetId = asset.Id,
-                ExpenseAccountId = asset.DepreciationExpenseAccountId,
-                AccumulatedDepreciationAccountId = asset.AccumulatedDepreciationAccountId,
+                ExpenseAccountId = accounting.DepreciationExpenseAccountId,
+                AccumulatedDepreciationAccountId = accounting.AccumulatedDepreciationAccountId,
                 Amount = amount,
-                Note = asset.DepreciationMethod.Code == FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION
+                Note = accounting.DepreciationMethod.Code == FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION
                     ? "Units-of-production fallback: equal monthly amount"
                     : null
             });
@@ -294,30 +328,33 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
         return Result.Success(result);
     }
 
-    private static decimal CalculateAmount(FaAsset asset, int elapsedMonths, decimal previousAmount)
+    private static decimal CalculateAmount(FaAssetAccounting accounting, int elapsedMonths, decimal previousAmount)
     {
-        var depreciableBase = Math.Max(0m, asset.InitialCost - asset.SalvageValue);
+        var salvageValue = accounting.SalvageValue ?? 0m;
+        var usefulLifeMonths = accounting.UsefulLifeMonths!.Value;
+        var depreciableBase = Math.Max(0m, accounting.InitialCost - salvageValue);
         var remainingDepreciable = Math.Max(0m, depreciableBase - previousAmount);
         if (remainingDepreciable <= 0m)
             return 0m;
 
-        var isFinalMonth = elapsedMonths >= asset.UsefulLifeMonths;
+        var isFinalMonth = elapsedMonths >= usefulLifeMonths;
 
-        return asset.DepreciationMethod.Code switch
+        return accounting.DepreciationMethod!.Code switch
         {
-            FaDepreciationMethodCodeConst.DECLINING_BALANCE => CalculateDecliningBalanceAmount(asset, remainingDepreciable, isFinalMonth),
-            FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION => CalculateLinearLikeAmount(asset.UsefulLifeMonths, depreciableBase, previousAmount, isFinalMonth),
-            _ => CalculateLinearLikeAmount(asset.UsefulLifeMonths, depreciableBase, previousAmount, isFinalMonth)
+            FaDepreciationMethodCodeConst.DECLINING_BALANCE => CalculateDecliningBalanceAmount(accounting, remainingDepreciable, isFinalMonth),
+            FaDepreciationMethodCodeConst.UNITS_OF_PRODUCTION => CalculateLinearLikeAmount(usefulLifeMonths, depreciableBase, previousAmount, isFinalMonth),
+            _ => CalculateLinearLikeAmount(usefulLifeMonths, depreciableBase, previousAmount, isFinalMonth)
         };
     }
 
-    private static decimal CalculateDecliningBalanceAmount(FaAsset asset, decimal remainingDepreciable, bool isFinalMonth)
+    private static decimal CalculateDecliningBalanceAmount(FaAssetAccounting accounting, decimal remainingDepreciable, bool isFinalMonth)
     {
         if (isFinalMonth)
             return RoundAmount(remainingDepreciable);
 
-        var monthlyRate = 2m / asset.UsefulLifeMonths;
-        var remainingBookValue = asset.InitialCost - (asset.InitialCost - asset.SalvageValue - remainingDepreciable);
+        var monthlyRate = 2m / accounting.UsefulLifeMonths!.Value;
+        var salvageValue = accounting.SalvageValue ?? 0m;
+        var remainingBookValue = accounting.InitialCost - (accounting.InitialCost - salvageValue - remainingDepreciable);
         var candidate = RoundAmount(remainingBookValue * monthlyRate);
         if (candidate <= 0m)
             candidate = RoundAmount(remainingDepreciable);
@@ -343,7 +380,7 @@ public class FaDepreciationRunService : BaseService, IFaDepreciationRunService
     private async Task<FaDepreciationRun?> GetAggregateAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<FaDepreciationRun>().Where(x => x.Id == id).Build();
-        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset).ThenInclude(a => a.DepreciationMethod));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.FaAsset).ThenInclude(a => a.FaAssetAccounting).ThenInclude(a => a!.DepreciationMethod));
         return await _query.GetAsync(query, ct);
     }
 

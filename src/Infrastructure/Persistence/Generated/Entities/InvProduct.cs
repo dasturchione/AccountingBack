@@ -92,9 +92,6 @@ public partial class InvProduct
     [InverseProperty("SelectedProduct")]
     public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLines { get; set; } = new List<EdoImportCandidateLine>();
 
-    [InverseProperty("SourceProduct")]
-    public virtual ICollection<FaReceiptDocLine> FaReceiptDocLines { get; set; } = new List<FaReceiptDocLine>();
-
     [InverseProperty("Product")]
     public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();
 
@@ -141,6 +138,9 @@ public partial class InvProduct
 
     [InverseProperty("Product")]
     public virtual ICollection<PurDocProduct> PurDocProducts { get; set; } = new List<PurDocProduct>();
+
+    [InverseProperty("Product")]
+    public virtual ICollection<RtlSaleDocProduct> RtlSaleDocProducts { get; set; } = new List<RtlSaleDocProduct>();
 
     [InverseProperty("Product")]
     public virtual ICollection<SaleDocProduct> SaleDocProducts { get; set; } = new List<SaleDocProduct>();

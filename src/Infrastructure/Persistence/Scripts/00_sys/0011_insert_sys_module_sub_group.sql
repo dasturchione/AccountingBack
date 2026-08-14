@@ -15,6 +15,7 @@ values
     ('FISCAL_CASH_REGISTER', 'Fiskal kassa', 'Fiskal kassa registrlari boshqaruvi', now()),
     ('PURCHASE', 'Xarid', 'Xarid hujjatlari', now()),
     ('SALE', 'Sotuv', 'Sotuv hujjatlari', now()),
+    ('RETAIL_SALE', 'Chakana savdo', 'Chakana savdo hujjatlari', now()),
     ('ACCOUNTING', 'Buxgalteriya', 'Buxgalteriya registrlari', now()),
     ('REGISTER', 'Registrlar', 'Qoldiq registrlari', now()),
     ('MANUAL', 'Ma''lumotnoma', 'Ma''lumotnoma ma''lumotlari', now()),

@@ -11,30 +11,30 @@ public class InventoryDispatcher : IInventoryDispatcher
 {
     private readonly IInventoryDocumentHandler<PurchaseDoc> _purchaseHandler;
     private readonly IInventoryDocumentHandler<SaleDoc> _saleHandler;
+    private readonly IInventoryDocumentHandler<RetailSaleDoc> _retailSaleHandler;
     private readonly IInventoryDocumentHandler<WarehouseTransferDoc> _warehouseTransferHandler;
     private readonly IInventoryDocumentHandler<InventoryAdjustmentDoc> _inventoryAdjustmentHandler;
     private readonly IInventoryDocumentHandler<OpeningInventory> _openingInventoryHandler;
-    private readonly IInventoryDocumentHandler<FaReceiptDoc> _faReceiptHandler;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<WarehouseProductMovement> _movementQuery;
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
 
     public InventoryDispatcher(IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
                                IInventoryDocumentHandler<SaleDoc> saleHandler,
+                               IInventoryDocumentHandler<RetailSaleDoc> retailSaleHandler,
                                IInventoryDocumentHandler<WarehouseTransferDoc> warehouseTransferHandler,
                                IInventoryDocumentHandler<InventoryAdjustmentDoc> inventoryAdjustmentHandler,
                                IInventoryDocumentHandler<OpeningInventory> openingInventoryHandler,
-                               IInventoryDocumentHandler<FaReceiptDoc> faReceiptHandler,
                                IQueryBuilder queryBuilder,
                                IQueryRepository<WarehouseProductMovement> movementQuery,
                                IWarehouseProductBalanceService warehouseProductBalanceService)
     {
         _purchaseHandler = purchaseHandler;
         _saleHandler = saleHandler;
+        _retailSaleHandler = retailSaleHandler;
         _warehouseTransferHandler = warehouseTransferHandler;
         _inventoryAdjustmentHandler = inventoryAdjustmentHandler;
         _openingInventoryHandler = openingInventoryHandler;
-        _faReceiptHandler = faReceiptHandler;
         _queryBuilder = queryBuilder;
         _movementQuery = movementQuery;
         _warehouseProductBalanceService = warehouseProductBalanceService;
@@ -116,10 +116,10 @@ public class InventoryDispatcher : IInventoryDispatcher
         {
             PurchaseDoc purchase => _purchaseHandler.HandleAsync(purchase, ct),
             SaleDoc sale => _saleHandler.HandleAsync(sale, ct),
+            RetailSaleDoc retailSale => _retailSaleHandler.HandleAsync(retailSale, ct),
             WarehouseTransferDoc transfer => _warehouseTransferHandler.HandleAsync(transfer, ct),
             InventoryAdjustmentDoc adjustment => _inventoryAdjustmentHandler.HandleAsync(adjustment, ct),
             OpeningInventory openingInventory => _openingInventoryHandler.HandleAsync(openingInventory, ct),
-            FaReceiptDoc faReceipt => _faReceiptHandler.HandleAsync(faReceipt, ct),
             _ => Task.FromResult(Result.Failure<List<InventoryMovementEntry>>(InventoryMovementErrors.UnsupportedDocumentType()))
         };
 

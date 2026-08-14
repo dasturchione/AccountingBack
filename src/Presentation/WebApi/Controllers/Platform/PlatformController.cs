@@ -1,6 +1,7 @@
 using Application.Features.Organizations;
 using Application.Features.Platform;
 using Application.Features.Platform.Filters;
+using Application.Features.Roles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -172,6 +173,67 @@ public sealed class PlatformController : ControllerBase
     public async Task<IResult> DeactivateTenantOrganizationAsync([FromRoute] int tenantId, [FromRoute] int organizationId, CancellationToken ct = default)
     {
         var response = await _platformService.DeactivateTenantOrganizationAsync(tenantId, organizationId, ct);
+        return response.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpGet("tenants/{tenantId:int}/organizations/{organizationId:int}/roles")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetRoles)]
+    public async Task<IResult> GetOrganizationRolesAsync(
+        [FromRoute] int tenantId,
+        [FromRoute] int organizationId,
+        [FromQuery] RoleListFilter filter,
+        CancellationToken ct = default)
+    {
+        var response = await _platformService.GetOrganizationRolesAsync(tenantId, organizationId, filter, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("tenants/{tenantId:int}/organizations/{organizationId:int}/roles/{roleId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformGetRoleById)]
+    public async Task<IResult> GetOrganizationRoleByIdAsync(
+        [FromRoute] int tenantId,
+        [FromRoute] int organizationId,
+        [FromRoute] int roleId,
+        CancellationToken ct = default)
+    {
+        var response = await _platformService.GetOrganizationRoleByIdAsync(tenantId, organizationId, roleId, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("tenants/{tenantId:int}/organizations/{organizationId:int}/roles")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformCreateRole)]
+    public async Task<IResult> CreateOrganizationRoleAsync(
+        [FromRoute] int tenantId,
+        [FromRoute] int organizationId,
+        [FromBody] RoleCreateDto dto,
+        CancellationToken ct = default)
+    {
+        var response = await _platformService.CreateOrganizationRoleAsync(tenantId, organizationId, dto, ct);
+        return response.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPut("tenants/{tenantId:int}/organizations/{organizationId:int}/roles/{roleId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformUpdateRole)]
+    public async Task<IResult> UpdateOrganizationRoleAsync(
+        [FromRoute] int tenantId,
+        [FromRoute] int organizationId,
+        [FromRoute] int roleId,
+        [FromBody] RoleUpdateDto dto,
+        CancellationToken ct = default)
+    {
+        var response = await _platformService.UpdateOrganizationRoleAsync(tenantId, organizationId, roleId, dto, ct);
+        return response.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpDelete("tenants/{tenantId:int}/organizations/{organizationId:int}/roles/{roleId:int}")]
+    [ModuleAuthorize(PermissionCodeConst.PlatformDeleteRole)]
+    public async Task<IResult> DeleteOrganizationRoleAsync(
+        [FromRoute] int tenantId,
+        [FromRoute] int organizationId,
+        [FromRoute] int roleId,
+        CancellationToken ct = default)
+    {
+        var response = await _platformService.DeleteOrganizationRoleAsync(tenantId, organizationId, roleId, ct);
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 

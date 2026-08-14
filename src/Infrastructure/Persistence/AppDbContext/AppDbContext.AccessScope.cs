@@ -95,6 +95,7 @@ public partial class AppDbContext
         ApplyScopedFilter<InventoryCountDoc>(modelBuilder);
         ApplyScopedFilter<OpeningInventory>(modelBuilder);
         ApplyScopedFilter<SaleDoc>(modelBuilder);
+        ApplyScopedFilter<RetailSaleDoc>(modelBuilder);
         ApplyScopedFilter<WarehouseTransferDoc>(modelBuilder);
         ApplyScopedFilter<Branch>(modelBuilder);
         ApplyScopedFilter<Department>(modelBuilder);
@@ -114,6 +115,7 @@ public partial class AppDbContext
         ApplyScopedFilter<FiscalCashRegister>(modelBuilder);
         //ApplyScopedFilter<UserOrganization>(modelBuilder);
         ApplyScopedFilter<FaAsset>(modelBuilder);
+        ApplyScopedFilter<FaCommissioningDoc>(modelBuilder);
         ApplyScopedFilter<FaReceiptDoc>(modelBuilder);
         ApplyScopedFilter<FaMovementDoc>(modelBuilder);
         ApplyScopedFilter<IdempotencyRecord>(modelBuilder);
@@ -199,19 +201,33 @@ public partial class AppDbContext
                                   ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                   : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
 
+        modelBuilder.Entity<FaAssetAccounting>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Asset.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Asset.OrganizationId))));
+
         modelBuilder.Entity<FaReceiptDocLine>()
             .HasQueryFilter(e => IsSuperAdmin
                               || (AllowedOrgIds.Count > 0
                               && (CurrentOrganizationId != 0
-                                  ? e.Owner.OrganizationId == CurrentOrganizationId
-                                  : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+                                  ? e.ReceiptDoc.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.ReceiptDoc.OrganizationId))));
 
         modelBuilder.Entity<FaReceiptDocAsset>()
             .HasQueryFilter(e => IsSuperAdmin
                               || (AllowedOrgIds.Count > 0
                               && (CurrentOrganizationId != 0
-                                  ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
-                                  : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+                                  ? e.ReceiptDocLine.ReceiptDoc.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.ReceiptDocLine.ReceiptDoc.OrganizationId))));
+
+        modelBuilder.Entity<FaCommissioningDocLine>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.CommissioningDoc.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.CommissioningDoc.OrganizationId))));
 
         modelBuilder.Entity<FaMovementDocLine>()
             .HasQueryFilter(e => IsSuperAdmin
@@ -226,6 +242,27 @@ public partial class AppDbContext
                               && (CurrentOrganizationId != 0
                                   ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
                                   : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocProduct>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocTable>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RetailSaleDocPayment>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Owner.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
 
         modelBuilder.Entity<WarehouseTransferLine>()
             .HasQueryFilter(e => IsSuperAdmin

@@ -50,6 +50,9 @@ public partial class Warehouse
     [InverseProperty(nameof(Branch.Warehouses))]
     public virtual Branch? Branch { get; set; }
 
+    [InverseProperty(nameof(RetailSaleDoc.Warehouse))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
+
     [InverseProperty(nameof(WarehouseProduct.Warehouse))]
     public virtual ICollection<WarehouseProduct> WarehouseProducts { get; set; } = new List<WarehouseProduct>();
 

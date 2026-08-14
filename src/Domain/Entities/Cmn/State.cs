@@ -24,6 +24,9 @@ public partial class State
     [InverseProperty(nameof(AccountType.State))]
     public virtual ICollection<AccountType> AccountTypes { get; set; } = new List<AccountType>();
 
+    [InverseProperty(nameof(RetailSaleDoc.State))]
+    public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
+
     [InverseProperty(nameof(ChartAccountSubkonto.State))]
     public virtual ICollection<ChartAccountSubkonto> ChartAccountSubkontos { get; set; } = new List<ChartAccountSubkonto>();
 
@@ -200,6 +203,9 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<FaAsset> FaAssets { get; set; } = new List<FaAsset>();
+
+    [InverseProperty(nameof(FaCommissioningDoc.State))]
+    public virtual ICollection<FaCommissioningDoc> FaCommissioningDocs { get; set; } = new List<FaCommissioningDoc>();
 
     [InverseProperty(nameof(MxikCatalog.State))]
     public virtual ICollection<MxikCatalog> MxikCatalogs { get; set; } = new List<MxikCatalog>();

@@ -295,7 +295,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             };
 
             await _command.CreateAsync(document, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(document.Id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(document.Id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, document.Id.ToString(), AuditLogOperationTypeConst.Create);
             return Result.Success(document.Id);
         }, ct);
@@ -334,7 +334,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     x.ReversalEntryId == null, ct))
                 return Result.Failure(PayrollErrors.Conflict("BusinessEffectsExist", $"Oylik hisoblash hujjati bo‘yicha buxgalteriya o‘tkazmalari allaqachon yaratilgan (hujjat ID: {id})."));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             var now = DateTime.Now;
             var batch = new PostingBatch
             {
@@ -359,7 +359,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             document.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
 
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
             return Result.Success();
         }, ct);
@@ -384,7 +384,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     x.StatusId == DocumentStatusIdConst.POSTED, ct))
                 return Result.Failure(PayrollErrors.Conflict("PayrollHasPayments", "Oylik hisoblash hujjatini bekor qilishdan oldin unga tegishli tasdiqlangan to‘lovlarni bekor qilish kerak."));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             var now = DateTime.Now;
             if (document.StatusId == DocumentStatusIdConst.POSTED)
             {
@@ -417,7 +417,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             document.UpdatedDate = now;
             document.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Cancelled");
             return Result.Success();
         }, ct);
@@ -431,12 +431,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "deleted"));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             document.StateId = StateIdConst.PASSIVE;
             document.UpdatedDate = DateTime.Now;
             document.UpdatedByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, id.ToString(), AuditLogOperationTypeConst.Delete);
             return Result.Success();
         }, ct);
@@ -784,6 +784,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             .Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private async Task<PayrollDocumentDto> GetRequiredDtoInternalAsync(long id, CancellationToken ct) =>
+        await GetDtoInternalAsync(id, ct)
+        ?? throw new InvalidOperationException("Payroll document audit snapshot is unavailable.");
 
     private static decimal Round(decimal value) =>
         Math.Round(value, 2, MidpointRounding.AwayFromZero);

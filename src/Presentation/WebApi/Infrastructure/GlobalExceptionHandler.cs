@@ -14,6 +14,7 @@ namespace WebApi.Infrastructure
             if (exception is IntegrationHttpException integrationException)
             {
                 logger.LogError(
+                    integrationException,
                     "Unhandled integration exception {ExceptionType} with status {StatusCode} for correlation {CorrelationId}",
                     integrationException.GetType().Name,
                     integrationException.StatusCode,
@@ -22,6 +23,7 @@ namespace WebApi.Infrastructure
             else
             {
                 logger.LogError(
+                    exception,
                     "Unhandled exception {ExceptionType} for correlation {CorrelationId}",
                     exception.GetType().Name,
                     correlationId);

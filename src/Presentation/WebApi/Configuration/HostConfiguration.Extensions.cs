@@ -215,47 +215,13 @@ namespace WebApi.Configuration
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
         {
-            var allowedOrigins = builder.Configuration
-                .GetSection("Cors:AllowedOrigins")
-                .Get<string[]>() ?? [];
-
-            ValidateCorsOrigins(allowedOrigins, builder.Environment.EnvironmentName);
-
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("ApiCors", policy =>
                 {
-                    policy
-                        .WithOrigins(allowedOrigins)
-                        .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                        .WithHeaders("Accept", "Authorization", "Content-Type", "X-OrganizationId", "X-Language");
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                 });
             });
-        }
-
-        private static void ValidateCorsOrigins(IReadOnlyCollection<string> origins, string environmentName)
-        {
-            if (environmentName.Equals("Production", StringComparison.OrdinalIgnoreCase) && origins.Count == 0)
-                throw new InvalidOperationException("Cors:AllowedOrigins must contain at least one production origin.");
-
-            var index = 0;
-            foreach (var origin in origins)
-            {
-                if (string.IsNullOrWhiteSpace(origin)
-                    || origin.Contains('*')
-                    || !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                    || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-                    || string.IsNullOrWhiteSpace(uri.Host)
-                    || uri.AbsolutePath != "/"
-                    || !string.IsNullOrEmpty(uri.Query)
-                    || !string.IsNullOrEmpty(uri.Fragment)
-                    || !string.IsNullOrEmpty(uri.UserInfo))
-                {
-                    throw new InvalidOperationException($"Cors:AllowedOrigins contains an invalid origin at index {index}.");
-                }
-
-                index++;
-            }
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)

@@ -19,11 +19,7 @@ public sealed class EdoPublicContractOperationFilter : IOperationFilter
             if (parameter.In == ParameterLocation.Query
                 && (string.Equals(parameter.Name, "scope", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(parameter.Name, "limit", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(parameter.Name, "providerFilters", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(parameter.Name, "search", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(parameter.Name, "hasMarks", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(parameter.Name, "dateFrom", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(parameter.Name, "dateTo", StringComparison.OrdinalIgnoreCase)))
+                    || string.Equals(parameter.Name, "providerFilters", StringComparison.OrdinalIgnoreCase)))
             {
                 operation.Parameters.RemoveAt(index);
             }

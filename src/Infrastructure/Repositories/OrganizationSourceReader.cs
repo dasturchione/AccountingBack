@@ -23,4 +23,10 @@ public sealed class OrganizationSourceReader(AppDbContext context) : IOrganizati
             .Where(x => x.Id == productTableId)
             .Select(x => (int?)x.Product.OrganizationId)
             .SingleOrDefaultAsync(ct);
+
+    public Task<string?> GetOrganizationInnAsync(int organizationId, CancellationToken ct = default) =>
+        context.Organizations.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => x.Id == organizationId)
+            .Select(x => x.Inn)
+            .SingleOrDefaultAsync(ct);
 }

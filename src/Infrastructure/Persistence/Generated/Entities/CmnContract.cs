@@ -29,6 +29,17 @@ public partial class CmnContract
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
 
+    [Column("provider_code")]
+    [StringLength(20)]
+    public string? ProviderCode { get; set; }
+
+    [Column("provider_contract_number")]
+    [StringLength(100)]
+    public string? ProviderContractNumber { get; set; }
+
+    [Column("provider_contract_date")]
+    public DateOnly? ProviderContractDate { get; set; }
+
     [Column("contract_date", TypeName = "timestamp without time zone")]
     public DateTime ContractDate { get; set; }
 

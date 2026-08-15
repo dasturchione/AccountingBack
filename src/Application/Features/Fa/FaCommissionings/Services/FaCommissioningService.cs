@@ -555,4 +555,3 @@ public class FaCommissioningService : BaseService, IFaCommissioningService
     private static DateTime NormalizeDateTime(DateTime value) =>
         DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
 }
-

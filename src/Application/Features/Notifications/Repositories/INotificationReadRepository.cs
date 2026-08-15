@@ -2,10 +2,10 @@ namespace Application.Features.Notifications;
 
 public interface INotificationReadRepository
 {
-    Task<NotificationReadPageResult> GetForUserAsync(int userId, int? organizationId, NotificationQuery query, CancellationToken ct = default);
-    Task<int> GetUnreadCountAsync(int userId, int? organizationId, CancellationToken ct = default);
-    Task<bool> IsVisibleAsync(long notificationId, int userId, int? organizationId, CancellationToken ct = default);
-    Task<List<long>> GetUnreadNotificationIdsAsync(int userId, int? organizationId, CancellationToken ct = default);
+    Task<NotificationReadPageResult> GetForUserAsync(int userId, int? explicitOrganizationId, IReadOnlyCollection<int> allowedOrganizationIds, NotificationQuery query, CancellationToken ct = default);
+    Task<int> GetUnreadCountAsync(int userId, int? explicitOrganizationId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default);
+    Task<bool> IsVisibleAsync(long notificationId, int userId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default);
+    Task<List<long>> GetUnreadNotificationIdsAsync(int userId, IReadOnlyCollection<int> allowedOrganizationIds, CancellationToken ct = default);
 }
 
 public sealed class NotificationReadPageResult

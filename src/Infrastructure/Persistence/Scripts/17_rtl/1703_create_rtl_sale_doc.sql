@@ -71,10 +71,10 @@ create index ix_rtl_sale_doc_cash_register_id
 create index ix_rtl_sale_doc_currency_id
     on rtl_sale_doc(currency_id);
 
-create index ix_rtl_sale_doc_receivable_account_id 
+create index ix_rtl_sale_doc_receivable_account_id
     on rtl_sale_doc(receivable_account_id);
-    
-create index ix_rtl_sale_doc_vat_account_id 
+
+create index ix_rtl_sale_doc_vat_account_id
     on rtl_sale_doc(vat_account_id);
 
 create index ix_rtl_sale_doc_status_id

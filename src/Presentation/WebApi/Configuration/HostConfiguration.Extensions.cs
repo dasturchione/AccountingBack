@@ -15,6 +15,7 @@ using Npgsql;
 using Quartz;
 using Serilog;
 using Serilog.Events;
+using SharedKernel.Time;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -214,15 +215,13 @@ namespace WebApi.Configuration
 
         private static void AddCorsPolicies(WebApplicationBuilder builder)
         {
+            builder.Services.AddCors(options =>
             {
-                builder.Services.AddCors(options =>
+                options.AddPolicy("ApiCors", policy =>
                 {
-                    options.AddPolicy("ApiCors", policy =>
-                    {
-                        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                    });
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                 });
-            }
+            });
         }
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
@@ -252,6 +251,36 @@ namespace WebApi.Configuration
                     .WithIdentity("NotificationEmailDispatchJobTrigger")
                     .WithSimpleSchedule(schedule => schedule
                         .WithInterval(TimeSpan.FromMinutes(15))
+                        .RepeatForever()));
+
+                var contractExpiryJobKey = new JobKey("ContractExpiryNotificationJob");
+                q.AddJob<ContractExpiryNotificationJob>(opts => opts.WithIdentity(contractExpiryJobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(contractExpiryJobKey)
+                    .WithIdentity("ContractExpiryNotificationJobTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(9, 0)
+                        .InTimeZone(TashkentTime.Zone)));
+
+                var edoImportPreflightJobKey = new JobKey(EdoImportPreflightJob.JobName);
+                q.AddJob<EdoImportPreflightJob>(opts => opts
+                    .WithIdentity(edoImportPreflightJobKey)
+                    .StoreDurably());
+                q.AddTrigger(opts => opts
+                    .ForJob(edoImportPreflightJobKey)
+                    .WithIdentity("EdoImportPreflightRecoveryTrigger")
+                    .WithSimpleSchedule(schedule => schedule
+                        .WithInterval(TimeSpan.FromMinutes(1))
+                        .RepeatForever()));
+
+                var edoBulkDraftImportJobKey = new JobKey(EdoBulkDraftImportJob.JobName);
+                q.AddJob<EdoBulkDraftImportJob>(opts => opts
+                    .WithIdentity(edoBulkDraftImportJobKey)
+                    .StoreDurably());
+                q.AddTrigger(opts => opts
+                    .ForJob(edoBulkDraftImportJobKey)
+                    .WithIdentity("EdoBulkDraftImportRecoveryTrigger")
+                    .WithSimpleSchedule(schedule => schedule
+                        .WithInterval(TimeSpan.FromMinutes(1))
                         .RepeatForever()));
             });
 
@@ -435,12 +464,19 @@ namespace WebApi.Configuration
 
         private static readonly string[] ProductionRequiredSettingKeys =
         [
+            "TelegramFileStorage:BotToken",
             "ConnectionStrings:Default",
             "Jwt:Key",
             "BackupJob:Database:Password",
             "FakturaAuthSettings:ClientSecret",
+            "FakturaAuthSettings:AuthorizationClientId",
+            "FakturaAuthSettings:Username",
+            "FakturaAuthSettings:ClientId",
             "FakturaAuthSettings:Password",
+            "Email:Username",
             "Email:Password",
+            "AslBelgi:ApiKey",
+            "Edocs:PartnerId",
             "DataProtection:KeysPath"
         ];
 

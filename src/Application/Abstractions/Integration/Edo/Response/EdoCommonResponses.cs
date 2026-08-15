@@ -152,7 +152,40 @@ public sealed class EdoDocumentDto
     public IReadOnlyDictionary<string, JsonElement> ProviderFields { get; init; } =
         new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
 
+    // Normalized read-only data used by the Purchase preview use-case.
+    // These fields are intentionally not part of the public EDO response contract.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? PreviewSellerTin { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? PreviewContractNumber { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateOnly? PreviewContractDate { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyCollection<EdoDocumentPreviewLineDto> PreviewLines { get; init; } = [];
+
     // Internal adapter mapping only; it is never serialized by WebAPI.
     [System.Text.Json.Serialization.JsonIgnore]
     public long? LegacyDocumentId { get; init; }
+}
+
+public sealed class EdoDocumentPreviewLineDto
+{
+    public int Number { get; init; }
+    public string? CatalogCode { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? CatalogName { get; init; }
+    public string? PackageCode { get; init; }
+    public string? PackageName { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsService { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public decimal? NetAmount { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public decimal? VatAmount { get; init; }
+    public decimal? Quantity { get; init; }
+    public decimal? UnitPrice { get; init; }
+    public decimal? VatRate { get; init; }
+    public decimal? TotalWithVat { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyCollection<string> MarkingCodes { get; init; } = [];
 }

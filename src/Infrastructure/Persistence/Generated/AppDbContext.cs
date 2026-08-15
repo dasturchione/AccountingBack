@@ -180,6 +180,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EdoImportJobProvider> EdoImportJobProviders { get; set; }
 
+    public virtual DbSet<EdoProviderProductMapping> EdoProviderProductMappings { get; set; }
+
     public virtual DbSet<FaAsset> FaAssets { get; set; }
 
     public virtual DbSet<FaAssetAccounting> FaAssetAccountings { get; set; }
@@ -953,6 +955,20 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new
+                {
+                    e.OrganizationId,
+                    e.CounterpartyId,
+                    e.ProviderCode,
+                    e.ProviderContractNumber,
+                    e.ProviderContractDate
+                })
+                .IsUnique()
+                .HasFilter("provider_code IS NOT NULL AND provider_contract_number IS NOT NULL AND provider_contract_date IS NOT NULL")
+                .HasDatabaseName("ux_cmn_contract_provider_identity");
+            entity.ToTable(table => table.HasCheckConstraint(
+                "ck_cmn_contract_provider_code",
+                "provider_code IS NULL OR provider_code IN ('EDOCS', 'DIDOX')"));
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1673,6 +1689,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.MappingStatus).HasDefaultValueSql("'UNRESOLVED'::character varying");
+            entity.Property(e => e.ProviderProductName).HasMaxLength(500);
 
             entity.HasOne(d => d.Candidate).WithMany(p => p.EdoImportCandidateLines).HasConstraintName("edo_import_candidate_line_candidate_id_fkey");
 
@@ -1705,6 +1722,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ProviderVerificationState).HasDefaultValueSql("'UNVERIFIED'::character varying");
 
             entity.HasOne(d => d.CandidateLine).WithMany(p => p.EdoImportCandidateMarkings).HasConstraintName("edo_import_candidate_marking_candidate_line_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoProviderProductMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_provider_product_mapping_pkey");
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.HasOne<OrgOrganization>().WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_provider_product_mapping_organization_id_fkey");
+            entity.HasOne<InvProduct>().WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.ProductId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("edo_provider_product_mapping_product_organization_fkey");
         });
 
         modelBuilder.Entity<EdoImportJob>(entity =>

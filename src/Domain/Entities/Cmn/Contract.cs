@@ -23,6 +23,17 @@ public partial class Contract
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
 
+    [Column("provider_code")]
+    [StringLength(20)]
+    public string? ProviderCode { get; set; }
+
+    [Column("provider_contract_number")]
+    [StringLength(100)]
+    public string? ProviderContractNumber { get; set; }
+
+    [Column("provider_contract_date")]
+    public DateOnly? ProviderContractDate { get; set; }
+
     [Column("description")]
     public string? Description { get; set; }
 

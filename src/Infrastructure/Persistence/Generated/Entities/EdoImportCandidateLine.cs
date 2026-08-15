@@ -25,6 +25,10 @@ public partial class EdoImportCandidateLine
     [StringLength(50)]
     public string? CatalogCode { get; set; }
 
+    [Column("provider_product_name")]
+    [StringLength(500)]
+    public string? ProviderProductName { get; set; }
+
     [Column("package_code")]
     [StringLength(50)]
     public string? PackageCode { get; set; }

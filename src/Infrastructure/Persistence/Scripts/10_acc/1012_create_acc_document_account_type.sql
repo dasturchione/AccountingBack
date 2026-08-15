@@ -1,4 +1,4 @@
-create table if not exists acc_document_account_type 
+create table if not exists acc_document_account_type
 (
 	id						smallserial not null primary key,
 	code					varchar(50) not null unique,

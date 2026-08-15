@@ -13,16 +13,21 @@ public partial class AppDbContext
         _userContext = userContext;
     }
 
-    private int CurrentOrganizationId => _userContext?.OrganizationId ?? 0;
+    private int CurrentOrganizationId => _backgroundOrganizationScope?.OrganizationId
+        ?? _userContext?.OrganizationId
+        ?? 0;
     private int CurrentTenantId => _userContext?.TenantId ?? 0;
     private bool HasCurrentTenant => CurrentTenantId > 0;
     private bool HasCurrentOrganization => CurrentOrganizationId > 0;
     private bool IsSuperAdmin => _userContext?.UserKind == CurrentUserKind.SuperAdmin;
     private bool IsTenantAdmin => _userContext?.UserKind == CurrentUserKind.TenantAdmin;
     private bool IsTenantUser => _userContext?.UserKind == CurrentUserKind.TenantUser;
-    private bool HasAuthenticatedUser => _userContext?.Id is > 0;
+    private bool HasBackgroundOrganizationScope => _backgroundOrganizationScope?.IsActive == true;
+    private bool HasAuthenticatedUser => _userContext?.Id is > 0 || HasBackgroundOrganizationScope;
 
-    private List<int> AllowedOrgIds => _userContext?.AllowedOrganizationIds ?? [];
+    private List<int> AllowedOrgIds => _backgroundOrganizationScope?.OrganizationId is { } organizationId
+        ? [organizationId]
+        : _userContext?.AllowedOrganizationIds ?? [];
     private const string OrgIdProperty = "OrganizationId";
 
     private void ApplyScopedFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class
@@ -40,6 +45,8 @@ public partial class AppDbContext
         modelBuilder.Entity<Organization>()
             .HasQueryFilter(organization =>
                 IsSuperAdmin
+                || (HasBackgroundOrganizationScope
+                    && organization.Id == CurrentOrganizationId)
                 || (IsTenantAdmin
                     && HasCurrentTenant
                     && organization.TenantId == CurrentTenantId)
@@ -72,6 +79,9 @@ public partial class AppDbContext
         ApplyScopedFilter<EdoDocument>(modelBuilder);
         ApplyScopedFilter<EdoDocumentSigningSession>(modelBuilder);
         ApplyScopedFilter<EdoAuthSigningSession>(modelBuilder);
+        ApplyScopedFilter<EdoImportJob>(modelBuilder);
+        ApplyScopedFilter<EdoImportCandidate>(modelBuilder);
+        ApplyScopedFilter<EdoProviderProductMapping>(modelBuilder);
         ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);
         ApplyScopedFilter<OrganizationDefault>(modelBuilder);
         ApplyScopedFilter<OrganizationUserInvitation>(modelBuilder);
@@ -98,6 +108,7 @@ public partial class AppDbContext
         ApplyScopedFilter<DocumentAccountSetting>(modelBuilder);
         ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
         ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
+        ApplyScopedFilter<InvRegBalance>(modelBuilder);
         ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
         ApplyScopedFilter<CashOperation>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);
@@ -148,6 +159,27 @@ public partial class AppDbContext
                               && (CurrentOrganizationId != 0
                                   ? e.Owner.OrganizationId == CurrentOrganizationId
                                   : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+        modelBuilder.Entity<EdoImportJobProvider>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Job.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Job.OrganizationId))));
+
+        modelBuilder.Entity<EdoImportCandidateLine>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Candidate.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Candidate.OrganizationId))));
+
+        modelBuilder.Entity<EdoImportCandidateMarking>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.CandidateLine.Candidate.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.CandidateLine.Candidate.OrganizationId))));
 
         modelBuilder.Entity<OpeningInventoryProduct>()
             .HasQueryFilter(e => IsSuperAdmin

@@ -106,7 +106,7 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             Apply(entity, dto);
             await _command.CreateAsync(entity, ct);
 
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(entity.Id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(entity.Id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayComponent, entity.Id.ToString(), AuditLogOperationTypeConst.Create);
             return Result.Success(entity.Id);
         }, ct);
@@ -129,11 +129,11 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             if (!validation.IsSuccess)
                 return validation;
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             Apply(entity, dto);
             entity.UpdatedDate = DateTime.Now;
             await _command.UpdateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayComponent, id.ToString(), AuditLogOperationTypeConst.Update);
             return Result.Success();
         }, ct);
@@ -146,11 +146,11 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             if (entity is null)
                 return Result.Failure(PayrollErrors.NotFound("Component", id, _userContext.LanguageId));
 
-            _auditLogService.SetOldValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             entity.StateId = StateIdConst.PASSIVE;
             entity.UpdatedDate = DateTime.Now;
             await _command.UpdateAsync(entity, ct);
-            _auditLogService.SetNewValues(await GetDtoInternalAsync(id, ct));
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
             await _auditLogService.CreateAsync(AuditLogTableConst.PayComponent, id.ToString(), AuditLogOperationTypeConst.Delete);
             return Result.Success();
         }, ct);
@@ -197,6 +197,10 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
         var query = _queryBuilder.For<PayComponent>().Where(x => x.Id == id).As(DtoSelector).Build();
         return await _query.GetAsync(query, ct);
     }
+
+    private async Task<PayrollComponentDto> GetRequiredDtoInternalAsync(int id, CancellationToken ct) =>
+        await GetDtoInternalAsync(id, ct)
+        ?? throw new InvalidOperationException("Payroll component audit snapshot is unavailable.");
 
     private static void Apply(PayComponent entity, PayrollComponentBaseDto dto)
     {

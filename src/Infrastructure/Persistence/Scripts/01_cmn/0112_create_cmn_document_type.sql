@@ -27,6 +27,6 @@ values
     (12, 1, 'fa_movement',              'Asosiy vosita ko''chirishi'    ),
     (13, 1, 'fa_depreciation',          'Asosiy vosita amortizatsiyasi' ),
     (14, 1, 'fa_disposal',              'Asosiy vosita chiqib ketishi'  ),
-    (15, 1, 'fa_revaluation',           'Boshlang''ich tovar qoldig''i' ), 
+    (15, 1, 'fa_revaluation',           'Boshlang''ich tovar qoldig''i' ),
     (16, 1, 'opening_inventory',        'Ochiq inventarizatsiya'        ),
     (17, 1, 'fa_commissioning',         'Asosiy vosita o''rnatish'      );

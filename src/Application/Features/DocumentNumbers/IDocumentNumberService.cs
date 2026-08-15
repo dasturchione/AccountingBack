@@ -14,4 +14,10 @@ public interface IDocumentNumberService
         short documentTypeId,
         DateTime documentDate,
         CancellationToken ct = default);
+
+    Task<Result<DocumentNumberResult>> GetNextHistoricalAsync(
+        int organizationId,
+        short documentTypeId,
+        DateTime documentDate,
+        CancellationToken ct = default);
 }

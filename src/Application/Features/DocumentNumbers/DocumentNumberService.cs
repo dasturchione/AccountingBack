@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 using System.Globalization;
@@ -39,7 +40,24 @@ public sealed class DocumentNumberService : IDocumentNumberService
         int organizationId,
         short documentTypeId,
         DateTime documentDate,
-        CancellationToken ct = default)
+        CancellationToken ct = default) =>
+        await GetNextCoreAsync(
+            organizationId, documentTypeId, documentDate, historical: false, ct);
+
+    public async Task<Result<DocumentNumberResult>> GetNextHistoricalAsync(
+        int organizationId,
+        short documentTypeId,
+        DateTime documentDate,
+        CancellationToken ct = default) =>
+        await GetNextCoreAsync(
+            organizationId, documentTypeId, documentDate, historical: true, ct);
+
+    private async Task<Result<DocumentNumberResult>> GetNextCoreAsync(
+        int organizationId,
+        short documentTypeId,
+        DateTime documentDate,
+        bool historical,
+        CancellationToken ct)
     {
         if (organizationId <= 0)
             return Result.Failure<DocumentNumberResult>(DocumentNumberErrors.InvalidOrganization(_userContext.LanguageId));
@@ -52,7 +70,9 @@ public sealed class DocumentNumberService : IDocumentNumberService
 
         try
         {
-            if (!await _organizationQuery.AnyAsync(x => x.Id == organizationId, ct))
+            if (!await _organizationQuery.AnyAsync(x => x.Id == organizationId
+                    && x.TenantId > 0
+                    && x.StateId == StateIdConst.ACTIVE, ct))
                 return Result.Failure<DocumentNumberResult>(DocumentNumberErrors.InvalidOrganization(_userContext.LanguageId));
 
             if (!await _documentTypeQuery.AnyAsync(x => x.Id == documentTypeId, ct))
@@ -70,7 +90,9 @@ public sealed class DocumentNumberService : IDocumentNumberService
             var latestDocumentDate = sequences.Count == 0
                 ? (DateTime?)null
                 : sequences.Max(x => x.LastDocumentDate);
-            if (latestDocumentDate.HasValue && normalizedDocumentDate < latestDocumentDate.Value.Date)
+            if (!historical
+                && latestDocumentDate.HasValue
+                && normalizedDocumentDate < latestDocumentDate.Value.Date)
             {
                 return Result.Failure<DocumentNumberResult>(
                     DocumentNumberErrors.EarlierDocumentDate(latestDocumentDate.Value, _userContext.LanguageId));
@@ -101,14 +123,18 @@ public sealed class DocumentNumberService : IDocumentNumberService
                 }
 
                 sequence.LastNumber++;
-                sequence.LastDocumentDate = normalizedDocumentDate;
+                if (normalizedDocumentDate > sequence.LastDocumentDate)
+                    sequence.LastDocumentDate = normalizedDocumentDate;
                 sequence.UpdatedAt = DateTime.Now;
                 await _sequenceCommand.UpdateAsync(sequence, ct);
             }
 
             return Result.Success(new DocumentNumberResult(
                 sequence.LastNumber,
-                sequence.LastNumber.ToString(CultureInfo.InvariantCulture),
+                historical
+                    ? HistoricalDocumentNumberPolicy.Format(
+                        sequence.DocumentYear, sequence.LastNumber)
+                    : sequence.LastNumber.ToString(CultureInfo.InvariantCulture),
                 normalizedDocumentDate));
         }
         catch (OperationCanceledException)

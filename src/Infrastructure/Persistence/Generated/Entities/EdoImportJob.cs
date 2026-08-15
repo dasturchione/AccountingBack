@@ -82,6 +82,52 @@ public partial class EdoImportJob
     [Column("skipped_count")]
     public int SkippedCount { get; set; }
 
+    [Column("bulk_import_status")]
+    [StringLength(30)]
+    public string? BulkImportStatus { get; set; }
+
+    [Column("bulk_batch_size")]
+    public int? BulkBatchSize { get; set; }
+
+    [Column("bulk_line_values_invalid_policy")]
+    [StringLength(30)]
+    public string? BulkLineValuesInvalidPolicy { get; set; }
+
+    [Column("bulk_marking_already_used_policy")]
+    [StringLength(80)]
+    public string? BulkMarkingAlreadyUsedPolicy { get; set; }
+
+    [Column("bulk_processed_count")]
+    public int BulkProcessedCount { get; set; }
+
+    [Column("bulk_created_draft_count")]
+    public int BulkCreatedDraftCount { get; set; }
+
+    [Column("bulk_reused_draft_count")]
+    public int BulkReusedDraftCount { get; set; }
+
+    [Column("bulk_duplicate_count")]
+    public int BulkDuplicateCount { get; set; }
+
+    [Column("bulk_skipped_count")]
+    public int BulkSkippedCount { get; set; }
+
+    [Column("bulk_failed_count")]
+    public int BulkFailedCount { get; set; }
+
+    [Column("bulk_last_safe_error_code")]
+    [StringLength(100)]
+    public string? BulkLastSafeErrorCode { get; set; }
+
+    [Column("bulk_started_at", TypeName = "timestamp without time zone")]
+    public DateTime? BulkStartedAt { get; set; }
+
+    [Column("bulk_completed_at", TypeName = "timestamp without time zone")]
+    public DateTime? BulkCompletedAt { get; set; }
+
+    [Column("bulk_cancel_requested_at", TypeName = "timestamp without time zone")]
+    public DateTime? BulkCancelRequestedAt { get; set; }
+
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 

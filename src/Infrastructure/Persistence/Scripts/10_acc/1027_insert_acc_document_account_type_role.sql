@@ -1,6 +1,6 @@
 begin;
 
--- purchase_goods 
+-- purchase_goods
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -132,7 +132,7 @@ do update set
     sort_order   = excluded.sort_order;
 
 
--- bank_income 
+-- bank_income
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -225,7 +225,7 @@ do update set
     sort_order   = excluded.sort_order;
 
 
--- cash_expense 
+-- cash_expense
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -291,7 +291,7 @@ do update set
     sort_order = excluded.sort_order;
 
 
--- retail_sale_goods 
+-- retail_sale_goods
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -325,7 +325,7 @@ do update set
     sort_order = excluded.sort_order;
 
 
--- retail_payment_cash 
+-- retail_payment_cash
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -354,9 +354,9 @@ do update set
     account_side = excluded.account_side,
     is_required  = excluded.is_required,
     sort_order   = excluded.sort_order;
-    
 
--- retail_payment_card 
+
+-- retail_payment_card
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -387,7 +387,7 @@ do update set
     sort_order   = excluded.sort_order;
 
 
--- retail_payment_acquiring 
+-- retail_payment_acquiring
 insert into acc_document_account_type_role
 (
     document_account_type_id,
@@ -418,7 +418,7 @@ do update set
     sort_order   = excluded.sort_order;
 
 
--- retail_payment_bank_transfer 
+-- retail_payment_bank_transfer
 insert into acc_document_account_type_role
 (
     document_account_type_id,

@@ -6,7 +6,8 @@ builder.Configuration.Sources.Clear();
 builder.Configuration
     .SetBasePath(builder.Environment.ContentRootPath)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-    .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false);
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables();
 
 await builder.ConfigureAsync();
 

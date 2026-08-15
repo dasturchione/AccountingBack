@@ -1,2 +1,2 @@
-alter table cmn_contract 
+alter table cmn_contract
 	add column description text null;

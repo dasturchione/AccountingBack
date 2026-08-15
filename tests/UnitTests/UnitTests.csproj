@@ -25,6 +25,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Application\Features\Pay\Timesheets\Services\PayrollTimesheetService.cs" Link="PayrollAuditSources\PayrollTimesheetService.cs" />
+    <EmbeddedResource Include="..\..\src\Application\Features\Pay\Components\Services\PayrollComponentService.cs" Link="PayrollAuditSources\PayrollComponentService.cs" />
+    <EmbeddedResource Include="..\..\src\Application\Features\Pay\Employees\Services\PayrollEmployeeService.cs" Link="PayrollAuditSources\PayrollEmployeeService.cs" />
+    <EmbeddedResource Include="..\..\src\Application\Features\Pay\Payments\Services\PayrollPaymentService.cs" Link="PayrollAuditSources\PayrollPaymentService.cs" />
+    <EmbeddedResource Include="..\..\src\Application\Features\Pay\PayrollDocuments\Services\PayrollDocumentService.cs" Link="PayrollAuditSources\PayrollDocumentService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 

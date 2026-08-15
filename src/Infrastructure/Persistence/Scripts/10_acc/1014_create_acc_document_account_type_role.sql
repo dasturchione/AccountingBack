@@ -13,4 +13,3 @@ create table acc_document_account_type_role
 
 	unique (document_account_type_id, document_account_role_id)
 );
-

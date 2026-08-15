@@ -43,6 +43,32 @@ public class PurchaseDocController : ControllerBase
     }
 
     /// <summary>
+    /// EDO hujjati asosida xarid draft preview'si. Ushbu endpoint database'ga yozmaydi.
+    /// </summary>
+    [HttpPost("preview")]
+    [ModuleAuthorize(PermissionCodeConst.PurchaseDocCreate)]
+    public async Task<IResult> PreviewAsync(
+        [FromBody] PurchaseDocPreviewRequestDto request,
+        CancellationToken ct = default)
+    {
+        var result = await _service.PreviewAsync(request, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    /// <summary>
+    /// Tasdiqlangan EDO hujjatidan faqat Draft Purchase yaratadi.
+    /// </summary>
+    [HttpPost("from-edo")]
+    [ModuleAuthorize(PermissionCodeConst.PurchaseDocCreate)]
+    public async Task<IResult> CreateFromEdoAsync(
+        [FromBody] PurchaseDocFromEdoRequestDto request,
+        CancellationToken ct = default)
+    {
+        var result = await _service.CreateFromEdoAsync(request, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    /// <summary>
     /// Yangi hujjat — sarlavha + qatorlar bitta so'rovda yaratiladi
     /// </summary>
     [HttpPost]

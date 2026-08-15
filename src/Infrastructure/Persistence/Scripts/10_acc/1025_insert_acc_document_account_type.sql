@@ -18,9 +18,9 @@ values
     ('bank_expense',     'Bank chiqim',             'Bank hisobvarag‘idan pul chiqishi.', 1),
 
     ('cash_income',      'Kassa kirim',             'Kassaga naqd pul kirimi.', 1),
-    ('cash_expense',     'Kassa chiqim',            'Kassadan naqd pul chiqimi.', 1), 
+    ('cash_expense',     'Kassa chiqim',            'Kassadan naqd pul chiqimi.', 1),
 
-    ('payroll_accrual',  'Ish haqi hisoblash',      'Ish haqi, ushlanmalar va ish beruvchi soliqlarini hisoblash.', 1), 
+    ('payroll_accrual',  'Ish haqi hisoblash',      'Ish haqi, ushlanmalar va ish beruvchi soliqlarini hisoblash.', 1),
 
     ('retail_sale_goods', 'Tovar chakana sotuv', 'Chakana savdo uchun tovarlarni sotish hujjati.', 1),
     ('retail_payment_cash', 'Chakana savdo naqd to‘lov', 'Chakana savdo uchun naqd to‘lov hujjati.', 1),

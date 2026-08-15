@@ -26,6 +26,9 @@ public static class AuditLogTableConst
     public const string HrEmployeeWorkSchedule = "hr_employee_work_schedule";
     public const string HrAbsence = "hr_absence";
     public const string AuthorizationBypass = "sys_authorization_bypass";
+    public const string Notification = "sys_notification";
+    public const string EdoImportJob = "edo_import_job";
+    public const string EdoImportCandidate = "edo_import_candidate";
 }
 
 public static class AuditLogOperationTypeConst

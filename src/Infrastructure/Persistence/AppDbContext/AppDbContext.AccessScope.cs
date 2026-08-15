@@ -64,6 +64,7 @@ public partial class AppDbContext
         ApplyScopedFilter<BankAccount>(modelBuilder);
         ApplyScopedFilter<BankTerminal>(modelBuilder);
         ApplyScopedFilter<AccountingPeriod>(modelBuilder);
+        ApplyScopedFilter<ChartAccount>(modelBuilder);
         ApplyScopedFilter<PostingBatch>(modelBuilder);
         ApplyScopedFilter<DocumentNumberSequence>(modelBuilder);
         ApplyScopedFilter<OrganizationSetupState>(modelBuilder);

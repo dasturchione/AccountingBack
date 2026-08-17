@@ -4,6 +4,9 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using SharedKernel.Exceptions;
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Integration.Edo.Persistence;
 
@@ -40,6 +43,23 @@ public sealed class EdoDocumentStore(AppDbContext context) : IEdoDocumentStore
             document.OrganizationId == organizationId
             && document.Provider == providerCode.ToString()
             && document.ProviderDocumentId == providerDocumentId, ct);
+
+    public async Task AcquireProviderDocumentLockAsync(
+        int organizationId,
+        EdoProviderCode providerCode,
+        string providerDocumentId,
+        CancellationToken ct = default)
+    {
+        if (context.Database.ProviderName?.Contains("Npgsql", StringComparison.Ordinal) != true)
+            return;
+
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"DOCUMENT\u001f{organizationId}\u001f{providerCode}\u001f{providerDocumentId}"));
+        var lockKey = BinaryPrimitives.ReadInt64BigEndian(bytes);
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"select pg_advisory_xact_lock({lockKey})",
+            ct);
+    }
 
     public async Task AddAsync(EdoDocument document, CancellationToken ct = default)
     {

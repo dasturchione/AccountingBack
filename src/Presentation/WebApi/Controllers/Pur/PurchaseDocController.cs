@@ -56,7 +56,8 @@ public class PurchaseDocController : ControllerBase
     }
 
     /// <summary>
-    /// Tasdiqlangan EDO hujjatidan faqat Draft Purchase yaratadi.
+    /// Tasdiqlangan EDO hujjatidan Draft Purchase yaratadi.
+    /// Hujjat oldin import qilingan bo'lsa, mavjud Purchase'ni muvaffaqiyatli qaytaradi.
     /// </summary>
     [HttpPost("from-edo")]
     [ModuleAuthorize(PermissionCodeConst.PurchaseDocCreate)]

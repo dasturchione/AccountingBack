@@ -23,6 +23,12 @@ public interface IEdoDocumentStore
         string providerDocumentId,
         CancellationToken ct = default);
 
+    Task AcquireProviderDocumentLockAsync(
+        int organizationId,
+        EdoProviderCode providerCode,
+        string providerDocumentId,
+        CancellationToken ct = default);
+
     Task AddAsync(EdoDocument document, CancellationToken ct = default);
 
     Task UpdateAsync(EdoDocument document, CancellationToken ct = default);

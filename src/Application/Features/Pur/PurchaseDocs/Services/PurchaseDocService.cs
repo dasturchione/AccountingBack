@@ -247,6 +247,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             EnsureCapability(provider, EdoCapabilityKind.GetDetail);
 
             var identity = request.DocumentIdentity.Trim();
+            await _edoDocumentStore.AcquireProviderDocumentLockAsync(
+                organizationId,
+                provider.Code,
+                identity,
+                ct);
             var localDocument = await _edoDocumentStore.FindByProviderDocumentIdAsync(
                 organizationId,
                 provider.Code,
@@ -265,11 +270,12 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                         "PurchaseFromEdo.InboxDocumentRequired",
                         "Only EDO inbox documents can be imported as a Purchase."));
 
-            if (localDocument.InternalDocumentId > 0)
-                return Result.Failure<PurchaseDocDto>(
-                    Error.Conflict(
-                        "PurchaseFromEdo.Duplicate",
-                        "A Purchase already exists for this EDO document."));
+            var existingPurchase = await GetLinkedPurchaseAsync(
+                organizationId,
+                localDocument,
+                ct);
+            if (existingPurchase is not null)
+                return Result.Success(existingPurchase);
 
             var document = await provider.GetDocumentDetailsAsync(
                 EdoDirection.INBOX,
@@ -301,12 +307,19 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                 return Result.Failure<PurchaseDocDto>(CreateFromHistoricalEdoValidationError([]));
 
             var organizationId = _userContext.OrganizationId.Value;
+            await _edoDocumentStore.AcquireProviderDocumentLockAsync(
+                organizationId,
+                document.ProviderCode,
+                document.ProviderDocumentId,
+                ct);
             var localDocument = await _edoDocumentStore.FindByProviderDocumentIdAsync(
                 organizationId, document.ProviderCode, document.ProviderDocumentId, ct);
-            if (localDocument?.InternalDocumentId > 0)
-                return Result.Failure<PurchaseDocDto>(Error.Conflict(
-                    "PurchaseFromEdo.Duplicate",
-                    "A Purchase already exists for this EDO document."));
+            var existingPurchase = await GetLinkedPurchaseAsync(
+                organizationId,
+                localDocument,
+                ct);
+            if (existingPurchase is not null)
+                return Result.Success(existingPurchase);
 
             return await CreateDraftFromNormalizedEdoAsync(
                 organizationId, document.ProviderCode, document, request, localDocument,
@@ -688,11 +701,35 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         if (_userContext.OrganizationId is null)
             return null;
 
+        return await GetByIdInternalAsync(_userContext.OrganizationId.Value, id, ct);
+    }
+
+    private async Task<PurchaseDocDto?> GetByIdInternalAsync(
+        int organizationId,
+        long id,
+        CancellationToken ct)
+    {
         var query = _queryBuilder.For<PurchaseDoc>()
-            .Where(p => p.Id == id && p.OrganizationId == _userContext.OrganizationId.Value)
+            .Where(p => p.Id == id && p.OrganizationId == organizationId)
             .As<PurchaseDocDto>()
             .Build();
         return await _query.GetAsync(query, ct);
+    }
+
+    private Task<PurchaseDocDto?> GetLinkedPurchaseAsync(
+        int organizationId,
+        EdoDocument? document,
+        CancellationToken ct)
+    {
+        if (document is null
+            || document.InternalDocumentId <= 0
+            || !string.Equals(
+                document.InternalDocumentType,
+                "PURCHASE",
+                StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult<PurchaseDocDto?>(null);
+
+        return GetByIdInternalAsync(organizationId, document.InternalDocumentId, ct);
     }
 
     private async Task<List<PurchaseTableLink>> GetPurchaseTableLinksAsync(long purchaseDocId, CancellationToken ct)

@@ -132,6 +132,8 @@ public sealed class EdoDocumentDto
     public string? DocumentNumber { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public DateOnly? DocumentDate { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? DocumentDateTime { get; init; }
     public EdoDocumentStatusDto Status { get; init; } = new();
     [System.Text.Json.Serialization.JsonIgnore]
     public EdoEmpowermentDto? Empowerment { get; init; }

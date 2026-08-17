@@ -368,6 +368,7 @@ public sealed class EdoImportPreflightProcessor : IEdoImportPreflightProcessor
             DocumentType = document.DocumentType,
             DocumentNumber = document.DocumentNumber,
             DocumentDate = document.DocumentDate,
+            DocumentDateTime = document.DocumentDateTime,
             SellerTin = document.Seller?.Tin,
             BuyerTin = document.Buyer?.Tin,
             SellerName = document.Seller?.Name,

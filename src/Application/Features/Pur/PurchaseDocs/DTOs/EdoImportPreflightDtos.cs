@@ -534,6 +534,7 @@ public sealed class EdoImportCandidateListDto
     public string ProviderDocumentId { get; init; } = string.Empty;
     public string? DocumentNumber { get; init; }
     public DateOnly? DocumentDate { get; init; }
+    public DateTime? DocumentDateTime { get; init; }
     public string? SellerTin { get; init; }
     public string? SellerName { get; init; }
     public decimal? TotalAmount { get; init; }
@@ -551,6 +552,7 @@ public sealed class EdoImportCandidateDetailDto
     public string ProviderDocumentId { get; init; } = string.Empty;
     public string? DocumentNumber { get; init; }
     public DateOnly? DocumentDate { get; init; }
+    public DateTime? DocumentDateTime { get; init; }
     public string? SellerTin { get; init; }
     public string? BuyerTin { get; init; }
     public string? SellerName { get; init; }
@@ -635,6 +637,7 @@ internal static class EdoImportPreflightMappings
         ProviderDocumentId = candidate.ProviderDocumentId,
         DocumentNumber = candidate.DocumentNumber,
         DocumentDate = candidate.DocumentDate,
+        DocumentDateTime = candidate.DocumentDateTime,
         SellerTin = candidate.SellerTin,
         SellerName = candidate.SellerName,
         TotalAmount = candidate.TotalAmount,
@@ -652,6 +655,7 @@ internal static class EdoImportPreflightMappings
         ProviderDocumentId = candidate.ProviderDocumentId,
         DocumentNumber = candidate.DocumentNumber,
         DocumentDate = candidate.DocumentDate,
+        DocumentDateTime = candidate.DocumentDateTime,
         SellerTin = candidate.SellerTin,
         BuyerTin = candidate.BuyerTin,
         SellerName = candidate.SellerName,

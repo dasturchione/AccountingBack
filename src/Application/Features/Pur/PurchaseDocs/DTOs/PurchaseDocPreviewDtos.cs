@@ -29,6 +29,7 @@ public sealed class PurchaseDocPreviewDto
     public EdoDocumentStatusCode Status { get; init; }
     public string? DocumentNumber { get; init; }
     public DateOnly? DocumentDate { get; init; }
+    public DateTime? DocumentDateTime { get; init; }
     public PurchaseDocPreviewCounterpartyDto Counterparty { get; init; } = new();
     public PurchaseDocPreviewContractDto Contract { get; init; } = new();
     public IReadOnlyCollection<PurchaseDocPreviewLineDto> Lines { get; init; } = [];

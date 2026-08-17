@@ -226,6 +226,7 @@
 15_integration/1525_add_edo_import_job_bulk_import.sql
 15_integration/1526_verify_edo_historical_import_schema.sql
 15_integration/1527_verify_org_organization_tenant_id_contract.sql
+15_integration/1528_add_edo_document_datetime.sql
 16_pay/1601_create_pay_employee.sql
 16_pay/1602_create_pay_employment.sql
 16_pay/1603_create_pay_component.sql

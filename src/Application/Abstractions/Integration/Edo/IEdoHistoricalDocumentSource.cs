@@ -81,6 +81,7 @@ public sealed class EdoHistoricalDocumentSummaryDto
     public string DocumentType { get; init; } = string.Empty;
     public string? DocumentNumber { get; init; }
     public DateOnly? DocumentDate { get; init; }
+    public DateTime? DocumentDateTime { get; init; }
     public string? SellerTin { get; init; }
     public string? BuyerTin { get; init; }
     public string? SellerName { get; init; }
@@ -105,6 +106,7 @@ public sealed class EdoHistoricalDocumentDetailDto
     public string DocumentType { get; init; } = string.Empty;
     public string? DocumentNumber { get; init; }
     public DateOnly? DocumentDate { get; init; }
+    public DateTime? DocumentDateTime { get; init; }
     public EdoHistoricalPartyDto? Seller { get; init; }
     public EdoHistoricalPartyDto? Buyer { get; init; }
     public string? ContractNumber { get; init; }

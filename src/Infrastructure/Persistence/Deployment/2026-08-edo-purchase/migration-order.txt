@@ -9,3 +9,4 @@
 ../../Scripts/15_integration/1524_create_edo_provider_product_mapping.sql
 ../../Scripts/15_integration/1525_add_edo_import_job_bulk_import.sql
 ../../Scripts/15_integration/1526_verify_edo_historical_import_schema.sql
+../../Scripts/15_integration/1528_add_edo_document_datetime.sql

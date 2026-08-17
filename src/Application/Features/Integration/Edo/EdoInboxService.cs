@@ -737,6 +737,7 @@ public sealed class EdoInboxService(
                 DocumentType = providerDocument.DocumentType,
                 DocumentNumber = providerDocument.DocumentNumber,
                 DocumentDate = providerDocument.DocumentDate,
+                DocumentDateTime = providerDocument.DocumentDateTime,
                 Status = providerDocument.Status.Code.ToString(),
                 ProviderStatusCode = providerDocument.Status.ProviderStatusCode,
                 OperationType = InboxSyncOperation,
@@ -755,6 +756,7 @@ public sealed class EdoInboxService(
             document.DocumentType = providerDocument.DocumentType;
             document.DocumentNumber = providerDocument.DocumentNumber;
             document.DocumentDate = providerDocument.DocumentDate;
+            document.DocumentDateTime = providerDocument.DocumentDateTime;
             document.Status = providerDocument.Status.Code.ToString();
             document.ProviderStatusCode = providerDocument.Status.ProviderStatusCode;
             document.UpdatedAt = DateTime.UtcNow;
@@ -945,6 +947,8 @@ public sealed class EdoInboxService(
             DocumentDate = providerDocument?.DocumentDate
                 ?? edocsFields.DocumentDate
                 ?? document.DocumentDate,
+            DocumentDateTime = providerDocument?.DocumentDateTime
+                ?? document.DocumentDateTime,
             Status = new EdoDocumentStatusDto
             {
                 Code = status.Code,
@@ -990,6 +994,7 @@ public sealed class EdoInboxService(
         DocumentType = providerDocument.DocumentType,
         DocumentNumber = providerDocument.DocumentNumber ?? edocsFields.DocumentNumber,
         DocumentDate = providerDocument.DocumentDate ?? edocsFields.DocumentDate,
+        DocumentDateTime = providerDocument.DocumentDateTime,
         Status = providerDocument.Status,
         Empowerment = providerDocument.Empowerment,
         Seller = providerDocument.Seller ?? edocsFields.Seller,

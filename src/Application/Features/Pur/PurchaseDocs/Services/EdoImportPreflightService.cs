@@ -2792,6 +2792,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             candidate.DocumentType,
             candidate.DocumentNumber,
             candidate.DocumentDate,
+            candidate.DocumentDateTime,
             candidate.SellerTin,
             candidate.ProviderContractNumber,
             candidate.ProviderContractDate,
@@ -3055,6 +3056,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             DocumentType = "FACTURA",
             DocumentNumber = candidate.DocumentNumber,
             DocumentDate = candidate.DocumentDate,
+            DocumentDateTime = candidate.DocumentDateTime,
             Status = new EdoDocumentStatusDto
             {
                 Code = EdoDocumentStatusCode.SIGNED,

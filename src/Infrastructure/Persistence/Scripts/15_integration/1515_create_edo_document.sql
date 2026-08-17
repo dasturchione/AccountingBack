@@ -11,6 +11,7 @@ create table edo_document
     document_type            character varying(50) not null,
     document_number          character varying(100),
     document_date            date,
+    document_date_time       timestamp without time zone,
     status                   character varying(40) not null,
     provider_status_code     character varying(100),
     error_message            text,

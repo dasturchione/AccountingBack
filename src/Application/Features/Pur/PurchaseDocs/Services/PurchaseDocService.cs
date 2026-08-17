@@ -199,6 +199,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                 Status = EdoDocumentStatusCode.SIGNED,
                 DocumentNumber = document.DocumentNumber,
                 DocumentDate = document.DocumentDate,
+                DocumentDateTime = document.DocumentDateTime,
                 Counterparty = counterparty.Dto,
                 Contract = contract.Dto,
                 Lines = lines,
@@ -386,7 +387,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                 : CreateFromEdoValidationError());
         var purchaseDto = new PurchaseDocCreateDto
         {
-            DocDate = document.DocumentDate.Value.ToDateTime(TimeOnly.MinValue),
+            ExternalId = document.ProviderDocumentId,
+            ExternalDocNumber = document.DocumentNumber,
+            DocDate = ResolveEdoDocumentDateTime(document),
             CounterpartyId = counterparty.Id.Value,
             WarehouseId = warehouse.Id.Value,
             CurrencyId = (short)currency.Id.Value,
@@ -422,6 +425,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                 DocumentType = document.DocumentType,
                 DocumentNumber = document.DocumentNumber,
                 DocumentDate = document.DocumentDate,
+                DocumentDateTime = document.DocumentDateTime,
                 Status = document.Status.Code.ToString(),
                 ProviderStatusCode = document.Status.ProviderStatusCode,
                 OperationType = "PURCHASE_FROM_EDO",
@@ -440,6 +444,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             localDocument.DocumentType = document.DocumentType;
             localDocument.DocumentNumber = document.DocumentNumber;
             localDocument.DocumentDate = document.DocumentDate;
+            localDocument.DocumentDateTime = document.DocumentDateTime;
             localDocument.UpdatedAt = now;
             await _edoDocumentStore.UpdateAsync(localDocument, ct);
         }
@@ -463,6 +468,14 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         return result is null
             ? Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(created.Value, _userContext.LanguageId))
             : Result.Success(result);
+    }
+
+    internal static DateTime ResolveEdoDocumentDateTime(EdoDocumentDto document)
+    {
+        var value = document.DocumentDateTime
+            ?? document.DocumentDate?.ToDateTime(TimeOnly.MinValue)
+            ?? throw new InvalidOperationException("The provider document date is required.");
+        return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
     }
 
     public Task<Result<long>> CreateAsync(PurchaseDocCreateDto dto, CancellationToken ct = default) =>

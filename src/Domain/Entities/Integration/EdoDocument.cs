@@ -53,6 +53,9 @@ public sealed class EdoDocument
     [Column("document_date", TypeName = "date")]
     public DateOnly? DocumentDate { get; set; }
 
+    [Column("document_date_time", TypeName = "timestamp without time zone")]
+    public DateTime? DocumentDateTime { get; set; }
+
     [Column("status")]
     [StringLength(40)]
     public string Status { get; set; } = null!;

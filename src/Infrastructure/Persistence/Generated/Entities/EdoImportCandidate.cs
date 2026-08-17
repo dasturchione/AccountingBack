@@ -52,6 +52,9 @@ public partial class EdoImportCandidate
     [Column("document_date")]
     public DateOnly? DocumentDate { get; set; }
 
+    [Column("document_date_time", TypeName = "timestamp without time zone")]
+    public DateTime? DocumentDateTime { get; set; }
+
     [Column("seller_tin")]
     [StringLength(20)]
     public string? SellerTin { get; set; }

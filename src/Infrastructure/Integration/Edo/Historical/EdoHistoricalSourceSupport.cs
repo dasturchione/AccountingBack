@@ -144,6 +144,7 @@ internal static class EdoHistoricalSourceSupport
             DocumentType = normalizedType,
             DocumentNumber = document.DocumentNumber,
             DocumentDate = document.DocumentDate,
+            DocumentDateTime = document.DocumentDateTime,
             Seller = string.IsNullOrWhiteSpace(sellerTin)
                 ? null
                 : new EdoHistoricalPartyDto

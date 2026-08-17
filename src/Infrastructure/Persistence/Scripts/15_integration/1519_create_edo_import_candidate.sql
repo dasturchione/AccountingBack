@@ -11,6 +11,7 @@ create table edo_import_candidate
     document_type               character varying(50),
     document_number             character varying(100),
     document_date               date,
+    document_date_time          timestamp without time zone,
     seller_tin                  character varying(20),
     buyer_tin                   character varying(20),
     seller_name                 character varying(500),

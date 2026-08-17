@@ -457,6 +457,10 @@ public sealed class EdocsEdoOperations(
         }
 
         var seller = ReadSellerParty(item, documentType);
+        var documentDateTime = ReadDateTime(item, "docDate")
+            ?? ReadDateTime(item, "documentDate")
+            ?? ReadPathDateTime(item, "data", "facturadoc", "facturadate")
+            ?? ReadNestedDateTime(item, "FacturaDoc", "FacturaDate");
 
         return new EdoDocumentDto
         {
@@ -473,6 +477,7 @@ public sealed class EdocsEdoOperations(
                 ?? ReadDate(item, "documentDate")
                 ?? ReadPathDate(item, "data", "facturadoc", "facturadate")
                 ?? ReadNestedDate(item, "FacturaDoc", "FacturaDate"),
+            DocumentDateTime = documentDateTime,
             Status = status,
             Seller = seller,
             Buyer = ReadBuyerParty(item),
@@ -675,8 +680,14 @@ public sealed class EdocsEdoOperations(
     private static DateOnly? ReadNestedDate(JsonElement item, string parent, string child) =>
         ParseDate(ReadNestedString(item, parent, child));
 
+    private static DateTime? ReadNestedDateTime(JsonElement item, string parent, string child) =>
+        ParseDocumentDateTime(ReadNestedString(item, parent, child));
+
     private static DateOnly? ReadDate(JsonElement item, string name) =>
         ParseDate(ReadOptionalString(item, name));
+
+    private static DateTime? ReadDateTime(JsonElement item, string name) =>
+        ParseDocumentDateTime(ReadOptionalString(item, name));
 
     private static decimal? ReadDecimal(
         JsonElement item,
@@ -1231,6 +1242,9 @@ public sealed class EdocsEdoOperations(
     private static DateOnly? ReadPathDate(JsonElement item, params string[] path) =>
         ParseDate(ReadPathString(item, path));
 
+    private static DateTime? ReadPathDateTime(JsonElement item, params string[] path) =>
+        ParseDocumentDateTime(ReadPathString(item, path));
+
     private static EdoPartyDto? ReadPathParty(JsonElement item, params string[] path) =>
         ReadPath(item, path) is { } property
             ? ReadPartyObject(property)
@@ -1250,6 +1264,23 @@ public sealed class EdocsEdoOperations(
             DateTimeStyles.RoundtripKind,
             out var timestamp)
             ? DateOnly.FromDateTime(timestamp.DateTime)
+            : null;
+    }
+
+    internal static DateTime? ParseDocumentDateTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return date.ToDateTime(TimeOnly.MinValue);
+
+        return DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind,
+            out var timestamp)
+            ? DateTime.SpecifyKind(timestamp.DateTime, DateTimeKind.Unspecified)
             : null;
     }
 
@@ -1321,6 +1352,7 @@ public sealed class EdocsEdoOperations(
             DocumentType = document.DocumentType,
             DocumentNumber = document.DocumentNumber,
             DocumentDate = document.DocumentDate,
+            DocumentDateTime = document.DocumentDateTime,
             SellerTin = document.Seller?.TaxIdentifier ?? document.PreviewSellerTin,
             BuyerTin = document.Buyer?.TaxIdentifier,
             SellerName = document.Seller?.Name,

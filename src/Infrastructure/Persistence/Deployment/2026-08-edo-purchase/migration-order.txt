@@ -1,4 +1,4 @@
-../../Scripts/07_pur/0705_preserve_explicit_pur_doc_number.sql
+../../Scripts/01_cmn/0148_unify_document_number_generation.sql
 ../../Scripts/15_integration/1517_create_edo_import_job.sql
 ../../Scripts/15_integration/1518_create_edo_import_job_provider.sql
 ../../Scripts/15_integration/1519_create_edo_import_candidate.sql

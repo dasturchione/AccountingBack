@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features;
+using Application.Features.DocumentNumbers;
 using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IWarehouseInventoryService _warehouseInventoryService;
     private readonly IQueryRepository<SaleShipmentDoc> _shipmentQuery;
     private readonly ICommandRepository<SaleShipmentDoc> _shipmentCommand;
@@ -30,7 +31,7 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
     public SaleShipmentService(
         IUserContext userContext,
         IQueryBuilder queryBuilder,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IWarehouseInventoryService warehouseInventoryService,
         IQueryRepository<SaleShipmentDoc> shipmentQuery,
         ICommandRepository<SaleShipmentDoc> shipmentCommand,
@@ -47,7 +48,7 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _warehouseInventoryService = warehouseInventoryService;
         _shipmentQuery = shipmentQuery;
         _shipmentCommand = shipmentCommand;
@@ -238,7 +239,15 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
                 : Result.Success<string?>(normalizedDocNumber);
         }
 
-        return Result.Success<string?>(await _docNumberGenerator.GenerateAsync(organizationId, "SHP", docDate, ct));
+        var documentNumberResult = await _documentNumberService.GetNextAsync(
+            organizationId,
+            DocumentTypeIdConst.SALESHIPMENT,
+            docDate,
+            ct);
+
+        return documentNumberResult.IsSuccess
+            ? Result.Success<string?>(documentNumberResult.Value.DocumentNumber)
+            : Result.Failure<string?>(documentNumberResult.Error);
     }
 
     private async Task<Result<List<SaleShipmentProduct>>> BuildProductsAsync(

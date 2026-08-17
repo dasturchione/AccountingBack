@@ -44,7 +44,7 @@ namespace SharedKernel.Constants
         /// <summary>
         /// Warehouse transfer document.
         /// </summary>
-        public const short WAREHOUSETRANSFER = 7;
+        public const short WAREHOUSETRANSFER = 18;
 
         /// <summary>
         /// Inventory adjustment document.
@@ -96,5 +96,25 @@ namespace SharedKernel.Constants
         /// balances, but never creates accounting postings.
         /// </summary>
         public const short OPENINGINVENTORY = 16;
+
+        /// <summary>
+        /// Shipment created for a sale document.
+        /// </summary>
+        public const short SALESHIPMENT = 19;
+
+        /// <summary>
+        /// Payroll timesheet document.
+        /// </summary>
+        public const short PAYROLLTIMESHEET = 20;
+
+        /// <summary>
+        /// Payroll payment document.
+        /// </summary>
+        public const short PAYROLLPAYMENT = 21;
+
+        /// <summary>
+        /// Employee absence document.
+        /// </summary>
+        public const short HRABSENCE = 22;
     }
 }

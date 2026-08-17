@@ -63,6 +63,7 @@
 01_cmn/0146_alter_cmn_contract.sql
 02_org/0201_create_org_organization.sql
 01_cmn/0147_harden_org_organization_tenant_id.sql
+01_cmn/0148_unify_document_number_generation.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql
@@ -114,7 +115,6 @@
 07_pur/0702_create_pur_doc_product.sql
 07_pur/0703_create_pur_doc_table.sql
 07_pur/0704_alter_table_pur_doc.sql
-07_pur/0705_preserve_explicit_pur_doc_number.sql
 08_sale/0801_create_sale_condition.sql
 08_sale/0802_create_sale_doc.sql
 08_sale/0803_create_sale_doc_product.sql

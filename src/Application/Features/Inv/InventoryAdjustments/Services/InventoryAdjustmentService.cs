@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.InventoryMovements;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +30,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryAdjustmentLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _query;
     private readonly ICommandRepository<InventoryAdjustmentDoc> _command;
     private readonly ICommandRepository<InventoryAdjustmentLine> _lineCommand;
@@ -47,7 +48,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IInventoryAdjustmentLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<InventoryAdjustmentDoc> query,
         ICommandRepository<InventoryAdjustmentDoc> command,
         ICommandRepository<InventoryAdjustmentLine> lineCommand,
@@ -67,7 +68,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
         _lineCommand = lineCommand;
@@ -118,13 +119,20 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             if (!validationResult.IsSuccess)
                 return Result.Failure<long>(validationResult.Error);
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(organizationId, "IAD", dto.DocDate, ct);
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.INVENTORYADJUSTMENT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var lines = BuildLines(dto);
 
             var doc = new InventoryAdjustmentDoc
             {
                 OrganizationId = organizationId,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 WarehouseId = dto.WarehouseId,
                 AdjustmentType = dto.AdjustmentType.Trim().ToUpperInvariant(),

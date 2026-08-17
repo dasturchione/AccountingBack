@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IDocumentPostingLock _postingLock;
     private readonly IAccountingPeriodValidator _accountingPeriodValidator;
     private readonly IAccountingDispatcher _dispatcher;
@@ -40,7 +41,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IDocumentPostingLock postingLock,
         IAccountingPeriodValidator accountingPeriodValidator,
         IAccountingDispatcher dispatcher,
@@ -64,7 +65,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _postingLock = postingLock;
         _accountingPeriodValidator = accountingPeriodValidator;
         _dispatcher = dispatcher;
@@ -268,12 +269,20 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     "CorrectionCurrencyMismatch",
                     $"Tuzatish hujjati valyutasi (ID: {payrollCurrencyIds[0]}) asosiy oylik hujjati valyutasiga (ID: {correctionSource.CurrencyId}) mos kelmaydi."));
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.SALARY,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var document = new PayPayrollDoc
             {
                 OrganizationId = organizationId,
                 PeriodId = period.Id,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "PAY", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 DocumentKind = kind,
                 CorrectionOfDocId = dto.CorrectionOfDocId,

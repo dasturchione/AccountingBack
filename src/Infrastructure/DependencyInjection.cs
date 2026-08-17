@@ -172,7 +172,6 @@ namespace Infrastructure
             services.AddScoped<IPermissionChecker, PermissionChecker>();
 
             services.AddScoped<IDocumentNumberService, Application.Features.DocumentNumbers.DocumentNumberService>();
-            services.AddScoped<IDocNumberGenerator, DocNumberGenerator>();
             services.AddScoped<IProductTableReservationService, ProductTableReservationService>();
             services.AddScoped<IWarehouseProductBalanceService, WarehouseProductBalanceService>();
             services.AddScoped<IWarehouseInventoryService, WarehouseInventoryService>();

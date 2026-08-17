@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.Hr.Files;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IHrFileStorage _fileStorage;
     private readonly ITelegramFileArchive _telegramArchive;
     private readonly IQueryRepository<HrAbsence> _absenceQuery;
@@ -35,7 +36,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IHrFileStorage fileStorage,
         ITelegramFileArchive telegramArchive,
         IQueryRepository<HrAbsence> absenceQuery,
@@ -54,7 +55,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _fileStorage = fileStorage;
         _telegramArchive = telegramArchive;
         _absenceQuery = absenceQuery;
@@ -152,16 +153,20 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 return Result.Failure<long>(validation.Error);
 
             var organizationId = _userContext.OrganizationId!.Value;
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.HRABSENCE,
+                dto.DocDate.ToDateTime(TimeOnly.MinValue),
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var entity = new HrAbsence
             {
                 OrganizationId = organizationId,
                 EmployeeId = dto.EmployeeId,
                 AbsenceTypeId = dto.AbsenceTypeId,
-                DocNumber = await _docNumberGenerator.GenerateAsync(
-                    organizationId,
-                    "HRA",
-                    dto.DocDate.ToDateTime(TimeOnly.MinValue),
-                    ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,

@@ -48,13 +48,3 @@ create index idx_cash_operation_posted_by_user_id on cash_operation using btree 
 create index idx_cash_operation_cancelled_by_user_id on cash_operation using btree (cancelled_by_user_id);
 create index idx_cash_operation_cash_chart_account_id on cash_operation (cash_chart_account_id);
 create index idx_cash_operation_offset_account_id on cash_operation (offset_account_id);
-
-create function set_cash_operation_doc_number() returns trigger
-    language plpgsql
-    as $$
-begin
-    perform pg_advisory_xact_lock(hashtext('cash_operation_doc_number'));
-    new.doc_number := lpad((coalesce((select max(doc_number::bigint) from cash_operation), 100000000) + 1)::text, 9, '0');
-    return new;
-end;
-$$;

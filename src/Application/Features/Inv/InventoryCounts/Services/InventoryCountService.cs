@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.InventoryAdjustments;
 using Application.Features.InventoryMovements;
 using Domain.Entities;
@@ -19,7 +20,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IInventoryCountLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<InventoryCountDoc> _query;
     private readonly ICommandRepository<InventoryCountDoc> _command;
     private readonly ICommandRepository<InventoryCountLine> _lineCommand;
@@ -38,7 +39,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IInventoryCountLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<InventoryCountDoc> query,
         ICommandRepository<InventoryCountDoc> command,
         ICommandRepository<InventoryCountLine> lineCommand,
@@ -59,7 +60,7 @@ public class InventoryCountService : BaseService, IInventoryCountService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
         _lineCommand = lineCommand;
@@ -114,13 +115,20 @@ public class InventoryCountService : BaseService, IInventoryCountService
             if (!validationResult.IsSuccess)
                 return Result.Failure<long>(validationResult.Error);
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(organizationId, "ICT", dto.DocDate, ct);
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.INVENTORYCOUNT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var lines = await BuildLinesAsync(dto, organizationId, ct);
 
             var doc = new InventoryCountDoc
             {
                 OrganizationId = organizationId,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 WarehouseId = dto.WarehouseId,
                 StatusId = DocumentStatusIdConst.DRAFT,

@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.InventoryAdjustments;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
     private readonly IDocumentPostingLock _postingLock;
     private readonly IAccountingPeriodValidator _periodValidator;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IInventoryAdjustmentLifecycleService _inventoryAdjustmentLifecycleService;
     private readonly IQueryRepository<InventoryCountDoc> _query;
     private readonly ICommandRepository<InventoryCountDoc> _command;
@@ -37,7 +38,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         IDocumentPostingLock postingLock,
         IAccountingPeriodValidator periodValidator,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IInventoryAdjustmentLifecycleService inventoryAdjustmentLifecycleService,
         IQueryRepository<InventoryCountDoc> query,
         ICommandRepository<InventoryCountDoc> command,
@@ -57,7 +58,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         _postingLock = postingLock;
         _periodValidator = periodValidator;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _inventoryAdjustmentLifecycleService = inventoryAdjustmentLifecycleService;
         _query = query;
         _command = command;
@@ -121,7 +122,11 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             var negativeDifferenceRows = differences.Where(x => x.MissingQuantity > 0).ToList();
             if (negativeDifferenceRows.Count > 0)
             {
-                var negativeAdjustment = await CreateNegativeAdjustmentAsync(doc, negativeDifferenceRows, ct);
+                var negativeAdjustmentResult = await CreateNegativeAdjustmentAsync(doc, negativeDifferenceRows, ct);
+                if (!negativeAdjustmentResult.IsSuccess)
+                    return Result.Failure(negativeAdjustmentResult.Error);
+
+                var negativeAdjustment = negativeAdjustmentResult.Value;
                 doc.NegativeAdjustmentDocId = negativeAdjustment.Id;
 
                 var negativeConfirm = await _inventoryAdjustmentLifecycleService.ConfirmAsync(negativeAdjustment.Id, ct);
@@ -132,7 +137,11 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             var positiveDifferenceRows = differences.Where(x => x.FoundQuantity > 0).ToList();
             if (positiveDifferenceRows.Count > 0)
             {
-                var positiveAdjustment = await CreatePositiveAdjustmentAsync(doc, positiveDifferenceRows, ct);
+                var positiveAdjustmentResult = await CreatePositiveAdjustmentAsync(doc, positiveDifferenceRows, ct);
+                if (!positiveAdjustmentResult.IsSuccess)
+                    return Result.Failure(positiveAdjustmentResult.Error);
+
+                var positiveAdjustment = positiveAdjustmentResult.Value;
                 doc.PositiveAdjustmentDocId = positiveAdjustment.Id;
 
                 var positiveConfirm = await _inventoryAdjustmentLifecycleService.ConfirmAsync(positiveAdjustment.Id, ct);
@@ -345,13 +354,24 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         return differences.Values.OrderBy(x => x.ProductName).ToList();
     }
 
-    private async Task<InventoryAdjustmentDoc> CreateNegativeAdjustmentAsync(InventoryCountDoc doc, List<InventoryCountDifferenceDto> differences, CancellationToken ct)
+    private async Task<Result<InventoryAdjustmentDoc>> CreateNegativeAdjustmentAsync(
+        InventoryCountDoc doc,
+        List<InventoryCountDifferenceDto> differences,
+        CancellationToken ct)
     {
+        var documentNumberResult = await _documentNumberService.GetNextAsync(
+            doc.OrganizationId,
+            DocumentTypeIdConst.INVENTORYADJUSTMENT,
+            doc.DocDate,
+            ct);
+        if (!documentNumberResult.IsSuccess)
+            return Result.Failure<InventoryAdjustmentDoc>(documentNumberResult.Error);
+
         var costMap = await ResolveMissingCostMapAsync(differences.SelectMany(x => x.MissingProductTableIds).Distinct().ToList(), ct);
         var adjustmentDoc = new InventoryAdjustmentDoc
         {
             OrganizationId = doc.OrganizationId,
-            DocNumber = await _docNumberGenerator.GenerateAsync(doc.OrganizationId, "IAD", doc.DocDate, ct),
+            DocNumber = documentNumberResult.Value.DocumentNumber,
             DocDate = doc.DocDate,
             WarehouseId = doc.WarehouseId,
             AdjustmentType = "NEGATIVE_ADJUSTMENT",
@@ -374,16 +394,27 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         };
 
         await _inventoryAdjustmentCommand.CreateAsync(adjustmentDoc, ct);
-        return adjustmentDoc;
+        return Result.Success(adjustmentDoc);
     }
 
-    private async Task<InventoryAdjustmentDoc> CreatePositiveAdjustmentAsync(InventoryCountDoc doc, List<InventoryCountDifferenceDto> differences, CancellationToken ct)
+    private async Task<Result<InventoryAdjustmentDoc>> CreatePositiveAdjustmentAsync(
+        InventoryCountDoc doc,
+        List<InventoryCountDifferenceDto> differences,
+        CancellationToken ct)
     {
+        var documentNumberResult = await _documentNumberService.GetNextAsync(
+            doc.OrganizationId,
+            DocumentTypeIdConst.INVENTORYADJUSTMENT,
+            doc.DocDate,
+            ct);
+        if (!documentNumberResult.IsSuccess)
+            return Result.Failure<InventoryAdjustmentDoc>(documentNumberResult.Error);
+
         var lineMap = doc.InventoryCountLines.ToDictionary(x => (x.ProductId, x.UnitId));
         var adjustmentDoc = new InventoryAdjustmentDoc
         {
             OrganizationId = doc.OrganizationId,
-            DocNumber = await _docNumberGenerator.GenerateAsync(doc.OrganizationId, "IAD", doc.DocDate, ct),
+            DocNumber = documentNumberResult.Value.DocumentNumber,
             DocDate = doc.DocDate,
             WarehouseId = doc.WarehouseId,
             AdjustmentType = "POSITIVE_ADJUSTMENT",
@@ -418,7 +449,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         }
 
         await _inventoryAdjustmentCommand.CreateAsync(adjustmentDoc, ct);
-        return adjustmentDoc;
+        return Result.Success(adjustmentDoc);
     }
 
     private async Task ApplyFoundStockMetadataAsync(long positiveAdjustmentDocId, List<InventoryCountFoundItemDto> foundItems, CancellationToken ct)

@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.Hr.Calendar;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<PayTimesheet> _query;
     private readonly ICommandRepository<PayTimesheet> _command;
     private readonly ICommandRepository<PayTimesheetLine> _lineCommand;
@@ -30,7 +31,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<PayTimesheet> query,
         ICommandRepository<PayTimesheet> command,
         ICommandRepository<PayTimesheetLine> lineCommand,
@@ -45,7 +46,7 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
         _lineCommand = lineCommand;
@@ -190,12 +191,20 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.PAYROLLTIMESHEET,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var entity = new PayTimesheet
             {
                 OrganizationId = organizationId,
                 PeriodId = dto.PeriodId,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "TSH", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 Note = dto.Note,

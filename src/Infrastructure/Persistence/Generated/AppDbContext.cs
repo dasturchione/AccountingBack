@@ -4128,10 +4128,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.User).WithOne(p => p.SysUserOrganization).HasConstraintName("sys_user_organization_user_id_fkey");
         });
         modelBuilder.HasSequence("contract_number_seq").StartsAt(100000001L);
-        modelBuilder.HasSequence("doc_number_bank_operation_seq").StartsAt(100000001L);
-        modelBuilder.HasSequence("doc_number_cash_operation_seq").StartsAt(100000001L);
-        modelBuilder.HasSequence("doc_number_purchase_seq").StartsAt(100000001L);
-        modelBuilder.HasSequence("doc_number_sale_seq").StartsAt(100000001L);
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryMovements;
 using Domain.Entities;
@@ -57,7 +58,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
     private readonly IInventoryDispatcher _inventoryDispatcher;
     private readonly IActiveInventoryCountGuardService _inventoryCountGuard;
     private readonly IDocumentPostingLock _documentLock;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IAuditLogService _auditLogService;
 
     public OpeningInventoryService(
@@ -102,7 +103,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         IInventoryDispatcher inventoryDispatcher,
         IActiveInventoryCountGuardService inventoryCountGuard,
         IDocumentPostingLock documentLock,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IAuditLogService auditLogService,
         ILogger<OpeningInventoryService> logger,
         IUnitOfWork unitOfWork)
@@ -149,7 +150,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         _inventoryDispatcher = inventoryDispatcher;
         _inventoryCountGuard = inventoryCountGuard;
         _documentLock = documentLock;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _auditLogService = auditLogService;
     }
 
@@ -214,10 +215,18 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
             if (!guard.IsSuccess)
                 return Result.Failure<long>(guard.Error);
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.OPENINGINVENTORY,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var document = new OpeningInventory
             {
                 OrganizationId = organizationId,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "OPN", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 CounterpartyId = dto.CounterpartyId,
                 ContractId = dto.ContractId,

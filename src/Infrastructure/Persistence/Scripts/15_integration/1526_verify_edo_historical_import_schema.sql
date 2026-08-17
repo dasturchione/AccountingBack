@@ -51,12 +51,5 @@ begin
         raise exception 'EDO historical import schema is incomplete. Missing columns: %', missing_objects;
     end if;
 
-    if to_regprocedure('public.set_pur_doc_number()') is null then
-        raise exception 'Historical Purchase document-number function is missing.';
-    end if;
-
-    if position('btrim(new.doc_number)' in pg_get_functiondef(to_regprocedure('public.set_pur_doc_number()'))) = 0 then
-        raise exception 'set_pur_doc_number() does not preserve explicit historical document numbers.';
-    end if;
 end
 $$;

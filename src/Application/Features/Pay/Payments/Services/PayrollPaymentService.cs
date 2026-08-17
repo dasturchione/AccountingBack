@@ -4,6 +4,7 @@ using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.BankOperations;
 using Application.Features.CashOperations;
+using Application.Features.DocumentNumbers;
 using Application.Features.Pay.PayrollDocuments;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IDocumentPostingLock _postingLock;
     private readonly IPayrollAccountResolver _accountResolver;
     private readonly IBankOperationService _bankOperationService;
@@ -41,7 +42,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IDocumentPostingLock postingLock,
         IPayrollAccountResolver accountResolver,
         IBankOperationService bankOperationService,
@@ -65,7 +66,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _postingLock = postingLock;
         _accountResolver = accountResolver;
         _bankOperationService = bankOperationService;
@@ -224,13 +225,21 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                         $"Xodimda to‘lov valyutasiga mos amaldagi ishga qabul yozuvi mavjud emas (xodim ID: {currencyMismatchEmployee}, valyuta ID: {dto.CurrencyId})."));
             }
 
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.PAYROLLPAYMENT,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var now = DateTime.Now;
             var entity = new PayPaymentBatch
             {
                 OrganizationId = organizationId,
                 PeriodId = period.Id,
                 PayrollDocId = dto.PayrollDocId,
-                DocNumber = await _docNumberGenerator.GenerateAsync(organizationId, "PPM", dto.DocDate, ct),
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = dto.DocDate,
                 PaymentKind = dto.PaymentKind,
                 SourceType = dto.SourceType,

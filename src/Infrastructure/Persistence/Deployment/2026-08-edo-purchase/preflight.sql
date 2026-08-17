@@ -34,11 +34,5 @@ left join information_schema.columns actual
  and actual.column_name = expected.column_name
 order by expected.table_name, expected.column_name;
 
-select to_regprocedure('public.set_pur_doc_number()') is not null as function_exists,
-       coalesce(
-           position(
-               'btrim(new.doc_number)'
-               in pg_get_functiondef(to_regprocedure('public.set_pur_doc_number()'))
-           ) > 0,
-           false
-       ) as preserves_explicit_historical_number;
+select to_regclass('public.cmn_document_number_sequence') is not null as document_number_sequence_exists,
+       to_regprocedure('public.set_pur_doc_number()') is null as legacy_purchase_generator_removed;

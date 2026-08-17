@@ -43,16 +43,6 @@ create index idx_pur_doc_posted_by_user_id on pur_doc using btree (posted_by_use
 create index idx_pur_doc_cancelled_by_user_id on pur_doc using btree (cancelled_by_user_id);
 create index idx_pur_doc_supplier_account_id on pur_doc (supplier_account_id);
 
-create function set_pur_doc_number() returns trigger
-    language plpgsql
-    as $$
-begin
-    perform pg_advisory_xact_lock(hashtext('pur_doc_number'));
-    new.doc_number := lpad((coalesce((select max(doc_number::bigint) from pur_doc), 100000000) + 1)::text, 9, '0');
-    return new;
-end;
-$$;
-
 insert into pur_doc (id, organization_id, doc_number, doc_date, counterparty_id, warehouse_id, currency_id, total_amount, vat_amount, final_amount, status_id, comment, state_id, created_date, contract_id) values
     ('92', '8', '100000074', '2026-06-27 18:05:43', '18', '7', '1', '40000.00000000', '4800.00000000', '44800.00000000', '1', null, '1', '2026-06-27 18:07:17.501272', '9'),
     ('93', '8', '100000075', '2026-06-27 18:07:17', '18', '7', '1', '10000.00000000', '1200.00000000', '11200.00000000', '1', null, '1', '2026-06-27 18:07:50.767417', '10'),

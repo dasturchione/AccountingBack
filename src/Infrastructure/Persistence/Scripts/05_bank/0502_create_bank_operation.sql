@@ -51,16 +51,6 @@ create index idx_bank_operation_cancelled_by_user_id on bank_operation using btr
 create index idx_bank_operation_bank_chart_account_id on bank_operation (bank_chart_account_id);
 create index idx_bank_operation_offset_account_id on bank_operation (offset_account_id);
 
-create function set_bank_operation_doc_number() returns trigger
-    language plpgsql
-    as $$
-begin
-    perform pg_advisory_xact_lock(hashtext('bank_operation_doc_number'));
-    new.doc_number := lpad((coalesce((select max(doc_number::bigint) from bank_operation), 100000000) + 1)::text, 9, '0');
-    return new;
-end;
-$$;
-
 insert into bank_operation (id, organization_id, bank_account_id, operation_type_id, payment_type_id, counterparty_id, doc_number, doc_date, currency_id, amount, comment, status_id, state_id, created_date) values
     ('2', '2', '1', '2', null, null, '100000001', '2026-06-24 15:02:59', '4', '1000.00', 'Codex single create test', '2', '2', '2026-06-24 15:02:59.985932'),
     ('3', '2', '1', '2', null, null, '100000002', '2026-06-24 15:03:00', '4', '1001.00', 'Codex many create test 1', '2', '2', '2026-06-24 15:03:00.548019'),

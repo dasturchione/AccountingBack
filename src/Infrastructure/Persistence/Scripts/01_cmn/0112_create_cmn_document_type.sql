@@ -22,6 +22,8 @@ values
     ( 5, 1, 'salary',                   'Ish haqi'                      ),
     ( 6, 1, 'expense',                  'Xarajat'                       ),
     ( 7, 1, 'retail_sale',              'Chakana sotuv'                 ),
+    ( 8, 1, 'inventory_adjustment',     'Inventar tuzatish'             ),
+    ( 9, 1, 'inventory_count',          'Inventarizatsiya'              ),
     (10, 1, 'currency_revaluation',     'Currency revaluation'          ),
     (11, 1, 'fa_receipt',               'Asosiy vosita qabuli'          ),
     (12, 1, 'fa_movement',              'Asosiy vosita ko''chirishi'    ),
@@ -29,4 +31,9 @@ values
     (14, 1, 'fa_disposal',              'Asosiy vosita chiqib ketishi'  ),
     (15, 1, 'fa_revaluation',           'Boshlang''ich tovar qoldig''i' ),
     (16, 1, 'opening_inventory',        'Ochiq inventarizatsiya'        ),
-    (17, 1, 'fa_commissioning',         'Asosiy vosita o''rnatish'      );
+    (17, 1, 'fa_commissioning',         'Asosiy vosita o''rnatish'      ),
+    (18, 1, 'warehouse_transfer',       'Omborlararo ko''chirish'       ),
+    (19, 1, 'sale_shipment',            'Sotuv bo''yicha jo''natish'    ),
+    (20, 1, 'payroll_timesheet',        'Ish vaqti tabeli'              ),
+    (21, 1, 'payroll_payment',          'Ish haqi to''lovi'             ),
+    (22, 1, 'hr_absence',               'Xodim yo''qligi'               );

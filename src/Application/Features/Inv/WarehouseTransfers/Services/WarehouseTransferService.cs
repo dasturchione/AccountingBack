@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.DocumentNumbers;
 using Application.Features.InventoryMovements;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IAuditLogService _auditLogService;
     private readonly IWarehouseTransferLifecycleService _lifecycleService;
-    private readonly IDocNumberGenerator _docNumberGenerator;
+    private readonly IDocumentNumberService _documentNumberService;
     private readonly IQueryRepository<WarehouseTransferDoc> _query;
     private readonly ICommandRepository<WarehouseTransferDoc> _command;
     private readonly ICommandRepository<WarehouseTransferLine> _lineCommand;
@@ -35,7 +36,7 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
         IQueryBuilder queryBuilder,
         IAuditLogService auditLogService,
         IWarehouseTransferLifecycleService lifecycleService,
-        IDocNumberGenerator docNumberGenerator,
+        IDocumentNumberService documentNumberService,
         IQueryRepository<WarehouseTransferDoc> query,
         ICommandRepository<WarehouseTransferDoc> command,
         ICommandRepository<WarehouseTransferLine> lineCommand,
@@ -55,7 +56,7 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
         _queryBuilder = queryBuilder;
         _auditLogService = auditLogService;
         _lifecycleService = lifecycleService;
-        _docNumberGenerator = docNumberGenerator;
+        _documentNumberService = documentNumberService;
         _query = query;
         _command = command;
         _lineCommand = lineCommand;
@@ -106,13 +107,20 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
             if (!validationResult.IsSuccess)
                 return Result.Failure<long>(validationResult.Error);
 
-            var docNumber = await _docNumberGenerator.GenerateAsync(organizationId, "WTR", dto.DocDate, ct);
+            var documentNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.WAREHOUSETRANSFER,
+                dto.DocDate,
+                ct);
+            if (!documentNumberResult.IsSuccess)
+                return Result.Failure<long>(documentNumberResult.Error);
+
             var lines = await BuildLinesAsync(dto, ct);
 
             var doc = new WarehouseTransferDoc
             {
                 OrganizationId = organizationId,
-                DocNumber = docNumber,
+                DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 SourceWarehouseId = dto.SourceWarehouseId,
                 DestinationWarehouseId = dto.DestinationWarehouseId,

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text.Json;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.PurchaseDocs;
@@ -40,6 +40,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
     private readonly TimeProvider _timeProvider;
     private readonly IEdoHistoricalPurchaseDraftFactory? _draftFactory;
     private readonly IBackgroundOrganizationScope? _backgroundOrganizationScope;
+    private readonly IQueryBuilder _queryBuilder;
 
     public EdoImportPreflightService(
         ILogger<EdoImportPreflightService> logger,
@@ -50,9 +51,10 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         IEdoImportStore store,
         IEdoImportPreflightScheduler scheduler,
         IAuditLogService auditLog,
-        TimeProvider timeProvider) : this(
+        TimeProvider timeProvider,
+        IQueryBuilder queryBuilder) : this(
             logger, unitOfWork, userContext, organizationConfigQuery,
-            activeProviderResolver, store, scheduler, auditLog, timeProvider, null, null)
+            activeProviderResolver, store, scheduler, auditLog, timeProvider, queryBuilder, null, null)
     {
     }
 
@@ -66,6 +68,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         IEdoImportPreflightScheduler scheduler,
         IAuditLogService auditLog,
         TimeProvider timeProvider,
+        IQueryBuilder queryBuilder,
         IEdoHistoricalPurchaseDraftFactory? draftFactory,
         IBackgroundOrganizationScope? backgroundOrganizationScope = null) : base(logger, unitOfWork)
     {
@@ -79,6 +82,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         _timeProvider = timeProvider;
         _draftFactory = draftFactory;
         _backgroundOrganizationScope = backgroundOrganizationScope;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<EdoImportJobDto>> StartAsync(
@@ -96,10 +100,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             var dateFrom = request.DateFrom;
             if (!dateFrom.HasValue)
             {
-                var config = await _organizationConfigQuery.GetAsync(new QuerySpecification<OrganizationConfig>
-                {
-                    Criteria = item => item.OrganizationId == organizationId
-                }, ct);
+                var config = await _organizationConfigQuery.GetAsync(_queryBuilder.For<OrganizationConfig>()
+                    .Where(item => item.OrganizationId == organizationId)
+                    .Build(), ct);
                 dateFrom = config?.AccountingStartDate;
             }
 

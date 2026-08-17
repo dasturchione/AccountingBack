@@ -6,7 +6,7 @@ using Application.Features.Platform;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.Settings;
@@ -21,11 +21,13 @@ public sealed class SettingService : BaseService, ISettingService
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<SystemSetting> _query;
     private readonly ICommandRepository<SystemSetting> _command;
+    private readonly IQueryBuilder _queryBuilder;
 
     public SettingService(
         IUserContext userContext,
         IQueryRepository<SystemSetting> query,
         ICommandRepository<SystemSetting> command,
+        IQueryBuilder queryBuilder,
         ILogger<SettingService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -33,6 +35,7 @@ public sealed class SettingService : BaseService, ISettingService
         _userContext = userContext;
         _query = query;
         _command = command;
+        _queryBuilder = queryBuilder;
     }
 
     public Task<Result<string?>> GetValueAsync(string code, CancellationToken ct = default) =>
@@ -70,14 +73,13 @@ public sealed class SettingService : BaseService, ISettingService
                 return Result.Failure<List<SettingDto>>(PlatformErrors.GlobalAccessRequired());
 
             var normalizedCategory = NormalizeCategory(category);
-            var items = await _query.GetAllAsync(new QuerySpecification<SystemSetting>
-            {
-                Criteria = x =>
+            var items = await _query.GetAllAsync(_queryBuilder.For<SystemSetting>()
+                .Where(x =>
                     x.StateId == StateIdConst.ACTIVE &&
                     x.OrganizationId == null &&
-                    (normalizedCategory == null || (x.Category != null && x.Category.ToLower() == normalizedCategory)),
-                OrderBy = q => q.OrderBy(x => x.Category).ThenBy(x => x.Code)
-            }, ct);
+                    (normalizedCategory == null || (x.Category != null && x.Category.ToLower() == normalizedCategory)))
+                .OrderBy(q => q.OrderBy(x => x.Category).ThenBy(x => x.Code))
+                .Build(), ct);
 
             return Result.Success(items.Select(Map).ToList());
         });
@@ -110,12 +112,11 @@ public sealed class SettingService : BaseService, ISettingService
             return Result.Failure<SystemSetting>(PlatformErrors.GlobalAccessRequired());
 
         var normalizedCode = NormalizeCode(code);
-        var setting = await _query.GetAsync(new QuerySpecification<SystemSetting>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            x.OrganizationId == null &&
-                            x.Code == normalizedCode
-        }, ct);
+        var setting = await _query.GetAsync(_queryBuilder.For<SystemSetting>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        x.OrganizationId == null &&
+                        x.Code == normalizedCode)
+            .Build(), ct);
 
         return setting is null
             ? Result.Failure<SystemSetting>(SettingErrors.NotFound(normalizedCode))

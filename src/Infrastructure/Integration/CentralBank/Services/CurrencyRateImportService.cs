@@ -5,6 +5,7 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SharedKernel.Constants;
+using SharedKernel.Query;
 using SharedKernel.Results;
 using Integration.CentralBank.Configs;
 
@@ -19,6 +20,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
     private readonly IReadOnlyCollection<ICurrencyRateProvider> _providers;
     private readonly CentralBankOptions _settings;
     private readonly ILogger<CurrencyRateImportService> _logger;
+    private readonly IQueryBuilder _queryBuilder;
     private CurrencyRateImportResultDto? _lastStatus;
 
     public CurrencyRateImportService(
@@ -28,6 +30,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         IUnitOfWork unitOfWork,
         IEnumerable<ICurrencyRateProvider> providers,
         IOptions<CentralBankOptions> settings,
+        IQueryBuilder queryBuilder,
         ILogger<CurrencyRateImportService> logger)
     {
         _currencyQuery = currencyQuery;
@@ -37,6 +40,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         _providers = providers.ToList();
         _settings = settings.Value;
         _logger = logger;
+        _queryBuilder = queryBuilder;
     }
 
     public Task<Result<IReadOnlyCollection<CurrencyRateProviderInfoDto>>> GetProvidersAsync(CancellationToken ct = default)
@@ -93,15 +97,13 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
             {
                 ct.ThrowIfCancellationRequested();
 
-                var baseCurrency = await _currencyQuery.GetAsync(new SharedKernel.Query.Specifications.QuerySpecification<Currency>
-                {
-                    Criteria = x => x.Code == item.BaseCurrencyCode.Trim()
-                }, ct);
+                var baseCurrency = await _currencyQuery.GetAsync(_queryBuilder.For<Currency>()
+                    .Where(x => x.Code == item.BaseCurrencyCode.Trim())
+                    .Build(), ct);
 
-                var targetCurrency = await _currencyQuery.GetAsync(new SharedKernel.Query.Specifications.QuerySpecification<Currency>
-                {
-                    Criteria = x => x.Code == item.TargetCurrencyCode.Trim()
-                }, ct);
+                var targetCurrency = await _currencyQuery.GetAsync(_queryBuilder.For<Currency>()
+                    .Where(x => x.Code == item.TargetCurrencyCode.Trim())
+                    .Build(), ct);
 
                 if (baseCurrency is null || targetCurrency is null || item.OfficialRate <= 0)
                 {
@@ -109,12 +111,11 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
                     continue;
                 }
 
-                var existingQuery = new SharedKernel.Query.Specifications.QuerySpecification<CurrencyRate>
-                {
-                    Criteria = x => x.BaseCurrencyId == baseCurrency.Id
-                               && x.TargetCurrencyId == targetCurrency.Id
-                               && x.EffectiveDate == item.EffectiveDate
-                };
+                var existingQuery = _queryBuilder.For<CurrencyRate>()
+                    .Where(x => x.BaseCurrencyId == baseCurrency.Id
+                                && x.TargetCurrencyId == targetCurrency.Id
+                                && x.EffectiveDate == item.EffectiveDate)
+                    .Build();
 
                 var existing = await _rateQuery.GetAsync(existingQuery, ct);
                 if (existing is not null)
@@ -130,14 +131,13 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
                     continue;
                 }
 
-                var duplicateActiveQuery = new SharedKernel.Query.Specifications.QuerySpecification<CurrencyRate>
-                {
-                    Criteria = x => x.BaseCurrencyId == baseCurrency.Id
-                               && x.TargetCurrencyId == targetCurrency.Id
-                               && x.EffectiveDate == item.EffectiveDate
-                               && x.StateId == StateIdConst.ACTIVE
-                               && x.IsActive
-                };
+                var duplicateActiveQuery = _queryBuilder.For<CurrencyRate>()
+                    .Where(x => x.BaseCurrencyId == baseCurrency.Id
+                                && x.TargetCurrencyId == targetCurrency.Id
+                                && x.EffectiveDate == item.EffectiveDate
+                                && x.StateId == StateIdConst.ACTIVE
+                                && x.IsActive)
+                    .Build();
 
                 if ((await _rateQuery.GetAllAsync(duplicateActiveQuery, ct)).Any())
                 {

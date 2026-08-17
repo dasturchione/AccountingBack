@@ -6,7 +6,6 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Linq.Expressions;
 
@@ -52,9 +51,8 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
 
-            var specification = new PagedQuerySpecification<PayComponent, PayrollComponentListDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<PayComponent>()
+                .Where(x =>
                     (!filter.StateId.HasValue || x.StateId == filter.StateId.Value) &&
                     (string.IsNullOrWhiteSpace(filter.ComponentType) || x.ComponentType == filter.ComponentType) &&
                     (!filter.EffectiveOn.HasValue ||
@@ -62,12 +60,12 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
                       (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= filter.EffectiveOn.Value))) &&
                     (string.IsNullOrWhiteSpace(search) ||
                      x.Code.ToLower().Contains(search) ||
-                     x.Name.ToLower().Contains(search)),
-                Selector = ListDtoSelector,
-                OrderBy = x => x.OrderBy(y => y.SortOrder).ThenBy(y => y.Code),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                     x.Name.ToLower().Contains(search)))
+                .As(ListDtoSelector)
+                .OrderBy(x => x.OrderBy(y => y.SortOrder).ThenBy(y => y.Code))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
 
             var paged = await _query.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, take));

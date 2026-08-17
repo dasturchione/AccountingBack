@@ -3,7 +3,6 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
@@ -60,18 +59,15 @@ public class AuthService : IAuthService
     {
         var normalizedUserName = dto.UserName.Trim();
 
-        var query = _queryBuilder.For<User>().Where(x => x.UserName == normalizedUserName).Build();
-        query = new QuerySpecification<User>
-        {
-            Criteria = query.Criteria,
-            OrderBy = query.OrderBy,
-            IgnoreQueryFilters = true
-        };
-        query.AddIncludes(builder =>
-        {
-            builder.Include(user => user.State);
-            builder.Include(user => user.UserKind);
-        });
+        var query = _queryBuilder.For<User>()
+            .Where(x => x.UserName == normalizedUserName)
+            .IgnoreQueryFilters()
+            .AddIncludes(builder =>
+            {
+                builder.Include(user => user.State);
+                builder.Include(user => user.UserKind);
+            })
+            .Build();
 
         var user = await _userQuery.GetAsync(query, ct);
         if (user is null || user.State is null || user.StateId != StateIdConst.ACTIVE)
@@ -115,19 +111,18 @@ public class AuthService : IAuthService
             return Result.Failure<LoginResponseDto>(AuthErrors.InvalidCredentials(_userContext.LanguageId));
         }
 
-        var organizationSpec = new QuerySpecification<UserOrganization, UserOrgDto>
-        {
-            Criteria = membership => membership.UserId == user.Id && membership.StateId == StateIdConst.ACTIVE,
-            IgnoreQueryFilters = true,
-            Selector = membership => new UserOrgDto
+        var organizationSpec = _queryBuilder.For<UserOrganization>()
+            .Where(membership => membership.UserId == user.Id && membership.StateId == StateIdConst.ACTIVE)
+            .IgnoreQueryFilters()
+            .As(membership => new UserOrgDto
             {
                 OrganizationId = membership.OrganizationId,
                 OrganizationName = membership.Organization.ShortName,
                 RoleId = membership.RoleId,
                 RoleName = membership.Role != null ? membership.Role.FullName : null,
                 IsDefault = membership.IsDefault
-            }
-        };
+            })
+            .Build();
 
         var organizations = await _userOrgQuery.GetAllAsync(organizationSpec, ct);
         if (!isSuperAdmin && organizations.Count == 0)
@@ -179,22 +174,20 @@ public class AuthService : IAuthService
 
     private async Task<List<string>> GetRolePermissionCodesAsync(int roleId, CancellationToken ct)
     {
-        var permissionSpec = new QuerySpecification<RoleModule, string>
-        {
-            Criteria = roleModule => roleModule.RoleId == roleId,
-            Selector = roleModule => roleModule.Module.Code
-        };
+        var permissionSpec = _queryBuilder.For<RoleModule>()
+            .Where(roleModule => roleModule.RoleId == roleId)
+            .As(roleModule => roleModule.Module.Code)
+            .Build();
 
         return (await _roleModuleQuery.GetAllAsync(permissionSpec, ct)).ToList();
     }
 
     private async Task<List<string>> GetAllActivePermissionCodesAsync(CancellationToken ct)
     {
-        var permissionSpec = new QuerySpecification<Module, string>
-        {
-            Criteria = module => module.StateId == StateIdConst.ACTIVE,
-            Selector = module => module.Code
-        };
+        var permissionSpec = _queryBuilder.For<Module>()
+            .Where(module => module.StateId == StateIdConst.ACTIVE)
+            .As(module => module.Code)
+            .Build();
 
         return (await _moduleQuery.GetAllAsync(permissionSpec, ct)).ToList();
     }

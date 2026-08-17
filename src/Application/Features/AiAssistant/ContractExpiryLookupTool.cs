@@ -2,7 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Time;
 using System.Globalization;
 
@@ -10,7 +10,8 @@ namespace Application.Features.AiAssistant;
 
 public sealed class ContractExpiryLookupTool(
     IUserContext userContext,
-    IQueryRepository<Contract> contractQuery) :
+    IQueryRepository<Contract> contractQuery,
+    IQueryBuilder queryBuilder) :
     IContractExpiryLookupTool,
     IAiReadOnlyToolExecutor
 {
@@ -74,19 +75,18 @@ public sealed class ContractExpiryLookupTool(
 
         var today = TashkentTime.Today;
         var endExclusive = today.AddDays(ExpiryWindowDays + 1);
-        var candidates = await contractQuery.GetAllAsync(new QuerySpecification<Contract, ContractExpiryCandidate>
-        {
-            Criteria = contract =>
+        var candidates = await contractQuery.GetAllAsync(queryBuilder.For<Contract>()
+            .Where(contract =>
                 contract.OrganizationId == organization.OrganizationId
                 && contract.StateId == StateIdConst.ACTIVE
                 && contract.EndDate.HasValue
-                && contract.EndDate.Value < endExclusive,
-            Selector = contract => new ContractExpiryCandidate(
+                && contract.EndDate.Value < endExclusive)
+            .As(contract => new ContractExpiryCandidate(
                 contract.ContractNumber,
                 contract.Counterparty.FullName ?? contract.Counterparty.ShortName,
-                contract.EndDate!.Value),
-            OrderBy = query => query.OrderBy(candidate => candidate.EndDate)
-        }, ct);
+                contract.EndDate!.Value))
+            .OrderBy(query => query.OrderBy(candidate => candidate.EndDate))
+            .Build(), ct);
 
         var items = candidates
             .Select(candidate => ToItem(candidate, today, language.Language))

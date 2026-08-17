@@ -6,7 +6,7 @@ using Application.Features.Notifications;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.Platform;
@@ -22,6 +22,7 @@ public sealed class DashboardService : BaseService, IDashboardService
     private readonly IQueryRepository<NotificationDelivery> _notificationDeliveryQuery;
     private readonly IQueryRepository<SystemSetting> _settingQuery;
     private readonly IQueryRepository<Role> _roleQuery;
+    private readonly IQueryBuilder _queryBuilder;
 
     public DashboardService(
         IUserContext userContext,
@@ -33,6 +34,7 @@ public sealed class DashboardService : BaseService, IDashboardService
         IQueryRepository<NotificationDelivery> notificationDeliveryQuery,
         IQueryRepository<SystemSetting> settingQuery,
         IQueryRepository<Role> roleQuery,
+        IQueryBuilder queryBuilder,
         ILogger<DashboardService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -46,6 +48,7 @@ public sealed class DashboardService : BaseService, IDashboardService
         _notificationDeliveryQuery = notificationDeliveryQuery;
         _settingQuery = settingQuery;
         _roleQuery = roleQuery;
+        _queryBuilder = queryBuilder;
     }
 
     public Task<Result<DashboardStatsDto>> GetStatsAsync(CancellationToken ct = default) =>
@@ -136,49 +139,49 @@ public sealed class DashboardService : BaseService, IDashboardService
 
     private async Task<int> CountTenantsAsync(Expression<Func<PlatformTenant, bool>> criteria, CancellationToken ct)
     {
-        var page = await _tenantQuery.GetPagedAsync(new PagedQuerySpecification<PlatformTenant> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _tenantQuery.GetPagedAsync(_queryBuilder.For<PlatformTenant>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountOrganizationsAsync(Expression<Func<Organization, bool>> criteria, CancellationToken ct)
     {
-        var page = await _organizationQuery.GetPagedAsync(new PagedQuerySpecification<Organization> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _organizationQuery.GetPagedAsync(_queryBuilder.For<Organization>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountUsersAsync(Expression<Func<User, bool>> criteria, CancellationToken ct)
     {
-        var page = await _userQuery.GetPagedAsync(new PagedQuerySpecification<User> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _userQuery.GetPagedAsync(_queryBuilder.For<User>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountAuditLogsAsync(Expression<Func<AuditLog, bool>> criteria, CancellationToken ct)
     {
-        var page = await _auditLogQuery.GetPagedAsync(new PagedQuerySpecification<AuditLog> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _auditLogQuery.GetPagedAsync(_queryBuilder.For<AuditLog>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountNotificationsAsync(Expression<Func<Notification, bool>> criteria, CancellationToken ct)
     {
-        var page = await _notificationQuery.GetPagedAsync(new PagedQuerySpecification<Notification> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _notificationQuery.GetPagedAsync(_queryBuilder.For<Notification>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountNotificationDeliveriesAsync(Expression<Func<NotificationDelivery, bool>> criteria, CancellationToken ct)
     {
-        var page = await _notificationDeliveryQuery.GetPagedAsync(new PagedQuerySpecification<NotificationDelivery> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _notificationDeliveryQuery.GetPagedAsync(_queryBuilder.For<NotificationDelivery>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountSettingsAsync(Expression<Func<SystemSetting, bool>> criteria, CancellationToken ct)
     {
-        var page = await _settingQuery.GetPagedAsync(new PagedQuerySpecification<SystemSetting> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _settingQuery.GetPagedAsync(_queryBuilder.For<SystemSetting>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 
     private async Task<int> CountRolesAsync(Expression<Func<Role, bool>> criteria, CancellationToken ct)
     {
-        var page = await _roleQuery.GetPagedAsync(new PagedQuerySpecification<Role> { Criteria = criteria, Take = 1 }, ct);
+        var page = await _roleQuery.GetPagedAsync(_queryBuilder.For<Role>().Where(criteria).Take(1).BuildPaged(), ct);
         return page.TotalCount;
     }
 }

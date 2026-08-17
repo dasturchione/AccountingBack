@@ -4,7 +4,6 @@ using Application.Features.FaAssets;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Manual;
@@ -266,34 +265,31 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<CounterpartyType, SelectListDto>
-        {
-            Criteria = c => c.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(c => c.Name),
-            Selector = c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code }
-        };
+        var spec = _queryBuilder.For<CounterpartyType>()
+            .Where(c => c.StateId == StateIdConst.ACTIVE)
+            .As(c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code })
+            .OrderBy(q => q.OrderBy(c => c.Name))
+            .Build();
         return (await _counterpartyTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<PaymentType, SelectListDto>
-        {
-            Criteria = p => p.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(p => p.Name),
-            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
-        };
+        var spec = _queryBuilder.For<PaymentType>()
+            .Where(p => p.StateId == StateIdConst.ACTIVE)
+            .As(p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code })
+            .OrderBy(q => q.OrderBy(p => p.Name))
+            .Build();
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<InventoryAdjustmentType, SelectListDto>
-        {
-            Criteria = p => p.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(p => p.Name),
-            Selector = p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code }
-        };
+        var spec = _queryBuilder.For<InventoryAdjustmentType>()
+            .Where(p => p.StateId == StateIdConst.ACTIVE)
+            .As(p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code })
+            .OrderBy(q => q.OrderBy(p => p.Name))
+            .Build();
         return (await _inventoryAdjustmentTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
@@ -304,35 +300,32 @@ public class ManualService : IManualService
             return new List<SelectListDto>();
         }
 
-        var spec = new QuerySpecification<FaGroup, SelectListDto>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            x.OrganizationId == _userContext.OrganizationId,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
+        var spec = _queryBuilder.For<FaGroup>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        x.OrganizationId == _userContext.OrganizationId)
+            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .OrderBy(q => q.OrderBy(x => x.Name))
+            .Build();
         return (await _faGroupQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetFaOkofsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<FaOkof, SelectListDto>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
+        var spec = _queryBuilder.For<FaOkof>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .OrderBy(q => q.OrderBy(x => x.Name))
+            .Build();
         return (await _faOkofQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetFaDepreciationMethodsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<FaDepreciationMethod, SelectListDto>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
+        var spec = _queryBuilder.For<FaDepreciationMethod>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .OrderBy(q => q.OrderBy(x => x.Name))
+            .Build();
         return (await _faDepreciationMethodQuery.GetAllAsync(spec, ct)).ToList();
     }
 
@@ -429,34 +422,29 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<PricingMethod, SelectListDto>
-        {
-            Criteria = x => true,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
+        var spec = _queryBuilder.For<PricingMethod>()
+            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .OrderBy(q => q.OrderBy(x => x.Name))
+            .Build();
         return await _pricingMethodQuery.GetAllAsync(spec, ct);
     }
 
     public async Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<CostingMethod, SelectListDto>
-        {
-            Criteria = x => true,
-            OrderBy = q => q.OrderBy(x => x.Name),
-            Selector = x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code }
-        };
+        var spec = _queryBuilder.For<CostingMethod>()
+            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .OrderBy(q => q.OrderBy(x => x.Name))
+            .Build();
         return await _costingMethodQuery.GetAllAsync(spec, ct);
     }
 
     public async Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Role, SelectListDto>
-        {
-            Criteria = r => r.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(r => r.Name),
-            Selector = r => new SelectListDto { Id = r.Id, Name = r.FullName }
-        };
+        var spec = _queryBuilder.For<Role>()
+            .Where(r => r.StateId == StateIdConst.ACTIVE)
+            .As(r => new SelectListDto { Id = r.Id, Name = r.FullName })
+            .OrderBy(q => q.OrderBy(r => r.Name))
+            .Build();
         return (await _roleQuery.GetAllAsync(spec, ct)).ToList();
     }
 
@@ -481,35 +469,32 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetUsersAsync(int? roleId = null, CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<User, SelectListDto>
-        {
-            Criteria = u => u.StateId == StateIdConst.ACTIVE
-                         && (roleId == null || u.UserOrganizations.Any(membership => membership.RoleId == roleId)),
-            OrderBy = q => q.OrderBy(u => u.Name),
-            Selector = u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName }
-        };
+        var spec = _queryBuilder.For<User>()
+            .Where(u => u.StateId == StateIdConst.ACTIVE
+                        && (roleId == null || u.UserOrganizations.Any(membership => membership.RoleId == roleId)))
+            .As(u => new SelectListDto { Id = u.Id, Name = u.FirstName + " " + u.LastName })
+            .OrderBy(q => q.OrderBy(u => u.Name))
+            .Build();
         return (await _userQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetBanksAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<Bank, SelectListDto>
-        {
-            Criteria = b => b.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(b => b.Name),
-            Selector = b => new SelectListDto { Id = b.Id, Name = b.Name, Code = b.Code }
-        };
+        var spec = _queryBuilder.For<Bank>()
+            .Where(b => b.StateId == StateIdConst.ACTIVE)
+            .As(b => new SelectListDto { Id = b.Id, Name = b.Name, Code = b.Code })
+            .OrderBy(q => q.OrderBy(b => b.Name))
+            .Build();
         return (await _bankQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default)
     {
-        var spec = new QuerySpecification<DocumentType, SelectListDto>
-        {
-            Criteria = d => d.StateId == StateIdConst.ACTIVE,
-            OrderBy = q => q.OrderBy(d => d.Name),
-            Selector = d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code }
-        };
+        var spec = _queryBuilder.For<DocumentType>()
+            .Where(d => d.StateId == StateIdConst.ACTIVE)
+            .As(d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code })
+            .OrderBy(q => q.OrderBy(d => d.Name))
+            .Build();
         return (await _documentTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 

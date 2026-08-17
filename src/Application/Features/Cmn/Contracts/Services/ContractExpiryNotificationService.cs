@@ -3,7 +3,7 @@ using Application.Features.Notifications;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 
 namespace Application.Features.Contracts;
 
@@ -13,27 +13,29 @@ public sealed class ContractExpiryNotificationService : IContractExpiryNotificat
     private readonly IQueryRepository<Contract> _contractQuery;
     private readonly INotificationService _notificationService;
     private readonly ILogger<ContractExpiryNotificationService> _logger;
+    private readonly IQueryBuilder _queryBuilder;
 
     public ContractExpiryNotificationService(
         IQueryRepository<Contract> contractQuery,
         INotificationService notificationService,
+        IQueryBuilder queryBuilder,
         ILogger<ContractExpiryNotificationService> logger)
     {
         _contractQuery = contractQuery;
         _notificationService = notificationService;
+        _queryBuilder = queryBuilder;
         _logger = logger;
     }
 
     public async Task<int> NotifyAsync(DateTime today, CancellationToken ct = default)
     {
-        var candidates = await _contractQuery.GetAllAsync(new QuerySpecification<Contract, ContractExpiryCandidate>
-        {
-            IgnoreQueryFilters = true,
-            Criteria = x => x.StateId == StateIdConst.ACTIVE
+        var candidates = await _contractQuery.GetAllAsync(_queryBuilder.For<Contract>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE
                 && x.Organization.StateId == StateIdConst.ACTIVE
                 && x.EndDate.HasValue
-                && x.EndDate.Value < today.AddDays(31),
-            Selector = x => new ContractExpiryCandidate
+                && x.EndDate.Value < today.AddDays(31))
+            .IgnoreQueryFilters()
+            .As(x => new ContractExpiryCandidate
             {
                 ContractId = x.Id,
                 OrganizationId = x.OrganizationId,
@@ -43,8 +45,8 @@ public sealed class ContractExpiryNotificationService : IContractExpiryNotificat
                 ContractTypeName = x.ContractType.Name,
                 ContractNumber = x.ContractNumber,
                 EndDate = x.EndDate!.Value
-            }
-        }, ct);
+            })
+            .Build(), ct);
 
         var created = 0;
         foreach (var candidate in candidates)

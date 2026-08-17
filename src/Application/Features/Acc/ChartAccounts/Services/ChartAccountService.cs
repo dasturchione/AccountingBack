@@ -6,7 +6,6 @@ using Domain.Entities;
 using LinqKit;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.ChartAccounts;
@@ -406,10 +405,9 @@ public class ChartAccountService : IChartAccountService
             if (currentIds.Count == 0)
                 break;
 
-            var query = new QuerySpecification<ChartAccountPresetAccount, PresetAccountImportSnapshot>
-            {
-                Criteria = x => currentIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE,
-                Selector = x => new PresetAccountImportSnapshot
+            var query = _queryBuilder.For<ChartAccountPresetAccount>()
+                .Where(x => currentIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE)
+                .As(x => new PresetAccountImportSnapshot
                 {
                     Id = x.Id,
                     PresetId = x.PresetId,
@@ -428,8 +426,8 @@ public class ChartAccountService : IChartAccountService
                     IsTaxAccounting = x.IsTaxAccounting,
                     IsOffBalance = x.IsOffBalance,
                     DisplayOrder = x.DisplayOrder
-                }
-            };
+                })
+                .Build();
 
             var items = await _presetAccountQuery.GetAllAsync(query, ct);
             foreach (var item in items)
@@ -450,11 +448,10 @@ public class ChartAccountService : IChartAccountService
         if (presetAccountIds.Count == 0)
             return new HashSet<int>();
 
-        var query = new QuerySpecification<ChartAccountPresetAccount, int>
-        {
-            Criteria = x => x.ParentPresetAccountId.HasValue && presetAccountIds.Contains(x.ParentPresetAccountId.Value),
-            Selector = x => x.ParentPresetAccountId!.Value
-        };
+        var query = _queryBuilder.For<ChartAccountPresetAccount>()
+            .Where(x => x.ParentPresetAccountId.HasValue && presetAccountIds.Contains(x.ParentPresetAccountId.Value))
+            .As(x => x.ParentPresetAccountId!.Value)
+            .Build();
 
         var ids = await _presetAccountQuery.GetAllAsync(query, ct);
         return ids.ToHashSet();
@@ -468,10 +465,9 @@ public class ChartAccountService : IChartAccountService
         if (numbers.Count == 0)
             return new Dictionary<string, ChartAccount>(StringComparer.OrdinalIgnoreCase);
 
-        var query = new QuerySpecification<ChartAccount>
-        {
-            Criteria = x => x.OrganizationId == organizationId && numbers.Contains(x.Number)
-        };
+        var query = _queryBuilder.For<ChartAccount>()
+            .Where(x => x.OrganizationId == organizationId && numbers.Contains(x.Number))
+            .Build();
 
         var accounts = await _query.GetAllAsync(query, ct);
         return accounts
@@ -486,17 +482,16 @@ public class ChartAccountService : IChartAccountService
         if (presetAccountIds.Count == 0)
             return new Dictionary<int, List<PresetAccountSubkontoSnapshot>>();
 
-        var query = new QuerySpecification<ChartAccountPresetAccountSubkonto, PresetAccountSubkontoSnapshot>
-        {
-            Criteria = x => presetAccountIds.Contains(x.PresetAccountId),
-            Selector = x => new PresetAccountSubkontoSnapshot
+        var query = _queryBuilder.For<ChartAccountPresetAccountSubkonto>()
+            .Where(x => presetAccountIds.Contains(x.PresetAccountId))
+            .As(x => new PresetAccountSubkontoSnapshot
             {
                 PresetAccountId = x.PresetAccountId,
                 SubkontoTypeId = x.SubkontoTypeId,
                 SortOrder = x.SortOrder
-            },
-            OrderBy = q => q.OrderBy(x => x.SortOrder)
-        };
+            })
+            .OrderBy(q => q.OrderBy(x => x.SortOrder))
+            .Build();
 
         var items = await _presetAccountSubkontoQuery.GetAllAsync(query, ct);
         return items

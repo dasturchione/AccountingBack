@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
 
@@ -85,11 +84,10 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
         CancellationToken ct)
     {
         var languageId = _userContext.LanguageId;
-        var presetQuery = new QuerySpecification<ChartAccountPresetAccount, PresetAccountSnapshot>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (!filter.PresetId.HasValue || x.PresetId == filter.PresetId.Value),
-            Selector = x => new PresetAccountSnapshot
+        var presetQuery = _queryBuilder.For<ChartAccountPresetAccount>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!filter.PresetId.HasValue || x.PresetId == filter.PresetId.Value))
+            .As(x => new PresetAccountSnapshot
             {
                 Id = x.Id,
                 PresetId = x.PresetId,
@@ -113,9 +111,9 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
                 DisplayOrder = x.DisplayOrder,
                 StateId = x.StateId,
                 StateName = x.State.FullName
-            },
-            OrderBy = q => q.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Number)
-        };
+            })
+            .OrderBy(q => q.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Number))
+            .Build();
 
         return await _presetAccountQuery.GetAllAsync(presetQuery, ct);
     }
@@ -126,11 +124,10 @@ public class ChartAccountPresetAccountService : IChartAccountPresetAccountServic
             return new HashSet<string>();
 
         var organizationId = _userContext.OrganizationId.Value;
-        var query = new QuerySpecification<ChartAccount, string>
-        {
-            Criteria = x => x.OrganizationId == organizationId && accountNumbers.Contains(x.Number),
-            Selector = x => x.Number
-        };
+        var query = _queryBuilder.For<ChartAccount>()
+            .Where(x => x.OrganizationId == organizationId && accountNumbers.Contains(x.Number))
+            .As(x => x.Number)
+            .Build();
 
         var numbers = await _chartAccountQuery.GetAllAsync(query, ct);
         return numbers.ToHashSet(StringComparer.OrdinalIgnoreCase);

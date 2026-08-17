@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Pay.Employees;
@@ -76,9 +75,8 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
 
-            var specification = new PagedQuerySpecification<PayEmployee, PayrollEmployeeListDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<PayEmployee>()
+                .Where(x =>
                     (!filter.StateId.HasValue || x.StateId == filter.StateId.Value) &&
                     (!filter.DepartmentId.HasValue ||
                      x.Employments.Any(e => e.StateId == StateIdConst.ACTIVE && e.DepartmentId == filter.DepartmentId.Value)) &&
@@ -88,8 +86,8 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                      x.EmployeeNumber.ToLower().Contains(search) ||
                      x.FirstName.ToLower().Contains(search) ||
                      x.LastName.ToLower().Contains(search) ||
-                     (x.Pinfl != null && x.Pinfl.Contains(search))),
-                Selector = x => new PayrollEmployeeListDto
+                     (x.Pinfl != null && x.Pinfl.Contains(search))))
+                .As(x => new PayrollEmployeeListDto
                 {
                     Id = x.Id,
                     EmployeeNumber = x.EmployeeNumber,
@@ -121,11 +119,11 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                         .Select(e => (decimal?)e.MonthlySalary)
                         .FirstOrDefault(),
                     StateId = x.StateId
-                },
-                OrderBy = x => x.OrderBy(y => y.FullName),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                })
+                .OrderBy(x => x.OrderBy(y => y.FullName))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
 
             var paged = await _employeeQuery.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, take));

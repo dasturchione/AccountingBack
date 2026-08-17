@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.FiscalCashRegisters;
@@ -79,23 +78,22 @@ public class FiscalCashRegisterService : IFiscalCashRegisterService
         var search = string.IsNullOrWhiteSpace(filter.Search) ? null : filter.Search.Trim().ToLower();
         var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
 
-        var query = new PagedQuerySpecification<FiscalCashRegister, FiscalCashRegisterListDto>
-        {
-            Criteria = x =>
+        var query = _queryBuilder.For<FiscalCashRegister>()
+            .Where(x =>
                 (!filter.WarehouseId.HasValue || x.WarehouseId == filter.WarehouseId.Value) &&
                 (!filter.RegisterTypeId.HasValue || x.RegisterTypeId == filter.RegisterTypeId.Value) &&
-                (!filter.StateId.HasValue || x.StateId == filter.StateId.Value),
-            ResultCriteria = x => search == null ||
+                (!filter.StateId.HasValue || x.StateId == filter.StateId.Value))
+            .As(ToListDto(languageId))
+            .Where(x => search == null ||
                 x.Name.ToLower().Contains(search) ||
                 (x.ExternalRegisterId != null && x.ExternalRegisterId.ToLower().Contains(search)) ||
                 (x.Model != null && x.Model.ToLower().Contains(search)) ||
                 (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(search)) ||
-                (x.FiscalModuleNumber != null && x.FiscalModuleNumber.ToLower().Contains(search)),
-            Selector = ToListDto(languageId),
-            OrderBy = x => x.OrderBy(register => register.Name).ThenBy(register => register.Id),
-            Skip = (page - 1) * pageSize,
-            Take = pageSize
-        };
+                (x.FiscalModuleNumber != null && x.FiscalModuleNumber.ToLower().Contains(search)))
+            .OrderBy(x => x.OrderBy(register => register.Name).ThenBy(register => register.Id))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .BuildPaged();
 
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, page, pageSize);

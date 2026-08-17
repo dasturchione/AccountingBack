@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Pay.Payments;
@@ -93,9 +92,8 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             var page = Math.Max(filter.Page, 1);
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
-            var specification = new PagedQuerySpecification<PayPaymentBatch, PayrollPaymentListDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<PayPaymentBatch>()
+                .Where(x =>
                     x.StateId == StateIdConst.ACTIVE &&
                     (!filter.PeriodId.HasValue || x.PeriodId == filter.PeriodId.Value) &&
                     (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
@@ -103,8 +101,8 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                     (string.IsNullOrWhiteSpace(filter.SourceType) || x.SourceType == filter.SourceType) &&
                     (string.IsNullOrWhiteSpace(search) ||
                      x.DocNumber.ToLower().Contains(search) ||
-                     (x.Note != null && x.Note.ToLower().Contains(search))),
-                Selector = x => new PayrollPaymentListDto
+                     (x.Note != null && x.Note.ToLower().Contains(search))))
+                .As(x => new PayrollPaymentListDto
                 {
                     Id = x.Id,
                     DocNumber = x.DocNumber,
@@ -118,11 +116,11 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                     StatusName = x.Status.Name,
                     BankOperationId = x.BankOperationId,
                     CashOperationId = x.CashOperationId
-                },
-                OrderBy = x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                })
+                .OrderBy(x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
             var paged = await _query.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, take));
         });

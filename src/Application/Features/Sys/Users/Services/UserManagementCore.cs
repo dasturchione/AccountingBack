@@ -6,7 +6,7 @@ using Application.Features.Users;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.Users.Services;
@@ -24,6 +24,7 @@ public sealed class UserManagementCore : IUserManagementCore
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<UserManagementCore> _logger;
+    private readonly IQueryBuilder _queryBuilder;
 
     public UserManagementCore(
         IUserContext userContext,
@@ -36,6 +37,7 @@ public sealed class UserManagementCore : IUserManagementCore
         IQueryRepository<UserKind> userKindQuery,
         IQueryRepository<Organization> organizationQuery,
         IEmailSender emailSender,
+        IQueryBuilder queryBuilder,
         ILogger<UserManagementCore> logger)
     {
         _userContext = userContext;
@@ -48,6 +50,7 @@ public sealed class UserManagementCore : IUserManagementCore
         _userKindQuery = userKindQuery;
         _organizationQuery = organizationQuery;
         _emailSender = emailSender;
+        _queryBuilder = queryBuilder;
         _logger = logger;
     }
 
@@ -120,7 +123,7 @@ public sealed class UserManagementCore : IUserManagementCore
         if (options.Scope == UserManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
             return Result.Failure(PlatformErrors.GlobalAccessRequired());
 
-        var user = await _userQuery.GetAsync(new QuerySpecification<User> { Criteria = item => item.Id == request.UserId }, ct);
+        var user = await _userQuery.GetAsync(_queryBuilder.For<User>().Where(item => item.Id == request.UserId).Build(), ct);
         if (user is null)
             return Result.Failure(ResolveUserNotFound(request.UserId, options.Scope));
 
@@ -282,10 +285,9 @@ public sealed class UserManagementCore : IUserManagementCore
         CancellationToken ct)
     {
         var now = DateTime.Now;
-        var existing = await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization>
-        {
-            Criteria = membership => membership.UserId == userId
-        }, ct);
+        var existing = await _userOrganizationQuery.GetAllAsync(_queryBuilder.For<UserOrganization>()
+            .Where(membership => membership.UserId == userId)
+            .Build(), ct);
 
         var requestedOrganizationIds = memberships.Select(membership => membership.OrganizationId).ToHashSet();
         var toUpdate = new List<UserOrganization>();

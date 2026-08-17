@@ -4,7 +4,7 @@ using Application.Abstractions.Integration;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 
 namespace Application.Features.Notifications;
 
@@ -16,6 +16,7 @@ public sealed class NotificationEmailDispatcher : INotificationEmailDispatcher
     private readonly ICommandRepository<NotificationDelivery> _deliveryCommand;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<NotificationEmailDispatcher> _logger;
+    private readonly IQueryBuilder _queryBuilder;
 
     public NotificationEmailDispatcher(
         IQueryRepository<User> userQuery,
@@ -23,6 +24,7 @@ public sealed class NotificationEmailDispatcher : INotificationEmailDispatcher
         IQueryRepository<NotificationDelivery> deliveryQuery,
         ICommandRepository<NotificationDelivery> deliveryCommand,
         IEmailSender emailSender,
+        IQueryBuilder queryBuilder,
         ILogger<NotificationEmailDispatcher> logger)
     {
         _userQuery = userQuery;
@@ -31,6 +33,7 @@ public sealed class NotificationEmailDispatcher : INotificationEmailDispatcher
         _deliveryCommand = deliveryCommand;
         _emailSender = emailSender;
         _logger = logger;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task DispatchAsync(Notification notification, NotificationDelivery delivery, CancellationToken ct = default)
@@ -68,19 +71,17 @@ public sealed class NotificationEmailDispatcher : INotificationEmailDispatcher
 
     public async Task DispatchPendingAsync(CancellationToken ct = default)
     {
-        var pendingDeliveries = await _deliveryQuery.GetAllAsync(new QuerySpecification<NotificationDelivery>
-        {
-            Criteria = x => x.Channel == (short)NotificationChannel.Email
-                && x.Status == (short)NotificationDeliveryStatus.Pending,
-            OrderBy = q => q.OrderBy(x => x.CreatedDate)
-        }, ct);
+        var pendingDeliveries = await _deliveryQuery.GetAllAsync(_queryBuilder.For<NotificationDelivery>()
+            .Where(x => x.Channel == (short)NotificationChannel.Email
+                && x.Status == (short)NotificationDeliveryStatus.Pending)
+            .OrderBy(q => q.OrderBy(x => x.CreatedDate))
+            .Build(), ct);
 
         foreach (var delivery in pendingDeliveries)
         {
-            var notification = await _notificationQuery.GetAsync(new QuerySpecification<Notification>
-            {
-                Criteria = x => x.Id == delivery.NotificationId
-            }, ct);
+            var notification = await _notificationQuery.GetAsync(_queryBuilder.For<Notification>()
+                .Where(x => x.Id == delivery.NotificationId)
+                .Build(), ct);
 
             if (notification is null)
             {
@@ -97,10 +98,9 @@ public sealed class NotificationEmailDispatcher : INotificationEmailDispatcher
         if (!notification.UserId.HasValue)
             return (false, default, "Email channel currently supports only personal notifications.");
 
-        var user = await _userQuery.GetAsync(new QuerySpecification<User>
-        {
-            Criteria = x => x.Id == notification.UserId.Value
-        }, ct);
+        var user = await _userQuery.GetAsync(_queryBuilder.For<User>()
+            .Where(x => x.Id == notification.UserId.Value)
+            .Build(), ct);
 
         if (user is null)
             return (false, default, $"User {notification.UserId.Value} was not found.");

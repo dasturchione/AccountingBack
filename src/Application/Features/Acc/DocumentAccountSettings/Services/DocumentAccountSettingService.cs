@@ -5,7 +5,6 @@ using Application.Features.Manual;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Acc.DocumentAccountSettings;
@@ -44,10 +43,9 @@ public class DocumentAccountSettingService : IDocumentAccountSettingService
         var page = Math.Max(filter.Page, 1);
         var take = Math.Max(filter.PageSize.GetValueOrDefault(50), 1);
 
-        var query = new PagedQuerySpecification<DocumentAccountType, DocumentAccountSettingListDto>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE,
-            Selector = x => new DocumentAccountSettingListDto
+        var query = _queryBuilder.For<DocumentAccountType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new DocumentAccountSettingListDto
             {
                 DocumentTypeId = x.Id,
                 DocumentTypeCode = x.Code,
@@ -61,11 +59,11 @@ public class DocumentAccountSettingService : IDocumentAccountSettingService
                     .FirstOrDefault() ?? x.Description ?? string.Empty,
                 StateId = x.StateId,
                 StateName = x.State.ShortName
-            },
-            OrderBy = x => x.OrderBy(y => y.DocumentTypeId),
-            Take = take,
-            Skip = (page - 1) * take
-        };
+            })
+            .OrderBy(x => x.OrderBy(y => y.DocumentTypeId))
+            .Take(take)
+            .Skip((page - 1) * take)
+            .BuildPaged();
 
         var pagedList = await _typeQuery.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, page, take);

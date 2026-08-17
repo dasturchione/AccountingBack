@@ -3,7 +3,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -17,19 +17,22 @@ public partial class BankStatementParserService : IBankStatementParserService
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
+    private readonly IQueryBuilder _queryBuilder;
 
     public BankStatementParserService(
         IUserContext userContext,
         IQueryRepository<Bank> bankQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
-        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery)
+        IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
+        IQueryBuilder queryBuilder)
     {
         _userContext = userContext;
         _bankQuery = bankQuery;
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(
@@ -117,17 +120,16 @@ public partial class BankStatementParserService : IBankStatementParserService
         if (bankInns.Count == 0)
             return;
 
-        var specification = new QuerySpecification<Bank, BankMatch>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            x.Inn != null &&
-                            bankInns.Contains(x.Inn),
-            Selector = x => new BankMatch
+        var specification = _queryBuilder.For<Bank>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        x.Inn != null &&
+                        bankInns.Contains(x.Inn))
+            .As(x => new BankMatch
             {
                 Id = x.Id,
                 Inn = x.Inn!
-            }
-        };
+            })
+            .Build();
 
         var matches = await _bankQuery.GetAllAsync(specification, ct);
         var idsByKey = matches
@@ -154,12 +156,11 @@ public partial class BankStatementParserService : IBankStatementParserService
             return;
 
         var organizationId = _userContext.OrganizationId;
-        var specification = new QuerySpecification<BankAccount, BankAccountMatch>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
-                            accountNumbers.Contains(x.AccountNumber),
-            Selector = x => new BankAccountMatch
+        var specification = _queryBuilder.For<BankAccount>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
+                        accountNumbers.Contains(x.AccountNumber))
+            .As(x => new BankAccountMatch
             {
                 Id = x.Id,
                 AccountNumber = x.AccountNumber,
@@ -167,8 +168,8 @@ public partial class BankStatementParserService : IBankStatementParserService
                 BankInn = x.Bank.Inn,
                 BankMfo = x.Bank.Mfo,
                 BankName = x.Bank.Name
-            }
-        };
+            })
+            .Build();
 
         var matches = await _bankAccountQuery.GetAllAsync(specification, ct);
         var idsByKey = matches
@@ -208,18 +209,17 @@ public partial class BankStatementParserService : IBankStatementParserService
             return;
 
         var organizationId = _userContext.OrganizationId;
-        var cardSpecification = new QuerySpecification<CounterpartyCard, CounterpartyMatch>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            x.Inn != null &&
-                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
-                            counterpartyInns.Contains(x.Inn),
-            Selector = x => new CounterpartyMatch
+        var cardSpecification = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        x.Inn != null &&
+                        (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
+                        counterpartyInns.Contains(x.Inn))
+            .As(x => new CounterpartyMatch
             {
                 Id = x.Id,
                 Inn = x.Inn!
-            }
-        };
+            })
+            .Build();
 
         var cardMatches = await _counterpartyQuery.GetAllAsync(cardSpecification, ct);
         var idsByInn = cardMatches
@@ -247,18 +247,17 @@ public partial class BankStatementParserService : IBankStatementParserService
             return;
 
         var organizationId = _userContext.OrganizationId;
-        var accountSpecification = new QuerySpecification<CounterpartyBankAccount, CounterpartyAccountMatch>
-        {
-            Criteria = x => x.StateId == StateIdConst.ACTIVE &&
-                            (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
-                            counterpartyAccounts.Contains(x.AccountNumber),
-            Selector = x => new CounterpartyAccountMatch
+        var accountSpecification = _queryBuilder.For<CounterpartyBankAccount>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!organizationId.HasValue || x.OrganizationId == organizationId.Value) &&
+                        counterpartyAccounts.Contains(x.AccountNumber))
+            .As(x => new CounterpartyAccountMatch
             {
                 Id = x.Id,
                 CounterpartyId = x.CounterpartyId,
                 AccountNumber = x.AccountNumber
-            }
-        };
+            })
+            .Build();
 
         var accountMatches = await _counterpartyBankAccountQuery.GetAllAsync(accountSpecification, ct);
         var idsByAccount = accountMatches

@@ -19,6 +19,8 @@ namespace SharedKernel.Query.Specifications
             builder(includeBuilder);
             _includes.AddRange(includeBuilder.Entries);
         }
+
+        internal void AddIncludeEntry(IncludeEntry<TEntity> entry) => _includes.Add(entry);
     }
 
     public class QuerySpecification<TEntity, TResult> where TEntity : class

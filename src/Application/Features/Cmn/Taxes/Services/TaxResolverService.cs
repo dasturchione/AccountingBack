@@ -3,7 +3,6 @@ using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Cmn.Taxes;
@@ -14,17 +13,20 @@ public sealed class TaxResolverService : ITaxResolverService
     private readonly IQueryRepository<OrganizationTaxSetting> _organizationTaxSettingQuery;
     private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
+    private readonly IQueryBuilder _queryBuilder;
 
     public TaxResolverService(
         IUserContext userContext,
         IQueryRepository<OrganizationTaxSetting> organizationTaxSettingQuery,
         IQueryRepository<TaxType> taxTypeQuery,
-        IQueryRepository<VatRate> vatRateQuery)
+        IQueryRepository<VatRate> vatRateQuery,
+        IQueryBuilder queryBuilder)
     {
         _userContext = userContext;
         _organizationTaxSettingQuery = organizationTaxSettingQuery;
         _taxTypeQuery = taxTypeQuery;
         _vatRateQuery = vatRateQuery;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<TaxResolutionResultDto>> ResolveAsync(int organizationId, short taxTypeId, DateOnly? effectiveDate = null, CancellationToken ct = default)
@@ -41,23 +43,20 @@ public sealed class TaxResolverService : ITaxResolverService
 
         var date = effectiveDate ?? DateOnly.FromDateTime(DateTime.Now);
 
-        var taxType = await _taxTypeQuery.GetAsync(
-            new SharedKernel.Query.Specifications.QuerySpecification<TaxType>
-            {
-                Criteria = x => x.Id == taxTypeId && x.StateId == StateIdConst.ACTIVE
-            }, ct);
+        var taxType = await _taxTypeQuery.GetAsync(_queryBuilder.For<TaxType>()
+            .Where(x => x.Id == taxTypeId && x.StateId == StateIdConst.ACTIVE)
+            .Build(), ct);
 
         if (taxType is null)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.InactiveTaxType(taxTypeId, _userContext.LanguageId));
 
-        var settings = await _organizationTaxSettingQuery.GetAllAsync(new QuerySpecification<OrganizationTaxSetting>
-        {
-            Criteria = x => x.OrganizationId == organizationId
-                         && x.TaxTypeId == taxTypeId
-                         && x.EffectiveFrom <= date
-                         && (x.EffectiveTo == null || x.EffectiveTo >= date),
-            OrderBy = q => q.OrderByDescending(x => x.EffectiveFrom)
-        }, ct);
+        var settings = await _organizationTaxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+            .Where(x => x.OrganizationId == organizationId
+                        && x.TaxTypeId == taxTypeId
+                        && x.EffectiveFrom <= date
+                        && (x.EffectiveTo == null || x.EffectiveTo >= date))
+            .OrderBy(q => q.OrderByDescending(x => x.EffectiveFrom))
+            .Build(), ct);
 
         if (settings.Count == 0)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.MissingTaxConfiguration(organizationId, taxTypeId, _userContext.LanguageId));
@@ -73,15 +72,13 @@ public sealed class TaxResolverService : ITaxResolverService
         if (taxTypeId == TaxTypeIdConst.VAT && !setting.IsVatPayer)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.DisabledTax(organizationId, taxTypeId, _userContext.LanguageId));
 
-        var vatRate = await _vatRateQuery.GetAsync(
-            new QuerySpecification<VatRate>
-            {
-                Criteria = x => x.StateId == StateIdConst.ACTIVE
-                             && x.EffectiveFrom.HasValue
-                             && x.EffectiveFrom.Value <= date
-                             && (x.EffectiveTo == null || x.EffectiveTo >= date),
-                OrderBy = q => q.OrderByDescending(x => x.EffectiveFrom)
-            }, ct);
+        var vatRate = await _vatRateQuery.GetAsync(_queryBuilder.For<VatRate>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE
+                        && x.EffectiveFrom.HasValue
+                        && x.EffectiveFrom.Value <= date
+                        && (x.EffectiveTo == null || x.EffectiveTo >= date))
+            .OrderBy(q => q.OrderByDescending(x => x.EffectiveFrom))
+            .Build(), ct);
 
         if (vatRate is null)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.MissingOrganizationConfiguration(_userContext.LanguageId));

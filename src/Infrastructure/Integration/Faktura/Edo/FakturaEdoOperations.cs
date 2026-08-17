@@ -11,7 +11,7 @@ using Integration.Edo.Providers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using SharedKernel.Exceptions;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
@@ -26,7 +26,8 @@ public sealed class FakturaEdoOperations(
     IFakturaAuthSessionStore authSessionStore,
     IOptions<FakturaOptions> options,
     IUserContext userContext,
-    IQueryRepository<Organization> organizationQuery)
+    IQueryRepository<Organization> organizationQuery,
+    IQueryBuilder queryBuilder)
 {
     private const int MaxErrorResponseBodyBytes = 4 * 1024;
     private const int MaxDiagnosticValueLength = 512;
@@ -1237,7 +1238,7 @@ public sealed class FakturaEdoOperations(
         var organizationId = userContext.OrganizationId
             ?? throw new InvalidOperationException("An active organization is required for Faktura integration.");
         var organization = await organizationQuery.GetAsync(
-            new QuerySpecification<Organization> { Criteria = x => x.Id == organizationId },
+            queryBuilder.For<Organization>().Where(x => x.Id == organizationId).Build(),
             ct);
         if (organization is null || string.IsNullOrWhiteSpace(organization.Inn))
         {

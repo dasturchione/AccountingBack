@@ -2,14 +2,15 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.AiAssistant;
 
 public sealed class OrganizationContextResolver(
     IUserContext userContext,
-    IQueryRepository<Organization> organizationQuery) : IAiOrganizationContextResolver
+    IQueryRepository<Organization> organizationQuery,
+    IQueryBuilder queryBuilder) : IAiOrganizationContextResolver
 {
     public async Task<Result<AiOrganizationContext>> ResolveAsync(
         AiOrganizationContextRequest? request,
@@ -46,21 +47,20 @@ public sealed class OrganizationContextResolver(
                 AiAssistantErrors.OrganizationContextUnavailable(userContext.LanguageId));
 
         var normalizedName = requestedName?.ToUpperInvariant();
-        var specification = new QuerySpecification<Organization, AiOrganizationContext>
-        {
-            Criteria = organization =>
+        var specification = queryBuilder.For<Organization>()
+            .Where(organization =>
                 allowedOrganizationIds.Contains(organization.Id)
                 && organization.StateId == StateIdConst.ACTIVE
                 && (!organizationId.HasValue || organization.Id == organizationId.Value)
                 && (normalizedName == null
                     || organization.ShortName.ToUpper() == normalizedName
                     || organization.FullName.ToUpper() == normalizedName)
-                && (requestedInn == null || organization.Inn == requestedInn),
-            Selector = organization => new AiOrganizationContext(
+                && (requestedInn == null || organization.Inn == requestedInn))
+            .As(organization => new AiOrganizationContext(
                 organization.Id,
                 organization.FullName,
-                organization.Inn)
-        };
+                organization.Inn))
+            .Build();
 
         var resolved = await organizationQuery.GetAsync(specification, ct);
 

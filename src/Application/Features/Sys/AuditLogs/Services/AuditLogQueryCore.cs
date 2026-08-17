@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Platform;
 using Domain.Entities;
+using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
@@ -14,17 +15,20 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
     private readonly IQueryRepository<AuditLog> _auditLogQuery;
     private readonly IQueryRepository<User> _userQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
+    private readonly IQueryBuilder _queryBuilder;
 
     public AuditLogQueryCore(
         IUserContext userContext,
         IQueryRepository<AuditLog> auditLogQuery,
         IQueryRepository<User> userQuery,
-        IQueryRepository<Organization> organizationQuery)
+        IQueryRepository<Organization> organizationQuery,
+        IQueryBuilder queryBuilder)
     {
         _userContext = userContext;
         _auditLogQuery = auditLogQuery;
         _userQuery = userQuery;
         _organizationQuery = organizationQuery;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<List<AuditLogQueryItem>>> QueryAsync(
@@ -79,17 +83,14 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
         var orderBy = new Func<IQueryable<AuditLog>, IOrderedQueryable<AuditLog>>(query =>
             query.OrderByDescending(log => log.ChangedDate));
 
-        return scope == AuditLogQueryScope.Record
-            ? new QuerySpecification<AuditLog>
-            {
-                Criteria = BuildRecordCriteria(filter),
-                OrderBy = orderBy
-            }
-            : new QuerySpecification<AuditLog>
-            {
-                Criteria = BuildScopedCriteria(filter, scope),
-                OrderBy = orderBy
-            };
+        var criteria = scope == AuditLogQueryScope.Record
+            ? BuildRecordCriteria(filter)
+            : BuildScopedCriteria(filter, scope);
+
+        return _queryBuilder.For<AuditLog>()
+            .Where(criteria)
+            .OrderBy(orderBy)
+            .Build();
     }
 
     private PagedQuerySpecification<AuditLog> BuildPagedSpecification(
@@ -97,15 +98,14 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
         AuditLogQueryScope scope,
         int page,
         int pageSize) =>
-        new()
-        {
-            Criteria = scope == AuditLogQueryScope.Record
+        _queryBuilder.For<AuditLog>()
+            .Where(scope == AuditLogQueryScope.Record
                 ? BuildRecordCriteria(filter)
-                : BuildScopedCriteria(filter, scope),
-            OrderBy = query => query.OrderByDescending(log => log.ChangedDate),
-            Skip = (page - 1) * pageSize,
-            Take = pageSize
-        };
+                : BuildScopedCriteria(filter, scope))
+            .OrderBy(query => query.OrderByDescending(log => log.ChangedDate))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .BuildPaged();
 
     private System.Linq.Expressions.Expression<Func<AuditLog, bool>> BuildRecordCriteria(AuditLogQueryFilter filter)
     {
@@ -200,17 +200,15 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
 
         var users = userIds.Length == 0
             ? new List<User>()
-            : await _userQuery.GetAllAsync(new QuerySpecification<User>
-            {
-                Criteria = user => userIds.Contains(user.Id)
-            }, ct);
+            : await _userQuery.GetAllAsync(_queryBuilder.For<User>()
+                .Where(user => userIds.Contains(user.Id))
+                .Build(), ct);
 
         var organizations = organizationIds.Length == 0
             ? new List<Organization>()
-            : await _organizationQuery.GetAllAsync(new QuerySpecification<Organization>
-            {
-                Criteria = organization => organizationIds.Contains(organization.Id)
-            }, ct);
+            : await _organizationQuery.GetAllAsync(_queryBuilder.For<Organization>()
+                .Where(organization => organizationIds.Contains(organization.Id))
+                .Build(), ct);
 
         var userNames = users.ToDictionary(user => user.Id, user => user.UserName);
         var organizationNames = organizations.ToDictionary(organization => organization.Id, organization => organization.ShortName);

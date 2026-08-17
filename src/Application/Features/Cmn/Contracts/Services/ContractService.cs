@@ -5,7 +5,6 @@ using Application.Features.CounterpartyCards;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Contracts;
@@ -114,10 +113,9 @@ public class ContractService : IContractService
 
     private async Task<CounterpartyCard?> ResolveCounterpartyAsync(int counterpartyId, CancellationToken ct)
     {
-        var query = new QuerySpecification<CounterpartyCard>
-        {
-            Criteria = x => x.Id == counterpartyId
-        };
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.Id == counterpartyId)
+            .Build();
 
         return await _counterpartyQuery.GetAsync(query, ct);
     }

@@ -5,7 +5,6 @@ using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
 
@@ -32,18 +31,17 @@ public sealed partial class PlatformService
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
             var search = filter.Search?.Trim().ToLowerInvariant();
-            var spec = new PagedQuerySpecification<Role>
-            {
-                Criteria = role =>
+            var spec = _queryBuilder.For<Role>()
+                .Where(role =>
                     role.OrganizationId == organizationId &&
                     (string.IsNullOrWhiteSpace(search) ||
                      role.ShortName.ToLower().Contains(search) ||
-                     role.FullName.ToLower().Contains(search)),
-                OrderBy = query => query.OrderBy(role => role.SortOrder).ThenBy(role => role.Id),
-                Skip = (page - 1) * pageSize,
-                Take = pageSize
-            };
-            spec.AddIncludes(builder => builder.Include(role => role.State));
+                     role.FullName.ToLower().Contains(search)))
+                .OrderBy(query => query.OrderBy(role => role.SortOrder).ThenBy(role => role.Id))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AddIncludes(builder => builder.Include(role => role.State))
+                .BuildPaged();
 
             var paged = await _roleQuery.GetPagedAsync(spec, ct);
             var items = paged.Items.Select(role => new RoleListDto
@@ -103,18 +101,17 @@ public sealed partial class PlatformService
                 StateName = role.State.FullName,
                 CreatedDate = role.CreatedDate
             };
-            var moduleSpec = new QuerySpecification<RoleModule, RoleModuleDto>
-            {
-                Criteria = roleModule => roleModule.RoleId == roleId,
-                OrderBy = query => query.OrderBy(roleModule => roleModule.ModuleId),
-                Selector = roleModule => new RoleModuleDto
+            var moduleSpec = _queryBuilder.For<RoleModule>()
+                .Where(roleModule => roleModule.RoleId == roleId)
+                .As(roleModule => new RoleModuleDto
                 {
                     ModuleId = roleModule.ModuleId,
                     ModuleCode = roleModule.Module.Code,
                     ModuleShortName = roleModule.Module.ShortName,
                     ModuleFullName = roleModule.Module.FullName
-                }
-            };
+                })
+                .OrderBy(query => query.OrderBy(roleModule => roleModule.ModuleId))
+                .Build();
             dto.Modules = await _roleModuleQuery.GetAllAsync(moduleSpec, ct);
             return dto;
         });

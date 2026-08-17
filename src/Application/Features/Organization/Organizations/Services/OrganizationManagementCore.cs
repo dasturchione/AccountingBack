@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.Platform;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
@@ -14,17 +15,20 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly ICommandRepository<Organization> _organizationCommand;
     private readonly IQueryRepository<PlatformTenant> _tenantQuery;
+    private readonly IQueryBuilder _queryBuilder;
 
     public OrganizationManagementCore(
         IUserContext userContext,
         IQueryRepository<Organization> organizationQuery,
         ICommandRepository<Organization> organizationCommand,
-        IQueryRepository<PlatformTenant> tenantQuery)
+        IQueryRepository<PlatformTenant> tenantQuery,
+        IQueryBuilder queryBuilder)
     {
         _userContext = userContext;
         _organizationQuery = organizationQuery;
         _organizationCommand = organizationCommand;
         _tenantQuery = tenantQuery;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<Organization>> GetOrganizationAsync(
@@ -94,21 +98,21 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
         return Result.Success();
     }
 
-    private static QuerySpecification<Organization> BuildOrganizationSpec(int organizationId, bool includeDetails)
+    private QuerySpecification<Organization> BuildOrganizationSpec(int organizationId, bool includeDetails)
     {
-        var spec = new QuerySpecification<Organization> { Criteria = x => x.Id == organizationId };
+        var builder = _queryBuilder.For<Organization>().Where(x => x.Id == organizationId);
         if (includeDetails)
         {
-            spec.AddIncludes(builder =>
+            builder.AddIncludes(includes =>
             {
-                builder.Include(x => x.Region);
-                builder.Include(x => x.District);
-                builder.Include(x => x.State);
-                builder.Include(x => x.DefaultLanguage);
+                includes.Include(x => x.Region);
+                includes.Include(x => x.District);
+                includes.Include(x => x.State);
+                includes.Include(x => x.DefaultLanguage);
             });
         }
 
-        return spec;
+        return builder.Build();
     }
 
     private static OrganizationManagementUpdateRequest PrepareUpdateRequest(

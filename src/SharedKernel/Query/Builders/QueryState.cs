@@ -11,5 +11,10 @@ namespace SharedKernel.Query.Builders
         internal bool OrderDescending { get; set; }
         internal Type? ResultType { get; set; }
         internal object? Selector { get; set; }
+        internal Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? OrderBy { get; set; }
+        internal bool IgnoreQueryFilters { get; set; }
+        internal List<SharedKernel.Query.Includes.IncludeEntry<TEntity>> Includes { get; } = [];
+        internal int Skip { get; set; }
+        internal int? Take { get; set; }
     }
 }

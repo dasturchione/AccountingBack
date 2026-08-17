@@ -4,7 +4,7 @@ using Application.Features;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.OrganizationSetup;
@@ -36,6 +36,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
     private readonly IOrganizationSetupCore _organizationSetupCore;
+    private readonly IQueryBuilder _queryBuilder;
 
     public OrganizationSetupService(
         IUserContext userContext,
@@ -56,6 +57,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
         IOrganizationSetupCore organizationSetupCore,
+        IQueryBuilder queryBuilder,
         ILogger<OrganizationSetupService> logger,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
@@ -77,6 +79,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         _bankAccountQuery = bankAccountQuery;
         _chartAccountQuery = chartAccountQuery;
         _organizationSetupCore = organizationSetupCore;
+        _queryBuilder = queryBuilder;
     }
 
     public Task<Result<OrganizationSetupDto>> GetAsync(CancellationToken ct = default) =>
@@ -299,39 +302,36 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     }
 
     private async Task<Organization?> GetOrganizationAsync(int organizationId, CancellationToken ct) =>
-        await _organizationQuery.GetAsync(new QuerySpecification<Organization> { Criteria = x => x.Id == organizationId }, ct);
+        await _organizationQuery.GetAsync(_queryBuilder.For<Organization>().Where(x => x.Id == organizationId).Build(), ct);
 
     private async Task<OrganizationSetupState?> GetSetupStateAsync(int organizationId, CancellationToken ct) =>
-        await _setupStateQuery.GetAsync(new QuerySpecification<OrganizationSetupState> { Criteria = x => x.OrganizationId == organizationId }, ct);
+        await _setupStateQuery.GetAsync(_queryBuilder.For<OrganizationSetupState>().Where(x => x.OrganizationId == organizationId).Build(), ct);
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(new QuerySpecification<OrganizationTaxSetting>
-        {
-            Criteria = x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE,
-            OrderBy = query => query.OrderByDescending(x => x.EffectiveFrom)
-        }, ct);
+        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+            .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .Build(), ct);
 
         return items.FirstOrDefault();
     }
 
     private async Task<OrganizationConfig?> GetConfigAsync(int organizationId, CancellationToken ct) =>
-        await _configQuery.GetAsync(new QuerySpecification<OrganizationConfig> { Criteria = x => x.OrganizationId == organizationId }, ct);
+        await _configQuery.GetAsync(_queryBuilder.For<OrganizationConfig>().Where(x => x.OrganizationId == organizationId).Build(), ct);
 
     private async Task<OrganizationDefault?> GetDefaultsAsync(int organizationId, CancellationToken ct) =>
-        await _defaultQuery.GetAsync(new QuerySpecification<OrganizationDefault> { Criteria = x => x.OrganizationId == organizationId }, ct);
+        await _defaultQuery.GetAsync(_queryBuilder.For<OrganizationDefault>().Where(x => x.OrganizationId == organizationId).Build(), ct);
 
     private async Task<OrganizationSetupPricingConditionDto?> GetCurrentPricingConditionAsync(int organizationId, CancellationToken ct)
     {
         var now = DateTime.Now;
-        var conditions = await _pricingConditionQuery.GetAllAsync(new QuerySpecification<PricingCondition, OrganizationSetupPricingConditionDto>
-        {
-            Criteria = x => x.OrganizationId == organizationId &&
-                            x.StateId == StateIdConst.ACTIVE &&
-                            x.StartDate <= now &&
-                            (x.EndDate == null || x.EndDate >= now),
-            OrderBy = query => query.OrderByDescending(x => x.StartDate),
-            Selector = x => new OrganizationSetupPricingConditionDto
+        var conditions = await _pricingConditionQuery.GetAllAsync(_queryBuilder.For<PricingCondition>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.StartDate <= now &&
+                        (x.EndDate == null || x.EndDate >= now))
+            .As(x => new OrganizationSetupPricingConditionDto
             {
                 Id = x.Id,
                 PricingMethodId = x.PricingMethodId,
@@ -344,8 +344,9 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 RoundingPrecision = x.RoundingPrecision,
                 StartDate = x.StartDate,
                 EndDate = x.EndDate
-            }
-        }, ct);
+            })
+            .OrderBy(query => query.OrderByDescending(x => x.StartDate))
+            .Build(), ct);
 
         return conditions.FirstOrDefault();
     }

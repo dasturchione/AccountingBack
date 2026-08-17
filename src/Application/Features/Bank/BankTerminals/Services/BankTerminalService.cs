@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.BankTerminals;
@@ -73,22 +72,21 @@ public class BankTerminalService : IBankTerminalService
         var pageSize = filter.PageSize.GetValueOrDefault(50);
         var search = string.IsNullOrWhiteSpace(filter.Search) ? null : filter.Search.Trim().ToLower();
 
-        var query = new PagedQuerySpecification<BankTerminal, BankTerminalListDto>
-        {
-            Criteria = x =>
+        var query = _queryBuilder.For<BankTerminal>()
+            .Where(x =>
                 (!filter.BankAccountId.HasValue || x.BankAccountId == filter.BankAccountId.Value) &&
-                (!filter.StateId.HasValue || x.StateId == filter.StateId.Value),
-            ResultCriteria = x => search == null ||
+                (!filter.StateId.HasValue || x.StateId == filter.StateId.Value))
+            .As(ToListDto())
+            .Where(x => search == null ||
                 x.Name.ToLower().Contains(search) ||
                 (x.MerchantId != null && x.MerchantId.ToLower().Contains(search)) ||
                 (x.ExternalTerminalId != null && x.ExternalTerminalId.ToLower().Contains(search)) ||
                 (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(search)) ||
-                (x.BankAccountNumber != null && x.BankAccountNumber.ToLower().Contains(search)),
-            Selector = ToListDto(),
-            OrderBy = x => x.OrderBy(t => t.Name).ThenBy(t => t.Id),
-            Skip = (page - 1) * pageSize,
-            Take = pageSize
-        };
+                (x.BankAccountNumber != null && x.BankAccountNumber.ToLower().Contains(search)))
+            .OrderBy(x => x.OrderBy(t => t.Name).ThenBy(t => t.Id))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .BuildPaged();
 
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, page, pageSize);

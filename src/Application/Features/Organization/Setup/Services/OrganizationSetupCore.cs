@@ -1,7 +1,7 @@
 using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Results;
 
 namespace Application.Features.OrganizationSetup;
@@ -17,6 +17,7 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
     private readonly IQueryRepository<OrganizationDefault> _defaultQuery;
     private readonly ICommandRepository<OrganizationDefault> _defaultCommand;
     private readonly ICommandRepository<Organization> _organizationCommand;
+    private readonly IQueryBuilder _queryBuilder;
 
     public OrganizationSetupCore(
         IQueryRepository<OrganizationSetupState> setupStateQuery,
@@ -27,7 +28,8 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         ICommandRepository<OrganizationConfig> configCommand,
         IQueryRepository<OrganizationDefault> defaultQuery,
         ICommandRepository<OrganizationDefault> defaultCommand,
-        ICommandRepository<Organization> organizationCommand)
+        ICommandRepository<Organization> organizationCommand,
+        IQueryBuilder queryBuilder)
     {
         _setupStateQuery = setupStateQuery;
         _setupStateCommand = setupStateCommand;
@@ -38,6 +40,7 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         _defaultQuery = defaultQuery;
         _defaultCommand = defaultCommand;
         _organizationCommand = organizationCommand;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task UpsertTaxSettingsAsync(int organizationId, OrganizationSetupTaxSettingsWriteModel model, CancellationToken ct = default)
@@ -61,10 +64,9 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
     public async Task UpsertAccountingPolicyAsync(int organizationId, OrganizationSetupAccountingPolicyWriteModel model, CancellationToken ct = default)
     {
-        var config = await _configQuery.GetAsync(new QuerySpecification<OrganizationConfig>
-        {
-            Criteria = x => x.OrganizationId == organizationId
-        }, ct);
+        var config = await _configQuery.GetAsync(_queryBuilder.For<OrganizationConfig>()
+            .Where(x => x.OrganizationId == organizationId)
+            .Build(), ct);
 
         if (config is null)
         {
@@ -83,10 +85,9 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
     public async Task UpsertDefaultsAsync(int organizationId, OrganizationSetupDefaultsWriteModel model, CancellationToken ct = default)
     {
-        var defaults = await _defaultQuery.GetAsync(new QuerySpecification<OrganizationDefault>
-        {
-            Criteria = x => x.OrganizationId == organizationId
-        }, ct);
+        var defaults = await _defaultQuery.GetAsync(_queryBuilder.For<OrganizationDefault>()
+            .Where(x => x.OrganizationId == organizationId)
+            .Build(), ct);
 
         if (defaults is null)
         {
@@ -146,21 +147,19 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(new QuerySpecification<OrganizationTaxSetting>
-        {
-            Criteria = x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE,
-            OrderBy = query => query.OrderByDescending(x => x.EffectiveFrom)
-        }, ct);
+        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+            .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .Build(), ct);
 
         return items.FirstOrDefault();
     }
 
     private async Task<OrganizationSetupState> GetOrCreateSetupStateAsync(int organizationId, CancellationToken ct)
     {
-        var setup = await _setupStateQuery.GetAsync(new QuerySpecification<OrganizationSetupState>
-        {
-            Criteria = x => x.OrganizationId == organizationId
-        }, ct);
+        var setup = await _setupStateQuery.GetAsync(_queryBuilder.For<OrganizationSetupState>()
+            .Where(x => x.OrganizationId == organizationId)
+            .Build(), ct);
 
         if (setup is not null)
             return setup;

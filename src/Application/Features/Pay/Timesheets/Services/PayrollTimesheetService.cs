@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Pay.Timesheets;
@@ -64,16 +63,15 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             var page = Math.Max(filter.Page, 1);
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
-            var specification = new PagedQuerySpecification<PayTimesheet, PayrollTimesheetListDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<PayTimesheet>()
+                .Where(x =>
                     x.StateId == StateIdConst.ACTIVE &&
                     (!filter.PeriodId.HasValue || x.PeriodId == filter.PeriodId.Value) &&
                     (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
                     (string.IsNullOrWhiteSpace(search) ||
                      x.DocNumber.ToLower().Contains(search) ||
-                     (x.Note != null && x.Note.ToLower().Contains(search))),
-                Selector = x => new PayrollTimesheetListDto
+                     (x.Note != null && x.Note.ToLower().Contains(search))))
+                .As(x => new PayrollTimesheetListDto
                 {
                     Id = x.Id,
                     DocNumber = x.DocNumber,
@@ -84,11 +82,11 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
                     StatusName = x.Status.Name,
                     EmployeeCount = x.Lines.Count,
                     Note = x.Note
-                },
-                OrderBy = x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                })
+                .OrderBy(x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
             var paged = await _query.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, take));
         });

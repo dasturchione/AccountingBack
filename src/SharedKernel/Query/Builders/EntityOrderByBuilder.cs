@@ -26,6 +26,11 @@ namespace SharedKernel.Query.Builders
             return _parent.Build();
         }
 
+        public PagedQuerySpecification<TEntity> BuildPaged()
+        {
+            return _parent.BuildPaged();
+        }
+
         public static implicit operator EntityQueryBuilder<TEntity>(EntityOrderByBuilder<TEntity> builder)
         {
             return builder._parent;

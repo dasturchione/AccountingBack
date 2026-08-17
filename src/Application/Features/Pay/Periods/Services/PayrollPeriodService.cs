@@ -6,7 +6,6 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Linq.Expressions;
 
@@ -51,16 +50,15 @@ public sealed class PayrollPeriodService : BaseService, IPayrollPeriodService
         {
             var page = Math.Max(filter.Page, 1);
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
-            var specification = new PagedQuerySpecification<PayPeriod, PayrollPeriodDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<PayPeriod>()
+                .Where(x =>
                     (!filter.Year.HasValue || x.PeriodYear == filter.Year.Value) &&
-                    (string.IsNullOrWhiteSpace(filter.Status) || x.Status == filter.Status),
-                Selector = DtoSelector,
-                OrderBy = x => x.OrderByDescending(y => y.Year).ThenByDescending(y => y.Month),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                    (string.IsNullOrWhiteSpace(filter.Status) || x.Status == filter.Status))
+                .As(DtoSelector)
+                .OrderBy(x => x.OrderByDescending(y => y.Year).ThenByDescending(y => y.Month))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
             var paged = await _query.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, take));
         });

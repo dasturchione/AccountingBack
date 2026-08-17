@@ -6,7 +6,7 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Results;
-using SharedKernel.Query.Specifications;
+using SharedKernel.Query;
 using SharedKernel.Time;
 
 namespace Application.Features.Notifications;
@@ -26,6 +26,7 @@ public sealed class NotificationService : BaseService, INotificationService
     private readonly INotificationDeduplicationLock _deduplicationLock;
     private readonly IAuditLogService _auditLogService;
     private readonly INotificationEmailDispatcher _notificationEmailDispatcher;
+    private readonly IQueryBuilder _queryBuilder;
 
     public NotificationService(
         IUserContext userContext,
@@ -41,6 +42,7 @@ public sealed class NotificationService : BaseService, INotificationService
         INotificationDeduplicationLock deduplicationLock,
         IAuditLogService auditLogService,
         INotificationEmailDispatcher notificationEmailDispatcher,
+        IQueryBuilder queryBuilder,
         ILogger<NotificationService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -58,6 +60,7 @@ public sealed class NotificationService : BaseService, INotificationService
         _deduplicationLock = deduplicationLock;
         _auditLogService = auditLogService;
         _notificationEmailDispatcher = notificationEmailDispatcher;
+        _queryBuilder = queryBuilder;
     }
 
     public async Task<Result<long>> CreateAsync(CreateNotificationRequest request, CancellationToken ct = default)
@@ -101,15 +104,14 @@ public sealed class NotificationService : BaseService, INotificationService
 
                 await _deduplicationLock.AcquireAsync(dedupeKey, ct);
 
-                var existing = await _notificationQuery.GetAsync(new QuerySpecification<Notification>
-                {
-                    Criteria = x => x.OrganizationId == request.OrganizationId.Value
+                var existing = await _notificationQuery.GetAsync(_queryBuilder.For<Notification>()
+                    .Where(x => x.OrganizationId == request.OrganizationId.Value
                         && x.TypeId == typeResult.Value.Id
                         && x.EntityType == entityType
                         && x.EntityId == request.EntityId.Value
                         && x.CreatedDate >= createdDate.Date
-                        && x.CreatedDate < createdDate.Date.AddDays(1)
-                }, ct);
+                        && x.CreatedDate < createdDate.Date.AddDays(1))
+                    .Build(), ct);
 
                 if (existing is not null)
                 {
@@ -310,10 +312,9 @@ public sealed class NotificationService : BaseService, INotificationService
 
         if (request.TypeId.HasValue)
         {
-            type = await _notificationTypeQuery.GetAsync(new QuerySpecification<NotificationType>
-            {
-                Criteria = x => x.Id == request.TypeId.Value && x.StateId == StateIdConst.ACTIVE
-            }, ct);
+            type = await _notificationTypeQuery.GetAsync(_queryBuilder.For<NotificationType>()
+                .Where(x => x.Id == request.TypeId.Value && x.StateId == StateIdConst.ACTIVE)
+                .Build(), ct);
 
             if (type is null)
                 return Result.Failure<NotificationType>(NotificationErrors.TypeNotFound(request.TypeId.Value, _userContext.LanguageId));
@@ -327,10 +328,9 @@ public sealed class NotificationService : BaseService, INotificationService
 
         if (type is null && !string.IsNullOrWhiteSpace(normalizedCode))
         {
-            type = await _notificationTypeQuery.GetAsync(new QuerySpecification<NotificationType>
-            {
-                Criteria = x => x.Code.ToLower() == normalizedCode && x.StateId == StateIdConst.ACTIVE
-            }, ct);
+            type = await _notificationTypeQuery.GetAsync(_queryBuilder.For<NotificationType>()
+                .Where(x => x.Code.ToLower() == normalizedCode && x.StateId == StateIdConst.ACTIVE)
+                .Build(), ct);
 
             if (type is null)
                 return Result.Failure<NotificationType>(NotificationErrors.TypeNotFound(request.TypeCode!, _userContext.LanguageId));
@@ -344,10 +344,9 @@ public sealed class NotificationService : BaseService, INotificationService
         if (typeIds.Count == 0)
             return [];
 
-        var types = await _notificationTypeQuery.GetAllAsync(new QuerySpecification<NotificationType>
-        {
-            Criteria = x => typeIds.Contains(x.Id)
-        }, ct);
+        var types = await _notificationTypeQuery.GetAllAsync(_queryBuilder.For<NotificationType>()
+            .Where(x => typeIds.Contains(x.Id))
+            .Build(), ct);
 
         return types
             .GroupBy(x => x.Id)
@@ -376,24 +375,22 @@ public sealed class NotificationService : BaseService, INotificationService
 
         if (request.OrganizationId.HasValue)
         {
-            var organization = await _organizationQuery.GetAsync(new QuerySpecification<Organization>
-            {
-                IgnoreQueryFilters = true,
-                Criteria = x => x.Id == request.OrganizationId.Value && x.StateId == StateIdConst.ACTIVE
-            }, ct);
+            var organization = await _organizationQuery.GetAsync(_queryBuilder.For<Organization>()
+                .Where(x => x.Id == request.OrganizationId.Value && x.StateId == StateIdConst.ACTIVE)
+                .IgnoreQueryFilters()
+                .Build(), ct);
 
             if (organization is null)
                 return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));
 
             if (request.UserId.HasValue)
             {
-                var membership = await _userOrganizationQuery.GetAsync(new QuerySpecification<UserOrganization>
-                {
-                    IgnoreQueryFilters = true,
-                    Criteria = x => x.UserId == request.UserId.Value
+                var membership = await _userOrganizationQuery.GetAsync(_queryBuilder.For<UserOrganization>()
+                    .Where(x => x.UserId == request.UserId.Value
                         && x.OrganizationId == request.OrganizationId.Value
-                        && x.StateId == StateIdConst.ACTIVE
-                }, ct);
+                        && x.StateId == StateIdConst.ACTIVE)
+                    .IgnoreQueryFilters()
+                    .Build(), ct);
 
                 if (membership is null)
                     return Result.Failure(CommonErrors.Forbidden(_userContext.LanguageId));

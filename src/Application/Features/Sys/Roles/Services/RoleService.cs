@@ -4,7 +4,6 @@ using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 
 namespace Application.Features.Roles;
@@ -48,18 +47,17 @@ public class RoleService : IRoleService
         if (dto is null)
             return Result.Failure<RoleDto>(RoleErrors.NotFound(id, _userContext.LanguageId));
 
-        var moduleSpec = new QuerySpecification<RoleModule, RoleModuleDto>
-        {
-            Criteria = roleModule => roleModule.RoleId == id,
-            OrderBy = query => query.OrderBy(roleModule => roleModule.ModuleId),
-            Selector = roleModule => new RoleModuleDto
+        var moduleSpec = _queryBuilder.For<RoleModule>()
+            .Where(roleModule => roleModule.RoleId == id)
+            .As(roleModule => new RoleModuleDto
             {
                 ModuleId = roleModule.ModuleId,
                 ModuleCode = roleModule.Module.Code,
                 ModuleShortName = roleModule.Module.ShortName,
                 ModuleFullName = roleModule.Module.FullName
-            }
-        };
+            })
+            .OrderBy(query => query.OrderBy(roleModule => roleModule.ModuleId))
+            .Build();
         dto.Modules = await _roleModuleQuery.GetAllAsync(moduleSpec, ct);
         return dto;
     }

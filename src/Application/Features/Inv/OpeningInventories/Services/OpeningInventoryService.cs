@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Filters;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Linq.Expressions;
 
@@ -169,15 +168,14 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
             var resultCriteria = new OpeningInventoryListDtoByListFilterCriteriaBuilder().Build(filter);
             var projection = new OpeningInventoryListDtoProjection().Build();
 
-            var specification = new PagedQuerySpecification<OpeningInventory, OpeningInventoryListDto>
-            {
-                Criteria = criteria,
-                ResultCriteria = resultCriteria,
-                Selector = projection,
-                OrderBy = BuildListOrder(filter),
-                Take = pageSize,
-                Skip = (page - 1) * pageSize
-            };
+            var specification = _queryBuilder.For<OpeningInventory>()
+                .Where(criteria)
+                .As(projection)
+                .Where(resultCriteria)
+                .OrderBy(BuildListOrder(filter))
+                .Take(pageSize)
+                .Skip((page - 1) * pageSize)
+                .BuildPaged();
 
             var paged = await _query.GetPagedAsync(specification, ct);
             return Result.Success(PagedResponseFactory.Create(paged, page, pageSize));

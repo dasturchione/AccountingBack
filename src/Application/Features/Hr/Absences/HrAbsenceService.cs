@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.Results;
 using System.Text.RegularExpressions;
 
@@ -77,9 +76,8 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
             var take = Math.Clamp(filter.PageSize ?? 50, 1, 200);
             var search = filter.Search?.Trim().ToLower();
 
-            var specification = new PagedQuerySpecification<HrAbsence, HrAbsenceListDto>
-            {
-                Criteria = x =>
+            var specification = _queryBuilder.For<HrAbsence>()
+                .Where(x =>
                     x.StateId == StateIdConst.ACTIVE &&
                     (!filter.EmployeeId.HasValue || x.EmployeeId == filter.EmployeeId.Value) &&
                     (!filter.AbsenceTypeId.HasValue || x.AbsenceTypeId == filter.AbsenceTypeId.Value) &&
@@ -90,8 +88,8 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                      x.Employee.EmployeeNumber.ToLower().Contains(search) ||
                      x.Employee.FirstName.ToLower().Contains(search) ||
                      x.Employee.LastName.ToLower().Contains(search) ||
-                     (x.Note != null && x.Note.ToLower().Contains(search))),
-                Selector = x => new HrAbsenceListDto
+                     (x.Note != null && x.Note.ToLower().Contains(search))))
+                .As(x => new HrAbsenceListDto
                 {
                     Id = x.Id,
                     DocNumber = x.DocNumber,
@@ -107,11 +105,11 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                     EndDate = x.EndDate,
                     AttachmentCount = x.Attachments.Count,
                     Note = x.Note
-                },
-                OrderBy = x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id),
-                Skip = (page - 1) * take,
-                Take = take
-            };
+                })
+                .OrderBy(x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id))
+                .Skip((page - 1) * take)
+                .Take(take)
+                .BuildPaged();
 
             var paged = await _absenceQuery.GetPagedAsync(specification, ct);
             foreach (var item in paged.Items)

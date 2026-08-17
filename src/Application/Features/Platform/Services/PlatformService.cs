@@ -11,7 +11,6 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
-using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
 using SharedKernel.Results;
 
@@ -117,17 +116,16 @@ public sealed partial class PlatformService : BaseService, IPlatformService
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
             var search = filter.Search?.Trim().ToLowerInvariant();
-            var spec = new PagedQuerySpecification<PlatformTenant>
-            {
-                Criteria = tenant =>
+            var spec = _queryBuilder.For<PlatformTenant>()
+                .Where(tenant =>
                     (string.IsNullOrWhiteSpace(search)
                      || tenant.Name.ToLower().Contains(search)
                      || tenant.Slug.ToLower().Contains(search))
-                    && (!filter.StateId.HasValue || tenant.StateId == filter.StateId.Value),
-                OrderBy = query => query.OrderBy(tenant => tenant.Id),
-                Skip = (page - 1) * pageSize,
-                Take = pageSize
-            };
+                    && (!filter.StateId.HasValue || tenant.StateId == filter.StateId.Value))
+                .OrderBy(query => query.OrderBy(tenant => tenant.Id))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .BuildPaged();
 
             var paged = await _tenantQuery.GetPagedAsync(spec, ct);
             var items = new List<PlatformTenantDto>();
@@ -294,9 +292,8 @@ public sealed partial class PlatformService : BaseService, IPlatformService
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
             var search = filter.Search?.Trim().ToLowerInvariant();
-            var spec = new PagedQuerySpecification<User, PlatformUserDto>
-            {
-                Criteria = user =>
+            var spec = _queryBuilder.For<User>()
+                .Where(user =>
                     (string.IsNullOrWhiteSpace(search)
                      || user.UserName.ToLower().Contains(search)
                      || user.PhoneNumber.ToLower().Contains(search)
@@ -309,12 +306,12 @@ public sealed partial class PlatformService : BaseService, IPlatformService
                     && ((!filter.OrganizationId.HasValue && user.TenantId == tenantId)
                         || user.UserOrganizations.Any(membership =>
                             membership.Organization.TenantId == tenantId &&
-                            (!filter.OrganizationId.HasValue || membership.OrganizationId == filter.OrganizationId.Value))),
-                OrderBy = query => query.OrderBy(user => user.Id),
-                Skip = (page - 1) * pageSize,
-                Take = pageSize,
-                Selector = PlatformUserDtoProjection.Summary
-            };
+                            (!filter.OrganizationId.HasValue || membership.OrganizationId == filter.OrganizationId.Value))))
+                .As(PlatformUserDtoProjection.Summary)
+                .OrderBy(query => query.OrderBy(user => user.Id))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .BuildPaged();
 
             var paged = await _userQuery.GetPagedAsync(spec, ct);
             return PagedResponseFactory.Create(paged, page, pageSize);
@@ -329,11 +326,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
             if (await GetTenantEntityAsync(tenantId, ct) is null)
                 return Result.Failure<PlatformUserDetailDto>(PlatformErrors.TenantNotFound(tenantId));
 
-            var user = await _userQuery.GetAsync(new QuerySpecification<User, PlatformUserDto>
-            {
-                Criteria = x => x.Id == userId && x.TenantId == tenantId,
-                Selector = PlatformUserDtoProjection.Summary
-            }, ct);
+            var userQuery = _queryBuilder.For<User>()
+                .Where(x => x.Id == userId && x.TenantId == tenantId)
+                .As(PlatformUserDtoProjection.Summary)
+                .Build();
+            var user = await _userQuery.GetAsync(userQuery, ct);
             if (user is null)
                 return Result.Failure<PlatformUserDetailDto>(PlatformErrors.UserNotFound(userId));
 
@@ -397,9 +394,8 @@ public sealed partial class PlatformService : BaseService, IPlatformService
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
             var search = filter.Search?.Trim().ToLowerInvariant();
             var setupStatus = filter.SetupStatus?.Trim().ToLowerInvariant();
-            var spec = new PagedQuerySpecification<Organization>
-            {
-                Criteria = organization =>
+            var spec = _queryBuilder.For<Organization>()
+                .Where(organization =>
                     organization.TenantId == tenantId
                     && (string.IsNullOrWhiteSpace(search)
                         || organization.ShortName.ToLower().Contains(search)
@@ -408,18 +404,18 @@ public sealed partial class PlatformService : BaseService, IPlatformService
                         || (organization.Email != null && organization.Email.ToLower().Contains(search)))
                     && (!filter.RegionId.HasValue || organization.RegionId == filter.RegionId.Value)
                     && (!filter.StateId.HasValue || organization.StateId == filter.StateId.Value)
-                    && (string.IsNullOrWhiteSpace(setupStatus) || organization.SetupStatus.ToLower() == setupStatus),
-                OrderBy = query => query.OrderBy(organization => organization.Id),
-                Skip = (page - 1) * pageSize,
-                Take = pageSize
-            };
-            spec.AddIncludes(builder =>
-            {
-                builder.Include(x => x.Region);
-                builder.Include(x => x.District);
-                builder.Include(x => x.State);
-                builder.Include(x => x.DefaultLanguage);
-            });
+                    && (string.IsNullOrWhiteSpace(setupStatus) || organization.SetupStatus.ToLower() == setupStatus))
+                .OrderBy(query => query.OrderBy(organization => organization.Id))
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AddIncludes(builder =>
+                {
+                    builder.Include(x => x.Region);
+                    builder.Include(x => x.District);
+                    builder.Include(x => x.State);
+                    builder.Include(x => x.DefaultLanguage);
+                })
+                .BuildPaged();
 
             var paged = await _organizationQuery.GetPagedAsync(spec, ct);
             var items = new List<PlatformOrganizationDto>();
@@ -542,16 +538,14 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         });
 
     private async Task<User?> GetTenantUserAsync(int tenantId, int userId, CancellationToken ct) =>
-        await _userQuery.GetAsync(new QuerySpecification<User>
-        {
-            Criteria = x => x.Id == userId && x.TenantId == tenantId
-        }, ct);
+        await _userQuery.GetAsync(_queryBuilder.For<User>()
+            .Where(x => x.Id == userId && x.TenantId == tenantId)
+            .Build(), ct);
 
     private async Task<Organization?> GetTenantOrganizationAsync(int tenantId, int organizationId, CancellationToken ct) =>
-        await _organizationQuery.GetAsync(new QuerySpecification<Organization>
-        {
-            Criteria = x => x.Id == organizationId && x.TenantId == tenantId
-        }, ct);
+        await _organizationQuery.GetAsync(_queryBuilder.For<Organization>()
+            .Where(x => x.Id == organizationId && x.TenantId == tenantId)
+            .Build(), ct);
     private async Task<Error?> ValidateTenantOrganizationsAsync(int tenantId, IEnumerable<PlatformUserOrganizationCreateDto> organizations, CancellationToken ct)
     {
         var requestedOrganizationIds = organizations.Select(organization => organization.OrganizationId)
@@ -562,11 +556,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         if (requestedOrganizationIds.Count == 0)
             return null;
 
-        var specification = new QuerySpecification<Organization, int>
-        {
-            Criteria = x => requestedOrganizationIds.Contains(x.Id) && x.TenantId == tenantId,
-            Selector = x => x.Id
-        };
+        var specification = _queryBuilder.For<Organization>()
+            .Where(x => requestedOrganizationIds.Contains(x.Id) && x.TenantId == tenantId)
+            .As(x => x.Id)
+            .Build();
         var existingOrganizationIds = (await _organizationQuery.GetAllAsync(specification, ct)).ToHashSet();
         var invalidOrganizationId = requestedOrganizationIds.FirstOrDefault(id => !existingOrganizationIds.Contains(id));
 
@@ -580,15 +573,13 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         int? userId,
         int? organizationId,
         CancellationToken ct) =>
-        _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization, PlatformUserOrganizationDto>
-        {
-            Criteria = membership =>
+        _userOrganizationQuery.GetAllAsync(_queryBuilder.For<UserOrganization>()
+            .Where(membership =>
                 membership.User.TenantId == tenantId &&
                 membership.Organization.TenantId == tenantId &&
                 (!userId.HasValue || membership.UserId == userId.Value) &&
-                (!organizationId.HasValue || membership.OrganizationId == organizationId.Value),
-            OrderBy = query => query.OrderBy(membership => membership.OrganizationId),
-            Selector = membership => new PlatformUserOrganizationDto
+                (!organizationId.HasValue || membership.OrganizationId == organizationId.Value))
+            .As(membership => new PlatformUserOrganizationDto
             {
                 UserId = membership.UserId,
                 UserName = membership.User.UserName,
@@ -603,39 +594,36 @@ public sealed partial class PlatformService : BaseService, IPlatformService
                 InvitedByUserId = membership.InvitedByUserId,
                 LastAccessAt = membership.LastAccessAt,
                 BlockedAt = membership.BlockedAt
-            }
-        }, ct);
+            })
+            .OrderBy(query => query.OrderBy(membership => membership.OrganizationId))
+            .Build(), ct);
 
     private async Task<PlatformTenant?> GetTenantEntityAsync(int id, CancellationToken ct) =>
-        await _tenantQuery.GetAsync(new QuerySpecification<PlatformTenant> { Criteria = x => x.Id == id }, ct);
+        await _tenantQuery.GetAsync(_queryBuilder.For<PlatformTenant>().Where(x => x.Id == id).Build(), ct);
 
     private async Task<PlatformTenantDto> MapTenantAsync(PlatformTenant tenant, CancellationToken ct)
     {
         var ownerUserName = tenant.OwnerUserId.HasValue
-            ? await _userQuery.GetAsync(new QuerySpecification<User, string>
-            {
-                Criteria = x => x.Id == tenant.OwnerUserId.Value,
-                Selector = x => x.UserName
-            }, ct)
+            ? await _userQuery.GetAsync(_queryBuilder.For<User>()
+                .Where(x => x.Id == tenant.OwnerUserId.Value)
+                .As(x => x.UserName)
+                .Build(), ct)
             : null;
 
-        var organizationIds = await _organizationQuery.GetAllAsync(new QuerySpecification<Organization, int>
-        {
-            Criteria = x => x.TenantId == tenant.Id,
-            Selector = x => x.Id
-        }, ct);
+        var organizationIds = await _organizationQuery.GetAllAsync(_queryBuilder.For<Organization>()
+            .Where(x => x.TenantId == tenant.Id)
+            .As(x => x.Id)
+            .Build(), ct);
         var membershipUserIds = organizationIds.Count == 0
             ? []
-            : await _userOrganizationQuery.GetAllAsync(new QuerySpecification<UserOrganization, int>
-            {
-                Criteria = x => organizationIds.Contains(x.OrganizationId) && x.StateId == StateIdConst.ACTIVE,
-                Selector = x => x.UserId
-            }, ct);
-        var tenantUserIds = await _userQuery.GetAllAsync(new QuerySpecification<User, int>
-        {
-            Criteria = x => x.TenantId == tenant.Id,
-            Selector = x => x.Id
-        }, ct);
+            : await _userOrganizationQuery.GetAllAsync(_queryBuilder.For<UserOrganization>()
+                .Where(x => organizationIds.Contains(x.OrganizationId) && x.StateId == StateIdConst.ACTIVE)
+                .As(x => x.UserId)
+                .Build(), ct);
+        var tenantUserIds = await _userQuery.GetAllAsync(_queryBuilder.For<User>()
+            .Where(x => x.TenantId == tenant.Id)
+            .As(x => x.Id)
+            .Build(), ct);
 
         return new PlatformTenantDto
         {
@@ -819,11 +807,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         System.Linq.Expressions.Expression<Func<UserOrganization, bool>> criteria,
         CancellationToken ct)
     {
-        var page = await _userOrganizationQuery.GetPagedAsync(new PagedQuerySpecification<UserOrganization>
-        {
-            Criteria = criteria,
-            Take = 1
-        }, ct);
+        var page = await _userOrganizationQuery.GetPagedAsync(_queryBuilder.For<UserOrganization>()
+            .Where(criteria)
+            .Take(1)
+            .BuildPaged(), ct);
         return page.TotalCount;
     }
 }

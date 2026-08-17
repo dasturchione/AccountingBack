@@ -1,9 +1,13 @@
-﻿namespace WebApi.Configuration
+﻿using Application;
+
+namespace WebApi.Configuration
 {
     public static partial class HostConfiguration
     {
         public static ValueTask<WebApplicationBuilder> ConfigureAsync(this WebApplicationBuilder builder)
         {
+            builder.Services.AddApplication();
+
             builder
                 .AddLogger()
                 .AddDevTools()

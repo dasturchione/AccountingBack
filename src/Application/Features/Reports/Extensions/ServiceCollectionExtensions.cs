@@ -8,7 +8,6 @@ using Application.Features.Reports.SalesReports;
 using Application.Features.Reports.WarehouseReports;
 using Application.Features.Reports.Exports;
 using Microsoft.Extensions.DependencyInjection;
-using Scrutor;
 
 namespace Application.Features.Reports.Extensions;
 
@@ -25,18 +24,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IExcelExporter, ExcelReportExporter>();
         services.AddScoped<IPdfExporter, PdfReportExporter>();
         services.AddScoped<IReportExporter, ReportExporter>();
-
-        services.Scan(scan => scan
-            .FromAssemblyOf<ReportsFeatureRegistration>()
-            .AddClasses(c => c.AssignableTo(typeof(Application.Features.Reports.Contracts.IReportQuery<,>)))
-                .AsImplementedInterfaces()
-                .WithScopedLifetime()
-            .AddClasses(c => c.AssignableTo(typeof(Application.Features.Reports.Contracts.IReportBuilder<,>)))
-                .AsImplementedInterfaces()
-                .WithScopedLifetime()
-            .AddClasses(c => c.AssignableTo(typeof(Application.Features.Reports.Contracts.IReportValidator<>)))
-                .AsSelf()
-                .WithScopedLifetime());
 
         return services;
     }

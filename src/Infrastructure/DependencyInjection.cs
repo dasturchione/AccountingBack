@@ -1,7 +1,5 @@
-using Application;
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Common.Markers;
 using Application.Features.AuditLogs;
 using Application.Features.Acc.AccountingPeriods;
 using Application.Features.Acc.DocumentAccountSettings;
@@ -17,7 +15,6 @@ using Application.Features.Reports.PurchaseReports;
 using Application.Features.Reports.ReceivableReports;
 using Application.Features.Reports.SalesReports;
 using Application.Features.Reports.WarehouseReports;
-using Application.Features.Reports.Extensions;
 using Application.Features.Reports.Exports;
 using Application.Features.Auth;
 using Application.Features.BankOperations;
@@ -36,10 +33,6 @@ using Application.Features.CounterpartyBankAccounts;
 using Application.Features.CounterpartyCards;
 using Application.Features.CounterpartyContacts;
 using Application.Features.CounterpartyRegisterBalances;
-using Application.Features.Cmn.Currencies.Extensions;
-using Application.Features.Cmn.CurrencyRates.Extensions;
-using Application.Features.Cmn.CurrencyRevaluations.Extensions;
-using Application.Features.Cmn.Taxes.Extensions;
 using Application.Abstractions.Integration;
 using Application.Abstractions.Integration.Edo;
 using Application.Features.Integration.AslBelgi.Services;
@@ -52,7 +45,6 @@ using Application.Features.Integration.Didox.Services;
 using Application.Features.Integration.Didox.Facturas;
 using Application.Features.Integration.Edo;
 using Application.Features.Cmn.CurrencyRates;
-using Application.Features.Settings.Extensions;
 using Application.Features.Departments;
 using Application.Features.Fa;
 using Application.Features.FaAssets;
@@ -67,7 +59,6 @@ using Application.Features.Hr.Calendar;
 using Application.Features.Hr.Files;
 using Application.Features.Hr.Schedules;
 using Application.Features.InventoryMovements;
-using Application.Features.Imports;
 using Application.Features.Inv;
 using Application.Features.InventoryCounts;
 using Application.Features.InventoryAdjustments;
@@ -76,7 +67,6 @@ using Application.Features.Inv.ProductPrices;
 using Application.Features.WarehouseTransfers;
 using Application.Features.Manual;
 using Application.Features.MoneyRegisterBalances;
-using Application.Features.Notifications.Extensions;
 using Application.Features.Notifications;
 using Application.Features.Organizations;
 using Application.Features.OrganizationSetup;
@@ -145,7 +135,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharedKernel.Query;
-using Scrutor;
 using Application.Features.DocumentNumbers;
 
 namespace Infrastructure
@@ -190,17 +179,6 @@ namespace Infrastructure
 
             services.AddScoped<IQueryBuilder, QueryBuilder>();
             services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
-            services.Scan(scan => scan
-                .FromAssemblies(typeof(ApplicationAssemblyMarker).Assembly)
-                .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-                .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime()
-                .AddClasses(c => c.AssignableTo(typeof(IOrderByBuilder<,>)))
-                    .AsImplementedInterfaces()
-                    .WithScopedLifetime());
 
             services.AddMemoryCache();
             services.Configure<HrFileStorageOptions>(config.GetSection("HrFileStorage"));
@@ -348,14 +326,6 @@ namespace Infrastructure
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
             services.AddScoped<IAccountingReportService, AccountingReportService>();
             services.AddScoped<IAccountingReportReadRepository, AccountingReportReadRepository>();
-            services.AddReportsModule();
-            services.AddImportModule();
-            services.AddCurrencyModule();
-            services.AddCurrencyRateModule();
-            services.AddCurrencyRevaluationModule();
-            services.AddTaxModule();
-            services.AddSettingsModule();
-            services.AddNotificationsModule();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();
             services.AddScoped<IFinancialReportService, FinancialReportService>();
             services.AddScoped<ISalesReportService, SalesReportService>();

@@ -1,6 +1,4 @@
-using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using Scrutor;
 
 namespace Application.Features.Cmn.Currencies.Extensions;
 
@@ -10,17 +8,11 @@ namespace Application.Features.Cmn.Currencies.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds currency validators and future feature scaffolding.
+    /// Adds currency services.
     /// </summary>
     public static IServiceCollection AddCurrencyModule(this IServiceCollection services)
     {
         services.AddScoped<ICurrencyService, CurrencyService>();
-
-        services.Scan(scan => scan
-            .FromAssemblyOf<CurrencyFeatureRegistration>()
-            .AddClasses(c => c.AssignableTo(typeof(IValidator<>)))
-                .AsImplementedInterfaces()
-                .WithScopedLifetime());
 
         return services;
     }

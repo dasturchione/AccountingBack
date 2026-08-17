@@ -1,6 +1,4 @@
-﻿using Application.Common.Markers;
 using Application.Common.Settings;
-using FluentValidation;
 using Infrastructure;
 using Infrastructure.BackgroundServices;
 using Infrastructure.Options;
@@ -47,7 +45,6 @@ namespace WebApi.Configuration
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
 
-            builder.Services.AddValidatorsFromAssemblyContaining<ApplicationAssemblyMarker>(includeInternalTypes: true);
             builder.Services.AddScoped<FluentValidationFilter>();
 
             AddCorsPolicies(builder);

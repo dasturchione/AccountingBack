@@ -10,5 +10,4 @@ public class PurchaseDocBaseDto
     public long? ContractId { get; set; }
     public int? SupplierAccountId { get; set; }
     public string? Comment { get; set; }
-    public List<PurchaseDocLineDto> Lines { get; set; } = new();
 }

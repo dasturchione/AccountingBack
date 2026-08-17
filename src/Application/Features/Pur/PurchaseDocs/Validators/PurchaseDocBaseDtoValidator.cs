@@ -13,6 +13,24 @@ namespace Application.Features.Pur.PurchaseDocs
             RuleFor(x => x.CurrencyId).GreaterThan((short)0);
             RuleFor(x => x.ContractId).GreaterThan(0).When(x => x.ContractId.HasValue);
             RuleFor(x => x.Comment).MaximumLength(1000).When(x => x.Comment != null);
+        }
+    }
+
+    public class PurchaseDocCreateDtoValidator : AbstractValidator<PurchaseDocCreateDto>
+    {
+        public PurchaseDocCreateDtoValidator()
+        {
+            Include(new PurchaseDocBaseDtoValidator());
+            RuleFor(x => x.Lines).NotEmpty();
+            RuleForEach(x => x.Lines).SetValidator(new PurchaseDocLineDtoValidator());
+        }
+    }
+
+    public class PurchaseDocUpdateDtoValidator : AbstractValidator<PurchaseDocUpdateDto>
+    {
+        public PurchaseDocUpdateDtoValidator()
+        {
+            Include(new PurchaseDocBaseDtoValidator());
             RuleFor(x => x.Lines).NotEmpty();
             RuleForEach(x => x.Lines).SetValidator(new PurchaseDocLineDtoValidator());
         }

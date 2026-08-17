@@ -34,12 +34,14 @@ namespace Infrastructure.Query
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
             var resultFilterBuilder = _resolver.GetCriteriaBuilder<TResult, TOptions>();
             var projectionBuilder = _resolver.GetProjectionBuilder<TEntity, TResult>();
+            var orderByBuilder = _resolver.GetOrderByBuilder<TEntity, TResult>();
 
             return new QuerySpecification<TEntity, TResult>
             {
                 Selector = projectionBuilder.Build(),
                 Criteria = SafeBuild(entityFilterBuilder, options),
-                ResultCriteria = SafeBuild(resultFilterBuilder, options)
+                ResultCriteria = SafeBuild(resultFilterBuilder, options),
+                OrderBy = orderByBuilder?.Build()
             };
         }
 
@@ -65,6 +67,7 @@ namespace Infrastructure.Query
             var entityFilterBuilder = _resolver.GetCriteriaBuilder<TEntity, TOptions>();
             var resultFilterBuilder = _resolver.GetCriteriaBuilder<TResult, TOptions>();
             var projectionBuilder = _resolver.GetProjectionBuilder<TEntity, TResult>();
+            var orderByBuilder = _resolver.GetOrderByBuilder<TEntity, TResult>();
             var (take, skip) = CalculatePagination(options);
 
             return new PagedQuerySpecification<TEntity, TResult>
@@ -72,6 +75,7 @@ namespace Infrastructure.Query
                 Selector = projectionBuilder.Build(),
                 Criteria = SafeBuild(entityFilterBuilder, options),
                 ResultCriteria = SafeBuild(resultFilterBuilder, options),
+                OrderBy = orderByBuilder?.Build(),
                 Take = take,
                 Skip = skip
             };

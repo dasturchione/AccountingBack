@@ -11,6 +11,9 @@ namespace Infrastructure.Query
         public ICriteriaBuilder<TEntity, TOptions>? GetCriteriaBuilder<TEntity, TOptions>() =>
             _sp.GetService<ICriteriaBuilder<TEntity, TOptions>>();
 
+        public IOrderByBuilder<TEntity, TResult>? GetOrderByBuilder<TEntity, TResult>() =>
+            _sp.GetService<IOrderByBuilder<TEntity, TResult>>();
+
         public IProjectionBuilder<TEntity, TResult> GetProjectionBuilder<TEntity, TResult>() =>
             _sp.GetRequiredService<IProjectionBuilder<TEntity, TResult>>();
     }

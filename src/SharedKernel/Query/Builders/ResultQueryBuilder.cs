@@ -93,7 +93,7 @@ namespace SharedKernel.Query.Builders
                 return CustomOrderBy;
 
             if (OrderKey is null)
-                return null;
+                return State.Resolver.GetOrderByBuilder<TEntity, TResult>()?.Build();
 
             return OrderDescending
                 ? q => q.OrderByDescending(OrderKey)

@@ -93,12 +93,14 @@ namespace SharedKernel.Query.Builders
         public QuerySpecification<TEntity, TResult> Build<TResult>()
         {
             var projectionBuilder = State.Resolver.GetProjectionBuilder<TEntity, TResult>();
+            var orderByBuilder = State.Resolver.GetOrderByBuilder<TEntity, TResult>();
 
             return new QuerySpecification<TEntity, TResult>
             {
                 Criteria = State.Criteria,
                 ResultCriteria = _ => true,
                 Selector = projectionBuilder.Build(),
+                OrderBy = orderByBuilder?.Build(),
                 IgnoreQueryFilters = State.IgnoreQueryFilters
             };
         }

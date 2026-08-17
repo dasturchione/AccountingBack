@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using SharedKernel.Query;
 using Scrutor;
 
 namespace Application.Features.Cmn.Taxes.Extensions;
@@ -20,12 +19,6 @@ public static class ServiceCollectionExtensions
         services.Scan(scan => scan
             .FromAssemblyOf<TaxFeatureRegistration>()
             .AddClasses(c => c.AssignableTo(typeof(IValidator<>)))
-                .AsImplementedInterfaces()
-                .WithScopedLifetime()
-            .AddClasses(c => c.AssignableTo(typeof(ICriteriaBuilder<,>)))
-                .AsImplementedInterfaces()
-                .WithScopedLifetime()
-            .AddClasses(c => c.AssignableTo(typeof(IProjectionBuilder<,>)))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
 

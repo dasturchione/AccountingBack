@@ -2,6 +2,8 @@ namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocBaseDto
 {
+    public string? ExternalId { get; set; }
+    public string? ExternalDocNumber { get; set; }
     public DateTime DocDate { get; set; }
     public int CounterpartyId { get; set; }
     public int WarehouseId { get; set; }

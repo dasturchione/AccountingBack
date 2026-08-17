@@ -12,6 +12,8 @@ public class PurchaseDocListDtoProjection : IProjectionBuilder<PurchaseDoc, Purc
             Id = x.Id,
             OrganizationId = x.OrganizationId,
             DocNumber = x.DocNumber,
+            ExternalId = x.ExternalId,
+            ExternalDocNumber = x.ExternalDocNumber,
             DocDate = x.DocDate,
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty.ShortName,

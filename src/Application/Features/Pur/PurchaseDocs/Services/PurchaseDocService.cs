@@ -507,6 +507,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             {
                 OrganizationId = organizationId.Value,
                 DocNumber = documentNumberResult.Value.DocumentNumber,
+                ExternalId = dto.ExternalId,
+                ExternalDocNumber = dto.ExternalDocNumber,
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
@@ -590,6 +592,8 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             await _productLineCommand.CreateAsync(newLines, ct);
 
             doc.OrganizationId = _userContext.OrganizationId.Value;
+            doc.ExternalId = dto.ExternalId;
+            doc.ExternalDocNumber = dto.ExternalDocNumber;
             doc.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.CounterpartyId = dto.CounterpartyId;
             doc.WarehouseId = dto.WarehouseId;

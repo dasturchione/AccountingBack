@@ -7,6 +7,8 @@ namespace Application.Features.Pur.PurchaseDocs
     {
         public PurchaseDocBaseDtoValidator()
         {
+            RuleFor(x => x.ExternalId).MaximumLength(150).When(x => x.ExternalId != null);
+            RuleFor(x => x.ExternalDocNumber).MaximumLength(100).When(x => x.ExternalDocNumber != null);
             RuleFor(x => x.DocDate).NotEmpty();
             RuleFor(x => x.CounterpartyId).GreaterThan(0);
             RuleFor(x => x.WarehouseId).GreaterThan(0);

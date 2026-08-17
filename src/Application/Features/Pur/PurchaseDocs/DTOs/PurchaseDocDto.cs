@@ -6,6 +6,8 @@ public class PurchaseDocDto
     public int OrganizationId { get; set; }
     public string OrganizationName { get; set; } = null!;
     public string DocNumber { get; set; } = null!;
+    public string? ExternalId { get; set; }
+    public string? ExternalDocNumber { get; set; }
     public DateTime DocDate { get; set; }
     public int CounterpartyId { get; set; }
     public string CounterpartyName { get; set; } = null!;

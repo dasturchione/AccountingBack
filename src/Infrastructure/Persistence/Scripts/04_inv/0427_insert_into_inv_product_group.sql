@@ -219,6 +219,14 @@ values
         true,
         (select id from inv_product_group where code = 'CLIMATE_EQUIPMENT')
     ),
+    (
+        'FANS',
+        'Ventilyatorlar',
+        1, 
+        50,
+        true,
+        (select id from inv_product_group where code = 'CLIMATE_EQUIPMENT'
+    ),
 
     -- Yirik oshxona texnikasi
     (
@@ -388,5 +396,139 @@ do update set
     sort_order = excluded.sort_order,
     is_assignable = excluded.is_assignable,
     parent_id  = excluded.parent_id;
+
+commit;
+
+
+begin;
+
+-- Root: Xizmatlar
+insert into inv_product_group
+(
+    name,
+    state_id,
+    created_date,
+    code,
+    parent_id,
+    sort_order,
+    is_assignable
+)
+select
+    'Xizmatlar',
+    1,
+    now(),
+    'SERVICES',
+    null,
+    20,
+    false
+where not exists (
+    select 1
+    from inv_product_group
+    where code = 'SERVICES'
+);
+
+
+-- Dasturiy ta'minot xizmatlari
+insert into inv_product_group
+(
+    name,
+    state_id,
+    created_date,
+    code,
+    parent_id,
+    sort_order,
+    is_assignable
+)
+select
+    'Dasturiy ta''minot xizmatlari',
+    1,
+    now(),
+    'SOFTWARE_SERVICES',
+    (select id from inv_product_group where code = 'SERVICES'),
+    10,
+    true
+where not exists (
+    select 1
+    from inv_product_group
+    where code = 'SOFTWARE_SERVICES'
+);
+
+
+-- Bank xizmatlari
+insert into inv_product_group
+(
+    name,
+    state_id,
+    created_date,
+    code,
+    parent_id,
+    sort_order,
+    is_assignable
+)
+select
+    'Bank xizmatlari',
+    1,
+    now(),
+    'BANK_SERVICES',
+    (select id from inv_product_group where code = 'SERVICES'),
+    20,
+    true
+where not exists (
+    select 1
+    from inv_product_group
+    where code = 'BANK_SERVICES'
+);
+
+
+-- Internet xizmatlari
+insert into inv_product_group
+(
+    name,
+    state_id,
+    created_date,
+    code,
+    parent_id,
+    sort_order,
+    is_assignable
+)
+select
+    'Internet xizmatlari',
+    1,
+    now(),
+    'INTERNET_SERVICES',
+    (select id from inv_product_group where code = 'SERVICES'),
+    30,
+    true
+where not exists (
+    select 1
+    from inv_product_group
+    where code = 'INTERNET_SERVICES'
+);
+
+
+-- Elektron hujjat aylanishi xizmatlari
+insert into inv_product_group
+(
+    name,
+    state_id,
+    created_date,
+    code,
+    parent_id,
+    sort_order,
+    is_assignable
+)
+select
+    'Elektron hujjat aylanishi xizmatlari',
+    1,
+    now(),
+    'E_DOCUMENT_SERVICES',
+    (select id from inv_product_group where code = 'SERVICES'),
+    40,
+    true
+where not exists (
+    select 1
+    from inv_product_group
+    where code = 'E_DOCUMENT_SERVICES'
+);
 
 commit;

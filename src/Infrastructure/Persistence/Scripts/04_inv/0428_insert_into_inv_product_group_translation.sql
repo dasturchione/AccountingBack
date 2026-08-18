@@ -134,6 +134,12 @@ with group_translations
             'Обогреватели',
             'Heaters'
         ),
+        (
+            'FANS',
+            'Ventilyatorlar',
+            'Вентиляторы',
+            'Fans'
+        ),
 
         -- Yirik oshxona texnikasi
         (
@@ -257,6 +263,94 @@ with group_translations
             'Soch quritgichlar',
             'Фены',
             'Hair dryers'
+        )
+),
+translations as
+(
+    select
+        source.product_group_code,
+        translation.language_code,
+        translation.name
+    from group_translations source
+    cross join lateral
+    (
+        values
+            ('uz', source.name_uz),
+            ('ru', source.name_ru),
+            ('en', source.name_en)
+    ) translation(language_code, name)
+)
+insert into inv_product_group_translation
+(
+    product_group_id,
+    language_id,
+    name
+)
+select
+    product_group.id,
+    language.id,
+    translation.name
+from translations translation
+join inv_product_group product_group
+    on product_group.code = translation.product_group_code
+join cmn_language language
+    on language.code = translation.language_code
+on conflict (product_group_id, language_id)
+do update set
+    name = excluded.name;
+
+commit;
+
+
+begin;
+
+with group_translations
+(
+    product_group_code,
+    name_uz,
+    name_ru,
+    name_en
+) as
+(
+    values
+        -- Xizmatlar
+        (
+            'SERVICES',
+            'Xizmatlar',
+            'Услуги',
+            'Services'
+        ),
+
+        -- Dasturiy ta''minot xizmatlari
+        (
+            'SOFTWARE_SERVICES',
+            'Dasturiy ta''minot xizmatlari',
+            'Услуги по разработке программного обеспечения',
+            'Software services'
+        ),
+
+        -- Bank xizmatlari
+        (
+            'BANK_SERVICES',
+            'Bank xizmatlari',
+            'Банковские услуги',
+            'Banking services'
+        ),
+
+        -- Internet xizmatlari
+        (
+            'INTERNET_SERVICES',
+            'Internet xizmatlari',
+            'Интернет-услуги',
+            'Internet services'
+        ),
+
+        -- Elektron hujjat aylanishi xizmatlari
+        (
+            'E_DOCUMENT_SERVICES',
+            'Elektron hujjat aylanishi xizmatlari',
+            'Услуги электронного документооборота',
+            'Electronic document management services'
         )
 ),
 translations as

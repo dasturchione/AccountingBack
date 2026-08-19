@@ -17,11 +17,6 @@ namespace SharedKernel.Constants
         public const short SALE = 2;
 
         /// <summary>
-        /// Retail sale document.
-        /// </summary>
-        public const short RETAIL_SALE = 7;
-
-        /// <summary>
         /// Bank transaction document.
         /// </summary>
         public const short BANKOPERATION = 3;
@@ -42,9 +37,9 @@ namespace SharedKernel.Constants
         public const short EXPENSE = 6;
 
         /// <summary>
-        /// Warehouse transfer document.
+        /// Retail sale document.
         /// </summary>
-        public const short WAREHOUSETRANSFER = 18;
+        public const short RETAIL_SALE = 7;
 
         /// <summary>
         /// Inventory adjustment document.
@@ -87,15 +82,20 @@ namespace SharedKernel.Constants
         public const short FAREVALUATION = 15;
 
         /// <summary>
+        /// Opening inventory receipt. It affects warehouse stock and opening
+        /// balances, but never creates accounting postings.
+        /// </summary>
+        public const short OPENINGINVENTORY = 16;
+
+        /// <summary>
         /// Fixed asset commissioning document.
         /// </summary>
         public const short FACOMMISSIONING = 17;
 
         /// <summary>
-        /// Opening inventory receipt. It affects warehouse stock and opening
-        /// balances, but never creates accounting postings.
+        /// Warehouse transfer document.
         /// </summary>
-        public const short OPENINGINVENTORY = 16;
+        public const short WAREHOUSETRANSFER = 18;
 
         /// <summary>
         /// Shipment created for a sale document.

@@ -21,6 +21,16 @@ public partial class WarehouseProductBalanceService
         if (!movementResult.IsSuccess)
             return movementResult;
 
+        var markingResult = await ConsumePhysicalMarkingsAsync(
+            sale.OrganizationId,
+            sale.WarehouseId,
+            GetSalePhysicalMarkingIds(sale),
+            DocumentTypeIdConst.SALE,
+            sale.Id,
+            ct);
+        if (!markingResult.IsSuccess)
+            return markingResult;
+
         var productLines = sale.SaleDocProducts.Where(line => !line.Product.IsService).ToList();
         var productTables = productLines.SelectMany(line => line.SaleDocTables).ToList();
         if (productLines.Count > 0)
@@ -29,6 +39,60 @@ public partial class WarehouseProductBalanceService
             await _saleDocTableCommand.UpdateAsync(productTables, ct);
 
         return Result.Success();
+    }
+
+    public async Task<Result> ApplyRetailSaleInventoryEntriesAsync(
+        RetailSaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default)
+    {
+        var inventoryResult = await ApplyInventoryEntriesAsync(entries, ct);
+        if (!inventoryResult.IsSuccess)
+            return inventoryResult;
+
+        return await ConsumePhysicalMarkingsAsync(
+            sale.OrganizationId,
+            sale.WarehouseId,
+            GetRetailSalePhysicalMarkingIds(sale),
+            DocumentTypeIdConst.RETAIL_SALE,
+            sale.Id,
+            ct);
+    }
+
+    public async Task<Result> ReverseSaleInventoryEntriesAsync(
+        SaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default)
+    {
+        var inventoryResult = await ApplyInventoryEntriesAsync(entries, ct);
+        if (!inventoryResult.IsSuccess)
+            return inventoryResult;
+
+        return await RestorePhysicalMarkingsAsync(
+            sale.OrganizationId,
+            sale.WarehouseId,
+            GetSalePhysicalMarkingIds(sale),
+            DocumentTypeIdConst.SALE,
+            sale.Id,
+            ct);
+    }
+
+    public async Task<Result> ReverseRetailSaleInventoryEntriesAsync(
+        RetailSaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default)
+    {
+        var inventoryResult = await ApplyInventoryEntriesAsync(entries, ct);
+        if (!inventoryResult.IsSuccess)
+            return inventoryResult;
+
+        return await RestorePhysicalMarkingsAsync(
+            sale.OrganizationId,
+            sale.WarehouseId,
+            GetRetailSalePhysicalMarkingIds(sale),
+            DocumentTypeIdConst.RETAIL_SALE,
+            sale.Id,
+            ct);
     }
 
     private async Task<Result> CreateWarehouseMovementsAsync(
@@ -69,9 +133,8 @@ public partial class WarehouseProductBalanceService
                     availableQuantityByBatchId.TryAdd(batch.Id, batch.RemainingQuantity);
             }
 
-            Result<SaleProductAllocation> allocationResult = productLine.Product.IsPieceTracked
-                ? await AllocatePieceTrackedProductAsync(sale, productLine, batches, availableQuantityByBatchId, ct)
-                : await AllocateNonPieceTrackedProductAsync(sale, productLine, batches, availableQuantityByBatchId, ct);
+            var allocationResult = await AllocateNonPieceTrackedProductAsync(
+                sale, productLine, batches, availableQuantityByBatchId, ct);
             if (!allocationResult.IsSuccess)
                 return Result.Failure<SaleInventoryAllocationPlan>(allocationResult.Error);
 
@@ -80,10 +143,7 @@ public partial class WarehouseProductBalanceService
             if (!persistedAllocations.IsSuccess)
                 return Result.Failure<SaleInventoryAllocationPlan>(persistedAllocations.Error);
 
-            var allocationSourceLineIds = productLine.Product.IsPieceTracked
-                ? productLine.SaleDocTables.Select(table => table.Id)
-                : new[] { productLine.Id };
-            foreach (var sourceLineId in allocationSourceLineIds)
+            foreach (var sourceLineId in new[] { productLine.Id })
             {
                 if (!allocation.EntryAllocations.TryGetValue(sourceLineId, out var entryAllocations))
                     return Result.Failure<SaleInventoryAllocationPlan>(WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId));
@@ -112,40 +172,161 @@ public partial class WarehouseProductBalanceService
                 WarehouseProductErrors.InvalidQuantity(productLine.ProductId, productLine.Quantity, _userContext.LanguageId)));
         }
 
-        if (!productLine.Product.IsPieceTracked)
-        {
-            if (productLine.SaleDocTables.Count > 0 || entriesBySourceLineId[productLine.Id].Count() != 1)
-            {
-                return Task.FromResult(Result.Failure(
-                    WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId)));
-            }
-
-            var entry = entriesBySourceLineId[productLine.Id].Single();
-            return Task.FromResult(entry.ProductId == productLine.ProductId &&
-                                   !entry.ProductTableId.HasValue &&
-                                   entry.Quantity == productLine.Quantity
-                ? Result.Success()
-                : Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId)));
-        }
-
-        if (productLine.SaleDocTables.Count != (int)productLine.Quantity ||
-            productLine.SaleDocTables.Select(table => table.ProductTableId).Distinct().Count() != productLine.SaleDocTables.Count)
+        if (!SaleMarkingPolicy.IsOccurrenceCountAllowed(productLine.Quantity, productLine.SaleDocTables.Count))
         {
             return Task.FromResult(Result.Failure(
                 WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId)));
         }
 
-        var saleTableIds = productLine.SaleDocTables.Select(table => table.Id).ToHashSet();
-        var entries = productLine.SaleDocTables.SelectMany(table => entriesBySourceLineId[table.Id]).ToList();
-        return Task.FromResult(entries.Count == productLine.SaleDocTables.Count &&
-                               entries.All(entry => entry.ProductId == productLine.ProductId &&
-                                                    entry.ProductTableId.HasValue &&
-                                                    entry.Quantity == 1m &&
-                                                    entry.SourceLineId.HasValue &&
-                                                    saleTableIds.Contains(entry.SourceLineId.Value))
+        if (entriesBySourceLineId[productLine.Id].Count() != 1)
+        {
+            return Task.FromResult(Result.Failure(
+                WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId)));
+        }
+
+        var entry = entriesBySourceLineId[productLine.Id].Single();
+        return Task.FromResult(entry.ProductId == productLine.ProductId &&
+                               !entry.ProductTableId.HasValue &&
+                               entry.Quantity == productLine.Quantity
             ? Result.Success()
             : Result.Failure(WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId)));
     }
+
+    private async Task<Result> ConsumePhysicalMarkingsAsync(
+        int organizationId,
+        int warehouseId,
+        IReadOnlyCollection<int> productTableIds,
+        short documentTypeId,
+        long documentId,
+        CancellationToken ct)
+    {
+        if (productTableIds.Count == 0)
+            return Result.Success();
+
+        var usedByAnotherSale = await _saleDocTableQuery.AnyAsync(item =>
+            productTableIds.Contains(item.ProductTableId) &&
+            item.Owner.Owner.OrganizationId == organizationId &&
+            item.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED &&
+            (documentTypeId != DocumentTypeIdConst.SALE || item.Owner.OwnerId != documentId),
+            ct);
+        var usedByAnotherRetailSale = await _retailSaleDocTableQuery.AnyAsync(item =>
+            productTableIds.Contains(item.ProductTableId) &&
+            item.Owner.Owner.OrganizationId == organizationId &&
+            item.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED &&
+            (documentTypeId != DocumentTypeIdConst.RETAIL_SALE || item.Owner.OwnerId != documentId),
+            ct);
+        if (usedByAnotherSale || usedByAnotherRetailSale)
+            return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
+                productTableIds.First(),
+                ProductTableStatusIdConst.SOLD,
+                _userContext.LanguageId));
+
+        var organizationTableIds = (await _productTableQuery.GetAllAsync(
+                _queryBuilder.For<ProductTable>()
+                    .Where(table => productTableIds.Contains(table.Id) &&
+                                    table.Product.OrganizationId == organizationId)
+                    .As(table => table.Id)
+                    .Build(),
+                ct))
+            .ToHashSet();
+        if (organizationTableIds.Count != productTableIds.Count)
+            return Result.Failure(WarehouseProductErrors.ProductTableNotFound(
+                productTableIds.First(id => !organizationTableIds.Contains(id)),
+                _userContext.LanguageId));
+
+        var tables = await _warehouseProductTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductTable>()
+                .Where(table => productTableIds.Contains(table.ProductTableId))
+                .Build(),
+            ct);
+        foreach (var table in tables)
+            await _warehouseProductTableCommand.ReloadAsync(table, ct);
+
+        var byId = tables.ToDictionary(table => table.ProductTableId);
+        foreach (var productTableId in productTableIds)
+        {
+            if (!byId.TryGetValue(productTableId, out var table) ||
+                table.WarehouseId != warehouseId ||
+                !SaleMarkingPolicy.IsAvailableForSale(table.StatusId))
+            {
+                return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
+                    productTableId,
+                    byId.GetValueOrDefault(productTableId)?.StatusId ?? 0,
+                    _userContext.LanguageId));
+            }
+        }
+
+        foreach (var table in tables)
+            table.StatusId = ProductTableStatusIdConst.SOLD;
+        await _warehouseProductTableCommand.UpdateAsync(tables, ct);
+        return Result.Success();
+    }
+
+    private async Task<Result> RestorePhysicalMarkingsAsync(
+        int organizationId,
+        int warehouseId,
+        IReadOnlyCollection<int> productTableIds,
+        short documentTypeId,
+        long documentId,
+        CancellationToken ct)
+    {
+        if (productTableIds.Count == 0)
+            return Result.Success();
+
+        var usedByAnotherSale = await _saleDocTableQuery.AnyAsync(item =>
+            productTableIds.Contains(item.ProductTableId) &&
+            item.Owner.Owner.OrganizationId == organizationId &&
+            item.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED &&
+            (documentTypeId != DocumentTypeIdConst.SALE || item.Owner.OwnerId != documentId),
+            ct);
+        var usedByAnotherRetailSale = await _retailSaleDocTableQuery.AnyAsync(item =>
+            productTableIds.Contains(item.ProductTableId) &&
+            item.Owner.Owner.OrganizationId == organizationId &&
+            item.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED &&
+            (documentTypeId != DocumentTypeIdConst.RETAIL_SALE || item.Owner.OwnerId != documentId),
+            ct);
+        if (usedByAnotherSale || usedByAnotherRetailSale)
+            return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
+                productTableIds.First(),
+                ProductTableStatusIdConst.SOLD,
+                _userContext.LanguageId));
+
+        var tables = await _warehouseProductTableQuery.GetAllAsync(
+            _queryBuilder.For<WarehouseProductTable>()
+                .Where(table => productTableIds.Contains(table.ProductTableId) &&
+                                table.ProductTable.Product.OrganizationId == organizationId)
+                .Build(),
+            ct);
+        foreach (var table in tables)
+            await _warehouseProductTableCommand.ReloadAsync(table, ct);
+
+        var byId = tables.ToDictionary(table => table.ProductTableId);
+        foreach (var productTableId in productTableIds)
+        {
+            if (!byId.TryGetValue(productTableId, out var table) ||
+                table.WarehouseId != warehouseId ||
+                !SaleMarkingPolicy.IsRestorableAfterSale(table.StatusId))
+            {
+                return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
+                    productTableId,
+                    byId.GetValueOrDefault(productTableId)?.StatusId ?? 0,
+                    _userContext.LanguageId));
+            }
+        }
+
+        foreach (var table in tables)
+            table.StatusId = ProductTableStatusIdConst.IN_STOCK;
+        await _warehouseProductTableCommand.UpdateAsync(tables, ct);
+        return Result.Success();
+    }
+
+    private static IReadOnlyList<int> GetSalePhysicalMarkingIds(SaleDoc sale) =>
+        SaleMarkingPolicy.GetDistinctPhysicalMarkingIds(
+            sale.SaleDocProducts.Select(line => line.SaleDocTables.Select(item => item.ProductTableId)));
+
+    private static IReadOnlyList<int> GetRetailSalePhysicalMarkingIds(RetailSaleDoc sale) =>
+        SaleMarkingPolicy.GetDistinctPhysicalMarkingIds(
+            sale.RetailSaleDocProducts.Select(line => line.RetailSaleDocTables.Select(item => item.ProductTableId)));
 
     private async Task<Result<SaleProductAllocation>> AllocateNonPieceTrackedProductAsync(
         SaleDoc sale,
@@ -210,122 +391,6 @@ public partial class WarehouseProductBalanceService
             }));
     }
 
-    private async Task<Result<SaleProductAllocation>> AllocatePieceTrackedProductAsync(
-        SaleDoc sale,
-        SaleDocProduct productLine,
-        IReadOnlyCollection<WarehouseProductBatch> batches,
-        IDictionary<long, decimal> availableQuantityByBatchId,
-        CancellationToken ct)
-    {
-        var selectedProductTableIds = productLine.SaleDocTables
-            .Select(table => table.ProductTableId)
-            .ToList();
-        var lockedWarehouseProductTables = await LockWarehouseProductTablesAsync(selectedProductTableIds, ct);
-        var productTables = (await _productTableQuery.GetAllAsync(
-                _queryBuilder.For<ProductTable>()
-                    .Where(table => selectedProductTableIds.Contains(table.Id))
-                    .As(table => new SaleProductTableSnapshot(table.Id, table.ProductId, table.Product.OrganizationId))
-                    .Build(),
-                ct))
-            .ToDictionary(table => table.Id);
-        var productTableValidation = await ValidateSelectedProductTablesAsync(
-            sale,
-            productLine,
-            productTables,
-            lockedWarehouseProductTables,
-            ct);
-        if (!productTableValidation.IsSuccess)
-            return Result.Failure<SaleProductAllocation>(productTableValidation.Error);
-
-        var batchIds = batches.Select(batch => batch.Id).ToList();
-        var batchLinks = await _warehouseProductBatchTableQuery.GetAllAsync(
-            _queryBuilder.For<WarehouseProductBatchTable>()
-                .Where(link => batchIds.Contains(link.BatchId) && selectedProductTableIds.Contains(link.ProductTableId))
-                .Build(),
-            ct);
-        var batchesById = batches.ToDictionary(batch => batch.Id);
-        if (productLine.SaleDocProductBatches.Count > 0)
-        {
-            var selectedValidation = await ValidateSelectedBatchesAsync(
-                sale,
-                productLine,
-                productLine.SaleDocProductBatches,
-                batchesById,
-                availableQuantityByBatchId,
-                ct);
-            if (!selectedValidation.IsSuccess)
-                return Result.Failure<SaleProductAllocation>(selectedValidation.Error);
-        }
-
-        var productTableToBatch = new Dictionary<int, WarehouseProductBatch>();
-        var allocatedTableIdsByBatchId = new Dictionary<long, List<int>>();
-
-        foreach (var saleTable in productLine.SaleDocTables.OrderBy(table => table.ProductTableId))
-        {
-            var batch = batchLinks
-                .Where(link => link.ProductTableId == saleTable.ProductTableId &&
-                               batchesById.ContainsKey(link.BatchId) &&
-                               GetAvailableQuantity(availableQuantityByBatchId, link.BatchId) >= 1m)
-                .OrderBy(link => batchesById[link.BatchId].ReceivedDate)
-                .ThenBy(link => link.BatchId)
-                .Select(link => batchesById[link.BatchId])
-                .FirstOrDefault();
-            if (batch is null)
-            {
-                return Result.Failure<SaleProductAllocation>(WarehouseProductErrors.SelectedBatchUnavailable(
-                    0,
-                    sale.WarehouseId,
-                    productLine.ProductId,
-                    _userContext.LanguageId));
-            }
-
-            availableQuantityByBatchId[batch.Id] -= 1m;
-            productTableToBatch[saleTable.ProductTableId] = batch;
-            if (!allocatedTableIdsByBatchId.TryGetValue(batch.Id, out var productTableIds))
-            {
-                productTableIds = new List<int>();
-                allocatedTableIdsByBatchId[batch.Id] = productTableIds;
-            }
-
-            productTableIds.Add(saleTable.ProductTableId);
-        }
-
-        var allocations = allocatedTableIdsByBatchId
-            .OrderBy(pair => batchesById[pair.Key].ReceivedDate)
-            .ThenBy(pair => pair.Key)
-            .Select(pair => new ProductBatchAllocation
-            {
-                BatchId = pair.Key,
-                Quantity = pair.Value.Count,
-                ProductTableIds = pair.Value.OrderBy(id => id).ToList()
-            })
-            .ToList();
-
-        if (productLine.SaleDocProductBatches.Count > 0)
-        {
-            var selectedByBatchId = productLine.SaleDocProductBatches.ToDictionary(item => item.WarehouseProductBatchId, item => item.Quantity);
-            if (selectedByBatchId.Count != allocations.Count ||
-                allocations.Any(allocation => selectedByBatchId.GetValueOrDefault(allocation.BatchId) != allocation.Quantity))
-            {
-                return Result.Failure<SaleProductAllocation>(WarehouseProductErrors.InvalidSaleAllocation(productLine.Id, _userContext.LanguageId));
-            }
-        }
-
-        var entryAllocations = productLine.SaleDocTables.ToDictionary(
-            saleTable => saleTable.Id,
-            saleTable => (IReadOnlyList<ProductBatchAllocation>)new List<ProductBatchAllocation>
-            {
-                new()
-                {
-                    BatchId = productTableToBatch[saleTable.ProductTableId].Id,
-                    Quantity = 1m,
-                    ProductTableIds = new[] { saleTable.ProductTableId }
-                }
-            });
-
-        return Result.Success(new SaleProductAllocation(allocations, entryAllocations));
-    }
-
     private Task<Result> ValidateSelectedBatchesAsync(
         SaleDoc sale,
         SaleDocProduct productLine,
@@ -363,32 +428,6 @@ public partial class WarehouseProductBalanceService
                     batch.Id,
                     selectedBatch.Quantity,
                     availableQuantity,
-                    _userContext.LanguageId)));
-            }
-        }
-
-        return Task.FromResult(Result.Success());
-    }
-
-    private Task<Result> ValidateSelectedProductTablesAsync(
-        SaleDoc sale,
-        SaleDocProduct productLine,
-        IReadOnlyDictionary<int, SaleProductTableSnapshot> productTables,
-        IReadOnlyDictionary<int, WarehouseProductTable> warehouseProductTables,
-        CancellationToken ct)
-    {
-        foreach (var saleTable in productLine.SaleDocTables)
-        {
-            if (!productTables.TryGetValue(saleTable.ProductTableId, out var productTable) ||
-                productTable.ProductId != productLine.ProductId ||
-                productTable.OrganizationId != sale.OrganizationId ||
-                !warehouseProductTables.TryGetValue(saleTable.ProductTableId, out var warehouseProductTable) ||
-                warehouseProductTable.WarehouseId != sale.WarehouseId ||
-                warehouseProductTable.StatusId is not (ProductTableStatusIdConst.IN_STOCK or ProductTableStatusIdConst.RESERVED))
-            {
-                return Task.FromResult(Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
-                    saleTable.ProductTableId,
-                    warehouseProductTables.GetValueOrDefault(saleTable.ProductTableId)?.StatusId ?? 0,
                     _userContext.LanguageId)));
             }
         }
@@ -528,7 +567,6 @@ public partial class WarehouseProductBalanceService
             .Select(pair => new ProductBatchAllocation { BatchId = pair.Key, Quantity = pair.Value })
             .ToList();
 
-    private sealed record SaleProductTableSnapshot(int Id, int ProductId, int OrganizationId);
 
     private sealed class SaleInventoryAllocationPlan
     {

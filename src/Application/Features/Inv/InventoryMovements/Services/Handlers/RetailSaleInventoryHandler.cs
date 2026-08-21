@@ -8,26 +8,8 @@ public sealed class RetailSaleInventoryHandler : IInventoryDocumentHandler<Retai
 {
     public Task<Result<List<InventoryMovementEntry>>> HandleAsync(RetailSaleDoc document, CancellationToken ct = default)
     {
-        var pieceTracked = document.RetailSaleDocProducts
-            .Where(x => !x.Product.IsService && x.Product.IsPieceTracked)
-            .SelectMany(x => x.RetailSaleDocTables)
-            .Select(x => new InventoryMovementEntry
-            {
-                OrganizationId = document.OrganizationId,
-                DocumentTypeId = DocumentTypeIdConst.RETAIL_SALE,
-                DocumentId = document.Id,
-                WarehouseId = document.WarehouseId,
-                ProductId = x.ProductTable.ProductId,
-                ProductTableId = x.ProductTableId,
-                OperationTypeId = OperationTypeIdConst.OUT,
-                Quantity = 1m,
-                Amount = x.CostPrice,
-                DocDate = document.DocDate,
-                SourceLineId = x.Id
-            });
-
-        var nonPieceTracked = document.RetailSaleDocProducts
-            .Where(x => !x.Product.IsService && !x.Product.IsPieceTracked)
+        var entries = document.RetailSaleDocProducts
+            .Where(x => !x.Product.IsService)
             .Select(x => new InventoryMovementEntry
             {
                 OrganizationId = document.OrganizationId,
@@ -42,6 +24,6 @@ public sealed class RetailSaleInventoryHandler : IInventoryDocumentHandler<Retai
                 SourceLineId = x.Id
             });
 
-        return Task.FromResult(Result.Success(pieceTracked.Concat(nonPieceTracked).ToList()));
+        return Task.FromResult(Result.Success(entries.ToList()));
     }
 }

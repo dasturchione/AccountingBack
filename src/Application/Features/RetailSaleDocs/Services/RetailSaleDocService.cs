@@ -242,6 +242,13 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.POSTED))
                 return Result.Failure(RetailSaleDocErrors.CannotCancel(id, document.StatusId));
 
+            await _postingLock.AcquireInventoryAsync(
+                document.OrganizationId,
+                document.WarehouseId,
+                document.RetailSaleDocProducts.Where(line => !line.Product.IsService).Select(line => line.ProductId).ToArray(),
+                GetDistinctPhysicalMarkingIds(document),
+                ct);
+
             var period = await _periodValidator.EnsureOpenAsync(document.OrganizationId, DateTime.Now, ct);
             if (!period.IsSuccess)
                 return period;
@@ -302,6 +309,13 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         if (document.StatusId != DocumentStatusIdConst.DRAFT)
             return Result.Failure(RetailSaleDocErrors.CannotConfirm(id, document.StatusId));
 
+        await _postingLock.AcquireInventoryAsync(
+            document.OrganizationId,
+            document.WarehouseId,
+            document.RetailSaleDocProducts.Where(line => !line.Product.IsService).Select(line => line.ProductId).ToArray(),
+            GetDistinctPhysicalMarkingIds(document),
+            ct);
+
         var period = await _periodValidator.EnsureOpenAsync(document.OrganizationId, document.DocDate, ct);
         if (!period.IsSuccess)
             return period;
@@ -354,13 +368,12 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(0));
 
         var tableIds = dtoLines.SelectMany(x => x.Items).Select(x => x.ProductTableId).ToList();
-        if (tableIds.Distinct().Count() != tableIds.Count)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(tableIds.First()));
-        var tables = tableIds.Count == 0 ? new List<ProductTable>() : await _productTableQuery.GetAllAsync(
-            _queryBuilder.For<ProductTable>().Where(x => tableIds.Contains(x.Id)).Build(), ct);
+        var distinctTableIds = tableIds.Distinct().ToList();
+        var tables = distinctTableIds.Count == 0 ? new List<ProductTable>() : await _productTableQuery.GetAllAsync(
+            _queryBuilder.For<ProductTable>().Where(x => distinctTableIds.Contains(x.Id) && x.Product.OrganizationId == organizationId).Build(), ct);
         var tableMap = tables.ToDictionary(x => x.Id);
-        if (tableMap.Count != tableIds.Count)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(tableIds.First(x => !tableMap.ContainsKey(x))));
+        if (tableMap.Count != distinctTableIds.Count)
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(distinctTableIds.First(x => !tableMap.ContainsKey(x))));
 
         var lines = new List<RetailSaleLineDraft>();
         foreach (var dto in dtoLines)
@@ -368,13 +381,14 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             var product = productMap[dto.ProductId];
             var isPieceTracked = !product.IsService && product.IsPieceTracked;
             if (dto.Quantity <= 0m || dto.UnitPrice < 0m || dto.CostPrice < 0m || dto.UnitId != product.UnitId ||
-                (isPieceTracked && (dto.Quantity != decimal.Truncate(dto.Quantity) || dto.Items.Count != (int)dto.Quantity)) ||
+                (isPieceTracked && (dto.Quantity != decimal.Truncate(dto.Quantity) ||
+                                    !SaleMarkingPolicy.IsOccurrenceCountAllowed(dto.Quantity, dto.Items.Count))) ||
                 (!isPieceTracked && dto.Items.Count > 0))
             {
                 return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(dto.ProductId));
             }
 
-            if (dto.Items.Any(x => !tableMap.TryGetValue(x.ProductTableId, out var table) || table.ProductId != dto.ProductId))
+            if (dto.Items.Any(x => !tableMap.ContainsKey(x.ProductTableId)))
                 return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId));
 
             var vatPerUnit = dto.VatRateId.HasValue ? Math.Round(dto.UnitPrice * vatMap[dto.VatRateId.Value].Rate / 100m, 8) : 0m;
@@ -536,16 +550,11 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                     }
                     if (line.RetailSaleDocTables.Count > 0)
                         await _tableCommand.UpdateAsync(line.RetailSaleDocTables, ct);
-                    line.Amount = line.RetailSaleDocTables.Sum(x => x.Amount);
-                    line.VatAmount = line.RetailSaleDocTables.Sum(x => x.VatAmount);
-                    line.TotalAmount = line.RetailSaleDocTables.Sum(x => x.TotalAmount);
                 }
-                else
-                {
-                    line.Amount = line.Quantity * dtoLine.UnitPrice;
-                    line.VatAmount = line.Quantity * vatPerUnit;
-                    line.TotalAmount = line.Amount + line.VatAmount;
-                }
+
+                line.Amount = line.Quantity * dtoLine.UnitPrice;
+                line.VatAmount = line.Quantity * vatPerUnit;
+                line.TotalAmount = line.Amount + line.VatAmount;
             }
             await _lineCommand.UpdateAsync(document.RetailSaleDocProducts, ct);
         }
@@ -599,15 +608,13 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             }
 
             if (line.Quantity != decimal.Truncate(line.Quantity) ||
-                line.RetailSaleDocTables.Count != (int)line.Quantity ||
-                line.RetailSaleDocTables.Select(x => x.ProductTableId).Distinct().Count() != line.RetailSaleDocTables.Count ||
+                !SaleMarkingPolicy.IsOccurrenceCountAllowed(line.Quantity, line.RetailSaleDocTables.Count) ||
                 line.InventoryAccountId is null || line.CostAccountId is null)
             {
                 return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId));
             }
 
             var invalid = line.RetailSaleDocTables.FirstOrDefault(item =>
-                item.ProductTable.ProductId != line.ProductId ||
                 item.ProductTable.WarehouseProductTable is null ||
                 item.ProductTable.WarehouseProductTable.WarehouseId != document.WarehouseId ||
                 item.ProductTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK);
@@ -616,6 +623,12 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         }
         return Result.Success();
     }
+
+    private static int[] GetDistinctPhysicalMarkingIds(RetailSaleDoc document) =>
+        SaleMarkingPolicy.GetDistinctPhysicalMarkingIds(
+                document.RetailSaleDocProducts.Select(line =>
+                    line.RetailSaleDocTables.Select(item => item.ProductTableId)))
+            .ToArray();
 
     private async Task<RetailSaleDoc?> GetDocumentAsync(long id, CancellationToken ct)
     {

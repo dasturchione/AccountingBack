@@ -21,6 +21,30 @@ public class DocumentPostingLock : IDocumentPostingLock
         return _context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({lockKey})", ct);
     }
 
+    public async Task AcquireInventoryAsync(
+        int organizationId,
+        int warehouseId,
+        IReadOnlyCollection<int> productIds,
+        IReadOnlyCollection<int> productTableIds,
+        CancellationToken ct = default)
+    {
+        var keys = productIds
+            .Distinct()
+            .Select(productId => $"inventory:product:{organizationId}:{warehouseId}:{productId}")
+            .Concat(productTableIds
+                .Distinct()
+                .Select(productTableId => $"inventory:marking:{organizationId}:{productTableId}"))
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        foreach (var key in keys)
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))",
+                ct);
+        }
+    }
+
     public async Task<bool> TryAcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default)
     {
         var lockKey = unchecked(((long)documentTypeId << 48) ^ documentId);

@@ -45,9 +45,7 @@ public sealed class RetailSaleDocContextBuilder : IPostingContextBuilder<RetailS
 
             if (!line.Product.IsService)
             {
-                var costAmount = line.Product.IsPieceTracked
-                    ? line.RetailSaleDocTables.Sum(x => x.CostPrice)
-                    : line.CostPrice * line.Quantity;
+                var costAmount = line.CostPrice * line.Quantity;
                 if (costAmount != 0m)
                 {
                     entries.Add(new PostingEntryContext

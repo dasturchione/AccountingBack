@@ -10,7 +10,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("ProductTableId", Name = "idx_sale_doc_table_product_id")]
 [Index("VatRateId", Name = "idx_sale_doc_table_vat_rate_id")]
 [Index("OwnerId", Name = "ix_sale_doc_table_owner_id")]
-[Index("OwnerId", "ProductTableId", Name = "ux_sale_doc_table_owner_product_table", IsUnique = true)]
+[Index("OwnerId", "ProductTableId", Name = "ix_sale_doc_table_owner_product_table")]
 public partial class SaleDocTable
 {
     [Key]

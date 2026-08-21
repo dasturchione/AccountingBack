@@ -19,6 +19,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<WarehouseProduct> _warehouseProductQuery;
     private readonly IQueryRepository<WarehouseProductBatch> _warehouseProductBatchQuery;
+    private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<Translation> _translationQuery;
 
     public WarehouseInventoryService(
@@ -27,6 +28,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<WarehouseProduct> warehouseProductQuery,
         IQueryRepository<WarehouseProductBatch> warehouseProductBatchQuery,
+        IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<Translation> translationQuery)
     {
         _userContext = userContext;
@@ -34,6 +36,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         _warehouseQuery = warehouseQuery;
         _warehouseProductQuery = warehouseProductQuery;
         _warehouseProductBatchQuery = warehouseProductBatchQuery;
+        _productTableQuery = productTableQuery;
         _translationQuery = translationQuery;
     }
 
@@ -54,6 +57,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
 
         var productIds = productRows.Select(row => row.ProductId).Distinct().ToList();
         var batches = await GetBatchRowsAsync(organizationId, filter.WarehouseId, productIds, cancellationToken);
+        var markingCounts = await GetMarkingCountsAsync(organizationId, filter.WarehouseId, productIds, cancellationToken);
         var translations = await GetTranslationsAsync(productRows, cancellationToken);
         var batchesByProductId = batches
             .GroupBy(batch => batch.ProductId)
@@ -77,6 +81,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
                 ReservedQuantity = row.ReservedQuantity,
                 BlockedQuantity = row.BlockedQuantity,
                 AvailableQuantity = CalculateAvailableQuantity(row.Quantity, row.ReservedQuantity, row.BlockedQuantity),
+                MarkingCount = markingCounts.GetValueOrDefault((row.WarehouseId, row.ProductId)),
                 Batches = BuildBatches(
                     batchesByProductId.GetValueOrDefault(row.ProductId) ?? [],
                     row.ReservedQuantity,
@@ -98,6 +103,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
             .As(item => new WarehouseProductRow
             {
                 ProductId = item.ProductId,
+                WarehouseId = item.WarehouseId,
                 ProductName = item.Product.Name,
                 ProductMxik = item.Product.Mxik,
                 ProductGroupId = item.Product.ProductGroupId,
@@ -113,6 +119,31 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
             .Build();
 
         return await _warehouseProductQuery.GetAllAsync(query, cancellationToken);
+    }
+
+    private async Task<Dictionary<(int WarehouseId, int ProductId), int>> GetMarkingCountsAsync(
+        int organizationId,
+        int? warehouseId,
+        IReadOnlyCollection<int> productIds,
+        CancellationToken cancellationToken)
+    {
+        var query = _queryBuilder.For<ProductTable>()
+            .Where(table => table.Product.OrganizationId == organizationId &&
+                            productIds.Contains(table.ProductId) &&
+                            table.WarehouseProductTable != null &&
+                            table.WarehouseProductTable.StatusId == SharedKernel.Constants.ProductTableStatusIdConst.IN_STOCK &&
+                            (!warehouseId.HasValue || table.WarehouseProductTable.WarehouseId == warehouseId.Value))
+            .As(table => new ProductMarkingRow
+            {
+                ProductTableId = table.Id,
+                ProductId = table.ProductId,
+                WarehouseId = table.WarehouseProductTable!.WarehouseId
+            })
+            .Build();
+
+        return (await _productTableQuery.GetAllAsync(query, cancellationToken))
+            .GroupBy(row => (row.WarehouseId, row.ProductId))
+            .ToDictionary(group => group.Key, group => group.Select(row => row.ProductTableId).Distinct().Count());
     }
 
     private async Task<List<WarehouseProductBatchRow>> GetBatchRowsAsync(int organizationId, int? warehouseId, IReadOnlyCollection<int> productIds, CancellationToken cancellationToken)
@@ -221,6 +252,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
 
     private sealed class WarehouseProductRow
     {
+        public int WarehouseId { get; init; }
         public int ProductId { get; init; }
         public string ProductName { get; init; } = null!;
         public string? ProductMxik { get; init; }
@@ -233,6 +265,13 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         public decimal ReservedQuantity { get; init; }
         public decimal BlockedQuantity { get; init; }
         public bool IsPieceTracked { get; set; }
+    }
+
+    private sealed class ProductMarkingRow
+    {
+        public int ProductTableId { get; init; }
+        public int ProductId { get; init; }
+        public int WarehouseId { get; init; }
     }
 
     private sealed class WarehouseProductBatchRow

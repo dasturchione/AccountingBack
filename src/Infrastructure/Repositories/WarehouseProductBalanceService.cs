@@ -26,6 +26,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     private readonly IQueryRepository<WarehouseTransferDoc> _warehouseTransferDocQuery;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentDocQuery;
     private readonly IQueryRepository<OpeningInventory> _openingInventoryQuery;
+    private readonly IQueryRepository<SaleDocTable> _saleDocTableQuery;
+    private readonly IQueryRepository<RetailSaleDocTable> _retailSaleDocTableQuery;
     private readonly ICommandRepository<WarehouseProduct> _warehouseProductCommand;
     private readonly ICommandRepository<WarehouseProductTable> _warehouseProductTableCommand;
     private readonly ICommandRepository<WarehouseProductMovement> _warehouseProductMovementCommand;
@@ -52,6 +54,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         IQueryRepository<WarehouseTransferDoc> warehouseTransferDocQuery,
         IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentDocQuery,
         IQueryRepository<OpeningInventory> openingInventoryQuery,
+        IQueryRepository<SaleDocTable> saleDocTableQuery,
+        IQueryRepository<RetailSaleDocTable> retailSaleDocTableQuery,
         ICommandRepository<WarehouseProduct> warehouseProductCommand,
         ICommandRepository<WarehouseProductTable> warehouseProductTableCommand,
         ICommandRepository<WarehouseProductMovement> warehouseProductMovementCommand,
@@ -77,6 +81,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         _warehouseTransferDocQuery = warehouseTransferDocQuery;
         _inventoryAdjustmentDocQuery = inventoryAdjustmentDocQuery;
         _openingInventoryQuery = openingInventoryQuery;
+        _saleDocTableQuery = saleDocTableQuery;
+        _retailSaleDocTableQuery = retailSaleDocTableQuery;
         _warehouseProductCommand = warehouseProductCommand;
         _warehouseProductTableCommand = warehouseProductTableCommand;
         _warehouseProductMovementCommand = warehouseProductMovementCommand;
@@ -259,8 +265,6 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             return Result.Failure(WarehouseProductErrors.InvalidQuantity(invalidItem.ProductId, invalidItem.Quantity, _userContext.LanguageId));
 
         var distinctProductTableIds = productTableIds.Distinct().ToList();
-        if (distinctProductTableIds.Count != productTableIds.Count)
-            return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(productTableIds.First(), 0, _userContext.LanguageId));
 
         var updatedWarehouseProductTables = new List<WarehouseProductTable>();
         if (distinctProductTableIds.Count > 0)
@@ -285,37 +289,17 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     distinctProductTableIds.First(id => !productTablesById.ContainsKey(id)),
                     _userContext.LanguageId));
 
-            var selectedByProduct = tables
-                .GroupBy(x => productTablesById[x.ProductTableId])
-                .ToDictionary(x => x.Key, x => (decimal)x.Count());
-            var requestedByProduct = items
-                .GroupBy(x => x.ProductId)
-                .ToDictionary(x => x.Key, x => x.Sum(item => item.Quantity));
-
-            foreach (var selected in selectedByProduct)
-            {
-                if (!requestedByProduct.TryGetValue(selected.Key, out var requested) || requested < selected.Value)
-                    return Result.Failure(WarehouseProductErrors.NotEnoughQuantity(
-                        warehouseId,
-                        selected.Key,
-                        selected.Value,
-                        requested,
-                        _userContext.LanguageId));
-            }
-
             var expectedStatus = reserve ? ProductTableStatusIdConst.IN_STOCK : ProductTableStatusIdConst.RESERVED;
             var nextStatus = reserve ? ProductTableStatusIdConst.RESERVED : ProductTableStatusIdConst.IN_STOCK;
 
             foreach (var table in tables)
             {
-                var validation = ValidateWarehouseProductTable(
-                    table,
-                    table.ProductTableId,
-                    productTablesById[table.ProductTableId],
-                    warehouseId,
-                    expectedStatus);
-                if (!validation.IsSuccess)
-                    return validation;
+                await _warehouseProductTableCommand.ReloadAsync(table, ct);
+                if (table.WarehouseId != warehouseId || table.StatusId != expectedStatus)
+                    return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
+                        table.ProductTableId,
+                        table.StatusId,
+                        _userContext.LanguageId));
 
                 table.StatusId = nextStatus;
                 updatedWarehouseProductTables.Add(table);

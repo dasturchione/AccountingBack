@@ -13,6 +13,21 @@ public interface IWarehouseProductBalanceService
         IReadOnlyCollection<InventoryMovementEntry> entries,
         CancellationToken ct = default);
 
+    Task<Result> ApplyRetailSaleInventoryEntriesAsync(
+        RetailSaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default);
+
+    Task<Result> ReverseSaleInventoryEntriesAsync(
+        SaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default);
+
+    Task<Result> ReverseRetailSaleInventoryEntriesAsync(
+        RetailSaleDoc sale,
+        IReadOnlyCollection<InventoryMovementEntry> entries,
+        CancellationToken ct = default);
+
     Task<Result> ReserveAsync(int warehouseId, IReadOnlyCollection<WarehouseProductBalanceItem> items, CancellationToken ct = default);
 
     Task<Result> ReserveAsync(

@@ -50,9 +50,12 @@ public class InventoryDispatcher : IInventoryDispatcher
         if (!result.IsSuccess)
             return result;
 
-        var warehouseProductUpdate = document is SaleDoc sale
-            ? await _warehouseProductBalanceService.ApplySaleInventoryEntriesAsync(sale, result.Value, ct)
-            : await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(result.Value, ct);
+        var warehouseProductUpdate = document switch
+        {
+            SaleDoc sale => await _warehouseProductBalanceService.ApplySaleInventoryEntriesAsync(sale, result.Value, ct),
+            RetailSaleDoc retailSale => await _warehouseProductBalanceService.ApplyRetailSaleInventoryEntriesAsync(retailSale, result.Value, ct),
+            _ => await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(result.Value, ct)
+        };
         if (!warehouseProductUpdate.IsSuccess)
             return Result.Failure<List<InventoryMovementEntry>>(warehouseProductUpdate.Error);
 
@@ -108,7 +111,12 @@ public class InventoryDispatcher : IInventoryDispatcher
             }
         }
 
-        return await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(entries, ct);
+        return document switch
+        {
+            SaleDoc sale => await _warehouseProductBalanceService.ReverseSaleInventoryEntriesAsync(sale, entries, ct),
+            RetailSaleDoc retailSale => await _warehouseProductBalanceService.ReverseRetailSaleInventoryEntriesAsync(retailSale, entries, ct),
+            _ => await _warehouseProductBalanceService.ApplyInventoryEntriesAsync(entries, ct)
+        };
     }
 
     private Task<Result<List<InventoryMovementEntry>>> BuildEntriesAsync(object document, CancellationToken ct) =>

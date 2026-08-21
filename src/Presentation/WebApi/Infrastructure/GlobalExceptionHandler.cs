@@ -73,6 +73,13 @@ namespace WebApi.Infrastructure
                     Title = "EdoCapabilityUnavailable",
                     Detail = "The requested EDO capability is not available."
                 },
+                EdoOutboxProviderDocumentException outboxDetailException => new ProblemDetails
+                {
+                    Status = outboxDetailException.StatusCode,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                    Title = outboxDetailException.Code,
+                    Detail = "The requested EDO outbox document could not be returned."
+                },
                 EdoDocumentDirectionMismatchException => new ProblemDetails
                 {
                     Status = StatusCodes.Status400BadRequest,

@@ -277,6 +277,91 @@ public sealed class EdoInboxService(
         return MapDocument(document, providerDocument, provider.Code);
     }
 
+    public async Task<EdoOutboxProviderDocumentDetailDto> GetOutboxProviderDocumentDetailsAsync(
+        string providerDocumentId,
+        CancellationToken ct = default)
+    {
+        var source = await GetOutboxProviderDocumentMappingSourceAsync(providerDocumentId, ct);
+        return source.Document;
+    }
+
+    public async Task<EdoOutboxProviderDocumentMappingSourceDto> GetOutboxProviderDocumentMappingSourceAsync(
+        string providerDocumentId,
+        CancellationToken ct = default)
+    {
+        RequireOrganization();
+        var identity = EdoOutboxProviderDocumentDetailMapper.RequireProviderDocumentId(providerDocumentId);
+        var providerDocument = await LoadEdocsOutboxProviderDocumentAsync(identity, ct);
+        var detail = EdoOutboxProviderDocumentDetailMapper.MapAndValidate(providerDocument, identity);
+        var markingCodes = providerDocument.PreviewLines
+            .OrderBy(x => x.Number)
+            .ToDictionary(
+                x => x.Number,
+                x => (IReadOnlyCollection<string>)(x.MarkingCodes ?? []).ToArray());
+
+        return new EdoOutboxProviderDocumentMappingSourceDto
+        {
+            Document = detail,
+            MarkingCodesByLine = markingCodes
+        };
+    }
+
+    private async Task<EdoDocumentDto> LoadEdocsOutboxProviderDocumentAsync(
+        string identity,
+        CancellationToken ct)
+    {
+        var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
+
+        if (provider.Code != EdoProviderCode.EDOCS)
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_PROVIDER_UNAVAILABLE", 501);
+
+        try
+        {
+            EnsureCapability(provider, EdoCapabilityKind.GetDetail);
+        }
+        catch (EdoCapabilityUnavailableException)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_PROVIDER_UNAVAILABLE", 501);
+        }
+
+        try
+        {
+            return await provider.GetDocumentDetailsAsync(
+                EdoDirection.OUTBOX,
+                "FACTURA",
+                identity,
+                ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (IntegrationUnauthorizedException)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_AUTHORIZATION_FAILED", 401);
+        }
+        catch (IntegrationForbiddenException)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_AUTHORIZATION_FAILED", 403);
+        }
+        catch (IntegrationHttpException ex) when (ex.StatusCode == 404)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_PROVIDER_DOCUMENT_NOT_FOUND", 404);
+        }
+        catch (IntegrationHttpException ex) when (ex.StatusCode is 408 or 429 or >= 500)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_PROVIDER_UNAVAILABLE", 503);
+        }
+        catch (IntegrationHttpException)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_DETAIL_INVALID", 502);
+        }
+        catch (Exception)
+        {
+            throw new EdoOutboxProviderDocumentException("EDO_OUTBOX_DETAIL_INVALID", 502);
+        }
+    }
+
     public async Task<EdoInboxSummaryDto> GetSummaryAsync(CancellationToken ct = default)
     {
         var provider = await activeProviderResolver.GetActiveProviderAsync(ct);

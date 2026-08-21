@@ -18,6 +18,14 @@ public interface IEdoInboxService
         long id,
         CancellationToken ct = default);
 
+    Task<EdoOutboxProviderDocumentDetailDto> GetOutboxProviderDocumentDetailsAsync(
+        string providerDocumentId,
+        CancellationToken ct = default);
+
+    Task<EdoOutboxProviderDocumentMappingSourceDto> GetOutboxProviderDocumentMappingSourceAsync(
+        string providerDocumentId,
+        CancellationToken ct = default);
+
     Task<EdoInboxSummaryDto> GetSummaryAsync(CancellationToken ct = default);
 
     Task<EdoInboxRejectDto> RejectAsync(

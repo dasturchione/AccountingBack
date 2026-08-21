@@ -32,7 +32,9 @@ public class ContractService : IContractService
 
     public async Task<Result<long>> CreateAsync(ContractCreateDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
+        if (_userContext.OrganizationId is not { } orgId)
+            return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
         var counterparty = await ResolveCounterpartyAsync(dto.CounterpartyId, ct);
 
         if (counterparty is null)
@@ -60,7 +62,13 @@ public class ContractService : IContractService
 
     public async Task<Result> DeleteAsync(long id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Contract>().Where(x => x.Id == id).Build();
+        if (!HasOrganizationScope())
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Contract>()
+            .Where(x => x.Id == id
+                && (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value))
+            .Build();
         var entity = await _query.GetAsync(query, ct);
 
         if (entity == null)
@@ -74,6 +82,11 @@ public class ContractService : IContractService
 
     public async Task<Result<PagedResponse<ContractListDto>>> GetAllAsync(ContractListFilter filter, CancellationToken ct = default)
     {
+        if (!HasOrganizationScope())
+            return Result.Failure<PagedResponse<ContractListDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        filter.OrganizationId = _userContext.OrganizationId;
         var query = _queryBuilder.BuildPaged<Contract, ContractListDto, ContractListFilter>(filter);
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
@@ -81,7 +94,14 @@ public class ContractService : IContractService
 
     public async Task<Result<ContractDto>> GetByIdAsync(long id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Contract>().Where(x => x.Id == id).As<ContractDto>().Build();
+        if (!HasOrganizationScope())
+            return Result.Failure<ContractDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Contract>()
+            .Where(x => x.Id == id
+                && (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value))
+            .As<ContractDto>()
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure<ContractDto>(ContractErrors.NotFound(id, _userContext.LanguageId));
@@ -90,7 +110,13 @@ public class ContractService : IContractService
 
     public async Task<Result> UpdateAsync(long id, ContractUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Contract>().Where(x => x.Id == id).Build();
+        if (!HasOrganizationScope())
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Contract>()
+            .Where(x => x.Id == id
+                && (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value))
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null)
             return Result.Failure(ContractErrors.NotFound(id, _userContext.LanguageId));
@@ -114,9 +140,14 @@ public class ContractService : IContractService
     private async Task<CounterpartyCard?> ResolveCounterpartyAsync(int counterpartyId, CancellationToken ct)
     {
         var query = _queryBuilder.For<CounterpartyCard>()
-            .Where(x => x.Id == counterpartyId)
+            .Where(x => x.Id == counterpartyId
+                && (!_userContext.OrganizationId.HasValue || x.OrganizationId == _userContext.OrganizationId.Value))
             .Build();
 
         return await _counterpartyQuery.GetAsync(query, ct);
     }
+
+    private bool HasOrganizationScope() =>
+        _userContext.OrganizationId.HasValue
+        || _userContext.UserKind == CurrentUserKind.SuperAdmin;
 }

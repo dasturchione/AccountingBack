@@ -7,6 +7,7 @@ using Application.Features.Reports.ReceivableReports;
 using Application.Features.Reports.SalesReports;
 using Application.Features.Reports.WarehouseReports;
 using Application.Features.Reports.Exports;
+using Application.Features.Documents;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Features.Reports.Extensions;
@@ -24,6 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IExcelExporter, ExcelReportExporter>();
         services.AddScoped<IPdfExporter, PdfReportExporter>();
         services.AddScoped<IReportExporter, ReportExporter>();
+        services.AddScoped<IDocumentPdfService, DocumentPdfService>();
 
         return services;
     }

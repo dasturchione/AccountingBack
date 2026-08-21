@@ -6,6 +6,7 @@ using Application.Features.AuditLogs;
 using Application.Features.Contracts;
 using Application.Features.CounterpartyCards;
 using Application.Features.DocumentNumbers;
+using Application.Features.Integration.Edo;
 using Application.Features.PurchaseDocTables;
 using Application.Features.Warehouses;
 using Domain.Entities;
@@ -118,8 +119,23 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             if (entity == null)
                 return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.NotFound(id, _userContext.LanguageId));
 
+            entity.EdoSource = await LoadEdoSourceAsync(_userContext.OrganizationId.Value, id, ct);
             return Result.Success(entity);
         });
+
+    private async Task<EdoSourceMetadataDto?> LoadEdoSourceAsync(
+        int organizationId,
+        long purchaseDocId,
+        CancellationToken ct)
+    {
+        var source = await _edoDocumentStore.FindByInternalDocumentAsync(
+            organizationId,
+            ["PURCHASE", "PURCHASE_DOC", "PUR_DOC"],
+            purchaseDocId,
+            ct);
+
+        return source is null ? null : EdoSourceMetadataMapper.Map(source);
+    }
 
     public Task<Result<PurchaseDocPreviewDto>> PreviewAsync(
         PurchaseDocPreviewRequestDto request,

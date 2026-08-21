@@ -14,10 +14,14 @@ namespace WebApi.Controllers;
 public class ContractController : ControllerBase
 {
     private readonly IContractService _service;
+    private readonly IProviderContractReconciliationService _providerReconciliationService;
 
-    public ContractController(IContractService service)
+    public ContractController(
+        IContractService service,
+        IProviderContractReconciliationService providerReconciliationService)
     {
         _service = service;
+        _providerReconciliationService = providerReconciliationService;
     }
 
     [HttpGet]
@@ -41,6 +45,16 @@ public class ContractController : ControllerBase
     public async Task<IResult> Create([FromBody] ContractCreateDto dto, CancellationToken ct = default)
     {
         var result = await _service.CreateAsync(dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("edo-provider-identity")]
+    [ModuleAuthorize(PermissionCodeConst.ContractCreate)]
+    public async Task<IResult> ReconcileEdocsProviderIdentity(
+        [FromBody] ProviderContractReconciliationCreateDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _providerReconciliationService.ReconcileAsync(dto, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

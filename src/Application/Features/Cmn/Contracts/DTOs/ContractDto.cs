@@ -11,6 +11,9 @@ public class ContractDto
     public string ContractTypeName { get; set; } = null!;
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
+    public string? ProviderCode { get; set; }
+    public string? ProviderContractNumber { get; set; }
+    public DateOnly? ProviderContractDate { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? Comment { get; set; }

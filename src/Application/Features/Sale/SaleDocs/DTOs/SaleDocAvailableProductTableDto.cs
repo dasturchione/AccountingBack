@@ -21,7 +21,8 @@ namespace Application.Features.SaleDocs
     public class SaleDocAvailableProductTableDto
     {
         public int ProductTableId { get; set; }
-
-        public string? MarkingNumber { get; set; }
+        public bool HasMarking { get; set; }
+        public int MarkingCount { get; set; }
+        public string AvailabilityStatus { get; set; } = "AVAILABLE";
     }
 }

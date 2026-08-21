@@ -648,6 +648,11 @@ public partial class AppDbContext : DbContext
             .HasIndex(x => x.WarehouseId)
             .HasDatabaseName("idx_inv_warehouse_product_table_warehouse_id");
 
+        modelBuilder.Entity<WarehouseProductTable>()
+            .Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .IsRowVersion();
+
         modelBuilder.Entity<ChartAccountPresetAccount>(entity =>
             entity.HasOne(e => e.ChartAccountPresetAccountNavigation)
                     .WithMany(e => e.InverseChartAccountPresetAccountNavigation)
@@ -698,8 +703,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<SaleDocTable>()
             .HasIndex(x => new { x.OwnerId, x.ProductTableId })
-            .HasDatabaseName("ux_sale_doc_table_owner_product_table")
-            .IsUnique();
+            .HasDatabaseName("ix_sale_doc_table_owner_product_table");
 
         modelBuilder.Entity<WarehouseTransferDoc>()
             .ToTable(t => t.HasCheckConstraint(

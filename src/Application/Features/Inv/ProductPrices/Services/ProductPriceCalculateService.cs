@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.InventoryMovements;
 using Application.Features.PricingConditions;
 using Application.Features.SaleDocs;
 using Domain.Entities;
@@ -16,14 +17,14 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
     private readonly IQueryRepository<ProductPrice> _productPriceQuery;
     private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
     private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
-    private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
+    private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<SaleCondition> _saleConditionQuery;
     public ProductPriceCalculateService(IUserContext userContext,
                                         IQueryBuilder queryBuilder,
                                         IQueryRepository<ProductPrice> productPriceQuery,
                                         IQueryRepository<PricingCondition> pricingConditionQuery,
                                         IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
-                                        IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
+                                        IQueryRepository<ProductTable> productTableQuery,
                                         IQueryRepository<SaleCondition> saleConditionQuery)
     {
         _userContext = userContext;
@@ -31,7 +32,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         _productPriceQuery = productPriceQuery;
         _pricingConditionQuery = pricingConditionQuery;
         _purchaseDocTableQuery = purchaseDocTableQuery;
-        _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
+        _productTableQuery = productTableQuery;
         _saleConditionQuery = saleConditionQuery;
     }
 
@@ -116,9 +117,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                 return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidProductQuantity(productLine.LineId, productLine.Quantity, _userContext.LanguageId));
         }
 
-        var pieceTrackedLines = productLines
-            .Where(x => x.IsPieceTracked)
-            .ToList();
+        var pieceTrackedLines = productLines.Where(x => x.IsPieceTracked).ToList();
 
         if (pieceTrackedLines.Count == 0)
         {
@@ -128,76 +127,44 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
             return Result.Success(new List<ProductTableSelectionDto>());
         }
 
-        var productIds = pieceTrackedLines.Select(x => x.ProductId).Distinct().ToList();
-        var candidates = await GetInventoryCandidatesAsync(organizationId, warehouseId, productIds, ct);
+        var occurrences = pieceTrackedLines.SelectMany(line => line.ProductTableIds).ToArray();
+        if (!occurrences.SequenceEqual(selectedProductTableIds))
+            return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
 
-        var candidateByTableId = candidates.ToDictionary(x => x.ProductTableId);
-        var candidatesByProductId = candidates
-            .GroupBy(x => x.ProductId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        foreach (var selectedProductTableId in selectedProductTableIds)
+        foreach (var line in pieceTrackedLines)
         {
-            if (!candidateByTableId.ContainsKey(selectedProductTableId))
-                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.ProductTableNotAvailable(selectedProductTableId, _userContext.LanguageId));
+            if (!SaleMarkingPolicy.IsOccurrenceCountAllowed(line.Quantity, line.ProductTableIds.Count))
+                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.QuantityMismatch(
+                    line.LineId, line.Quantity, line.ProductTableIds.Count, _userContext.LanguageId));
         }
 
-        if (selectedProductTableIds.Count != selectedProductTableIds.Distinct().Count())
-            return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+        var distinctIds = occurrences.Distinct().ToList();
+        var availableIds = distinctIds.Count == 0
+            ? new HashSet<int>()
+            : (await _productTableQuery.GetAllAsync(
+                _queryBuilder.For<ProductTable>()
+                    .Where(table => distinctIds.Contains(table.Id) &&
+                                    table.Product.OrganizationId == organizationId &&
+                                    table.WarehouseProductTable != null &&
+                                    table.WarehouseProductTable.WarehouseId == warehouseId &&
+                                    table.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK)
+                    .As(table => table.Id)
+                    .Build(),
+                ct)).ToHashSet();
 
-        var groupedSelections = selectedProductTableIds
-            .GroupBy(productTableId => candidateByTableId[productTableId].ProductId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        var requestedProductIds = pieceTrackedLines.Select(x => x.ProductId).ToHashSet();
-        if (groupedSelections.Keys.Any(productId => !requestedProductIds.Contains(productId)))
-            return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+        var unavailableId = distinctIds.FirstOrDefault(id => !availableIds.Contains(id));
+        if (unavailableId != 0)
+            return Result.Failure<List<ProductTableSelectionDto>>(
+                SaleDocErrors.ProductTableNotAvailable(unavailableId, _userContext.LanguageId));
 
-        var result = new List<ProductTableSelectionDto>(selectedProductTableIds.Count);
-
-        foreach (var productGroup in pieceTrackedLines.GroupBy(x => x.ProductId))
-        {
-            var productId = productGroup.Key;
-            var lines = productGroup.ToList();
-            var requiredQuantity = lines.Sum(x => x.Quantity);
-            var requiredCount = (int)requiredQuantity;
-            var productCandidates = candidatesByProductId.GetValueOrDefault(productId) ?? new List<InventoryCandidateSnapshot>();
-            if (productCandidates.Count < requiredCount)
-                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InsufficientStock(
-                    productId,
-                    requiredCount,
-                    productCandidates.Count,
-                    _userContext.LanguageId));
-
-            var selectedIdsForProduct = groupedSelections.GetValueOrDefault(productId) ?? new List<int>();
-            if (selectedIdsForProduct.Count != requiredCount)
-                return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-
-            var orderedSelectedIds = selectedIdsForProduct;
-
-            var selectedIndex = 0;
-
-            foreach (var line in lines)
+        return Result.Success(pieceTrackedLines
+            .SelectMany(line => line.ProductTableIds.Select(productTableId => new ProductTableSelectionDto
             {
-                var lineQuantity = (int)line.Quantity;
-                var lineSelectedIds = orderedSelectedIds.Skip(selectedIndex).Take(lineQuantity).ToList();
-                selectedIndex += lineQuantity;
-
-                if (lineSelectedIds.Count != lineQuantity)
-                    return Result.Failure<List<ProductTableSelectionDto>>(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-
-                foreach (var selectedId in lineSelectedIds)
-                {
-                    result.Add(new ProductTableSelectionDto
-                    {
-                        LineId = line.LineId,
-                        ProductId = productId,
-                        ProductTableId = selectedId
-                    });
-                }
-            }
-        }
-
-        return Result.Success(result);
+                LineId = line.LineId,
+                ProductId = line.ProductId,
+                ProductTableId = productTableId
+            }))
+            .ToList());
     }
 
     private async Task<PricingConditionDto?> GetCurrentPricingConditionAsync(DateTime now, CancellationToken ct)
@@ -501,44 +468,6 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                     .ToList());
     }
 
-    private async Task<List<InventoryCandidateSnapshot>> GetInventoryCandidatesAsync(
-        int organizationId,
-        int warehouseId,
-        IReadOnlyCollection<int> productIds,
-        CancellationToken ct)
-    {
-        if (productIds.Count == 0)
-            return new List<InventoryCandidateSnapshot>();
-
-        var query = _queryBuilder.For<WarehouseProductBatchTable>()
-            .Where(x => productIds.Contains(x.Batch.ProductId) &&
-                        x.Batch.OrganizationId == organizationId &&
-                        x.Batch.WarehouseId == warehouseId &&
-                        x.Batch.RemainingQuantity > 0m &&
-                        x.ProductTable.Product.OrganizationId == organizationId &&
-                        x.ProductTable.WarehouseProductTable != null &&
-                        x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&
-                        x.ProductTable.Product.StateId == StateIdConst.ACTIVE &&
-                        x.ProductTable.WarehouseProductTable.WarehouseId == warehouseId)
-            .As(x => new InventoryCandidateSnapshot
-            {
-                ProductTableId = x.ProductTableId,
-                ProductId = x.Batch.ProductId,
-                PurchaseDocId = x.BatchId,
-                RemainingQuantity = x.Batch.RemainingQuantity
-            })
-            .Build();
-
-        var candidates = await _warehouseProductBatchTableQuery.GetAllAsync(query, ct);
-        return candidates
-            .GroupBy(candidate => candidate.PurchaseDocId)
-            .SelectMany(group => group
-                .OrderBy(candidate => candidate.ProductTableId)
-                .Take((int)decimal.Floor(group.First().RemainingQuantity)))
-            .ToList();
-    }
-
-
     private static List<ProductCostPriceTableDto> OrderPurchaseBatches(List<ProductCostPriceTableDto>? batches, bool descending)
     {
         if (batches is null || batches.Count == 0)
@@ -636,14 +565,6 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
         public DateTime DocDate { get; set; }
         public int ProductTableId { get; set; }
         public decimal TotalAmount { get; set; }
-    }
-
-    private sealed class InventoryCandidateSnapshot
-    {
-        public int ProductTableId { get; set; }
-        public int ProductId { get; set; }
-        public long PurchaseDocId { get; set; }
-        public decimal RemainingQuantity { get; set; }
     }
 
     private sealed class SaleConditionCostingMethodSnapshot

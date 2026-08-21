@@ -8,26 +8,8 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
 {
     public Task<Result<List<InventoryMovementEntry>>> HandleAsync(SaleDoc sale, CancellationToken ct = default)
     {
-        var trackedEntries = sale.SaleDocProducts
-            .Where(p => !p.Product.IsService && p.Product.IsPieceTracked)
-            .SelectMany(p => p.SaleDocTables)
-            .Select(line => new InventoryMovementEntry
-            {
-                OrganizationId  = sale.OrganizationId,
-                DocumentTypeId  = DocumentTypeIdConst.SALE,
-                DocumentId      = sale.Id,
-                WarehouseId     = sale.WarehouseId,
-                ProductId       = line.ProductTable.ProductId,
-                ProductTableId  = line.ProductTableId,
-                OperationTypeId = OperationTypeIdConst.OUT,
-                Quantity        = 1,
-                Amount          = line.CostPrice,
-                DocDate         = sale.DocDate,
-                SourceLineId    = line.Id
-            });
-
-        var nonTrackedEntries = sale.SaleDocProducts
-            .Where(p => !p.Product.IsService && !p.Product.IsPieceTracked)
+        var entries = sale.SaleDocProducts
+            .Where(p => !p.Product.IsService)
             .Select(line => new InventoryMovementEntry
             {
                 OrganizationId  = sale.OrganizationId,
@@ -43,10 +25,6 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
                 SourceLineId    = line.Id
             });
 
-        var entries = trackedEntries
-            .Concat(nonTrackedEntries)
-            .ToList();
-
-        return Task.FromResult(Result.Success(entries));
+        return Task.FromResult(Result.Success(entries.ToList()));
     }
 }

@@ -15,6 +15,7 @@ public sealed class WarehouseProductDto
     public decimal ReservedQuantity { get; init; }
     public decimal BlockedQuantity { get; init; }
     public decimal AvailableQuantity { get; init; }
+    public int MarkingCount { get; init; }
     public IReadOnlyList<WarehouseProductBatchDto> Batches { get; init; } = Array.Empty<WarehouseProductBatchDto>();
 }
 

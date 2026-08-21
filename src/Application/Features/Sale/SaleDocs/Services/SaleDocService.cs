@@ -9,6 +9,7 @@ using Application.Features.Inv.ProductPrices;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.InventoryCounts;
 using Application.Features.Integration.Edo;
+using Application.Features.InventoryMovements;
 using Application.Features.SaleDocTables;
 using Application.Features.SaleShipments;
 using Application.Features.Warehouses;
@@ -269,7 +270,14 @@ public class SaleDocService : BaseService, ISaleDocService
                 return Result.Failure(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
             var productLines = await GetProductLinesForAssemblyAsync(id, ct);
-            return await ApplyAssemblyAsync(doc, productLines, dtos ?? new List<SaleDocProductAssemblyDto>(), ct);
+            var assemblyDtos = dtos ?? new List<SaleDocProductAssemblyDto>();
+            await _postingLock.AcquireInventoryAsync(
+                doc.OrganizationId,
+                doc.WarehouseId,
+                productLines.Where(line => !line.Product.IsService).Select(line => line.ProductId).ToArray(),
+                assemblyDtos.SelectMany(line => line.Items).Select(item => item.ProductTableId).Distinct().ToArray(),
+                ct);
+            return await ApplyAssemblyAsync(doc, productLines, assemblyDtos, ct);
         }, ct);
 
     /// <summary>
@@ -769,15 +777,31 @@ public class SaleDocService : BaseService, ISaleDocService
         var selectedProductTableIds = hasPreselectedProductTables
             ? pieceLines.SelectMany(x => x.SaleDocTables.Select(table => table.ProductTableId)).ToList()
             : pieceLines.SelectMany(x => dtoByLineId[x.Id].Items.Select(i => i.ProductTableId)).ToList();
-        var selectionResult = await _priceCalculateService.SelectInventoryAsync(doc.OrganizationId, doc.WarehouseId, goodsLines.Select(x => new ProductTableSelectionRequestDto { LineId = x.Id, ProductId = x.ProductId, Quantity = x.Quantity, IsPieceTracked = x.Product.IsPieceTracked }).ToList(), selectedProductTableIds, ct);
+        var selectionResult = await _priceCalculateService.SelectInventoryAsync(
+            doc.OrganizationId,
+            doc.WarehouseId,
+            goodsLines.Select(x => new ProductTableSelectionRequestDto
+            {
+                LineId = x.Id,
+                ProductId = x.ProductId,
+                Quantity = x.Quantity,
+                IsPieceTracked = x.Product.IsPieceTracked,
+                ProductTableIds = x.Product.IsPieceTracked
+                    ? (hasPreselectedProductTables
+                        ? x.SaleDocTables.Select(table => table.ProductTableId).ToArray()
+                        : dtoByLineId[x.Id].Items.Select(item => item.ProductTableId).ToArray())
+                    : Array.Empty<int>()
+            }).ToList(),
+            selectedProductTableIds,
+            ct);
         if (!selectionResult.IsSuccess)
             return Result.Failure(selectionResult.Error);
 
         var selectedItems = selectionResult.Value;
         var reserve = await _warehouseProductBalanceService.ReserveAsync(
             doc.WarehouseId,
-            BuildWarehouseProductBalanceItems(goodsLines, selectedItems),
-            selectedProductTableIds,
+            BuildWarehouseProductBalanceItems(goodsLines),
+            selectedProductTableIds.Distinct().ToArray(),
             ct);
         if (!reserve.IsSuccess)
             return Result.Failure(reserve.Error);
@@ -842,7 +866,7 @@ public class SaleDocService : BaseService, ISaleDocService
             }
 
             if (line.Quantity != decimal.Truncate(line.Quantity) ||
-                line.SaleDocTables.Count != (int)line.Quantity)
+                !SaleMarkingPolicy.IsOccurrenceCountAllowed(line.Quantity, line.SaleDocTables.Count))
             {
                 return Result.Failure(SaleDocErrors.QuantityMismatch(
                     line.Id,
@@ -851,11 +875,7 @@ public class SaleDocService : BaseService, ISaleDocService
                     _userContext.LanguageId));
             }
 
-            if (line.SaleDocTables.Select(x => x.ProductTableId).Distinct().Count() != line.SaleDocTables.Count)
-                return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-
             var hasInvalidItem = line.SaleDocTables.Any(x =>
-                x.ProductTable.ProductId != line.ProductId ||
                 x.ProductTable.Product.OrganizationId != document.OrganizationId ||
                 x.ProductTable.WarehouseProductTable == null ||
                 x.ProductTable.WarehouseProductTable.WarehouseId != document.WarehouseId ||
@@ -1057,31 +1077,14 @@ public class SaleDocService : BaseService, ISaleDocService
                 : (int)decimal.Floor(availableQuantity);
 
     private static List<WarehouseProductBalanceItem> BuildWarehouseProductBalanceItems(
-        IReadOnlyCollection<SaleDocProduct> productLines,
-        IReadOnlyCollection<ProductTableSelectionDto> selectedItems)
+        IReadOnlyCollection<SaleDocProduct> productLines)
     {
-        var unitIdByProductId = productLines
-            .GroupBy(x => x.ProductId)
-            .ToDictionary(x => x.Key, x => x.First().UnitId);
-
-        var pieceTrackedItems = selectedItems
-            .GroupBy(x => x.ProductId)
-            .Select(x => new WarehouseProductBalanceItem(
-                x.Key,
-                unitIdByProductId[x.Key],
-                x.Count()))
-            .ToList();
-
-        var nonPieceTrackedItems = productLines
-            .Where(x => !x.Product.IsService && !x.Product.IsPieceTracked)
+        return productLines
+            .Where(x => !x.Product.IsService)
             .Select(x => new WarehouseProductBalanceItem(
                 x.ProductId,
                 x.UnitId,
                 x.Quantity))
-            .ToList();
-
-        return pieceTrackedItems
-            .Concat(nonPieceTrackedItems)
             .Where(x => x.Quantity > 0m)
             .GroupBy(x => new { x.ProductId, x.UnitId })
             .Select(x => new WarehouseProductBalanceItem(

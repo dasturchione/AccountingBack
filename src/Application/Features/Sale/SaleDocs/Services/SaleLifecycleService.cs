@@ -43,7 +43,6 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
     private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
     private readonly IQueryRepository<MoneyRegisterBalance> _moneyRegisterQuery;
-    private readonly IQueryRepository<PurchaseDocTable> _purchaseDocTableQuery;
 
     public SaleLifecycleService(IUserContext userContext,
                                 IQueryBuilder queryBuilder,
@@ -69,7 +68,6 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                                 IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
                                 IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
                                 IQueryRepository<MoneyRegisterBalance> moneyRegisterQuery,
-                                IQueryRepository<PurchaseDocTable> purchaseDocTableQuery,
                                 ILogger<SaleLifecycleService> logger,
                                 IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -98,7 +96,6 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         _warehouseMovementQuery = warehouseMovementQuery;
         _counterpartyRegisterQuery = counterpartyRegisterQuery;
         _moneyRegisterQuery = moneyRegisterQuery;
-        _purchaseDocTableQuery = purchaseDocTableQuery;
     }
 
     public Task<Result> ConfirmAsync(long id, SaleDocConfirmDto dto, CancellationToken ct = default) =>
@@ -126,6 +123,13 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             if (doc.StatusId != DocumentStatusIdConst.DRAFT && doc.StatusId != DocumentStatusIdConst.PENDING)
                 return Result.Failure(SaleDocErrors.CannotConfirmInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            await _postingLock.AcquireInventoryAsync(
+                doc.OrganizationId,
+                doc.WarehouseId,
+                doc.SaleDocProducts.Where(line => !line.Product.IsService).Select(line => line.ProductId).ToArray(),
+                GetSaleProductTables(doc).Select(table => table.Id).ToArray(),
+                ct);
 
             var oldStatusId = doc.StatusId;
 
@@ -155,10 +159,6 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             var finalInventoryValidation = await ReloadAndValidateReservedProductTablesAsync(doc, ct);
             if (!finalInventoryValidation.IsSuccess)
                 return finalInventoryValidation;
-
-            var costSourceValidation = await ValidateCostSourcesAsync(doc, ct);
-            if (!costSourceValidation.IsSuccess)
-                return costSourceValidation;
 
             var postingBatch = await CreatePostingBatchAsync(doc, PostingBatchStatusConst.POSTED, "Sale confirmed", ct);
 
@@ -227,6 +227,13 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 doc.StatusId != DocumentStatusIdConst.PENDING &&
                 doc.StatusId != DocumentStatusIdConst.POSTED)
                 return Result.Failure(SaleDocErrors.CannotCancelInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
+
+            await _postingLock.AcquireInventoryAsync(
+                doc.OrganizationId,
+                doc.WarehouseId,
+                doc.SaleDocProducts.Where(line => !line.Product.IsService).Select(line => line.ProductId).ToArray(),
+                GetSaleProductTables(doc).Select(table => table.Id).ToArray(),
+                ct);
 
             var periodValidation = await _periodValidator.EnsureOpenAsync(doc.OrganizationId, doc.DocDate, ct);
             if (!periodValidation.IsSuccess)
@@ -377,9 +384,6 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 continue;
             }
 
-            if (productLine.SaleDocTables.Count == 0)
-                return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(doc.Id, _userContext.LanguageId));
-
             foreach (var table in productLine.SaleDocTables)
             {
                 var vatAmountResult = await CalculateVatAsync(lineDto.UnitPrice, table.VatRateId, ct);
@@ -397,9 +401,14 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             productLine.UnitPrice = lineDto.UnitPrice;
             productLine.CostPrice = lineDto.CostPrice;
-            productLine.Amount = productLine.SaleDocTables.Sum(x => x.Amount);
-            productLine.VatAmount = productLine.SaleDocTables.Sum(x => x.VatAmount);
-            productLine.TotalAmount = productLine.SaleDocTables.Sum(x => x.TotalAmount);
+            var lineAmount = productLine.Quantity * lineDto.UnitPrice;
+            var vatAmountResultForLine = await CalculateVatAsync(lineAmount, productLine.VatRateId, ct);
+            if (!vatAmountResultForLine.IsSuccess)
+                return Result.Failure(vatAmountResultForLine.Error);
+
+            productLine.Amount = lineAmount;
+            productLine.VatAmount = vatAmountResultForLine.Value;
+            productLine.TotalAmount = lineAmount + vatAmountResultForLine.Value;
             await _productLineCommand.UpdateAsync(productLine, ct);
         }
 
@@ -443,14 +452,10 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             if (line.Quantity != decimal.Truncate(line.Quantity))
                 return Result.Failure(SaleDocErrors.InvalidProductQuantity(line.Id, line.Quantity, _userContext.LanguageId));
 
-            if (line.SaleDocTables.Count != (int)line.Quantity)
+            if (!SaleMarkingPolicy.IsOccurrenceCountAllowed(line.Quantity, line.SaleDocTables.Count))
                 return Result.Failure(SaleDocErrors.QuantityMismatch(line.Id, line.Quantity, line.SaleDocTables.Count, _userContext.LanguageId));
 
-            if (line.SaleDocTables.Select(x => x.ProductTableId).Distinct().Count() != line.SaleDocTables.Count)
-                return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
-
             var hasInvalidDraftItem = line.SaleDocTables.Any(x =>
-                x.ProductTable.ProductId != line.ProductId ||
                 x.ProductTable.Product.OrganizationId != doc.OrganizationId ||
                 x.ProductTable.WarehouseProductTable == null ||
                 x.ProductTable.WarehouseProductTable.WarehouseId != doc.WarehouseId ||
@@ -462,40 +467,11 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         return Result.Success();
     }
 
-    private async Task<Result> ValidateCostSourcesAsync(SaleDoc doc, CancellationToken ct)
-    {
-        var goodsRows = doc.SaleDocProducts
-            .Where(x => !x.Product.IsService)
-            .SelectMany(x => x.SaleDocTables)
-            .ToList();
-
-        if (goodsRows.Count == 0)
-            return Result.Success();
-
-        var productTableIds = goodsRows.Select(x => x.ProductTableId).Distinct().ToList();
-        var query = _queryBuilder.For<PurchaseDocTable>()
-            .Where(x => productTableIds.Contains(x.ProductTableId) &&
-                        x.Owner.Owner.OrganizationId == doc.OrganizationId &&
-                        x.Owner.Owner.StatusId == DocumentStatusIdConst.POSTED &&
-                        x.Owner.Owner.StateId == StateIdConst.ACTIVE &&
-                        x.Owner.Owner.DocDate <= doc.DocDate)
-            .As(x => x.ProductTableId)
-            .Build();
-
-        var purchasedProductTableIds = (await _purchaseDocTableQuery.GetAllAsync(query, ct)).ToHashSet();
-        var missingRow = goodsRows.FirstOrDefault(x => !purchasedProductTableIds.Contains(x.ProductTableId));
-
-        return missingRow is null
-            ? Result.Success()
-            : Result.Failure(SaleDocErrors.CostPriceNotFound(missingRow.ProductTable.ProductId, _userContext.LanguageId));
-    }
-
     private Result ValidateInventoryCanBeCancelled(SaleDoc doc)
     {
         var productTables = GetSaleProductTables(doc);
         var hasMovedItem = productTables.Any(x =>
-            x.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.SOLD ||
-            x.Product.StateId != StateIdConst.ACTIVE);
+            x.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.SOLD);
 
         return hasMovedItem
             ? Result.Failure(SaleDocErrors.CannotCancelMovedInventory(doc.Id, _userContext.LanguageId))
@@ -644,7 +620,7 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
             .Select(x => new WarehouseProductBalanceItem(
                 x.ProductId,
                 x.UnitId,
-                x.Product.IsPieceTracked ? x.SaleDocTables.Count : x.Quantity))
+                x.Quantity))
             .Where(x => x.Quantity > 0m)
             .GroupBy(x => new { x.ProductId, x.UnitId })
             .Select(x => new WarehouseProductBalanceItem(

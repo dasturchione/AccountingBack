@@ -11,11 +11,12 @@ public static class ServiceCollectionExtensions
             this IServiceCollection services,
             IConfiguration configuration)
     {
-        services.AddSingleton<IValidateOptions<GoogleDriveOptions>, GoogleDriveOptionsValidator>();
-        services.AddOptions<GoogleDriveOptions>()
-            .Bind(configuration.GetSection(GoogleDriveOptions.SectionName))
+        services.AddSingleton<IValidateOptions<GoogleDriveSettings>, GoogleDriveOptionsValidator>();
+        services.AddOptions<GoogleDriveSettings>()
+            .Bind(configuration.GetSection(GoogleDriveSettings.SectionName))
             .ValidateOnStart();
         services.AddScoped<IGoogleDriveUploader, GoogleDriveUploader>();
+        services.AddSingleton<IGoogleDriveServiceFactory, GoogleDriveServiceFactory>();
 
         return services;
     }

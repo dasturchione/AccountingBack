@@ -1,7 +1,3 @@
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Drive.v3.Data;
-using Google.Apis.Services;
 using Google;
 using Integration.GoogleDrive.Configs;
 using Microsoft.Extensions.Logging;
@@ -10,68 +6,39 @@ using System.Net;
 
 namespace Integration.GoogleDrive.Services;
 
-public class GoogleDriveUploader : IGoogleDriveUploader
+public sealed class GoogleDriveUploader : IGoogleDriveUploader
 {
-    private readonly GoogleDriveOptions _settings;
+    private readonly GoogleDriveSettings _settings;
+    private readonly IGoogleDriveServiceFactory _serviceFactory;
     private readonly ILogger<GoogleDriveUploader> _logger;
 
     public GoogleDriveUploader(
-        IOptions<GoogleDriveOptions> options,
+        IOptions<GoogleDriveSettings> options,
+        IGoogleDriveServiceFactory serviceFactory,
         ILogger<GoogleDriveUploader> logger)
     {
         _settings = options.Value;
+        _serviceFactory = serviceFactory;
         _logger = logger;
-    }
-
-    // DriveService faqat upload qilayotganda yaratiladi
-    private DriveService CreateDriveService()
-    {
-        if (string.IsNullOrWhiteSpace(_settings.CredentialsPath))
-            throw new GoogleDriveConfigurationException("GoogleDrive:CredentialsPath is not configured.");
-
-        if (string.IsNullOrWhiteSpace(_settings.BackupFolderId))
-            throw new GoogleDriveConfigurationException("GoogleDrive:BackupFolderId is not configured.");
-
-        GoogleCredential credential;
-        var credentialPath = Path.IsPathRooted(_settings.CredentialsPath)
-            ? _settings.CredentialsPath
-            : Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), _settings.CredentialsPath));
-
-        try
-        {
-            using var stream = new FileStream(credentialPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            credential = GoogleCredential.FromStream(stream)
-                .CreateScoped(DriveService.Scope.DriveFile);
-        }
-        catch (Exception)
-        {
-            throw new GoogleDriveConfigurationException(
-                "GoogleDrive:CredentialsPath does not point to a valid service-account credential.");
-        }
-
-        return new DriveService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = credential,
-            ApplicationName       = "AccountingBackup"
-        });
     }
 
     public async Task<string> UploadAsync(string filePath, string mimeType)
     {
         var fileName = Path.GetFileName(filePath);
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         return await UploadAsync(stream, fileName, mimeType);
     }
 
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string mimeType)
     {
-        var service  = CreateDriveService();
-        var folderId = _settings.BackupFolderId;
+        if (string.IsNullOrWhiteSpace(_settings.BackupFolderId))
+            throw new GoogleDriveConfigurationException("GoogleDrive:BackupFolderId is not configured.");
 
+        using var service = await _serviceFactory.CreateAsync();
         var fileMetadata = new Google.Apis.Drive.v3.Data.File
         {
-            Name    = fileName,
-            Parents = [folderId]
+            Name = fileName,
+            Parents = [_settings.BackupFolderId]
         };
 
         const int maxAttempts = 3;
@@ -85,6 +52,7 @@ public class GoogleDriveUploader : IGoogleDriveUploader
 
                 var request = service.Files.Create(fileMetadata, fileStream, mimeType);
                 request.Fields = "id";
+                request.SupportsAllDrives = _settings.UseSharedDrive;
 
                 var result = await request.UploadAsync();
                 if (result.Status == Google.Apis.Upload.UploadStatus.Completed &&

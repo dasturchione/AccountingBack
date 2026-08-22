@@ -149,7 +149,14 @@ public sealed class EdoDocumentDto
     public DateTimeOffset? CreatedAt { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? UpdatedAt { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyCollection<string> MarkingCodes { get; init; } = [];
+    public bool HasMarking => MarkingCodes.Count > 0;
+    public int MarkingCount => MarkingCodes.Count;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? VerificationState { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceType { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyDictionary<string, JsonElement> ProviderFields { get; init; } =
         new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);

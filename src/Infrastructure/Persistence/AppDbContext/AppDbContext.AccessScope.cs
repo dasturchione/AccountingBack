@@ -101,6 +101,7 @@ public partial class AppDbContext
         ApplyScopedFilter<Branch>(modelBuilder);
         ApplyScopedFilter<Department>(modelBuilder);
         ApplyScopedFilter<PurchaseDoc>(modelBuilder);
+        ApplyScopedFilter<Contract>(modelBuilder);
         ApplyScopedFilter<CounterpartyCard>(modelBuilder);
         ApplyScopedFilter<CounterpartyBankAccount>(modelBuilder);
         ApplyScopedFilter<CounterpartyContact>(modelBuilder);

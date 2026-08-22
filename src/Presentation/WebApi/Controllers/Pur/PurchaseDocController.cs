@@ -1,4 +1,5 @@
 using Application.Features.PurchaseDocs;
+using Application.Features.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Constants;
@@ -14,10 +15,12 @@ namespace WebApi.Controllers;
 public class PurchaseDocController : ControllerBase
 {
     private readonly IPurchaseDocService _service;
+    private readonly IDocumentPdfService _documentPdfService;
 
-    public PurchaseDocController(IPurchaseDocService service)
+    public PurchaseDocController(IPurchaseDocService service, IDocumentPdfService documentPdfService)
     {
         _service = service;
+        _documentPdfService = documentPdfService;
     }
 
     /// <summary>
@@ -40,6 +43,18 @@ public class PurchaseDocController : ControllerBase
     {
         var result = await _service.GetByIdAsync(id, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("{id:long}/pdf")]
+    [ModuleAuthorize(PermissionCodeConst.PurchaseDocViewDetail)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IResult> GetPdfAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _documentPdfService.GetPurchasePdfAsync(id, ct);
+        return result.Match(
+            file => Results.File(file.Content, file.ContentType, file.FileName),
+            CustomResults.Problem);
     }
 
     /// <summary>

@@ -1,3 +1,6 @@
+using Application.Abstractions.Integration.Edo;
+using System.Text.Json.Serialization;
+
 namespace Application.Features.PurchaseDocs;
 
 public class PurchaseDocDto
@@ -35,6 +38,7 @@ public class PurchaseDocDto
 
     public long? ContractId { get; set; }
     public string? ContractNumber { get; set; }
+    public EdoSourceMetadataDto? EdoSource { get; set; }
 
     public List<PurchaseDocProductDto> Lines { get; set; } = new();
 }
@@ -68,8 +72,14 @@ public class PurchaseDocProductItemDto
 {
     public long Id { get; set; }
     public int ProductTableId { get; set; }
+    [JsonIgnore]
     public string? MarkingNumber { get; set; }
+    [JsonIgnore]
     public string? SerialNumber { get; set; }
+    public bool HasMarking { get; set; }
+    public int MarkingCount { get; set; }
+    public string? VerificationState { get; set; }
+    public string? SourceType { get; set; }
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }
     public string? VatRateName { get; set; }

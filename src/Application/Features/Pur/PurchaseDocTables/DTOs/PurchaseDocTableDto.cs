@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Application.Features.PurchaseDocTables;
 
 public class PurchaseDocTableDto
@@ -14,6 +16,12 @@ public class PurchaseDocTableDto
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
 
+    [JsonIgnore]
     public string? MarkingNumber { get; set; }
+    [JsonIgnore]
     public string? SerialNumber { get; set; }
+    public bool HasMarking { get; set; }
+    public int MarkingCount { get; set; }
+    public string? VerificationState { get; set; }
+    public string? SourceType { get; set; }
 }

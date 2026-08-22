@@ -94,6 +94,7 @@ using Application.Features.Register.PostingEngines.Builders;
 using Application.Features.Roles;
 using Application.Features.SaleConditions;
 using Application.Features.SaleDocs;
+using Application.Features.SaleDocs.EdoSalePreflight;
 using Application.Features.RetailSaleDocs;
 using Application.Features.SaleShipments;
 using Application.Features.SaleDocTables;
@@ -250,6 +251,7 @@ namespace Infrastructure
             services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
             services.AddScoped<IPayrollReportService, PayrollReportService>();
             services.AddScoped<IContractService, ContractService>();
+            services.AddScoped<IProviderContractReconciliationService, ProviderContractReconciliationService>();
             services.AddScoped<IContractExpiryNotificationService, ContractExpiryNotificationService>();
             services.AddScoped<IFaDocumentAccountValidator, FaDocumentAccountValidator>();
             services.AddScoped<IFaAssetCommandRepository, FaAssetCommandRepository>();
@@ -291,6 +293,8 @@ namespace Infrastructure
             services.AddScoped<IProductPriceService, ProductPriceService>();
             services.AddScoped<IPricingConditionService, PricingConditionService>();
             services.AddScoped<ISaleConditionService, SaleConditionService>();
+            services.AddScoped<IEdoSalePreflightService, EdoSalePreflightService>();
+            services.AddScoped<IEdoSaleDraftApplyService, EdoSaleDraftApplyService>();
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
             services.AddScoped<IBankTerminalService, BankTerminalService>();
             services.AddScoped<IBankOperationService, BankOperationService>();

@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Abstractions.Integration.Edo;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyCards;
@@ -7,6 +8,7 @@ using Application.Features.DocumentNumbers;
 using Application.Features.Inv.ProductPrices;
 using Application.Features.Inv.WarehouseProducts;
 using Application.Features.InventoryCounts;
+using Application.Features.Integration.Edo;
 using Application.Features.InventoryMovements;
 using Application.Features.SaleDocTables;
 using Application.Features.SaleShipments;
@@ -47,6 +49,7 @@ public class SaleDocService : BaseService, ISaleDocService
     private readonly IWarehouseInventoryService _warehouseInventoryService;
     private readonly IActiveInventoryCountGuardService _activeInventoryCountGuardService;
     private readonly IDocumentNumberService _documentNumberService;
+    private readonly IEdoDocumentStore _edoDocumentStore;
 
     public SaleDocService(IUserContext userContext,
                           IQueryBuilder queryBuilder,
@@ -73,6 +76,7 @@ public class SaleDocService : BaseService, ISaleDocService
                           IWarehouseProductBalanceService warehouseProductBalanceService,
                           IWarehouseInventoryService warehouseInventoryService,
                           IActiveInventoryCountGuardService activeInventoryCountGuardService,
+                          IEdoDocumentStore edoDocumentStore,
                           ILogger<SaleDocService> logger,
                           IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -102,6 +106,7 @@ public class SaleDocService : BaseService, ISaleDocService
         _warehouseInventoryService = warehouseInventoryService;
         _activeInventoryCountGuardService = activeInventoryCountGuardService;
         _documentNumberService = documentNumberService;
+        _edoDocumentStore = edoDocumentStore;
     }
 
     public Task<Result<PagedResponse<SaleDocListDto>>> GetAllAsync(SaleDocListFilter filter, CancellationToken ct = default) =>
@@ -127,8 +132,23 @@ public class SaleDocService : BaseService, ISaleDocService
             if (entity == null)
                 return Result.Failure<SaleDocDto>(SaleDocErrors.NotFound(id, _userContext.LanguageId));
 
+            entity.EdoSource = await LoadEdoSourceAsync(_userContext.OrganizationId.Value, id, ct);
             return Result.Success(entity);
         });
+
+    private async Task<EdoSourceMetadataDto?> LoadEdoSourceAsync(
+        int organizationId,
+        long saleDocId,
+        CancellationToken ct)
+    {
+        var source = await _edoDocumentStore.FindByInternalDocumentAsync(
+            organizationId,
+            ["sale_doc", "SALE_DOC", "SALE"],
+            saleDocId,
+            ct);
+
+        return source is null ? null : EdoSourceMetadataMapper.Map(source);
+    }
 
     /// <summary>
     /// Bosqich 1: Buxgalter sotuv hujjatini yaratadi.
@@ -481,7 +501,9 @@ public class SaleDocService : BaseService, ISaleDocService
                             .Select(x => new SaleDocAvailableProductTableDto
                             {
                                 ProductTableId = x.ProductTableId,
-                                MarkingNumber = x.MarkingNumber
+                                HasMarking = !string.IsNullOrWhiteSpace(x.MarkingNumber),
+                                MarkingCount = string.IsNullOrWhiteSpace(x.MarkingNumber) ? 0 : 1,
+                                AvailabilityStatus = "AVAILABLE"
                             })
                             .ToList()
                     })
@@ -568,7 +590,9 @@ public class SaleDocService : BaseService, ISaleDocService
                         .Select(x => new SaleDocAvailableProductTableDto
                         {
                             ProductTableId = x.ProductTableId,
-                            MarkingNumber = x.MarkingNumber
+                            HasMarking = !string.IsNullOrWhiteSpace(x.MarkingNumber),
+                            MarkingCount = string.IsNullOrWhiteSpace(x.MarkingNumber) ? 0 : 1,
+                            AvailabilityStatus = "AVAILABLE"
                         })
                         .ToList()
                         : new()
@@ -721,6 +745,8 @@ public class SaleDocService : BaseService, ISaleDocService
         if (!countGuard.IsSuccess)
             return countGuard;
 
+        var hasPreselectedProductTables = productLines.Any(x => x.SaleDocTables.Count > 0);
+
         foreach (var line in productLines.Where(x => x.Product.IsService || !x.Product.IsPieceTracked))
             if (dtoByLineId.TryGetValue(line.Id, out var dto) && dto.Items.Count > 0)
                 return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
@@ -728,13 +754,29 @@ public class SaleDocService : BaseService, ISaleDocService
         var goodsLines = productLines.Where(x => !x.Product.IsService).ToList();
         var pieceLines = goodsLines.Where(x => x.Product.IsPieceTracked).ToList();
         foreach (var line in pieceLines)
-            if (!dtoByLineId.TryGetValue(line.Id, out var dto) || !dto.Assembled)
+        {
+            if (hasPreselectedProductTables)
+            {
+                if (line.SaleDocTables.Count != decimal.ToInt32(line.Quantity)
+                    || line.SaleDocTables.Select(x => x.ProductTableId).Distinct().Count() != line.SaleDocTables.Count)
+                    return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+
+                if (dtoByLineId.TryGetValue(line.Id, out var preselectedDto)
+                    && preselectedDto.Items.Count > 0
+                    && !preselectedDto.Items.Select(x => x.ProductTableId)
+                        .OrderBy(x => x)
+                        .SequenceEqual(line.SaleDocTables.Select(x => x.ProductTableId).OrderBy(x => x)))
+                    return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+            }
+            else if (!dtoByLineId.TryGetValue(line.Id, out var dto) || !dto.Assembled)
+            {
                 return Result.Failure(SaleDocErrors.InvalidInventorySelection(_userContext.LanguageId));
+            }
+        }
 
-        if (productLines.Any(x => x.SaleDocTables.Count > 0))
-            return Result.Failure(SaleDocErrors.InvalidDraftInventoryState(doc.Id, _userContext.LanguageId));
-
-        var selectedProductTableIds = pieceLines.SelectMany(x => dtoByLineId[x.Id].Items.Select(i => i.ProductTableId)).ToList();
+        var selectedProductTableIds = hasPreselectedProductTables
+            ? pieceLines.SelectMany(x => x.SaleDocTables.Select(table => table.ProductTableId)).ToList()
+            : pieceLines.SelectMany(x => dtoByLineId[x.Id].Items.Select(i => i.ProductTableId)).ToList();
         var selectionResult = await _priceCalculateService.SelectInventoryAsync(
             doc.OrganizationId,
             doc.WarehouseId,
@@ -745,7 +787,9 @@ public class SaleDocService : BaseService, ISaleDocService
                 Quantity = x.Quantity,
                 IsPieceTracked = x.Product.IsPieceTracked,
                 ProductTableIds = x.Product.IsPieceTracked
-                    ? dtoByLineId[x.Id].Items.Select(item => item.ProductTableId).ToArray()
+                    ? (hasPreselectedProductTables
+                        ? x.SaleDocTables.Select(table => table.ProductTableId).ToArray()
+                        : dtoByLineId[x.Id].Items.Select(item => item.ProductTableId).ToArray())
                     : Array.Empty<int>()
             }).ToList(),
             selectedProductTableIds,
@@ -766,6 +810,9 @@ public class SaleDocService : BaseService, ISaleDocService
         foreach (var line in pieceLines)
         {
             var matched = selectedByLineId.GetValueOrDefault(line.Id) ?? new List<ProductTableSelectionDto>();
+            if (hasPreselectedProductTables)
+                continue;
+
             foreach (var item in matched)
             {
                 var vat = line.VatRateId.HasValue && line.VatAmount > 0 && line.Quantity > 0 ? Math.Round(line.VatAmount / line.Quantity, 2) : 0m;

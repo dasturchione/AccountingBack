@@ -23,6 +23,12 @@ public interface IEdoDocumentStore
         string providerDocumentId,
         CancellationToken ct = default);
 
+    Task<EdoDocument?> FindByInternalDocumentAsync(
+        int organizationId,
+        IReadOnlyCollection<string> internalDocumentTypes,
+        long internalDocumentId,
+        CancellationToken ct = default);
+
     Task AcquireProviderDocumentLockAsync(
         int organizationId,
         EdoProviderCode providerCode,

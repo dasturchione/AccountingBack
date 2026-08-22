@@ -1,3 +1,6 @@
+using Application.Abstractions.Integration.Edo;
+using System.Text.Json.Serialization;
+
 namespace Application.Features.SaleDocs;
 
 public class SaleDocDto
@@ -36,6 +39,7 @@ public class SaleDocDto
     public DateTime CreatedDate { get; set; }
     public long? ContractId { get; set; }
     public string? ContractNumber { get; set; }
+    public EdoSourceMetadataDto? EdoSource { get; set; }
 
     public List<SaleDocProductDto> Lines { get; set; } = new();
 }
@@ -83,8 +87,14 @@ public class SaleDocProductTableDto
 {
     public long Id { get; set; }
     public int ProductTableId { get; set; }
+    [JsonIgnore]
     public string? MarkingNumber { get; set; }
+    [JsonIgnore]
     public string? SerialNumber { get; set; }
+    public bool HasMarking { get; set; }
+    public int MarkingCount { get; set; }
+    public string? VerificationState { get; set; }
+    public string? SourceType { get; set; }
     public decimal CostPrice { get; set; }
     public decimal Amount { get; set; }
     public short? VatRateId { get; set; }

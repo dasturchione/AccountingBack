@@ -484,6 +484,10 @@ public sealed class EdocsEdoOperations(
             TotalAmount = ReadDecimal(item, "totalSumWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "totalWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "TotalAmount", strictHistoricalDecimals),
+            CurrencyCode = ReadOptionalString(item, "currencyCode")
+                ?? ReadOptionalString(item, "currency")
+                ?? ReadPathString(item, "data", "facturadoc", "currencyCode")
+                ?? ReadPathString(item, "data", "facturadoc", "currency"),
             CreatedAt = usesDocsShape ? ReadDateTimeOffset(item, "createdAt") : null,
             PreviewSellerTin = seller?.TaxIdentifier,
             PreviewContractNumber = ReadPathString(item, "data", "contractdoc", "contractno")

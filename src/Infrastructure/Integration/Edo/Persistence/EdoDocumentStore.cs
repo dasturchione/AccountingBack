@@ -44,6 +44,20 @@ public sealed class EdoDocumentStore(AppDbContext context) : IEdoDocumentStore
             && document.Provider == providerCode.ToString()
             && document.ProviderDocumentId == providerDocumentId, ct);
 
+    public Task<EdoDocument?> FindByInternalDocumentAsync(
+        int organizationId,
+        IReadOnlyCollection<string> internalDocumentTypes,
+        long internalDocumentId,
+        CancellationToken ct = default) =>
+        context.EdoDocuments
+            .AsNoTracking()
+            .Where(document =>
+                document.OrganizationId == organizationId
+                && document.InternalDocumentId == internalDocumentId
+                && internalDocumentTypes.Contains(document.InternalDocumentType))
+            .OrderByDescending(document => document.UpdatedAt ?? document.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
     public async Task AcquireProviderDocumentLockAsync(
         int organizationId,
         EdoProviderCode providerCode,

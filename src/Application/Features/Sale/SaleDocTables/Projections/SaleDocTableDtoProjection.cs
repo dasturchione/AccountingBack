@@ -20,7 +20,7 @@ public class SaleDocTableDtoProjection : IProjectionBuilder<SaleDocTable, SaleDo
             VatRateName = x.VatRate != null ? x.VatRate.Name : null,
             VatAmount = x.VatAmount,
             TotalAmount = x.TotalAmount,
-            MarkingNumber = x.ProductTable.MarkingNumber,
-            SerialNumber = x.ProductTable.SerialNumber,
+            HasMarking = !string.IsNullOrWhiteSpace(x.ProductTable.MarkingNumber),
+            MarkingCount = string.IsNullOrWhiteSpace(x.ProductTable.MarkingNumber) ? 0 : 1,
         };
 }

@@ -103,6 +103,13 @@ public sealed class EdoController(
     public async Task<IResult> GetDocumentDetails(long id, CancellationToken ct = default) =>
         Results.Ok(await inboxService.GetDetailsAsync(id, ct));
 
+    [HttpGet("outbox/provider-documents/{providerDocumentId}")]
+    [ProducesResponseType(typeof(EdoOutboxProviderDocumentDetailDto), StatusCodes.Status200OK)]
+    public async Task<IResult> GetOutboxProviderDocumentDetails(
+        string providerDocumentId,
+        CancellationToken ct = default) =>
+        Results.Ok(await inboxService.GetOutboxProviderDocumentDetailsAsync(providerDocumentId, ct));
+
     [HttpGet("inbox/summary")]
     [ProducesResponseType(typeof(EdoPublicInboxSummaryDto), StatusCodes.Status200OK)]
     public async Task<IResult> GetInboxSummary(CancellationToken ct = default)

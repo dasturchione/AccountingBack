@@ -42,6 +42,7 @@ public class RetailSaleDocProductCreateDtoValidator : AbstractValidator<RetailSa
         RuleFor(x => x.UnitId).GreaterThan((short)0);
         RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.CostPrice).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.VatAmount).GreaterThanOrEqualTo(0).When(x => x.VatAmount.HasValue);
     }
 }
 

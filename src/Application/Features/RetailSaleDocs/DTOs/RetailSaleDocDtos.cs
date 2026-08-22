@@ -40,6 +40,8 @@ public class RetailSaleDocProductCreateDto
     public decimal UnitPrice { get; set; }
     public decimal CostPrice { get; set; }
     public short? VatRateId { get; set; }
+    /// <summary>VAT amount per one unit; when null, it is calculated from VatRateId.</summary>
+    public decimal? VatAmount { get; set; }
     public int? InventoryAccountId { get; set; }
     public int? IncomeAccountId { get; set; }
     public int? CostAccountId { get; set; }
@@ -71,6 +73,8 @@ public class RetailSaleDocConfirmLineDto
     public long Id { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal CostPrice { get; set; }
+    /// <summary>VAT amount per one unit; when null, it is calculated from the line VatRateId.</summary>
+    public decimal? VatAmount { get; set; }
 }
 
 public enum RetailSaleProcessingMode

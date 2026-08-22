@@ -721,12 +721,24 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                 .Where(item => item.IssueMovementId == originalMovement.Id)
                 .Build(),
             ct);
+        var isMarkingDrivenSale = originalMovement.DocumentTypeId is
+            DocumentTypeIdConst.SALE or DocumentTypeIdConst.RETAIL_SALE;
         if (allocations.Count == 0)
-            return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
+        {
+            if (!isMarkingDrivenSale)
+                return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
+
+            reversalEntry.Amount = 0m;
+            return Result.Success();
+        }
 
         var allocatedQuantity = allocations.Sum(item => item.Quantity);
-        if (allocatedQuantity != reversalEntry.Quantity)
+        if (isMarkingDrivenSale
+                ? allocatedQuantity > reversalEntry.Quantity
+                : allocatedQuantity != reversalEntry.Quantity)
+        {
             return Result.Failure(WarehouseProductErrors.OriginalAllocationNotFound(originalMovement.Id, _userContext.LanguageId));
+        }
 
         var batchIds = allocations.Select(allocation => allocation.BatchId).Distinct().ToList();
         var batches = await _warehouseProductBatchQuery.GetAllAsync(

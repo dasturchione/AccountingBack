@@ -33,6 +33,68 @@ public sealed class SaleMarkingPolicyTests
     }
 
     [Fact]
+    public void BatchMarkings_AreEmpty_WhenSaleHasNoMarkings()
+    {
+        var result = SaleMarkingPolicy.SelectBatchMarkings(
+            Array.Empty<SaleMarkingOccurrence>(),
+            Array.Empty<ProductTableMarkingIdentity>());
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BatchMarkings_UseSameMarkingNumberOnlyOnce()
+    {
+        var result = SaleMarkingPolicy.SelectBatchMarkings(
+        [
+            new SaleMarkingOccurrence(11, 100, 900),
+            new SaleMarkingOccurrence(11, 100, 900),
+            new SaleMarkingOccurrence(12, 100, 901)
+        ],
+        [
+            new ProductTableMarkingIdentity(900, 100, "same-marking"),
+            new ProductTableMarkingIdentity(901, 100, "same-marking")
+        ]);
+
+        var selection = Assert.Single(result);
+        Assert.Equal((11L, 100, 900), (selection.LineId, selection.ProductId, selection.ProductTableId));
+    }
+
+    [Fact]
+    public void BatchMarkings_IgnoreRowsWithoutMarkingNumber()
+    {
+        var result = SaleMarkingPolicy.SelectBatchMarkings(
+            [new SaleMarkingOccurrence(11, 100, 900)],
+            [new ProductTableMarkingIdentity(900, 100, null)]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BatchMarking_IsAssignedOnlyToItsActualProductLine()
+    {
+        var result = SaleMarkingPolicy.SelectBatchMarkings(
+        [
+            new SaleMarkingOccurrence(11, 200, 900),
+            new SaleMarkingOccurrence(12, 100, 900)
+        ],
+        [new ProductTableMarkingIdentity(900, 100, "marking-900")]);
+
+        var selection = Assert.Single(result);
+        Assert.Equal((12L, 100, 900), (selection.LineId, selection.ProductId, selection.ProductTableId));
+    }
+
+    [Fact]
+    public void BatchMarking_IsIgnored_WhenOnlyDifferentProductLineContainsIt()
+    {
+        var result = SaleMarkingPolicy.SelectBatchMarkings(
+            [new SaleMarkingOccurrence(11, 200, 900)],
+            [new ProductTableMarkingIdentity(900, 100, "marking-900")]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public async Task SaleHandler_UsesSoldProductQuantity_NotMarkingOccurrences()
     {
         var sale = new SaleDoc

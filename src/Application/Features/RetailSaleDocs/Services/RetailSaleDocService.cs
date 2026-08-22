@@ -380,7 +380,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         {
             var product = productMap[dto.ProductId];
             var isPieceTracked = !product.IsService && product.IsPieceTracked;
-            if (dto.Quantity <= 0m || dto.UnitPrice < 0m || dto.CostPrice < 0m || dto.UnitId != product.UnitId ||
+            if (dto.Quantity <= 0m || dto.UnitPrice < 0m || dto.CostPrice < 0m || dto.VatAmount is < 0m || dto.UnitId != product.UnitId ||
                 (isPieceTracked && (dto.Quantity != decimal.Truncate(dto.Quantity) ||
                                     !SaleMarkingPolicy.IsOccurrenceCountAllowed(dto.Quantity, dto.Items.Count))) ||
                 (!isPieceTracked && dto.Items.Count > 0))
@@ -391,7 +391,8 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             if (dto.Items.Any(x => !tableMap.ContainsKey(x.ProductTableId)))
                 return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId));
 
-            var vatPerUnit = dto.VatRateId.HasValue ? Math.Round(dto.UnitPrice * vatMap[dto.VatRateId.Value].Rate / 100m, 8) : 0m;
+            var vatRate = dto.VatRateId.HasValue ? vatMap[dto.VatRateId.Value].Rate : (decimal?)null;
+            var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(dto.UnitPrice, dto.VatAmount, vatRate);
             var amount = dto.Quantity * dto.UnitPrice;
             var line = new RetailSaleDocProduct
             {
@@ -533,10 +534,12 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
 
             foreach (var dtoLine in dto.Lines)
             {
-                if (!lineMap.TryGetValue(dtoLine.Id, out var line) || dtoLine.UnitPrice < 0m || dtoLine.CostPrice < 0m)
+                if (!lineMap.TryGetValue(dtoLine.Id, out var line) || dtoLine.UnitPrice < 0m ||
+                    dtoLine.CostPrice < 0m || dtoLine.VatAmount is < 0m)
                     return Result.Failure(RetailSaleDocErrors.InvalidLine(0));
 
-                var vatPerUnit = line.VatRateId.HasValue ? Math.Round(dtoLine.UnitPrice * vatMap[line.VatRateId.Value].Rate / 100m, 8) : 0m;
+                var vatRate = line.VatRateId.HasValue ? vatMap[line.VatRateId.Value].Rate : (decimal?)null;
+                var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(dtoLine.UnitPrice, dtoLine.VatAmount, vatRate);
                 line.UnitPrice = dtoLine.UnitPrice;
                 line.CostPrice = dtoLine.CostPrice;
                 if (line.Product.IsPieceTracked && !line.Product.IsService)

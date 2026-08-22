@@ -392,7 +392,8 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId));
 
             var vatRate = dto.VatRateId.HasValue ? vatMap[dto.VatRateId.Value].Rate : (decimal?)null;
-            var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(dto.UnitPrice, dto.VatAmount, vatRate);
+            var vatAmount = RetailSaleVatCalculator.ResolveTotal(dto.UnitPrice, dto.Quantity, dto.VatAmount, vatRate);
+            var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(vatAmount, dto.Quantity);
             var amount = dto.Quantity * dto.UnitPrice;
             var line = new RetailSaleDocProduct
             {
@@ -403,8 +404,8 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 CostPrice = dto.CostPrice,
                 Amount = amount,
                 VatRateId = dto.VatRateId,
-                VatAmount = dto.Quantity * vatPerUnit,
-                TotalAmount = amount + dto.Quantity * vatPerUnit,
+                VatAmount = vatAmount,
+                TotalAmount = amount + vatAmount,
                 InventoryAccountId = dto.InventoryAccountId,
                 IncomeAccountId = dto.IncomeAccountId,
                 CostAccountId = dto.CostAccountId
@@ -539,7 +540,8 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                     return Result.Failure(RetailSaleDocErrors.InvalidLine(0));
 
                 var vatRate = line.VatRateId.HasValue ? vatMap[line.VatRateId.Value].Rate : (decimal?)null;
-                var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(dtoLine.UnitPrice, dtoLine.VatAmount, vatRate);
+                var vatAmount = RetailSaleVatCalculator.ResolveTotal(dtoLine.UnitPrice, line.Quantity, dtoLine.VatAmount, vatRate);
+                var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(vatAmount, line.Quantity);
                 line.UnitPrice = dtoLine.UnitPrice;
                 line.CostPrice = dtoLine.CostPrice;
                 if (line.Product.IsPieceTracked && !line.Product.IsService)
@@ -556,7 +558,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 }
 
                 line.Amount = line.Quantity * dtoLine.UnitPrice;
-                line.VatAmount = line.Quantity * vatPerUnit;
+                line.VatAmount = vatAmount;
                 line.TotalAmount = line.Amount + line.VatAmount;
             }
             await _lineCommand.UpdateAsync(document.RetailSaleDocProducts, ct);

@@ -27,6 +27,9 @@
 
   <ItemGroup>
     <Folder Include="Controllers\Register\" />
+    <None Update="appdata\drive\oauth-client.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

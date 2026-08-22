@@ -66,6 +66,10 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Google Drive OAuth credentials and generated user tokens
+src/Presentation/WebApi/appdata/drive/oauth-client.json
+src/Presentation/WebApi/appdata/drive/oauth-tokens/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 src/Infrastructure/Persistence/Generated/Scaffold/Scaffold.txt

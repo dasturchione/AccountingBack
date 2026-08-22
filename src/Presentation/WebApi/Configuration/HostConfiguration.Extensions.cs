@@ -223,15 +223,27 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
         {
+            var backupSchedule = builder.Configuration.GetSection("BackupJob");
+            var backupHour = backupSchedule.GetValue<int?>(nameof(BackupJobSettings.ScheduleHour)) ?? 4;
+            var backupMinute = backupSchedule.GetValue<int?>(nameof(BackupJobSettings.ScheduleMinute)) ?? 5;
+
+            if (backupHour is < 0 or > 23)
+                throw new InvalidOperationException("BackupJob:ScheduleHour must be between 0 and 23.");
+
+            if (backupMinute is < 0 or > 59)
+                throw new InvalidOperationException("BackupJob:ScheduleMinute must be between 0 and 59.");
+
             builder.Services.AddQuartz(q =>
             {
-                // Backup Job — har kuni 04:05 da
+                // Backup Job — vaqt BackupJob sozlamalaridan olinadi.
                 var backupJobKey = new JobKey("BackupJob");
                 q.AddJob<BackupJob>(opts => opts.WithIdentity(backupJobKey));
                 q.AddTrigger(opts => opts
                     .ForJob(backupJobKey)
                     .WithIdentity("BackupJobTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(04, 05)));
+                    .WithSchedule(CronScheduleBuilder
+                        .DailyAtHourAndMinute(backupHour, backupMinute)
+                        .InTimeZone(TashkentTime.Zone)));
 
                 // AdjustBalance Job — har kuni 02:30 da
                 var adjustJobKey = new JobKey("AdjustBalanceJob");

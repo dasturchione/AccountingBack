@@ -11,12 +11,6 @@ public class BackupJobSettings
     /// <summary>Backup ishga tushadigan daqiqa.</summary>
     public int ScheduleMinute { get; set; } = 5;
 
-    /// <summary>
-    /// pg_dump ning to'liq yo'li. Bo'sh bo'lsa avtomatik qidiradi.
-    /// Misol (Windows): "C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe"
-    /// </summary>
-    public string? PgDumpPath { get; set; }
-
     public DbSettings Database { get; set; } = null!;
 }
 

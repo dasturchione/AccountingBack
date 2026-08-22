@@ -37,10 +37,6 @@ public class BackupJob : IJob
         string backupPath = Path.Combine(backupDir, $"{backupFilePrefix}-{timestamp}.backup");
         string zipPath    = Path.Combine(backupDir, $"{backupFilePrefix}-{timestamp}.zip");
 
-        string pgDumpPath = !string.IsNullOrWhiteSpace(_settings.PgDumpPath)
-            ? _settings.PgDumpPath
-            : FindPgDump();
-
         try
         {
             // 1. pg_dump
@@ -48,7 +44,7 @@ public class BackupJob : IJob
 
             var processInfo = new ProcessStartInfo
             {
-                FileName               = pgDumpPath,
+                FileName               = "pg_dump",
                 RedirectStandardOutput = true,
                 RedirectStandardError  = true,
                 UseShellExecute        = false,
@@ -157,26 +153,4 @@ public class BackupJob : IJob
         return string.IsNullOrWhiteSpace(safeValue) ? "database" : safeValue;
     }
 
-    private static string FindPgDump()
-    {
-        // Windows standart joylari
-        string[] windowsPaths =
-        [
-            @"C:\Program Files\PostgreSQL\18\bin\pg_dump.exe",
-            @"C:\Program Files\PostgreSQL\17\bin\pg_dump.exe",
-            @"C:\Program Files\PostgreSQL\16\bin\pg_dump.exe",
-            @"C:\Program Files\PostgreSQL\15\bin\pg_dump.exe",
-            @"C:\Program Files\PostgreSQL\14\bin\pg_dump.exe",
-        ];
-        foreach (var path in windowsPaths)
-            if (File.Exists(path)) return path;
-
-        // Linux/Mac
-        string[] unixPaths = ["/usr/bin/pg_dump", "/usr/local/bin/pg_dump"];
-        foreach (var path in unixPaths)
-            if (File.Exists(path)) return path;
-
-        throw new FileNotFoundException(
-            "pg_dump was not found. Configure BackupJob:PgDumpPath with an installed pg_dump executable path.");
-    }
 }

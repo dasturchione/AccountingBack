@@ -28,12 +28,14 @@ internal static class EdoSaleContractResolver
 
         EdoSaleMappingStatusDto Build(
             string status,
-            string code,
+            string? code,
             string description,
-            IReadOnlyCollection<long> candidateIds) => new()
+            IReadOnlyCollection<long> candidateIds,
+            long? selectedId = null) => new()
             {
                 Status = status,
                 SafeErrorCode = code,
+                SelectedId = selectedId,
                 ProviderCode = ProviderCode,
                 ProviderContractNumber = providerNumber,
                 ProviderContractDate = providerDate,
@@ -74,12 +76,12 @@ internal static class EdoSaleContractResolver
 
         if (exactMatches.Length == 1)
         {
-            codes.Add("CONTRACT_SELECTION_REQUIRED");
             return Build(
-                "REQUIRES_SELECTION",
-                "CONTRACT_SELECTION_REQUIRED",
-                "One exact provider contract match exists; explicit contract selection is required.",
-                exactMatches);
+                "READY",
+                null,
+                "One exact provider contract match exists within the organization, counterparty and date scope.",
+                exactMatches,
+                exactMatches[0]);
         }
 
         if (exactMatches.Length > 1)

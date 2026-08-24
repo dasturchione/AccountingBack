@@ -10,6 +10,8 @@ public sealed class EdoSaleDraftApplyRequestDto
 public sealed class EdoSaleDraftApplyItemDto
 {
     public string ProviderDocumentId { get; init; } = string.Empty;
+    public string DocumentType { get; init; } = "FACTURA";
+    public bool AllowSentDocuments { get; init; }
     public int CounterpartyId { get; init; }
     public long ContractId { get; init; }
     public short CurrencyId { get; init; }

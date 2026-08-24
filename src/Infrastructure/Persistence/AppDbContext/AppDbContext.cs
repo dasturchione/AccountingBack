@@ -215,6 +215,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<EdoImportCandidateLine> EdoImportCandidateLines { get; set; }
     public virtual DbSet<EdoImportCandidateMarking> EdoImportCandidateMarkings { get; set; }
     public virtual DbSet<EdoProviderProductMapping> EdoProviderProductMappings { get; set; }
+    public virtual DbSet<EdoImportBatch> EdoImportBatches { get; set; }
+    public virtual DbSet<EdoImportBatchDocument> EdoImportBatchDocuments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -565,6 +567,119 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(e => e.OrganizationId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("edo_document_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_batch_pkey");
+            entity.ToTable("edo_import_batch");
+            entity.HasAlternateKey(e => new { e.Id, e.OrganizationId, e.ProviderCode })
+                .HasName("ux_edo_import_batch_id_organization_provider");
+            entity.Property(e => e.ProviderCode).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.PlanHash).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.IdempotencyKey).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.IdempotencyKey })
+                .HasDatabaseName("ux_edo_import_batch_organization_idempotency")
+                .IsUnique()
+                .HasFilter("idempotency_key IS NOT NULL");
+            entity.HasIndex(e => new { e.OrganizationId, e.Status })
+                .HasDatabaseName("idx_edo_import_batch_organization_status");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_edo_import_batch_provider", "provider_code = 'EDOCS'");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_status",
+                    "status IN ('PLANNED', 'APPLYING', 'PARTIAL', 'COMPLETED', 'FAILED', 'CANCELLED')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_plan_hash",
+                    "plan_hash ~ '^[0-9a-f]{64}$'");
+            });
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_batch_organization_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoImportBatchDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_import_batch_document_pkey");
+            entity.ToTable("edo_import_batch_document");
+            entity.Property(e => e.ProviderCode).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.ProviderDocumentId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Direction).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.DocumentType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(40).IsRequired();
+            entity.Property(e => e.DocumentNumber).HasMaxLength(100);
+            entity.Property(e => e.SafeErrorCode).HasMaxLength(100);
+            entity.Property(e => e.MarkingVerificationState).HasMaxLength(30);
+            entity.Property(e => e.MarkingSourceType).HasMaxLength(30);
+            entity.Property(e => e.SentOverrideApplied).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasIndex(e => new { e.OrganizationId, e.BatchId, e.ProviderDocumentId })
+                .HasDatabaseName("ux_edo_import_batch_document_organization_batch_provider_document")
+                .IsUnique();
+            entity.HasIndex(e => new { e.OrganizationId, e.Status })
+                .HasDatabaseName("idx_edo_import_batch_document_organization_status");
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_edo_import_batch_document_provider", "provider_code = 'EDOCS'");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_direction",
+                    "direction IN ('INBOX', 'OUTBOX')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_type",
+                    "document_type IN ('FACTURA', 'WAYBILL_LOCAL')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_status",
+                    "status IN ('SIGNED', 'WAITING_FOR_SIGNATURE', 'BLOCKED', 'IMPORTED', 'FAILED', 'ALREADY_IMPORTED', 'NOT_ELIGIBLE')");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_provider_document_id",
+                    "btrim(provider_document_id) <> ''");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_marking_count",
+                    "marking_count >= 0");
+                table.HasCheckConstraint(
+                    "ck_edo_import_batch_document_local_link",
+                    "((status IN ('IMPORTED', 'ALREADY_IMPORTED') AND num_nonnulls(purchase_document_id, sale_document_id) = 1) OR (status NOT IN ('IMPORTED', 'ALREADY_IMPORTED') AND num_nonnulls(purchase_document_id, sale_document_id) = 0))");
+            });
+
+            entity.HasOne(e => e.Batch)
+                .WithMany(e => e.Documents)
+                .HasForeignKey(e => new { e.BatchId, e.OrganizationId, e.ProviderCode })
+                .HasPrincipalKey(e => new { e.Id, e.OrganizationId, e.ProviderCode })
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("edo_import_batch_document_batch_organization_provider_fkey");
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_batch_document_organization_id_fkey");
+            entity.HasOne(e => e.EdoDocument)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.EdoDocumentId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_batch_document_edo_document_organization_fkey");
+            entity.HasOne(e => e.PurchaseDocument)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.PurchaseDocumentId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_batch_document_purchase_organization_fkey");
+            entity.HasOne(e => e.SaleDocument)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.SaleDocumentId })
+                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_import_batch_document_sale_organization_fkey");
         });
 
         modelBuilder.Entity<EdoDocumentSigningSession>(entity =>

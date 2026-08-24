@@ -20,11 +20,15 @@ public interface IEdoInboxService
 
     Task<EdoOutboxProviderDocumentDetailDto> GetOutboxProviderDocumentDetailsAsync(
         string providerDocumentId,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        string providerDocumentType = "FACTURA",
+        bool allowSentDocuments = false);
 
     Task<EdoOutboxProviderDocumentMappingSourceDto> GetOutboxProviderDocumentMappingSourceAsync(
         string providerDocumentId,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        string providerDocumentType = "FACTURA",
+        bool allowSentDocuments = false);
 
     Task<EdoInboxSummaryDto> GetSummaryAsync(CancellationToken ct = default);
 

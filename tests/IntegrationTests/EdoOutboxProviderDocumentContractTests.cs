@@ -19,11 +19,24 @@ public sealed class EdoOutboxProviderDocumentContractTests
         Assert.Equal("outbox/provider-documents/{providerDocumentId}", route!.Template);
         Assert.Null(method.GetCustomAttribute<HttpPostAttribute>());
         Assert.Equal(typeof(IResult), method.ReturnType.GetGenericArguments().Single());
+        var allowSentDocuments = method.GetParameters()
+            .Single(x => x.Name == "allowSentDocuments");
+        Assert.Equal(typeof(bool), allowSentDocuments.ParameterType);
+        Assert.True(allowSentDocuments.HasDefaultValue);
+        Assert.False((bool)allowSentDocuments.DefaultValue!);
+        Assert.NotNull(allowSentDocuments.GetCustomAttribute<FromQueryAttribute>());
         Assert.Contains(typeof(EdoOutboxProviderDocumentDetailDto),
             method.GetCustomAttributes<ProducesResponseTypeAttribute>()
                 .Select(x => x.Type));
         Assert.Equal(nameof(IEdoInboxService.GetOutboxProviderDocumentDetailsAsync),
             typeof(IEdoInboxService).GetMethod(nameof(IEdoInboxService.GetOutboxProviderDocumentDetailsAsync))!.Name);
+        var serviceAllowSentDocuments = typeof(IEdoInboxService)
+            .GetMethod(nameof(IEdoInboxService.GetOutboxProviderDocumentDetailsAsync))!
+            .GetParameters()
+            .Single(x => x.Name == "allowSentDocuments");
+        Assert.Equal(typeof(bool), serviceAllowSentDocuments.ParameterType);
+        Assert.True(serviceAllowSentDocuments.HasDefaultValue);
+        Assert.False((bool)serviceAllowSentDocuments.DefaultValue!);
         Assert.True(typeof(EdoOutboxProviderDocumentDetailMapper).IsAbstract);
     }
 }

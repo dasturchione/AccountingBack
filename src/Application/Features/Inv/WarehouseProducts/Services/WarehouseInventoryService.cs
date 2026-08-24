@@ -57,7 +57,11 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
 
         var productIds = productRows.Select(row => row.ProductId).Distinct().ToList();
         var batches = await GetBatchRowsAsync(organizationId, filter.WarehouseId, productIds, cancellationToken);
-        var markingCounts = await GetMarkingCountsAsync(organizationId, filter.WarehouseId, productIds, cancellationToken);
+        var availableProductTableIds = await GetAvailableProductTableIdsAsync(
+            organizationId,
+            filter.WarehouseId,
+            productIds,
+            cancellationToken);
         var translations = await GetTranslationsAsync(productRows, cancellationToken);
         var batchesByProductId = batches
             .GroupBy(batch => batch.ProductId)
@@ -76,12 +80,15 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
                 UnitId = row.UnitId,
                 UnitName = GetLocalizedName(translations, UnitTableName, row.UnitId, row.UnitName),
                 UnitCode = row.UnitCode,
+                IsService = row.IsService,
                 IsPieceTracked = row.IsPieceTracked,
                 Quantity = row.Quantity,
                 ReservedQuantity = row.ReservedQuantity,
                 BlockedQuantity = row.BlockedQuantity,
                 AvailableQuantity = CalculateAvailableQuantity(row.Quantity, row.ReservedQuantity, row.BlockedQuantity),
-                MarkingCount = markingCounts.GetValueOrDefault((row.WarehouseId, row.ProductId)),
+                MarkingCount = availableProductTableIds.GetValueOrDefault((row.WarehouseId, row.ProductId))?.Count ?? 0,
+                AvailableProductTableIds = availableProductTableIds
+                    .GetValueOrDefault((row.WarehouseId, row.ProductId)) ?? [],
                 Batches = BuildBatches(
                     batchesByProductId.GetValueOrDefault(row.ProductId) ?? [],
                     row.ReservedQuantity,
@@ -111,6 +118,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
                 UnitId = item.UnitId,
                 UnitName = item.Unit.Name,
                 UnitCode = item.Unit.Code,
+                IsService = item.Product.IsService,
                 IsPieceTracked = item.Product.IsPieceTracked,
                 Quantity = item.Quantity,
                 ReservedQuantity = item.ReservedQuantity,
@@ -121,7 +129,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         return await _warehouseProductQuery.GetAllAsync(query, cancellationToken);
     }
 
-    private async Task<Dictionary<(int WarehouseId, int ProductId), int>> GetMarkingCountsAsync(
+    private async Task<Dictionary<(int WarehouseId, int ProductId), IReadOnlyList<int>>> GetAvailableProductTableIdsAsync(
         int organizationId,
         int? warehouseId,
         IReadOnlyCollection<int> productIds,
@@ -143,7 +151,13 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
 
         return (await _productTableQuery.GetAllAsync(query, cancellationToken))
             .GroupBy(row => (row.WarehouseId, row.ProductId))
-            .ToDictionary(group => group.Key, group => group.Select(row => row.ProductTableId).Distinct().Count());
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<int>)group
+                    .Select(row => row.ProductTableId)
+                    .Distinct()
+                    .OrderBy(id => id)
+                    .ToArray());
     }
 
     private async Task<List<WarehouseProductBatchRow>> GetBatchRowsAsync(int organizationId, int? warehouseId, IReadOnlyCollection<int> productIds, CancellationToken cancellationToken)
@@ -261,6 +275,7 @@ public sealed class WarehouseInventoryService : IWarehouseInventoryService
         public short UnitId { get; init; }
         public string UnitName { get; init; } = null!;
         public string UnitCode { get; init; } = null!;
+        public bool IsService { get; init; }
         public decimal Quantity { get; init; }
         public decimal ReservedQuantity { get; init; }
         public decimal BlockedQuantity { get; init; }

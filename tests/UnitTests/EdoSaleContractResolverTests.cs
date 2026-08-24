@@ -5,7 +5,7 @@ using Domain.Entities;
 public sealed class EdoSaleContractResolverTests
 {
     [Fact]
-    public void ExactProviderIdentityIsShownButNotAutomaticallySelected()
+    public void SingleExactProviderIdentityIsSelectedSafely()
     {
         var contract = Contract(11, "EDOCS", "P-42", new DateOnly(2026, 2, 1));
         var codes = new HashSet<string>(StringComparer.Ordinal);
@@ -17,11 +17,11 @@ public sealed class EdoSaleContractResolverTests
             [contract],
             codes);
 
-        Assert.Equal("REQUIRES_SELECTION", result.Status);
-        Assert.Equal("CONTRACT_SELECTION_REQUIRED", result.SafeErrorCode);
-        Assert.Null(result.SelectedId);
+        Assert.Equal("READY", result.Status);
+        Assert.Null(result.SafeErrorCode);
+        Assert.Equal(contract.Id, result.SelectedId);
         Assert.Equal([contract.Id], result.CandidateIds);
-        Assert.Contains("CONTRACT_SELECTION_REQUIRED", codes);
+        Assert.Empty(codes);
     }
 
     [Fact]

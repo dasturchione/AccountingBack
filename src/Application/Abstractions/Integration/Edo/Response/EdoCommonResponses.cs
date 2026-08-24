@@ -197,4 +197,6 @@ public sealed class EdoDocumentPreviewLineDto
     public decimal? TotalWithVat { get; init; }
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyCollection<string> MarkingCodes { get; init; } = [];
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int? MarkingCount { get; init; }
 }

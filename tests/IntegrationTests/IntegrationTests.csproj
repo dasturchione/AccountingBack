@@ -38,6 +38,11 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\01_cmn\0147_harden_org_organization_tenant_id.sql" Link="SchemaContracts\0147_harden_org_organization_tenant_id.sql" />
     <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1527_verify_org_organization_tenant_id_contract.sql" Link="SchemaContracts\1527_verify_org_organization_tenant_id_contract.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1529_create_edo_import_batch.sql" Link="SchemaContracts\1529_create_edo_import_batch.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1530_verify_edo_import_batch_schema.sql" Link="SchemaContracts\1530_verify_edo_import_batch_schema.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1531_rollback_edo_import_batch.sql" Link="SchemaContracts\1531_rollback_edo_import_batch.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1532_extend_edo_import_batch_waybill_sent_override.sql" Link="SchemaContracts\1532_extend_edo_import_batch_waybill_sent_override.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1533_rollback_edo_import_batch_waybill_sent_override.sql" Link="SchemaContracts\1533_rollback_edo_import_batch_waybill_sent_override.sql" />
   </ItemGroup>
 
 </Project>

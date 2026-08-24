@@ -44,6 +44,8 @@ using Application.Features.Integration.Edocs.Facturas;
 using Application.Features.Integration.Didox.Services;
 using Application.Features.Integration.Didox.Facturas;
 using Application.Features.Integration.Edo;
+using Application.Features.Integration.Edo.UnifiedImport;
+using Infrastructure.Integration.Edo.Persistence;
 using Application.Features.Cmn.CurrencyRates;
 using Application.Features.Departments;
 using Application.Features.Fa;
@@ -209,6 +211,8 @@ namespace Infrastructure
             services.AddScoped<IEdoAuthenticationService, EdoAuthenticationService>();
             services.AddScoped<IEdoOutboxService, EdoOutboxService>();
             services.AddScoped<IEdoInboxService, EdoInboxService>();
+            services.AddScoped<IEdoUnifiedImportStore, EdoUnifiedImportStore>();
+            services.AddScoped<IEdoUnifiedImportService, EdoUnifiedImportService>();
             services.AddScoped<IEdoSigningSessionCleanupService, EdoSigningSessionCleanupService>();
             services.AddScoped<EdoImportPreflightService>();
             services.AddScoped<IEdoImportPreflightService>(serviceProvider =>
@@ -216,7 +220,14 @@ namespace Infrastructure
             services.AddScoped<IEdoBulkDraftImportProcessor>(serviceProvider =>
                 serviceProvider.GetRequiredService<EdoImportPreflightService>());
             services.AddScoped<IEdoImportPreflightProcessor, EdoImportPreflightProcessor>();
-            services.AddSingleton<IEdoImportPreflightScheduler, QuartzEdoImportPreflightScheduler>();
+            if (config.GetValue("BackgroundJobs:Enabled", true))
+            {
+                services.AddSingleton<IEdoImportPreflightScheduler, QuartzEdoImportPreflightScheduler>();
+            }
+            else
+            {
+                services.AddSingleton<IEdoImportPreflightScheduler, DisabledEdoImportPreflightScheduler>();
+            }
             services.AddEdoProviderRegistry();
             services.AddCentralBankIntegration(config);
             services.AddTaxIntegration(config);

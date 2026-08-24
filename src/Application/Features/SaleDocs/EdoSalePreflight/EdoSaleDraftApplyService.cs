@@ -37,6 +37,7 @@ public sealed class EdoSaleDraftApplyService(
     private const string InternalDocumentType = "sale_doc";
     private const string OperationType = "EDO_SALE_DRAFT_IMPORT";
     private const string ExplicitCostPriceSource = "EXPLICIT_USER";
+    private const string WarehouseStockBatchCostPriceSource = "WAREHOUSE_STOCK_BATCH";
     private const string ProviderMarkingSource = "PROVIDER_SNAPSHOT";
     private const string NoMarkingSource = "NONE";
 
@@ -58,7 +59,17 @@ public sealed class EdoSaleDraftApplyService(
         if (request.Items.Count == 0)
             return Failure("EDO_SALE_SELECTIONS_REQUIRED");
 
-        var plan = await planService.GetPlanAsync(ct);
+        var requestedDocumentTypes = request.Items
+            .Select(x => NormalizeDocumentType(x.DocumentType))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (requestedDocumentTypes.Length != 1)
+            return Failure("EDO_SALE_DOCUMENT_TYPE_INVALID");
+
+        var plan = await planService.GetPlanAsync(
+            ct,
+            request.Items.Any(x => x.AllowSentDocuments),
+            requestedDocumentTypes[0]);
         if (!string.Equals(request.ExpectedPlanHash, plan.PlanHash, StringComparison.Ordinal))
         {
             var replay = await TryBuildIdempotentReplayAsync(organizationId.Value, request, plan, ct);
@@ -178,7 +189,9 @@ public sealed class EdoSaleDraftApplyService(
 
             var source = await edoInboxService.GetOutboxProviderDocumentMappingSourceAsync(
                 providerDocumentId,
-                ct);
+                ct,
+                providerDocumentType: item.DocumentType,
+                allowSentDocuments: item.AllowSentDocuments);
             var sourceValidation = ValidateSourceAgainstPlan(
                 planByProviderId[providerDocumentId],
                 source.Document);
@@ -334,6 +347,7 @@ public sealed class EdoSaleDraftApplyService(
             .Select(x => x.Id)
             .ToArray();
         var availableByProductId = new Dictionary<int, decimal>();
+        var inventoryByProductId = new Dictionary<int, WarehouseProductDto>();
         if (stockProductIds.Length > 0)
         {
             var inventoryResult = await warehouseInventoryService.GetWarehouseProductsAsync(
@@ -346,6 +360,9 @@ public sealed class EdoSaleDraftApplyService(
             if (!inventoryResult.IsSuccess)
                 return SelectionValidation.Error("SALE_PRODUCT_STOCK_MAPPING_REQUIRED");
 
+            inventoryByProductId = inventoryResult.Value
+                .GroupBy(x => x.ProductId)
+                .ToDictionary(x => x.Key, x => x.First());
             availableByProductId = inventoryResult.Value
                 .GroupBy(x => x.ProductId)
                 .ToDictionary(x => x.Key, x => x.First().AvailableQuantity);
@@ -368,8 +385,21 @@ public sealed class EdoSaleDraftApplyService(
                 return SelectionValidation.Error("PRODUCT_UNIT_MAPPING_INVALID");
             if (line.Quantity != providerLine.Quantity || line.UnitPrice != providerLine.UnitPrice)
                 return SelectionValidation.Error("SALE_SOURCE_VALUES_CHANGED");
-            if (line.CostPrice < 0m || !string.Equals(line.CostPriceSource, ExplicitCostPriceSource, StringComparison.Ordinal))
+            if (line.CostPrice < 0m
+                || (!string.Equals(line.CostPriceSource, ExplicitCostPriceSource, StringComparison.Ordinal)
+                    && !string.Equals(line.CostPriceSource, WarehouseStockBatchCostPriceSource, StringComparison.Ordinal)))
                 return SelectionValidation.Error("COST_PRICE_SOURCE_REQUIRED");
+
+            if (string.Equals(line.CostPriceSource, WarehouseStockBatchCostPriceSource, StringComparison.Ordinal))
+            {
+                var batch = inventoryByProductId.GetValueOrDefault(product.Id)?.Batches
+                    .Where(x => x.AvailableQuantity > 0m && x.AvailableQuantity >= providerLine.Quantity)
+                    .OrderBy(x => x.ReceivedDate)
+                    .ThenBy(x => x.BatchId)
+                    .FirstOrDefault();
+                if (batch is null || Math.Abs(batch.UnitCost - line.CostPrice) > 0.000001m)
+                    return SelectionValidation.Error("COST_PRICE_SOURCE_REQUIRED");
+            }
 
             var vatRates = providerLine.VatRate.HasValue
                 ? await vatRateQuery.GetAllAsync(
@@ -436,15 +466,15 @@ public sealed class EdoSaleDraftApplyService(
             if (tables.Count != requestedTableIds.Length)
                 return SelectionValidation.Error("PRODUCT_TABLE_NOT_AVAILABLE");
 
-            if (markingCodes.Count > 0)
+            if (markingCodes.Count > requestedTableIds.Length)
+                return SelectionValidation.Error("MARKING_COUNT_MISMATCH");
+
+            if (!EdoPartialMarkingRules.IsValidSelection(
+                    requestedTableIds.Length,
+                    tables,
+                    markingCodes))
             {
-                var tableMarkings = tables.Select(x => x.MarkingNumber).ToArray();
-                if (tableMarkings.Any(string.IsNullOrWhiteSpace)
-                    || tableMarkings.Length != markingCodes.Count
-                    || tableMarkings.Distinct(StringComparer.Ordinal).Count() != tableMarkings.Length
-                    || !tableMarkings.OrderBy(x => x, StringComparer.Ordinal)
-                        .SequenceEqual(markingCodes.OrderBy(x => x, StringComparer.Ordinal), StringComparer.Ordinal))
-                    return SelectionValidation.Error("MARKING_MAPPING_INVALID");
+                return SelectionValidation.Error("MARKING_MAPPING_INVALID");
             }
 
             productTablesByLine[providerLine.Number] = tables;
@@ -553,8 +583,8 @@ public sealed class EdoSaleDraftApplyService(
             DocumentType = detail.DocumentType,
             DocumentNumber = detail.DocumentNumber,
             DocumentDate = detail.DocumentDate,
-            Status = EdoDocumentStatusCode.SIGNED.ToString(),
-            ProviderStatusCode = EdoDocumentStatusCode.SIGNED.ToString(),
+            Status = detail.Status.Code.ToString(),
+            ProviderStatusCode = detail.Status.Code.ToString(),
             OperationType = OperationType,
             IdempotencyKey = draft.ProviderDocumentId,
             CreatedAt = DateTime.Now
@@ -572,6 +602,7 @@ public sealed class EdoSaleDraftApplyService(
         if (!string.Equals(candidate.ProviderDocumentId, detail.ProviderDocumentId, StringComparison.Ordinal)
             || candidate.DocumentNumber != detail.DocumentNumber
             || candidate.DocumentDate != detail.DocumentDate
+            || NormalizeDocumentType(candidate.DocumentType) != NormalizeDocumentType(detail.DocumentType)
             || candidate.Lines.Count != detail.Lines.Count)
             return "STALE_SALE_PREFLIGHT_PLAN";
         var candidateLines = candidate.Lines.ToDictionary(x => x.Number);
@@ -596,6 +627,14 @@ public sealed class EdoSaleDraftApplyService(
             conflict
                 ? Error.Conflict(code, "The EDO sale draft plan is stale or no longer applicable.")
                 : Error.Business(code, "The EDO sale draft selection is invalid."));
+
+    private static string NormalizeDocumentType(string? value) =>
+        string.Equals(value?.Trim(), "waybillLocal", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value?.Trim(), "WAYBILL_LOCAL", StringComparison.OrdinalIgnoreCase)
+            ? "WAYBILL_LOCAL"
+            : string.Equals(value?.Trim(), "FACTURA", StringComparison.OrdinalIgnoreCase)
+                ? "FACTURA"
+                : value?.Trim().ToUpperInvariant() ?? string.Empty;
 
     private sealed record PreparedDraft(
         string ProviderDocumentId,

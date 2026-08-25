@@ -39,7 +39,7 @@ public partial class OpeningInventoryService
                 .Build(),
             ct);
         var receiptMovementIds = movements
-            .Where(x => x.MovementSign == 1)
+            .Where(x => x.DirectionId == MovementDirectionIdConst.IN)
             .Select(x => x.Id)
             .ToList();
         var batches = receiptMovementIds.Count == 0

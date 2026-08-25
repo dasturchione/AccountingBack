@@ -269,31 +269,53 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
     private async Task<List<CurrencyRevaluationLineDto>> BuildLinesAsync(int organizationId, CurrencyRevaluationBaseDto dto, CancellationToken ct)
     {
         var balancesQuery = _queryBuilder.For<MoneyRegisterBalance>()
-            .Where(x => x.OrganizationId == organizationId && x.CurrencyId != CurrencyIdConst.UZS && x.Amount > 0)
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.CurrencyId != CurrencyIdConst.UZS &&
+                        x.DocDate <= dto.RevaluationDate)
             .Build();
         balancesQuery.AddIncludes(b => b.Include(x => x.Currency));
 
         var balances = await _moneyQuery.GetAllAsync(balancesQuery, ct);
 
         var result = new List<CurrencyRevaluationLineDto>();
-        foreach (var bal in balances.Where(x => !dto.TargetCurrencyId.HasValue || x.CurrencyId == dto.TargetCurrencyId.Value))
+        var currencyGroups = balances
+            .Where(x => !dto.TargetCurrencyId.HasValue || x.CurrencyId == dto.TargetCurrencyId.Value)
+            .GroupBy(x => x.CurrencyId);
+
+        foreach (var currencyGroup in currencyGroups)
         {
-            var currentRate = await GetRateAsync(bal.CurrencyId, dto.ProviderRateDate ?? dto.RevaluationDate, ct);
-            var openingRate = await GetRateAsync(bal.CurrencyId, bal.DocDate, ct);
-            if (currentRate <= 0 || openingRate <= 0)
+            var currentRate = await GetRateAsync(currencyGroup.Key, dto.ProviderRateDate ?? dto.RevaluationDate, ct);
+            if (currentRate <= 0)
                 continue;
 
-            var diff = Math.Round(bal.Amount * (currentRate - openingRate), 2);
+            var balanceAmount = 0m;
+            var carryingAmount = 0m;
+            foreach (var balance in currencyGroup)
+            {
+                var openingRate = await GetRateAsync(balance.CurrencyId, balance.DocDate, ct);
+                if (openingRate <= 0)
+                    continue;
+
+                var signedAmount = balance.DirectionId * balance.Amount;
+                balanceAmount += signedAmount;
+                carryingAmount += signedAmount * openingRate;
+            }
+
+            if (balanceAmount == 0m)
+                continue;
+
+            var weightedOpeningRate = carryingAmount / balanceAmount;
+            var diff = Math.Round(balanceAmount * currentRate - carryingAmount, 2);
             if (diff == 0)
                 continue;
 
             result.Add(new CurrencyRevaluationLineDto
             {
                 BaseCurrencyId = CurrencyIdConst.UZS,
-                TargetCurrencyId = bal.CurrencyId,
-                TargetCurrencyCode = bal.Currency.Code,
-                BalanceAmount = bal.Amount,
-                OpeningRate = openingRate,
+                TargetCurrencyId = currencyGroup.Key,
+                TargetCurrencyCode = currencyGroup.First().Currency.Code,
+                BalanceAmount = balanceAmount,
+                OpeningRate = weightedOpeningRate,
                 CurrentRate = currentRate,
                 DifferenceAmount = diff
             });
@@ -333,11 +355,15 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
 
         var lineIds = entity.Lines.Select(x => x.TargetCurrencyId).Distinct().ToList();
         var openBalancesQuery = _queryBuilder.For<MoneyRegisterBalance>()
-            .Where(x => x.OrganizationId == entity.OrganizationId && lineIds.Contains(x.CurrencyId) && x.Amount > 0)
+            .Where(x => x.OrganizationId == entity.OrganizationId &&
+                        lineIds.Contains(x.CurrencyId) &&
+                        x.DocDate <= entity.RevaluationDate)
             .Build();
         var openBalances = await _moneyQuery.GetAllAsync(openBalancesQuery, ct);
 
-        if (openBalances.Count == 0)
+        if (!openBalances
+                .GroupBy(x => x.CurrencyId)
+                .Any(group => group.Sum(x => x.DirectionId * x.Amount) != 0m))
             return Result.Failure(CurrencyRevaluationErrors.NoRevaluationLines(_userContext.LanguageId ?? 0));
 
         return Result.Success();

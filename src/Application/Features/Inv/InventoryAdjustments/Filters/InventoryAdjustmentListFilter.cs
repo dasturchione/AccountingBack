@@ -7,6 +7,7 @@ public class InventoryAdjustmentListFilter : ISearchFilter, IPaginationFilter
     public int? WarehouseId { get; set; }
     public short? StatusId { get; set; }
     public string? AdjustmentType { get; set; }
+    public short? DirectionId { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
     public string? Search { get; set; }

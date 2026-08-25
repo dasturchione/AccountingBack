@@ -257,6 +257,9 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
 
     private Result ValidateForConfirm(InventoryAdjustmentDoc doc)
     {
+        if (!InventoryAdjustmentDirectionPolicy.IsCompatible(doc.AdjustmentType, doc.DirectionId))
+            return Result.Failure(InventoryAdjustmentErrors.InvalidDirection(doc.AdjustmentType, doc.DirectionId, _userContext.LanguageId));
+
         if (doc.Warehouse.StateId != StateIdConst.ACTIVE)
             return Result.Failure(InventoryAdjustmentErrors.WarehouseInactive(doc.WarehouseId, _userContext.LanguageId));
 
@@ -288,7 +291,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
             {
                 if (!item.ProductTableId.HasValue)
                 {
-                    if (!IsPositiveFlow(doc.AdjustmentType))
+                    if (doc.DirectionId == MovementDirectionIdConst.OUT)
                         return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(0, _userContext.LanguageId));
 
                     continue;
@@ -309,7 +312,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
                 if (item.ProductTable.WarehouseProductTable?.WarehouseId != doc.WarehouseId)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableWarehouseMismatch(item.ProductTableId.Value, doc.WarehouseId, _userContext.LanguageId));
 
-                if (!IsPositiveFlow(doc.AdjustmentType) && item.ProductTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.IN_STOCK)
+                if (doc.DirectionId == MovementDirectionIdConst.OUT && item.ProductTable.WarehouseProductTable?.StatusId != ProductTableStatusIdConst.IN_STOCK)
                     return Result.Failure(InventoryAdjustmentErrors.ProductTableUnavailable(
                         item.ProductTableId.Value,
                         item.ProductTable.WarehouseProductTable?.StatusId ?? ProductTableStatusIdConst.SOLD,
@@ -322,7 +325,7 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
 
     private Result ValidateForCancel(InventoryAdjustmentDoc doc)
     {
-        var requiresExistingProductTable = !IsPositiveFlow(doc.AdjustmentType);
+        var requiresExistingProductTable = doc.DirectionId == MovementDirectionIdConst.OUT;
 
         foreach (var item in doc.InventoryAdjustmentLines.SelectMany(x => x.InventoryAdjustmentDocTables))
         {
@@ -408,6 +411,4 @@ public class InventoryAdjustmentLifecycleService : BaseService, IInventoryAdjust
     private Task<Result> ReverseInventoryEntriesAsync(InventoryAdjustmentDoc doc, long reversalBatchId, CancellationToken ct) =>
         _inventoryDispatcher.ReverseAsync(doc, ct);
 
-    private static bool IsPositiveFlow(string adjustmentType) =>
-        adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";
 }

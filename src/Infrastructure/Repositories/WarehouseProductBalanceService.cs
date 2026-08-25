@@ -135,8 +135,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         foreach (var group in GetTransferGroups(productTableEntries))
         {
-            var sourceEntry = group.Single(x => x.OperationTypeId == OperationTypeIdConst.OUT);
-            var destinationEntry = group.Single(x => x.OperationTypeId == OperationTypeIdConst.IN);
+            var sourceEntry = group.Single(x => x.DirectionId == MovementDirectionIdConst.OUT);
+            var destinationEntry = group.Single(x => x.DirectionId == MovementDirectionIdConst.IN);
 
             if (!warehouseProductTablesById.TryGetValue(group.Key, out var warehouseProductTable))
                 return Result.Failure(WarehouseProductErrors.ProductTableNotFound(group.Key, _userContext.LanguageId));
@@ -162,7 +162,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
 
         var receivedDates = await GetReceivedDatesAsync(
             productTableEntries
-                .Where(x => x.OperationTypeId == OperationTypeIdConst.IN && x.OriginalMovementId.HasValue)
+                .Where(x => x.DirectionId == MovementDirectionIdConst.IN && x.OriginalMovementId.HasValue)
                 .Select(x => x.ProductTableId!.Value),
             ct);
 
@@ -178,7 +178,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             if (!productTablesById.TryGetValue(productTableId, out var productId) || productId != entry.ProductId)
                 return Result.Failure(WarehouseProductErrors.ProductTableProductMismatch(productTableId, entry.ProductId, _userContext.LanguageId));
 
-            if (entry.OperationTypeId == OperationTypeIdConst.IN)
+            if (entry.DirectionId == MovementDirectionIdConst.IN)
             {
                 if (warehouseProductTablesById.ContainsKey(productTableId))
                     return Result.Failure(WarehouseProductErrors.ProductTableUnavailable(
@@ -337,8 +337,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             if (entry.Quantity < 0m)
                 return Result.Failure(WarehouseProductErrors.InvalidQuantity(entry.ProductId, entry.Quantity, _userContext.LanguageId));
 
-            if (entry.OperationTypeId is not (OperationTypeIdConst.IN or OperationTypeIdConst.OUT))
-                return Result.Failure(WarehouseProductErrors.UnsupportedOperation(entry.OperationTypeId, _userContext.LanguageId));
+            if (!MovementDirectionIdConst.IsValid(entry.DirectionId))
+                return Result.Failure(WarehouseProductErrors.UnsupportedOperation(entry.DirectionId, _userContext.LanguageId));
         }
 
         return Result.Success();
@@ -361,7 +361,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             ct);
 
         var receiptDocumentNumbers = await GetReceiptDocumentNumbersAsync(
-            movementGroups.Select(group => group.Movement).Where(movement => movement.MovementSign == 1),
+            movementGroups.Select(group => group.Movement).Where(movement => movement.DirectionId == MovementDirectionIdConst.IN),
             ct);
 
         var batchEntries = entries.ToList();
@@ -376,10 +376,10 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         foreach (var transferGroup in GetBatchTransferGroups(batchEntries))
         {
             var sourceEntries = transferGroup
-                .Where(entry => entry.OperationTypeId == OperationTypeIdConst.OUT)
+                .Where(entry => entry.DirectionId == MovementDirectionIdConst.OUT)
                 .ToList();
             var destinationEntries = transferGroup
-                .Where(entry => entry.OperationTypeId == OperationTypeIdConst.IN)
+                .Where(entry => entry.DirectionId == MovementDirectionIdConst.IN)
                 .ToList();
 
             foreach (var sourceEntry in sourceEntries)
@@ -442,13 +442,13 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         {
             var movement = movementsByEntry[entry];
             Result result;
-            if (entry.OperationTypeId == OperationTypeIdConst.OUT &&
+            if (entry.DirectionId == MovementDirectionIdConst.OUT &&
                 saleAllocations is not null &&
                 saleAllocations.TryGetValue(entry, out var plannedAllocations))
             {
                 result = await ApplySaleIssueMovementAsync(entry, movement, plannedAllocations, ct);
             }
-            else if (entry.OperationTypeId == OperationTypeIdConst.IN &&
+            else if (entry.DirectionId == MovementDirectionIdConst.IN &&
                       entry.OriginalMovementId.HasValue &&
                      entriesByMovement[movement].Count > 1)
             {
@@ -464,7 +464,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             }
             else
             {
-                result = entry.OperationTypeId == OperationTypeIdConst.OUT
+                result = entry.DirectionId == MovementDirectionIdConst.OUT
                     ? await ApplyIssueMovementAsync(entry, movement, valuationMethods[entry.OrganizationId], ct)
                     : await ApplyReceiptMovementAsync(entry, movement, receiptUnitCostsByMovement[movement],
                         receiptDocumentNumbers,
@@ -496,7 +496,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                     entry.ProductId,
                     entry.DocumentTypeId,
                     entry.DocumentId,
-                    entry.OperationTypeId,
+                    entry.DirectionId,
                     separateProductTableMovement ? null : entry.SourceLineId,
                     separateProductTableMovement);
             })
@@ -517,11 +517,11 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
                         DocumentId = firstEntry.DocumentId,
                         DocumentLineId = firstEntry.SourceLineId,
                         Quantity = quantity,
-                        MovementSign = ToMovementSign(firstEntry.OperationTypeId),
+                        DirectionId = firstEntry.DirectionId,
                         MovementDate = firstEntry.DocDate,
                         CreatedDate = now
                     },
-                    firstEntry.OperationTypeId == OperationTypeIdConst.IN && quantity != 0m
+                    firstEntry.DirectionId == MovementDirectionIdConst.IN && quantity != 0m
                         ? amount / quantity
                         : null);
             })
@@ -538,7 +538,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             DocumentId = firstEntry.DocumentId,
             WarehouseId = firstEntry.WarehouseId,
             ProductId = firstEntry.ProductId,
-            OperationTypeId = firstEntry.OperationTypeId,
+            DirectionId = firstEntry.DirectionId,
             Quantity = entries.Sum(entry => entry.Quantity),
             Amount = entries.Sum(entry => entry.Amount),
             DocDate = firstEntry.DocDate,
@@ -869,13 +869,10 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         entries
             .Where(entry => entry.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
             .GroupBy(entry => $"{entry.DocumentId}:{entry.ProductId}")
-            .Where(group => group.Any(entry => entry.OperationTypeId == OperationTypeIdConst.IN) &&
-                            group.Any(entry => entry.OperationTypeId == OperationTypeIdConst.OUT) &&
-                            group.Where(entry => entry.OperationTypeId == OperationTypeIdConst.IN).Sum(entry => entry.Quantity) ==
-                            group.Where(entry => entry.OperationTypeId == OperationTypeIdConst.OUT).Sum(entry => entry.Quantity));
-
-    private static short ToMovementSign(short operationTypeId) =>
-        operationTypeId == OperationTypeIdConst.IN ? (short)1 : (short)-1;
+            .Where(group => group.Any(entry => entry.DirectionId == MovementDirectionIdConst.IN) &&
+                            group.Any(entry => entry.DirectionId == MovementDirectionIdConst.OUT) &&
+                            group.Where(entry => entry.DirectionId == MovementDirectionIdConst.IN).Sum(entry => entry.Quantity) ==
+                            group.Where(entry => entry.DirectionId == MovementDirectionIdConst.OUT).Sum(entry => entry.Quantity));
 
     private static decimal CalculateAverageUnitCost(IEnumerable<WarehouseProductBatch> batches)
     {
@@ -994,7 +991,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         CancellationToken ct)
     {
         var documentKeys = movements
-            .Where(movement => movement.MovementSign == 1)
+            .Where(movement => movement.DirectionId == MovementDirectionIdConst.IN)
             .Select(movement => (movement.DocumentTypeId, movement.DocumentId))
             .Distinct()
             .ToList();
@@ -1071,8 +1068,8 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER)
             .GroupBy(x => x.ProductTableId!.Value)
             .Where(x => x.Count() == 2 &&
-                        x.Count(entry => entry.OperationTypeId == OperationTypeIdConst.IN) == 1 &&
-                        x.Count(entry => entry.OperationTypeId == OperationTypeIdConst.OUT) == 1);
+                        x.Count(entry => entry.DirectionId == MovementDirectionIdConst.IN) == 1 &&
+                        x.Count(entry => entry.DirectionId == MovementDirectionIdConst.OUT) == 1);
 
     private Result ValidateWarehouseProductTable(
         WarehouseProductTable warehouseProductTable,
@@ -1095,7 +1092,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
             entry.WarehouseId,
             entry.ProductId,
             UnitId: null,
-            QuantityDelta: entry.OperationTypeId == OperationTypeIdConst.IN ? entry.Quantity : -entry.Quantity,
+            QuantityDelta: entry.DirectionId * entry.Quantity,
             ReservedQuantityDelta: reservedQuantityDelta,
             BlockedQuantityDelta: 0m);
 
@@ -1289,7 +1286,7 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
         int ProductId,
         short DocumentTypeId,
         long DocumentId,
-        short OperationTypeId,
+        short DirectionId,
         long? SourceLineId,
         bool IsPieceTracked);
     private sealed record WarehouseProductSnapshot(int Id, short UnitId);

@@ -17,6 +17,8 @@ public class InventoryAdjustmentDtoProjection : IProjectionBuilder<InventoryAdju
             WarehouseId = x.WarehouseId,
             WarehouseName = x.Warehouse.Name,
             AdjustmentType = x.AdjustmentType,
+            DirectionId = x.DirectionId,
+            DirectionName = x.Direction.Name,
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             Comment = x.Comment,

@@ -18,7 +18,7 @@ public class SaleInventoryHandler : IInventoryDocumentHandler<SaleDoc>
                 WarehouseId     = sale.WarehouseId,
                 ProductId       = line.ProductId,
                 ProductTableId  = null,
-                OperationTypeId = OperationTypeIdConst.OUT,
+                DirectionId     = MovementDirectionIdConst.OUT,
                 Quantity        = line.Quantity,
                 Amount          = line.CostPrice * line.Quantity,
                 DocDate         = sale.DocDate,

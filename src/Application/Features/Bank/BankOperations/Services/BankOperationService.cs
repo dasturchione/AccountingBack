@@ -142,7 +142,7 @@ public class BankOperationService : BaseService, IBankOperationService
                 _auditLogService.SetOldValues(oldDocDto);
 
             entity.BankAccountId = dto.BankAccountId;
-            entity.OperationTypeId = dto.OperationTypeId;
+            entity.DirectionId = dto.DirectionId;
             entity.PaymentTypeId = PaymentTypeIdConst.BANK;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
@@ -234,7 +234,7 @@ public class BankOperationService : BaseService, IBankOperationService
         {
             OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
-            OperationTypeId = dto.OperationTypeId,
+            DirectionId = dto.DirectionId,
             PaymentTypeId = dto.PaymentTypeId ?? PaymentTypeIdConst.BANK,
             CounterpartyId = dto.CounterpartyId,
             CounterpartyBankAccountId = dto.CounterpartyBankAccountId,

@@ -10,6 +10,8 @@ public class InventoryAdjustmentDto
     public int WarehouseId { get; set; }
     public string WarehouseName { get; set; } = null!;
     public string AdjustmentType { get; set; } = null!;
+    public short DirectionId { get; set; }
+    public string DirectionName { get; set; } = null!;
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public string? Comment { get; set; }

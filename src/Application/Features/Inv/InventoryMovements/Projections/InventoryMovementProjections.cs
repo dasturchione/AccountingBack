@@ -16,11 +16,9 @@ public sealed class InventoryMovementListProjection : IProjectionBuilder<Warehou
             DocumentId = x.DocumentId,
             WarehouseId = x.WarehouseId,
             ProductId = x.ProductId,
-            OperationTypeId = x.MovementSign == 1
-                ? OperationTypeIdConst.IN
-                : OperationTypeIdConst.OUT,
+            DirectionId = x.DirectionId,
             Quantity = x.Quantity,
-            Amount = x.MovementSign == 1
+            Amount = x.DirectionId == MovementDirectionIdConst.IN
                 ? x.WarehouseProductBatch == null
                     ? 0m
                     : x.WarehouseProductBatch.InitialQuantity * (x.WarehouseProductBatch.UnitCost ?? 0m)

@@ -280,8 +280,8 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         if (bankOperation.Amount <= 0m)
             return Result.Failure(BankOperationErrors.InvalidAmount(bankOperation.Id, _userContext.LanguageId));
 
-        if (bankOperation.OperationTypeId is not (OperationTypeIdConst.IN or OperationTypeIdConst.OUT))
-            return Result.Failure(BankOperationErrors.InvalidOperationType(bankOperation.OperationTypeId, _userContext.LanguageId));
+        if (!MovementDirectionIdConst.IsValid(bankOperation.DirectionId))
+            return Result.Failure(BankOperationErrors.InvalidDirection(bankOperation.DirectionId, _userContext.LanguageId));
 
         if (bankOperation.BankChartAccountId is null || bankOperation.OffsetAccountId is null)
             return Result.Failure(Error.Business("BankOperation.ChartAccountRequired", "Bank and offset chart accounts are required for posting."));
@@ -325,7 +325,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 return Result.Failure(BankOperationErrors.InvalidOrganizationReference("Contract", _userContext.LanguageId));
         }
 
-        if (bankOperation.OperationTypeId == OperationTypeIdConst.OUT)
+        if (bankOperation.DirectionId == MovementDirectionIdConst.OUT)
         {
             var balance = await _moneyRegisterService.GetBankAccountBalanceAsync(bankOperation.BankAccountId, bankOperation.DocDate, ct);
             if (balance < bankOperation.Amount)

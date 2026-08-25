@@ -7,7 +7,7 @@ public class MoneyRegisterBalanceBaseDto
     public long DocumentId { get; set; }
     public string SourceType { get; set; } = null!;
     public int SourceId { get; set; }
-    public short OperationTypeId { get; set; }
+    public short DirectionId { get; set; }
     public short CurrencyId { get; set; }
     public decimal Amount { get; set; }
     public DateTime DocDate { get; set; }

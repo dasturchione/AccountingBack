@@ -36,7 +36,7 @@ public class BankMoneyRegisterService : IBankMoneyRegisterService
             DocumentId = bankOperation.Id,
             SourceType = "BANK_OPERATION",
             SourceId = bankOperation.BankAccountId,
-            OperationTypeId = bankOperation.OperationTypeId,
+            DirectionId = bankOperation.DirectionId,
             CurrencyId = bankOperation.CurrencyId,
             Amount = bankOperation.Amount,
             DocDate = bankOperation.DocDate,
@@ -62,7 +62,7 @@ public class BankMoneyRegisterService : IBankMoneyRegisterService
             DocumentId = entry.DocumentId,
             SourceType = entry.SourceType,
             SourceId = entry.SourceId,
-            OperationTypeId = entry.OperationTypeId == OperationTypeIdConst.IN ? OperationTypeIdConst.OUT : OperationTypeIdConst.IN,
+            DirectionId = MovementDirectionIdConst.Reverse(entry.DirectionId),
             CurrencyId = entry.CurrencyId,
             Amount = entry.Amount,
             DocDate = now,
@@ -81,8 +81,7 @@ public class BankMoneyRegisterService : IBankMoneyRegisterService
         var openingBalance = await GetOpeningBalanceAsync(bankAccountId, ct);
         var entries = await GetBankAccountEntriesAsync(bankAccountId, asOfDate, ct);
 
-        return openingBalance + entries.Where(x => x.OperationTypeId == OperationTypeIdConst.IN).Sum(x => x.Amount)
-                              - entries.Where(x => x.OperationTypeId == OperationTypeIdConst.OUT).Sum(x => x.Amount);
+        return openingBalance + entries.Sum(x => x.DirectionId * x.Amount);
     }
 
     private async Task<List<MoneyRegisterBalance>> GetOriginalEntriesAsync(long bankOperationId, CancellationToken ct)
@@ -111,7 +110,6 @@ public class BankMoneyRegisterService : IBankMoneyRegisterService
         var query = _queryBuilder.For<MoneyRegisterBalance>()
             .Where(x => x.SourceType == "BANK_OPERATION" &&
                         x.SourceId == bankAccountId &&
-                        x.ReversalEntryId == null &&
                         x.DocDate <= asOfDate)
             .Build();
 

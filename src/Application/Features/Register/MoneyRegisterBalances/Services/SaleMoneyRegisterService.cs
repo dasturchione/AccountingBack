@@ -33,7 +33,7 @@ public class SaleMoneyRegisterService : ISaleMoneyRegisterService
             DocumentId = sale.Id,
             SourceType = "SALE_DOC",
             SourceId = (int)sale.Id,
-            OperationTypeId = OperationTypeIdConst.IN,
+            DirectionId = MovementDirectionIdConst.IN,
             CurrencyId = sale.CurrencyId,
             Amount = sale.FinalAmount,
             DocDate = sale.DocDate,
@@ -60,7 +60,7 @@ public class SaleMoneyRegisterService : ISaleMoneyRegisterService
             DocumentId = entry.DocumentId,
             SourceType = entry.SourceType,
             SourceId = entry.SourceId,
-            OperationTypeId = ReverseOperation(entry.OperationTypeId),
+            DirectionId = MovementDirectionIdConst.Reverse(entry.DirectionId),
             CurrencyId = entry.CurrencyId,
             Amount = entry.Amount,
             DocDate = now,
@@ -82,17 +82,10 @@ public class SaleMoneyRegisterService : ISaleMoneyRegisterService
             .Where(x => x.DocumentTypeId == DocumentTypeIdConst.SALE &&
                         x.DocumentId == documentId &&
                         x.ReversalEntryId == null &&
-                        x.OperationTypeId == OperationTypeIdConst.IN)
+                        x.DirectionId == MovementDirectionIdConst.IN)
             .Build();
 
         return await _query.GetAllAsync(query, ct);
     }
 
-    private static short ReverseOperation(short operationTypeId) =>
-        operationTypeId switch
-        {
-            OperationTypeIdConst.IN => OperationTypeIdConst.OUT,
-            OperationTypeIdConst.OUT => OperationTypeIdConst.IN,
-            _ => operationTypeId
-        };
 }

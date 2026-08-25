@@ -8,7 +8,7 @@ public class MoneyRegisterBalanceListFilter : IPaginationFilter
     public long? DocumentId { get; set; }
     public string? SourceType { get; set; }
     public int? SourceId { get; set; }
-    public short? OperationTypeId { get; set; }
+    public short? DirectionId { get; set; }
     public short? CurrencyId { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }

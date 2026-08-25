@@ -98,11 +98,11 @@ public static class BankOperationErrors
             _ => $"Bank operation {id} has invalid amount."
         });
 
-    public static Error InvalidOperationType(short operationTypeId, short? languageId = null) =>
-        Error.Business("BankOperation.InvalidOperationType", languageId switch
+    public static Error InvalidDirection(short directionId, short? languageId = null) =>
+        Error.Business("BankOperation.InvalidDirection", languageId switch
         {
-            LanguageIdConst.RU => $"ÐÐµÐ¿Ð¾Ð´Ð´ÐµÑ€Ð¶Ð¸Ð²Ð°ÐµÐ¼Ñ‹Ð¹ Ñ‚Ð¸Ð¿ Ð±Ð°Ð½ÐºÐ¾Ð²ÑÐºÐ¾Ð¹ Ð¾Ð¿ÐµÑ€Ð°Ñ†Ð¸Ð¸ {operationTypeId}.",
-            _ => $"Unsupported bank operation type {operationTypeId}."
+            LanguageIdConst.RU => $"Неподдерживаемое направление банковской операции {directionId}.",
+            _ => $"Unsupported bank movement direction {directionId}."
         });
 
     public static Error InvalidLineConfiguration(long id, short? languageId = null) =>

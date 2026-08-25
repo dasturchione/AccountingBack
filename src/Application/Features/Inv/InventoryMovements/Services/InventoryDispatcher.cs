@@ -88,7 +88,7 @@ public class InventoryDispatcher : IInventoryDispatcher
                 x.ProductId,
                 x.DocumentTypeId,
                 x.DocumentId,
-                x.MovementSign,
+                x.DirectionId,
                 x.DocumentLineId))
             .ToDictionary(x => x.Key, x => x.OrderBy(movement => movement.Id).First());
 
@@ -104,9 +104,7 @@ public class InventoryDispatcher : IInventoryDispatcher
             foreach (var entry in group)
             {
                 entry.OriginalMovementId = originalMovement.Id;
-                entry.OperationTypeId = entry.OperationTypeId == OperationTypeIdConst.OUT
-                    ? OperationTypeIdConst.IN
-                    : OperationTypeIdConst.OUT;
+                entry.DirectionId = MovementDirectionIdConst.Reverse(entry.DirectionId);
                 entry.DocDate = DateTime.Now;
             }
         }
@@ -138,7 +136,7 @@ public class InventoryDispatcher : IInventoryDispatcher
             entry.ProductId,
             entry.DocumentTypeId,
             entry.DocumentId,
-            entry.OperationTypeId == OperationTypeIdConst.IN ? (short)1 : (short)-1,
+            entry.DirectionId,
             entry.SourceLineId);
 
     private sealed record MovementKey(
@@ -147,6 +145,6 @@ public class InventoryDispatcher : IInventoryDispatcher
         int ProductId,
         short DocumentTypeId,
         long DocumentId,
-        short MovementSign,
+        short DirectionId,
         long? DocumentLineId);
 }

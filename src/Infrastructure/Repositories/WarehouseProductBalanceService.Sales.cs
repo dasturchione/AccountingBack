@@ -215,7 +215,7 @@ public partial class WarehouseProductBalanceService
                 entry.WarehouseId != warehouseId ||
                 entry.DocumentTypeId != documentTypeId ||
                 entry.DocumentId != documentId ||
-                entry.OperationTypeId != OperationTypeIdConst.OUT ||
+                entry.DirectionId != MovementDirectionIdConst.OUT ||
                 !entry.SourceLineId.HasValue))
         {
             return Result.Failure<SaleInventoryAllocationPlan>(

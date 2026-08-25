@@ -136,6 +136,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 WarehouseId = dto.WarehouseId,
                 AdjustmentType = dto.AdjustmentType.Trim().ToUpperInvariant(),
+                DirectionId = dto.DirectionId,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 Comment = dto.Comment,
                 StateId = StateIdConst.ACTIVE,
@@ -192,6 +193,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             doc.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.WarehouseId = dto.WarehouseId;
             doc.AdjustmentType = dto.AdjustmentType.Trim().ToUpperInvariant();
+            doc.DirectionId = dto.DirectionId;
             doc.Comment = dto.Comment;
             doc.StateId = dto.StateId;
 
@@ -317,6 +319,9 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         if (!AllowedAdjustmentTypes.Contains(normalizedType))
             return Result.Failure(InventoryAdjustmentErrors.InvalidAdjustmentType(dto.AdjustmentType, _userContext.LanguageId));
 
+        if (!InventoryAdjustmentDirectionPolicy.IsCompatible(normalizedType, dto.DirectionId))
+            return Result.Failure(InventoryAdjustmentErrors.InvalidDirection(normalizedType, dto.DirectionId, _userContext.LanguageId));
+
         var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
         var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
         if (warehouse == null)
@@ -400,7 +405,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
 
                 if (!item.ProductTableId.HasValue)
                 {
-                    if (!IsPositiveFlow(normalizedType))
+                    if (dto.DirectionId == MovementDirectionIdConst.OUT)
                         return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(0, _userContext.LanguageId));
 
                     continue;
@@ -433,7 +438,4 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 CostPrice = item.CostPrice
             }).ToList()
         }).ToList();
-
-    private static bool IsPositiveFlow(string adjustmentType) =>
-        adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";
 }

@@ -42,6 +42,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FiscalCashRegisterType> FiscalCashRegisterTypes { get; set; }
     public virtual DbSet<FiscalCashRegisterTypeTranslation> FiscalCashRegisterTypeTranslations { get; set; }
     public virtual DbSet<CashOperation> CashOperations { get; set; }
+    public virtual DbSet<CashFiscalTransferDoc> CashFiscalTransferDocs { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
     public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }

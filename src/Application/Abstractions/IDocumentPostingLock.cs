@@ -9,5 +9,6 @@ public interface IDocumentPostingLock
         IReadOnlyCollection<int> productIds,
         IReadOnlyCollection<int> productTableIds,
         CancellationToken ct = default);
+    Task AcquireMoneyAsync(int organizationId, string sourceType, int sourceId, CancellationToken ct = default);
     Task<bool> TryAcquireAsync(short documentTypeId, long documentId, CancellationToken ct = default);
 }

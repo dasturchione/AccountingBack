@@ -77,4 +77,12 @@ public class DocumentPostingLock : IDocumentPostingLock
                 await connection.CloseAsync();
         }
     }
+
+    public Task AcquireMoneyAsync(int organizationId, string sourceType, int sourceId, CancellationToken ct = default)
+    {
+        var key = $"money:{organizationId}:{sourceType}:{sourceId}";
+        return _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))",
+            ct);
+    }
 }

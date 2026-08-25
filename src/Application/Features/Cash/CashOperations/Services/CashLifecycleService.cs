@@ -5,6 +5,7 @@ using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.Register.AccountingRegisterEntries;
 using Application.Features.MoneyRegisterBalances;
+using Application.Features.Register;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -102,6 +103,12 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
             var periodValidation = await _periodValidator.EnsureOpenAsync(cashOperation.OrganizationId, cashOperation.DocDate, ct);
             if (!periodValidation.IsSuccess)
                 return periodValidation;
+
+            await _postingLock.AcquireMoneyAsync(
+                cashOperation.OrganizationId,
+                RegisterDefaultsConst.CashBoxBalance,
+                cashOperation.CashBoxId,
+                ct);
 
             var validation = await ValidateForConfirmAsync(cashOperation, ct);
             if (!validation.IsSuccess)

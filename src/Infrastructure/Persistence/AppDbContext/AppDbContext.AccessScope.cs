@@ -112,6 +112,7 @@ public partial class AppDbContext
         ApplyScopedFilter<InvRegBalance>(modelBuilder);
         ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
         ApplyScopedFilter<CashOperation>(modelBuilder);
+        ApplyScopedFilter<CashFiscalTransferDoc>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);
         ApplyScopedFilter<CashBox>(modelBuilder);
         ApplyScopedFilter<FiscalCashRegister>(modelBuilder);

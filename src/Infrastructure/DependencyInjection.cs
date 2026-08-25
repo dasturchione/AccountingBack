@@ -25,6 +25,7 @@ using Application.Features.Branches;
 using Application.Features.CashBoxes;
 using Application.Features.FiscalCashRegisters;
 using Application.Features.CashOperations;
+using Application.Features.CashFiscalTransfers;
 using Application.Features.CashDocuments;
 using Application.Features.ChartAccounts;
 using Application.Features.ChartAccountPresetAccounts;
@@ -310,6 +311,9 @@ namespace Infrastructure
             services.AddScoped<ICashLifecycleService, CashLifecycleService>();
             services.AddScoped<ICashCounterpartyRegisterService, CashCounterpartyRegisterService>();
             services.AddScoped<ICashMoneyRegisterService, CashMoneyRegisterService>();
+            services.AddScoped<ICashFiscalTransferService, CashFiscalTransferService>();
+            services.AddScoped<ICashFiscalTransferLifecycleService, CashFiscalTransferLifecycleService>();
+            services.AddScoped<ICashFiscalTransferMoneyService, CashFiscalTransferMoneyService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();
             services.AddScoped<IEdoHistoricalPurchaseDraftFactory>(provider =>
                 (IEdoHistoricalPurchaseDraftFactory)provider.GetRequiredService<IPurchaseDocService>());
@@ -364,6 +368,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<RetailSaleDoc>, RetailSaleDocContextBuilder>();
             services.AddScoped<IPostingContextBuilder<List<BankOperation>>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CashOperation>, CashOperationContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<CashFiscalTransferDoc>, CashFiscalTransferContextBuilder>();
             services.AddScoped<IPostingContextBuilder<BankOperation>, BankOperationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<CurrencyRevaluation>, CurrencyRevaluationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaCommissioningDoc>, FaCommissioningContextBuilder>();

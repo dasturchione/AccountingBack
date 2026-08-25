@@ -186,7 +186,8 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
     private async Task<List<MoneyRegisterBalance>> GetCashBoxEntriesAsync(int cashBoxId, DateTime asOfDate, CancellationToken ct)
     {
         var query = _queryBuilder.For<MoneyRegisterBalance>()
-            .Where(x => x.SourceType.StartsWith(RegisterDefaultsConst.CashOperation) &&
+            .Where(x => (x.SourceType.StartsWith(RegisterDefaultsConst.CashOperation) ||
+                         x.SourceType == RegisterDefaultsConst.CashFiscalTransferCashBox) &&
                         x.SourceId == cashBoxId &&
                         x.DocDate <= asOfDate)
             .Build();

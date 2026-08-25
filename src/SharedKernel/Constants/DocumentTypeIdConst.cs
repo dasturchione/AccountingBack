@@ -116,5 +116,10 @@ namespace SharedKernel.Constants
         /// Employee absence document.
         /// </summary>
         public const short HRABSENCE = 22;
+
+        /// <summary>
+        /// Money transfer between a fiscal cash register and the main cash box.
+        /// </summary>
+        public const short CASHFISCALTRANSFER = 23;
     }
 }

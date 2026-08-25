@@ -108,8 +108,12 @@ create table cash_fiscal_transfer_doc
             or
             (
                 status_id = 3
-                and posted_at is not null
-                and posted_by_user_id is not null
+                and
+                (
+                    (posted_at is null and posted_by_user_id is null)
+                    or
+                    (posted_at is not null and posted_by_user_id is not null)
+                )
                 and cancelled_at is not null
                 and cancelled_by_user_id is not null
             )

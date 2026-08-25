@@ -421,7 +421,13 @@ public sealed class EdoSaleDraftApplyService(
                     providerLine.NetAmount,
                     providerLine.VatAmount,
                     providerLine.TotalWithVat))
-                return SelectionValidation.Error("SALE_SOURCE_TOTALS_MISMATCH");
+            {
+                LogTotalsDiagnostic(
+                    detail,
+                    EdoSaleAmountValidation.LineTotalsMismatchCode,
+                    providerLine);
+                return SelectionValidation.Error(EdoSaleAmountValidation.LineTotalsMismatchCode);
+            }
 
             var markingCodes = source.MarkingCodesByLine.GetValueOrDefault(providerLine.Number) ?? [];
             if (product.IsService && markingCodes.Count > 0)
@@ -469,10 +475,18 @@ public sealed class EdoSaleDraftApplyService(
             if (markingCodes.Count > requestedTableIds.Length)
                 return SelectionValidation.Error("MARKING_COUNT_MISMATCH");
 
-            if (!EdoPartialMarkingRules.IsValidSelection(
+            var allowFacturaUnmatchedMarkings = EdoPartialMarkingRules
+                .IsFacturaUnmatchedMarkingPolicyEnabled(item.DocumentType, item.AllowUnmatchedMarkings);
+            var markingSelectionValid = allowFacturaUnmatchedMarkings
+                ? EdoPartialMarkingRules.IsFacturaUnmatchedSelectionValid(
                     requestedTableIds.Length,
                     tables,
-                    markingCodes))
+                    markingCodes)
+                : EdoPartialMarkingRules.IsValidSelection(
+                    requestedTableIds.Length,
+                    tables,
+                    markingCodes);
+            if (!markingSelectionValid)
             {
                 return SelectionValidation.Error("MARKING_MAPPING_INVALID");
             }
@@ -480,14 +494,56 @@ public sealed class EdoSaleDraftApplyService(
             productTablesByLine[providerLine.Number] = tables;
         }
 
-        if (!EdoSaleAmountValidation.AreDocumentTotalsConsistent(
+        var totalsFailureCode = EdoSaleAmountValidation.GetDocumentTotalsFailureCode(
                 detail.NetAmount,
                 detail.VatAmount,
                 detail.TotalAmount,
-                detail.Lines.Select(x => (x.NetAmount, x.VatAmount, x.TotalWithVat))))
-            return SelectionValidation.Error("SALE_SOURCE_TOTALS_MISMATCH");
+                detail.Lines.Select(x => (
+                    Number: x.Number,
+                    Quantity: x.Quantity,
+                    UnitPrice: x.UnitPrice,
+                    NetAmount: x.NetAmount,
+                    VatAmount: x.VatAmount,
+                    TotalWithVat: x.TotalWithVat)));
+        if (totalsFailureCode is not null)
+        {
+            var failedLine = detail.Lines.FirstOrDefault(x =>
+                !EdoSaleAmountValidation.IsLineInternallyConsistent(
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.NetAmount,
+                    x.VatAmount,
+                    x.TotalWithVat));
+            LogTotalsDiagnostic(detail, totalsFailureCode, failedLine);
+            return SelectionValidation.Error(totalsFailureCode);
+        }
 
         return new SelectionValidation(null, products, productTablesByLine);
+    }
+
+    private void LogTotalsDiagnostic(
+        EdoOutboxProviderDocumentDetailDto detail,
+        string failureCode,
+        EdoOutboxProviderDocumentLineDto? failedLine)
+    {
+        var lineNetSum = detail.Lines.Sum(x => x.NetAmount);
+        var lineVatSum = detail.Lines.Sum(x => x.VatAmount);
+        var lineTotalSum = detail.Lines.Sum(x => x.TotalWithVat);
+        var roundingResidual = detail.Lines.Sum(x => x.Quantity * x.UnitPrice - x.NetAmount);
+
+        logger.LogWarning(
+            "EDO sale totals validation failed; FailureCode={FailureCode}; DocumentNet={DocumentNet}; DocumentVat={DocumentVat}; DocumentTotal={DocumentTotal}; LineNetSum={LineNetSum}; LineVatSum={LineVatSum}; LineTotalSum={LineTotalSum}; RoundingResidual={RoundingResidual}; FailedLineNumber={FailedLineNumber}; FailedLineNetDifference={FailedLineNetDifference}; FailedLineVatTotalDifference={FailedLineVatTotalDifference}",
+            failureCode,
+            detail.NetAmount,
+            detail.VatAmount,
+            detail.TotalAmount,
+            lineNetSum,
+            lineVatSum,
+            lineTotalSum,
+            roundingResidual,
+            failedLine?.Number,
+            failedLine is null ? null : failedLine.Quantity * failedLine.UnitPrice - failedLine.NetAmount,
+            failedLine is null ? null : failedLine.NetAmount + failedLine.VatAmount - failedLine.TotalWithVat);
     }
 
     private async Task<Result<long>> CreateDraftAsync(

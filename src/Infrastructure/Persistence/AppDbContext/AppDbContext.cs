@@ -79,6 +79,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentAccountSetting> DocumentAccountSettings { get; set; }
     public virtual DbSet<Language> Languages { get; set; }
     public virtual DbSet<InventoryAdjustmentType> InventoryAdjustmentTypes { get; set; }
+    public virtual DbSet<MovementDirection> MovementDirections { get; set; }
     public virtual DbSet<MxikCatalog> MxikCatalogs { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }

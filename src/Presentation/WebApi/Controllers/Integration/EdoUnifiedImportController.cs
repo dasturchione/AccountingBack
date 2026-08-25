@@ -17,15 +17,24 @@ public sealed class EdoUnifiedImportController(IEdoUnifiedImportService service)
     public async Task<IResult> GetPlan(
         [FromQuery(Name = "providerDocumentId")] string[]? providerDocumentIds,
         [FromQuery] bool allowSentDocuments = false,
+        [FromQuery] bool allowUnmatchedMarkings = false,
         CancellationToken ct = default) =>
-        (await service.GetPlanAsync(providerDocumentIds, allowSentDocuments, ct)).Match(Results.Ok, CustomResults.Problem);
+        (await service.GetPlanAsync(
+            providerDocumentIds,
+            allowSentDocuments,
+            ct,
+            allowUnmatchedMarkings)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpPost("plan")]
     [ProducesResponseType(typeof(EdoUnifiedImportPlanDto), StatusCodes.Status200OK)]
     public async Task<IResult> PostPlan(
         [FromBody] EdoUnifiedImportPlanRequestDto request,
         CancellationToken ct = default) =>
-        (await service.GetPlanAsync(request.ProviderDocumentIds, request.AllowSentDocuments, ct)).Match(Results.Ok, CustomResults.Problem);
+        (await service.GetPlanAsync(
+            request.ProviderDocumentIds,
+            request.AllowSentDocuments,
+            ct,
+            request.AllowUnmatchedMarkings)).Match(Results.Ok, CustomResults.Problem);
 
     [HttpPost("apply-batch")]
     [ProducesResponseType(typeof(EdoUnifiedImportApplyResponseDto), StatusCodes.Status200OK)]

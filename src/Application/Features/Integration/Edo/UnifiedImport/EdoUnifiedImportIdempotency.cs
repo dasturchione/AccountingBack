@@ -18,6 +18,7 @@ public static class EdoUnifiedImportIdempotency
             OrganizationId = organizationId,
             ExpectedPlanHash = request.ExpectedPlanHash,
             AllowSentDocuments = request.AllowSentDocuments,
+            AllowUnmatchedMarkings = request.AllowUnmatchedMarkings,
             Items = request.Items
                 .Select(item => new CanonicalItem
                 {
@@ -69,6 +70,7 @@ public static class EdoUnifiedImportIdempotency
         public int OrganizationId { get; init; }
         public string ExpectedPlanHash { get; init; } = string.Empty;
         public bool AllowSentDocuments { get; init; }
+        public bool AllowUnmatchedMarkings { get; init; }
         public CanonicalItem[] Items { get; init; } = [];
     }
 

@@ -10,6 +10,7 @@ public sealed class EdoUnifiedImportContractTests
 
         Assert.Empty(request.ProviderDocumentIds);
         Assert.False(request.AllowSentDocuments);
+        Assert.False(request.AllowUnmatchedMarkings);
     }
 
     [Fact]
@@ -21,6 +22,7 @@ public sealed class EdoUnifiedImportContractTests
         Assert.Empty(request.ExpectedPlanHash);
         Assert.Empty(request.Items);
         Assert.False(request.AllowSentDocuments);
+        Assert.False(request.AllowUnmatchedMarkings);
         Assert.Equal("FACTURA", new EdoUnifiedImportApplyItemDto().DocumentType);
     }
 

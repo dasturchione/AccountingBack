@@ -38,6 +38,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
     private readonly IQueryRepository<WarehouseProductMovement> _warehouseMovementQuery;
     private readonly IQueryRepository<Organization> _organizationQuery;
+    private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
     private readonly IQueryRepository<Product> _productQuery;
     private readonly IQueryRepository<Unit> _unitQuery;
@@ -56,6 +57,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         IQueryRepository<PostingBatch> postingBatchQuery,
         IQueryRepository<WarehouseProductMovement> warehouseMovementQuery,
         IQueryRepository<Organization> organizationQuery,
+        IQueryRepository<MovementDirection> movementDirectionQuery,
         IQueryRepository<Warehouse> warehouseQuery,
         IQueryRepository<Product> productQuery,
         IQueryRepository<Unit> unitQuery,
@@ -76,6 +78,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         _postingBatchQuery = postingBatchQuery;
         _warehouseMovementQuery = warehouseMovementQuery;
         _organizationQuery = organizationQuery;
+        _movementDirectionQuery = movementDirectionQuery;
         _warehouseQuery = warehouseQuery;
         _productQuery = productQuery;
         _unitQuery = unitQuery;
@@ -115,6 +118,10 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var organizationId = _userContext.OrganizationId.Value;
+            var directionIdResult = await ResolveDirectionIdAsync(dto.AdjustmentType, ct);
+            if (!directionIdResult.IsSuccess)
+                return Result.Failure<long>(directionIdResult.Error);
+
             var validationResult = await ValidateDraftAsync(organizationId, dto, ct);
             if (!validationResult.IsSuccess)
                 return Result.Failure<long>(validationResult.Error);
@@ -136,6 +143,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified),
                 WarehouseId = dto.WarehouseId,
                 AdjustmentType = dto.AdjustmentType.Trim().ToUpperInvariant(),
+                DirectionId = directionIdResult.Value,
                 StatusId = DocumentStatusIdConst.DRAFT,
                 Comment = dto.Comment,
                 StateId = StateIdConst.ACTIVE,
@@ -171,6 +179,10 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             if (doc.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(InventoryAdjustmentErrors.CannotUpdateInCurrentStatus(id, doc.StatusId, _userContext.LanguageId));
 
+            var directionIdResult = await ResolveDirectionIdAsync(dto.AdjustmentType, ct);
+            if (!directionIdResult.IsSuccess)
+                return Result.Failure(directionIdResult.Error);
+
             var validationResult = await ValidateDraftAsync(_userContext.OrganizationId.Value, dto, ct);
             if (!validationResult.IsSuccess)
                 return Result.Failure(validationResult.Error);
@@ -192,6 +204,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             doc.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
             doc.WarehouseId = dto.WarehouseId;
             doc.AdjustmentType = dto.AdjustmentType.Trim().ToUpperInvariant();
+            doc.DirectionId = directionIdResult.Value;
             doc.Comment = dto.Comment;
             doc.StateId = dto.StateId;
 
@@ -418,6 +431,26 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         }
 
         return Result.Success();
+    }
+
+    private async Task<Result<short>> ResolveDirectionIdAsync(string adjustmentType, CancellationToken ct)
+    {
+        var normalizedType = adjustmentType.Trim().ToUpperInvariant();
+        if (!AllowedAdjustmentTypes.Contains(normalizedType))
+            return Result.Failure<short>(InventoryAdjustmentErrors.InvalidAdjustmentType(adjustmentType, _userContext.LanguageId));
+
+        var directionCode = InventoryAdjustmentDirectionResolver.GetRequiredDirectionCode(normalizedType);
+        if (directionCode is null)
+            return Result.Failure<short>(InventoryAdjustmentErrors.InvalidAdjustmentType(adjustmentType, _userContext.LanguageId));
+
+        var query = _queryBuilder.For<MovementDirection>()
+            .Where(x => x.Code == directionCode)
+            .Build();
+        var lookup = await _movementDirectionQuery.GetAsync(query, ct);
+
+        return InventoryAdjustmentDirectionResolver.TryResolve(adjustmentType, lookup, out var directionId)
+            ? Result.Success(directionId)
+            : Result.Failure<short>(InventoryAdjustmentErrors.InvalidAdjustmentType(adjustmentType, _userContext.LanguageId));
     }
 
     private static List<InventoryAdjustmentLine> BuildLines(InventoryAdjustmentBaseDto dto) =>

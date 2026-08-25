@@ -16,6 +16,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly IQueryRepository<DocumentType> _documentTypeQuery;
     private readonly IQueryRepository<DocumentNumberSequence> _sequenceQuery;
+    private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentQuery;
     private readonly ICommandRepository<DocumentNumberSequence> _sequenceCommand;
 
     public DocumentNumberService(
@@ -25,6 +26,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
         IQueryRepository<Organization> organizationQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<DocumentNumberSequence> sequenceQuery,
+        IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentQuery,
         ICommandRepository<DocumentNumberSequence> sequenceCommand)
     {
         _userContext = userContext;
@@ -33,6 +35,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
         _organizationQuery = organizationQuery;
         _documentTypeQuery = documentTypeQuery;
         _sequenceQuery = sequenceQuery;
+        _inventoryAdjustmentQuery = inventoryAdjustmentQuery;
         _sequenceCommand = sequenceCommand;
     }
 
@@ -100,6 +103,16 @@ public sealed class DocumentNumberService : IDocumentNumberService
 
             var documentYear = checked((short)normalizedDocumentDate.Year);
             var sequence = sequences.SingleOrDefault(x => x.DocumentYear == documentYear);
+            var maxExistingNumber = await GetMaxExistingInventoryAdjustmentNumberAsync(
+                organizationId,
+                documentTypeId,
+                documentYear,
+                ct);
+
+            if (maxExistingNumber == long.MaxValue)
+                return Result.Failure<DocumentNumberResult>(
+                    DocumentNumberErrors.SequenceConfigurationInvalid(_userContext.LanguageId));
+
             if (sequence is null)
             {
                 sequence = new DocumentNumberSequence
@@ -107,7 +120,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
                     OrganizationId = organizationId,
                     DocumentTypeId = documentTypeId,
                     DocumentYear = documentYear,
-                    LastNumber = 1,
+                    LastNumber = GetNextNumber(maxExistingNumber, null),
                     LastDocumentDate = normalizedDocumentDate,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -122,7 +135,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
                         DocumentNumberErrors.SequenceConfigurationInvalid(_userContext.LanguageId));
                 }
 
-                sequence.LastNumber++;
+                sequence.LastNumber = GetNextNumber(maxExistingNumber, sequence.LastNumber);
                 if (normalizedDocumentDate > sequence.LastDocumentDate)
                     sequence.LastDocumentDate = normalizedDocumentDate;
                 sequence.UpdatedAt = DateTime.Now;
@@ -145,5 +158,46 @@ public sealed class DocumentNumberService : IDocumentNumberService
         {
             return Result.Failure<DocumentNumberResult>(DocumentNumberErrors.CannotGenerate(_userContext.LanguageId));
         }
+    }
+
+    internal static long GetNextNumber(long maxExistingNumber, long? sequenceLastNumber)
+    {
+        var baseline = Math.Max(maxExistingNumber, sequenceLastNumber ?? 0);
+        return checked(baseline + 1);
+    }
+
+    private async Task<long> GetMaxExistingInventoryAdjustmentNumberAsync(
+        int organizationId,
+        short documentTypeId,
+        short documentYear,
+        CancellationToken ct)
+    {
+        if (documentTypeId != DocumentTypeIdConst.INVENTORYADJUSTMENT)
+            return 0;
+
+        var yearStart = new DateTime(documentYear, 1, 1);
+        var nextYearStart = yearStart.AddYears(1);
+        var query = _queryBuilder.For<InventoryAdjustmentDoc>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.DocDate >= yearStart &&
+                        x.DocDate < nextYearStart)
+            .Build();
+
+        var documents = await _inventoryAdjustmentQuery.GetAllAsync(query, ct);
+        var maxExistingNumber = 0L;
+
+        foreach (var document in documents)
+        {
+            if (long.TryParse(
+                    document.DocNumber,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out var number))
+            {
+                maxExistingNumber = Math.Max(maxExistingNumber, number);
+            }
+        }
+
+        return maxExistingNumber;
     }
 }

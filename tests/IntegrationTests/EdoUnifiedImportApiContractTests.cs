@@ -54,8 +54,17 @@ public sealed class EdoUnifiedImportApiContractTests
         var sentFlag = typeof(EdoUnifiedImportController)
             .GetMethod(nameof(EdoUnifiedImportController.GetPlan))!
             .GetParameters()
-            .Single(x => x.ParameterType == typeof(bool));
+            .Single(x => x.Name == "allowSentDocuments");
         Assert.NotNull(sentFlag.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.FromQueryAttribute), true).SingleOrDefault());
+
+        var unmatchedFlag = typeof(EdoUnifiedImportController)
+            .GetMethod(nameof(EdoUnifiedImportController.GetPlan))!
+            .GetParameters()
+            .Single(x => x.Name == "allowUnmatchedMarkings");
+        Assert.Equal(typeof(bool), unmatchedFlag.ParameterType);
+        Assert.True(unmatchedFlag.HasDefaultValue);
+        Assert.False((bool)unmatchedFlag.DefaultValue!);
+        Assert.NotNull(unmatchedFlag.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.FromQueryAttribute), true).SingleOrDefault());
     }
 
     [Fact]
@@ -102,6 +111,8 @@ public sealed class EdoUnifiedImportApiContractTests
         Assert.Contains("ProductTableIds", lineNames);
         Assert.Contains("MarkingRequired", lineNames);
         Assert.DoesNotContain(lineNames, name => name.Contains("MarkingCode", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(nameof(EdoUnifiedImportPlanDto.AllowUnmatchedMarkings),
+            typeof(EdoUnifiedImportPlanDto).GetProperties().Select(property => property.Name));
     }
 
     [Fact]
@@ -124,5 +135,16 @@ public sealed class EdoUnifiedImportApiContractTests
         Assert.Contains(2921, line.ProductTableIds);
         Assert.DoesNotContain("MarkingCodes", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("MarkingNumber", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SaleTotalsFailuresExposeDistinctSafeCodes()
+    {
+        Assert.Equal(
+            "SALE_SOURCE_LINE_TOTALS_MISMATCH",
+            Application.Features.SaleDocs.EdoSalePreflight.EdoSaleAmountValidation.LineTotalsMismatchCode);
+        Assert.Equal(
+            "SALE_SOURCE_AGGREGATE_TOTALS_MISMATCH",
+            Application.Features.SaleDocs.EdoSalePreflight.EdoSaleAmountValidation.AggregateTotalsMismatchCode);
     }
 }

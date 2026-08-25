@@ -39,7 +39,8 @@ public sealed class EdoUnifiedImportService(
     public async Task<Result<EdoUnifiedImportPlanDto>> GetPlanAsync(
         IReadOnlyCollection<string>? providerDocumentIds = null,
         bool allowSentDocuments = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool allowUnmatchedMarkings = false)
     {
         var organizationId = CurrentOrganization();
         var provider = await providerResolver.GetActiveProviderAsync(ct);
@@ -69,6 +70,7 @@ public sealed class EdoUnifiedImportService(
                 provider,
                 organizationId,
                 allowSentDocuments,
+                allowUnmatchedMarkings,
                 saleCandidate,
                 ct));
         }
@@ -80,6 +82,7 @@ public sealed class EdoUnifiedImportService(
 
         var plan = new EdoUnifiedImportPlanDto
         {
+            AllowUnmatchedMarkings = allowUnmatchedMarkings,
             TotalCandidates = candidates.Count,
             SignedCount = candidates.Count(x => string.Equals(x.ProviderStatus, Signed, StringComparison.OrdinalIgnoreCase)),
             WaitingForSignatureCount = candidates.Count(x => x.Status == EdoImportBatchDocumentStatus.WaitingForSignature),
@@ -93,6 +96,7 @@ public sealed class EdoUnifiedImportService(
         return Result.Success(new EdoUnifiedImportPlanDto
         {
             ProviderCode = plan.ProviderCode,
+            AllowUnmatchedMarkings = plan.AllowUnmatchedMarkings,
             TotalCandidates = plan.TotalCandidates,
             SignedCount = plan.SignedCount,
             WaitingForSignatureCount = plan.WaitingForSignatureCount,
@@ -123,7 +127,8 @@ public sealed class EdoUnifiedImportService(
         var currentPlanResult = await GetPlanAsync(
             request.Items.Select(x => x.ProviderDocumentId).ToArray(),
             request.AllowSentDocuments,
-            ct);
+            ct,
+            request.AllowUnmatchedMarkings);
         if (!currentPlanResult.IsSuccess)
             return Result.Failure<EdoUnifiedImportApplyResponseDto>(currentPlanResult.Error);
         if (!string.Equals(request.ExpectedPlanHash, currentPlanResult.Value.PlanHash, StringComparison.OrdinalIgnoreCase))
@@ -221,6 +226,7 @@ public sealed class EdoUnifiedImportService(
                 batch.Id,
                 requestItem,
                 currentPlanResult.Value,
+                request.AllowUnmatchedMarkings,
                 ct);
 
         await ReconcileBatchStatusAsync(organizationId, batch.Id, ct);
@@ -283,6 +289,7 @@ public sealed class EdoUnifiedImportService(
         long batchId,
         EdoUnifiedImportApplyItemDto request,
         EdoUnifiedImportPlanDto plan,
+        bool allowUnmatchedMarkings,
         CancellationToken ct)
     {
         var document = await batchStore.FindBatchDocumentAsync(organizationId, batchId, request.ProviderDocumentId, ct);
@@ -340,7 +347,7 @@ public sealed class EdoUnifiedImportService(
                 {
                     Confirm = true,
                     ExpectedPlanHash = salePlan.PlanHash,
-                        Items = [BuildSaleRequest(request, planItem)]
+                        Items = [BuildSaleRequest(request, planItem, allowUnmatchedMarkings)]
                 }, ct);
                 if (saleResult.IsSuccess)
                 {
@@ -440,6 +447,7 @@ public sealed class EdoUnifiedImportService(
         IEdoProvider provider,
         int organizationId,
         bool allowSentDocuments,
+        bool allowUnmatchedMarkings,
         EdoSalePreflightCandidateDto? saleCandidate,
         CancellationToken ct)
     {
@@ -516,6 +524,7 @@ public sealed class EdoUnifiedImportService(
                 saleCandidate!,
                 saleMapping,
                 allowSentDocuments,
+                allowUnmatchedMarkings,
                 ct);
         }
         if (saleMapping is not null && source is null)
@@ -618,6 +627,7 @@ public sealed class EdoUnifiedImportService(
         EdoSalePreflightCandidateDto candidate,
         EdoUnifiedImportPlanMappingSnapshot mapping,
         bool allowSentDocuments,
+        bool allowUnmatchedMarkings,
         CancellationToken ct)
     {
         if (!mapping.WarehouseId.HasValue || mapping.Lines.Count == 0)
@@ -659,8 +669,12 @@ public sealed class EdoUnifiedImportService(
             .GroupBy(x => x.ProductId)
             .ToDictionary(x => x.Key, x => x.OrderBy(table => table.Id).ToArray());
 
+        var normalizedDocumentType = EdoUnifiedImportPlanRules.NormalizeDocumentType(document.DocumentType);
+        var allowFacturaUnmatchedMarkings = EdoPartialMarkingRules
+            .IsFacturaUnmatchedMarkingPolicyEnabled(normalizedDocumentType, allowUnmatchedMarkings);
         EdoOutboxProviderDocumentMappingSourceDto? markingSource = null;
-        var markingSourceRequired = mapping.Lines.Any(x => x.MarkingRequired);
+        var markingSourceRequired = mapping.Lines.Any(x => x.MarkingRequired)
+            || allowFacturaUnmatchedMarkings;
         if (markingSourceRequired)
         {
             try
@@ -695,6 +709,17 @@ public sealed class EdoUnifiedImportService(
                 };
             }
 
+            if (!inventory.IsService
+                && (!line.Quantity.HasValue || inventory.AvailableQuantity < line.Quantity.Value))
+            {
+                errors.Add("SALE_PRODUCT_STOCK_MAPPING_REQUIRED");
+                return line with
+                {
+                    ProductTableMappingStatus = "BLOCKED",
+                    CostPriceStatus = "BLOCKED"
+                };
+            }
+
             var updated = line;
             if (!inventory.IsService && inventory.IsPieceTracked)
             {
@@ -709,14 +734,21 @@ public sealed class EdoUnifiedImportService(
                 {
                     var requiredCount = decimal.ToInt32(line.Quantity.Value);
                     var tables = tablesByProductId.GetValueOrDefault(line.ProductId.Value) ?? [];
-                    var selectedTables = line.MarkingRequired
-                        ? ResolveMarkedTables(
+                    var selectedTables = allowFacturaUnmatchedMarkings
+                        ? ResolveFacturaTablesAllowingUnmatchedMarkings(
                             line.LineNumber,
                             requiredCount,
                             tables,
                             markingSource,
                             errors)
-                        : tables.Take(requiredCount).ToArray();
+                        : line.MarkingRequired
+                            ? ResolveMarkedTables(
+                                line.LineNumber,
+                                requiredCount,
+                                tables,
+                                markingSource,
+                                errors)
+                            : tables.Take(requiredCount).ToArray();
 
                     if (selectedTables.Length == requiredCount)
                     {
@@ -827,6 +859,39 @@ public sealed class EdoUnifiedImportService(
         return selectedTables.ToArray();
     }
 
+    private static ProductTable[] ResolveFacturaTablesAllowingUnmatchedMarkings(
+        int lineNumber,
+        int requiredCount,
+        IReadOnlyCollection<ProductTable> tables,
+        EdoOutboxProviderDocumentMappingSourceDto? markingSource,
+        ISet<string> errors)
+    {
+        if (markingSource is null)
+        {
+            errors.Add("MARKING_SOURCE_REQUIRED");
+            return [];
+        }
+
+        var providerMarkings = markingSource.MarkingCodesByLine.GetValueOrDefault(lineNumber) ?? [];
+        if (!EdoPartialMarkingRules.IsProviderMarkingSetValid(requiredCount, providerMarkings))
+        {
+            errors.Add("MARKING_COUNT_MISMATCH");
+            return [];
+        }
+
+        if (!EdoPartialMarkingRules.TrySelectFacturaTablesAllowingUnmatchedMarkings(
+                requiredCount,
+                tables,
+                providerMarkings,
+                out var selectedTables))
+        {
+            errors.Add("PRODUCT_TABLE_SELECTION_REQUIRED");
+            return [];
+        }
+
+        return selectedTables.ToArray();
+    }
+
     private static EdoUnifiedImportPlanMappingSnapshot AddMappingErrors(
         EdoUnifiedImportPlanMappingSnapshot mapping,
         params string[] errors) => new()
@@ -899,11 +964,14 @@ public sealed class EdoUnifiedImportService(
 
     private static EdoSaleDraftApplyItemDto BuildSaleRequest(
         EdoUnifiedImportApplyItemDto request,
-        EdoUnifiedImportPlanItemDto planItem) => new()
+        EdoUnifiedImportPlanItemDto planItem,
+        bool allowUnmatchedMarkings) => new()
     {
         ProviderDocumentId = request.ProviderDocumentId,
         DocumentType = planItem.DocumentType,
         AllowSentDocuments = planItem.SentOverrideApplied,
+        AllowUnmatchedMarkings = EdoPartialMarkingRules
+            .IsFacturaUnmatchedMarkingPolicyEnabled(planItem.DocumentType, allowUnmatchedMarkings),
         CounterpartyId = request.CounterpartyId,
         ContractId = request.ContractId ?? 0,
         CurrencyId = request.CurrencyId,
@@ -983,7 +1051,11 @@ public sealed class EdoUnifiedImportService(
 
     private static string ComputePlanHash(EdoUnifiedImportPlanDto plan)
     {
-        var canonical = JsonSerializer.Serialize(plan.Items.OrderBy(x => x.ProviderDocumentId, StringComparer.Ordinal));
+        var canonical = JsonSerializer.Serialize(new
+        {
+            plan.AllowUnmatchedMarkings,
+            Items = plan.Items.OrderBy(x => x.ProviderDocumentId, StringComparer.Ordinal)
+        });
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
     }
 

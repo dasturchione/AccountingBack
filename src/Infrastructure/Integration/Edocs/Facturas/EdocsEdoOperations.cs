@@ -481,6 +481,8 @@ public sealed class EdocsEdoOperations(
             Status = status,
             Seller = seller,
             Buyer = ReadBuyerParty(item, documentType),
+            NetAmount = ReadDecimal(item, "totalSum", strictHistoricalDecimals),
+            VatAmount = ReadDecimal(item, "totalVatSum", strictHistoricalDecimals),
             TotalAmount = ReadDecimal(item, "totalSumWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "totalWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "TotalAmount", strictHistoricalDecimals),

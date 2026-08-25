@@ -3,6 +3,23 @@ using Domain.Entities;
 
 public sealed class EdoPartialMarkingRulesTests
 {
+    [Theory]
+    [InlineData("FACTURA", true, true)]
+    [InlineData(" factura ", true, true)]
+    [InlineData("WAYBILL_LOCAL", true, false)]
+    [InlineData("FACTURA", false, false)]
+    public void UnmatchedMarkingPolicyIsExplicitlyFacturaOnly(
+        string documentType,
+        bool allowUnmatchedMarkings,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            EdoPartialMarkingRules.IsFacturaUnmatchedMarkingPolicyEnabled(
+                documentType,
+                allowUnmatchedMarkings));
+    }
+
     [Fact]
     public void SelectsExactProviderMarkingsAndFillsRemainingQuantityWithUnmarkedTables()
     {
@@ -53,6 +70,76 @@ public sealed class EdoPartialMarkingRulesTests
             10,
             [],
             providerMarkings,
+            out var selectedTables));
+        Assert.Empty(selectedTables);
+    }
+
+    [Fact]
+    public void ExplicitFacturaPolicyAllowsMissingProviderMarkingsWithUnmarkedStock()
+    {
+        var providerMarkings = new[] { "provider-marking-1", "provider-marking-2", "provider-marking-3" };
+        var tables = new[]
+        {
+            new ProductTable { Id = 3101, ProductId = 158, MarkingNumber = "provider-marking-1" },
+            new ProductTable { Id = 3102, ProductId = 158, MarkingNumber = null },
+            new ProductTable { Id = 3103, ProductId = 158, MarkingNumber = " " },
+            new ProductTable { Id = 3104, ProductId = 158, MarkingNumber = null }
+        };
+
+        Assert.False(EdoPartialMarkingRules.IsValidSelection(4, tables, providerMarkings));
+        Assert.True(EdoPartialMarkingRules.TrySelectFacturaTablesAllowingUnmatchedMarkings(
+            4,
+            tables,
+            providerMarkings,
+            out var selectedTables));
+        Assert.Equal(4, selectedTables.Count);
+        Assert.True(EdoPartialMarkingRules.IsFacturaUnmatchedSelectionValid(
+            4,
+            selectedTables,
+            providerMarkings));
+    }
+
+    [Fact]
+    public void ExplicitFacturaPolicyAllowsZeroProviderMarkingsWithUnmarkedStock()
+    {
+        var tables = new[]
+        {
+            new ProductTable { Id = 3201, ProductId = 158, MarkingNumber = null },
+            new ProductTable { Id = 3202, ProductId = 158, MarkingNumber = " " }
+        };
+
+        Assert.True(EdoPartialMarkingRules.TrySelectFacturaTablesAllowingUnmatchedMarkings(
+            2,
+            tables,
+            [],
+            out var selectedTables));
+        Assert.All(selectedTables, table => Assert.True(string.IsNullOrWhiteSpace(table.MarkingNumber)));
+    }
+
+    [Fact]
+    public void ExplicitFacturaPolicyBlocksWhenUnmarkedStockIsInsufficient()
+    {
+        var tables = new[]
+        {
+            new ProductTable { Id = 3301, ProductId = 158, MarkingNumber = "provider-marking-1" },
+            new ProductTable { Id = 3302, ProductId = 158, MarkingNumber = null }
+        };
+
+        Assert.False(EdoPartialMarkingRules.TrySelectFacturaTablesAllowingUnmatchedMarkings(
+            3,
+            tables,
+            ["provider-marking-1", "provider-marking-2"],
+            out var selectedTables));
+        Assert.Empty(selectedTables);
+    }
+
+    [Fact]
+    public void ExplicitFacturaPolicyStillRejectsProviderMarkingsAboveQuantity()
+    {
+        Assert.False(EdoPartialMarkingRules.TrySelectFacturaTablesAllowingUnmatchedMarkings(
+            1,
+            [],
+            ["provider-marking-1", "provider-marking-2"],
             out var selectedTables));
         Assert.Empty(selectedTables);
     }

@@ -37,6 +37,12 @@ public partial class InventoryAdjustmentDoc
     [StringLength(50)]
     public string AdjustmentType { get; set; } = null!;
 
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
+    [ForeignKey(nameof(DirectionId))]
+    public virtual MovementDirection Direction { get; set; } = null!;
+
     [Column("status_id")]
     public short StatusId { get; set; }
 

@@ -1,5 +1,6 @@
 using Application.Abstractions.Integration.Edo;
 using Application.Features.Integration.Edo;
+using Application.Features.SaleDocs.EdoSalePreflight;
 using Integration.Edocs.Facturas;
 using SharedKernel.Exceptions;
 using System.Text.Json;
@@ -23,6 +24,58 @@ public sealed class EdoOutboxProviderDocumentDetailTests
         Assert.Equal(1, result.Lines.Single().Marking.Count);
         var json = JsonSerializer.Serialize(result);
         Assert.DoesNotContain("masked-marking", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreservesProviderDocumentTotalsWhenLineNetSumHasRoundingResidual()
+    {
+        var lines = new[]
+        {
+            new EdoDocumentPreviewLineDto
+            {
+                Number = 1,
+                Quantity = 1m,
+                UnitPrice = 178571428.72m,
+                NetAmount = 178571428.65m,
+                VatAmount = 21428571.35m,
+                TotalWithVat = 200000000m
+            }
+        };
+
+        var result = EdoOutboxProviderDocumentDetailMapper.MapAndValidate(
+            CreateDocument(
+                lines: lines,
+                netAmount: 178571428.58m,
+                vatAmount: 21428571.42m,
+                totalAmount: 200000000m),
+            "edocs-provider-id");
+
+        Assert.Equal(178571428.58m, result.NetAmount);
+        Assert.Equal(21428571.42m, result.VatAmount);
+        Assert.Equal(200000000m, result.TotalAmount);
+        Assert.Equal(178571428.65m, result.Lines.Sum(x => x.NetAmount));
+        Assert.Equal(0.07m, result.Lines.Sum(x => x.NetAmount) - result.NetAmount);
+    }
+
+    [Fact]
+    public void MissingProviderDocumentTotalsAreNotInvented()
+    {
+        var result = EdoOutboxProviderDocumentDetailMapper.MapAndValidate(
+            CreateDocument(includeProviderTotals: false),
+            "edocs-provider-id");
+
+        Assert.Null(result.NetAmount);
+        Assert.Null(result.VatAmount);
+        Assert.False(EdoSaleAmountValidation.AreDocumentTotalsConsistent(
+            result.NetAmount,
+            result.VatAmount,
+            result.TotalAmount,
+            result.Lines.Select(x => (
+                x.Quantity,
+                x.UnitPrice,
+                x.NetAmount,
+                x.VatAmount,
+                x.TotalWithVat))));
     }
 
     [Fact]
@@ -342,26 +395,13 @@ public sealed class EdoOutboxProviderDocumentDetailTests
     private static EdoDocumentDto CreateDocument(
         string documentType = "FACTURA",
         EdoDocumentStatusCode statusCode = EdoDocumentStatusCode.SIGNED,
-        IReadOnlyCollection<EdoDocumentPreviewLineDto>? lines = null) => new()
+        IReadOnlyCollection<EdoDocumentPreviewLineDto>? lines = null,
+        decimal? netAmount = null,
+        decimal? vatAmount = null,
+        decimal totalAmount = 144m,
+        bool includeProviderTotals = true)
     {
-        ProviderCode = EdoProviderCode.EDOCS,
-        ProviderDocumentId = "edocs-provider-id",
-        Direction = EdoDirection.OUTBOX,
-        Category = EdoDocumentCategory.OUTBOX,
-        DocumentType = documentType,
-        DocumentNumber = "INV-42",
-        DocumentDate = new DateOnly(2026, 8, 20),
-        Status = new EdoDocumentStatusDto
-        {
-            Code = statusCode,
-            IsTerminal = true,
-            IsSuccessful = true
-        },
-        Seller = new EdoPartyDto { Name = "Seller", TaxIdentifier = "111111111" },
-        Buyer = new EdoPartyDto { Name = "Buyer", TaxIdentifier = "222222222" },
-        TotalAmount = 144m,
-        CurrencyCode = "UZS",
-        PreviewLines = lines ??
+        var documentLines = lines ??
         [
             new EdoDocumentPreviewLineDto
             {
@@ -378,6 +418,34 @@ public sealed class EdoOutboxProviderDocumentDetailTests
                 TotalWithVat = 144m,
                 MarkingCodes = ["masked-marking"]
             }
-        ]
-    };
+        ];
+
+        return new EdoDocumentDto
+        {
+            ProviderCode = EdoProviderCode.EDOCS,
+            ProviderDocumentId = "edocs-provider-id",
+            Direction = EdoDirection.OUTBOX,
+            Category = EdoDocumentCategory.OUTBOX,
+            DocumentType = documentType,
+            DocumentNumber = "INV-42",
+            DocumentDate = new DateOnly(2026, 8, 20),
+            Status = new EdoDocumentStatusDto
+            {
+                Code = statusCode,
+                IsTerminal = true,
+                IsSuccessful = true
+            },
+            Seller = new EdoPartyDto { Name = "Seller", TaxIdentifier = "111111111" },
+            Buyer = new EdoPartyDto { Name = "Buyer", TaxIdentifier = "222222222" },
+            NetAmount = includeProviderTotals
+                ? netAmount ?? documentLines.Sum(x => x.NetAmount ?? 0m)
+                : null,
+            VatAmount = includeProviderTotals
+                ? vatAmount ?? documentLines.Sum(x => x.VatAmount ?? 0m)
+                : null,
+            TotalAmount = totalAmount,
+            CurrencyCode = "UZS",
+            PreviewLines = documentLines
+        };
+    }
 }

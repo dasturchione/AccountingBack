@@ -116,8 +116,8 @@ public static class EdoOutboxProviderDocumentDetailMapper
             Buyer = document.Buyer,
             ContractNumber = CleanOptional(document.PreviewContractNumber),
             ContractDate = document.PreviewContractDate,
-            NetAmount = lines.Sum(x => x.NetAmount),
-            VatAmount = lines.Sum(x => x.VatAmount),
+            NetAmount = document.NetAmount,
+            VatAmount = document.VatAmount,
             TotalAmount = document.TotalAmount.Value,
             CurrencyCode = CleanOptional(document.CurrencyCode),
             Lines = lines

@@ -143,6 +143,10 @@ public sealed class EdoDocumentDto
     public EdoPartyDto? Buyer { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public decimal? TotalAmount { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public decimal? NetAmount { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public decimal? VatAmount { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? CurrencyCode { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

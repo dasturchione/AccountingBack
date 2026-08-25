@@ -28,6 +28,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
     private readonly IQueryRepository<PostingBatch> _postingBatchQuery;
     private readonly ICommandRepository<InventoryAdjustmentDoc> _inventoryAdjustmentCommand;
     private readonly IQueryRepository<InventoryAdjustmentDoc> _inventoryAdjustmentQuery;
+    private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly ICommandRepository<ProductTable> _productTableCommand;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<WarehouseProductBatchTable> _warehouseProductBatchTableQuery;
@@ -46,6 +47,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         IQueryRepository<PostingBatch> postingBatchQuery,
         ICommandRepository<InventoryAdjustmentDoc> inventoryAdjustmentCommand,
         IQueryRepository<InventoryAdjustmentDoc> inventoryAdjustmentQuery,
+        IQueryRepository<MovementDirection> movementDirectionQuery,
         ICommandRepository<ProductTable> productTableCommand,
         IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<WarehouseProductBatchTable> warehouseProductBatchTableQuery,
@@ -66,6 +68,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
         _postingBatchQuery = postingBatchQuery;
         _inventoryAdjustmentCommand = inventoryAdjustmentCommand;
         _inventoryAdjustmentQuery = inventoryAdjustmentQuery;
+        _movementDirectionQuery = movementDirectionQuery;
         _productTableCommand = productTableCommand;
         _productTableQuery = productTableQuery;
         _warehouseProductBatchTableQuery = warehouseProductBatchTableQuery;
@@ -368,6 +371,10 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             return Result.Failure<InventoryAdjustmentDoc>(documentNumberResult.Error);
 
         var costMap = await ResolveMissingCostMapAsync(differences.SelectMany(x => x.MissingProductTableIds).Distinct().ToList(), ct);
+        var directionIdResult = await ResolveAdjustmentDirectionIdAsync("NEGATIVE_ADJUSTMENT", ct);
+        if (!directionIdResult.IsSuccess)
+            return Result.Failure<InventoryAdjustmentDoc>(directionIdResult.Error);
+
         var adjustmentDoc = new InventoryAdjustmentDoc
         {
             OrganizationId = doc.OrganizationId,
@@ -375,6 +382,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             DocDate = doc.DocDate,
             WarehouseId = doc.WarehouseId,
             AdjustmentType = "NEGATIVE_ADJUSTMENT",
+            DirectionId = directionIdResult.Value,
             StatusId = DocumentStatusIdConst.DRAFT,
             Comment = $"Generated from inventory count {doc.DocNumber}",
             StateId = StateIdConst.ACTIVE,
@@ -411,6 +419,10 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             return Result.Failure<InventoryAdjustmentDoc>(documentNumberResult.Error);
 
         var lineMap = doc.InventoryCountLines.ToDictionary(x => (x.ProductId, x.UnitId));
+        var directionIdResult = await ResolveAdjustmentDirectionIdAsync("POSITIVE_ADJUSTMENT", ct);
+        if (!directionIdResult.IsSuccess)
+            return Result.Failure<InventoryAdjustmentDoc>(directionIdResult.Error);
+
         var adjustmentDoc = new InventoryAdjustmentDoc
         {
             OrganizationId = doc.OrganizationId,
@@ -418,6 +430,7 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
             DocDate = doc.DocDate,
             WarehouseId = doc.WarehouseId,
             AdjustmentType = "POSITIVE_ADJUSTMENT",
+            DirectionId = directionIdResult.Value,
             StatusId = DocumentStatusIdConst.DRAFT,
             Comment = $"Generated from inventory count {doc.DocNumber}",
             StateId = StateIdConst.ACTIVE,
@@ -450,6 +463,22 @@ public class InventoryCountLifecycleService : BaseService, IInventoryCountLifecy
 
         await _inventoryAdjustmentCommand.CreateAsync(adjustmentDoc, ct);
         return Result.Success(adjustmentDoc);
+    }
+
+    private async Task<Result<short>> ResolveAdjustmentDirectionIdAsync(string adjustmentType, CancellationToken ct)
+    {
+        var directionCode = InventoryAdjustmentDirectionResolver.GetRequiredDirectionCode(adjustmentType);
+        if (directionCode is null)
+            return Result.Failure<short>(InventoryAdjustmentErrors.InvalidAdjustmentType(adjustmentType, _userContext.LanguageId));
+
+        var query = _queryBuilder.For<MovementDirection>()
+            .Where(x => x.Code == directionCode)
+            .Build();
+        var lookup = await _movementDirectionQuery.GetAsync(query, ct);
+
+        return InventoryAdjustmentDirectionResolver.TryResolve(adjustmentType, lookup, out var directionId)
+            ? Result.Success(directionId)
+            : Result.Failure<short>(InventoryAdjustmentErrors.InvalidAdjustmentType(adjustmentType, _userContext.LanguageId));
     }
 
     private async Task ApplyFoundStockMetadataAsync(long positiveAdjustmentDocId, List<InventoryCountFoundItemDto> foundItems, CancellationToken ct)

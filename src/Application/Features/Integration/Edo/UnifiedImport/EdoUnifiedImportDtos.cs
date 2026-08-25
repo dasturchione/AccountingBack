@@ -5,6 +5,7 @@ namespace Application.Features.Integration.Edo.UnifiedImport;
 public sealed class EdoUnifiedImportPlanDto
 {
     public string ProviderCode { get; init; } = "EDOCS";
+    public bool AllowUnmatchedMarkings { get; init; }
     public int TotalCandidates { get; init; }
     public int SignedCount { get; init; }
     public int WaitingForSignatureCount { get; init; }
@@ -79,6 +80,7 @@ public sealed class EdoUnifiedImportApplyRequestDto
     public bool Confirm { get; init; }
     public string ExpectedPlanHash { get; init; } = string.Empty;
     public bool AllowSentDocuments { get; init; }
+    public bool AllowUnmatchedMarkings { get; init; }
     public IReadOnlyCollection<EdoUnifiedImportApplyItemDto> Items { get; init; } = [];
 }
 

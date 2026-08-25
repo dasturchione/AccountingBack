@@ -79,6 +79,23 @@ public sealed class EdoUnifiedImportIdempotencyTests
             EdoUnifiedImportIdempotency.Compute(2, sentOverride));
     }
 
+    [Fact]
+    public void UnmatchedMarkingPolicyParticipatesInIdempotencyKey()
+    {
+        var strict = Request(reverse: false);
+        var relaxed = new EdoUnifiedImportApplyRequestDto
+        {
+            Confirm = strict.Confirm,
+            ExpectedPlanHash = strict.ExpectedPlanHash,
+            AllowUnmatchedMarkings = true,
+            Items = strict.Items
+        };
+
+        Assert.NotEqual(
+            EdoUnifiedImportIdempotency.Compute(2, strict),
+            EdoUnifiedImportIdempotency.Compute(2, relaxed));
+    }
+
     private static EdoUnifiedImportApplyRequestDto Request(
         bool reverse,
         IReadOnlyCollection<int>? productTableIds = null,

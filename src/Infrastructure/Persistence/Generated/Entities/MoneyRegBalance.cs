@@ -8,6 +8,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("money_reg_balance")]
 [Index("CurrencyId", Name = "idx_money_reg_balance_currency_id")]
+[Index("DirectionId", Name = "idx_money_reg_balance_direction_id")]
 [Index("DocDate", Name = "idx_money_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_money_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_money_reg_balance_organization_id")]
@@ -36,9 +37,6 @@ public partial class MoneyRegBalance
     [Column("source_id")]
     public int SourceId { get; set; }
 
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
-
     [Column("currency_id")]
     public short CurrencyId { get; set; }
 
@@ -61,17 +59,20 @@ public partial class MoneyRegBalance
     [Column("reversal_entry_id")]
     public long? ReversalEntryId { get; set; }
 
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
     [ForeignKey("CurrencyId")]
     [InverseProperty("MoneyRegBalances")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
+    [ForeignKey("DirectionId")]
+    [InverseProperty("MoneyRegBalances")]
+    public virtual CmnMovementDirection Direction { get; set; } = null!;
+
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("MoneyRegBalances")]
     public virtual CmnDocumentType DocumentType { get; set; } = null!;
-
-    [ForeignKey("OperationTypeId")]
-    [InverseProperty("MoneyRegBalances")]
-    public virtual CmnOperationType OperationType { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("MoneyRegBalances")]

@@ -25,10 +25,6 @@ public partial class EdoImportCandidateLine
     [StringLength(50)]
     public string? CatalogCode { get; set; }
 
-    [Column("provider_product_name")]
-    [StringLength(500)]
-    public string? ProviderProductName { get; set; }
-
     [Column("package_code")]
     [StringLength(50)]
     public string? PackageCode { get; set; }
@@ -88,6 +84,13 @@ public partial class EdoImportCandidateLine
 
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedDate { get; set; }
+
+    /// <summary>
+    /// Normalized provider product name snapshot; nullable for historical rows created before this column.
+    /// </summary>
+    [Column("provider_product_name")]
+    [StringLength(500)]
+    public string? ProviderProductName { get; set; }
 
     [ForeignKey("CandidateId")]
     [InverseProperty("EdoImportCandidateLines")]

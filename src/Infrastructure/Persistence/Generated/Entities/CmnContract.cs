@@ -29,17 +29,6 @@ public partial class CmnContract
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
 
-    [Column("provider_code")]
-    [StringLength(20)]
-    public string? ProviderCode { get; set; }
-
-    [Column("provider_contract_number")]
-    [StringLength(100)]
-    public string? ProviderContractNumber { get; set; }
-
-    [Column("provider_contract_date")]
-    public DateOnly? ProviderContractDate { get; set; }
-
     [Column("contract_date", TypeName = "timestamp without time zone")]
     public DateTime ContractDate { get; set; }
 
@@ -64,6 +53,26 @@ public partial class CmnContract
 
     [Column("description")]
     public string? Description { get; set; }
+
+    /// <summary>
+    /// EDO provider identity; nullable for contracts not explicitly reconciled with provider data.
+    /// </summary>
+    [Column("provider_code")]
+    [StringLength(20)]
+    public string? ProviderCode { get; set; }
+
+    /// <summary>
+    /// Exact provider contract number; separate from the locally generated contract_number.
+    /// </summary>
+    [Column("provider_contract_number")]
+    [StringLength(100)]
+    public string? ProviderContractNumber { get; set; }
+
+    /// <summary>
+    /// Exact provider contract date used with provider code and number for idempotency.
+    /// </summary>
+    [Column("provider_contract_date")]
+    public DateOnly? ProviderContractDate { get; set; }
 
     [InverseProperty("Contract")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();

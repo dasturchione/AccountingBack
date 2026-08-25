@@ -122,6 +122,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnLanguage> CmnLanguages { get; set; }
 
+    public virtual DbSet<CmnMovementDirection> CmnMovementDirections { get; set; }
+
+    public virtual DbSet<CmnMovementDirectionTranslation> CmnMovementDirectionTranslations { get; set; }
+
     public virtual DbSet<CmnMxikCatalog> CmnMxikCatalogs { get; set; }
 
     public virtual DbSet<CmnNotificationType> CmnNotificationTypes { get; set; }
@@ -828,11 +832,11 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("bank_operation_currency_id_fkey");
 
-            entity.HasOne(d => d.OffsetAccount).WithMany(p => p.BankOperationOffsetAccounts).HasConstraintName("bank_operation_offset_account_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.BankOperations)
+            entity.HasOne(d => d.Direction).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("bank_operation_operation_type_id_fkey");
+                .HasConstraintName("bank_operation_direction_id_fkey");
+
+            entity.HasOne(d => d.OffsetAccount).WithMany(p => p.BankOperationOffsetAccounts).HasConstraintName("bank_operation_offset_account_id_fkey");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.BankOperations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -954,21 +958,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cmn_contract_pkey");
 
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.HasIndex(e => new
-                {
-                    e.OrganizationId,
-                    e.CounterpartyId,
-                    e.ProviderCode,
-                    e.ProviderContractNumber,
-                    e.ProviderContractDate
-                })
+            entity.HasIndex(e => new { e.OrganizationId, e.CounterpartyId, e.ProviderCode, e.ProviderContractNumber, e.ProviderContractDate }, "ux_cmn_contract_provider_identity")
                 .IsUnique()
-                .HasFilter("provider_code IS NOT NULL AND provider_contract_number IS NOT NULL AND provider_contract_date IS NOT NULL")
-                .HasDatabaseName("ux_cmn_contract_provider_identity");
-            entity.ToTable(table => table.HasCheckConstraint(
-                "ck_cmn_contract_provider_code",
-                "provider_code IS NULL OR provider_code IN ('EDOCS', 'DIDOX')"));
+                .HasFilter("((provider_code IS NOT NULL) AND (provider_contract_number IS NOT NULL) AND (provider_contract_date IS NOT NULL))");
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.ProviderCode).HasComment("EDO provider identity; nullable for contracts not explicitly reconciled with provider data.");
+            entity.Property(e => e.ProviderContractDate).HasComment("Exact provider contract date used with provider code and number for idempotency.");
+            entity.Property(e => e.ProviderContractNumber).HasComment("Exact provider contract number; separate from the locally generated contract_number.");
 
             entity.HasOne(d => d.ContractType).WithMany(p => p.CmnContracts)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1283,6 +1280,26 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.CmnLanguages)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("cmn_language_state_id_fkey");
+        });
+
+        modelBuilder.Entity<CmnMovementDirection>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cmn_movement_direction_pkey");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<CmnMovementDirectionTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.MovementDirectionId, e.LanguageId }).HasName("cmn_movement_direction_translation_pkey");
+
+            entity.HasOne(d => d.Language).WithMany(p => p.CmnMovementDirectionTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_movement_direction_translation_language_id_fkey");
+
+            entity.HasOne(d => d.MovementDirection).WithMany(p => p.CmnMovementDirectionTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_movement_direction_translation_movement_direction_id_fkey");
         });
 
         modelBuilder.Entity<CmnMxikCatalog>(entity =>
@@ -1689,7 +1706,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.MappingStatus).HasDefaultValueSql("'UNRESOLVED'::character varying");
-            entity.Property(e => e.ProviderProductName).HasMaxLength(500);
+            entity.Property(e => e.ProviderProductName).HasComment("Normalized provider product name snapshot; nullable for historical rows created before this column.");
 
             entity.HasOne(d => d.Candidate).WithMany(p => p.EdoImportCandidateLines).HasConstraintName("edo_import_candidate_line_candidate_id_fkey");
 
@@ -1724,24 +1741,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.CandidateLine).WithMany(p => p.EdoImportCandidateMarkings).HasConstraintName("edo_import_candidate_marking_candidate_line_id_fkey");
         });
 
-        modelBuilder.Entity<EdoProviderProductMapping>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("edo_provider_product_mapping_pkey");
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.HasOne<OrgOrganization>().WithMany()
-                .HasForeignKey(e => e.OrganizationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("edo_provider_product_mapping_organization_id_fkey");
-            entity.HasOne<InvProduct>().WithMany()
-                .HasForeignKey(e => new { e.OrganizationId, e.ProductId })
-                .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("edo_provider_product_mapping_product_organization_fkey");
-        });
-
         modelBuilder.Entity<EdoImportJob>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("edo_import_job_pkey");
+
+            entity.HasIndex(e => new { e.BulkImportStatus, e.Id }, "idx_edo_import_job_bulk_status").HasFilter("((bulk_import_status)::text = ANY ((ARRAY['QUEUED'::character varying, 'RUNNING'::character varying])::text[]))");
 
             entity.HasIndex(e => e.OrganizationId, "ux_edo_import_job_active_organization")
                 .IsUnique()
@@ -1767,6 +1771,26 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PageSize).HasDefaultValue(20);
 
             entity.HasOne(d => d.Job).WithMany(p => p.EdoImportJobProviders).HasConstraintName("edo_import_job_provider_job_id_fkey");
+        });
+
+        modelBuilder.Entity<EdoProviderProductMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("edo_provider_product_mapping_pkey");
+
+            entity.ToTable("edo_provider_product_mapping", tb => tb.HasComment("Organization-scoped explicit mapping from an exact EDO provider product identity to a local product."));
+
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+            entity.Property(e => e.PackageCode).HasDefaultValueSql("''::character varying");
+
+            entity.HasOne(d => d.Organization).WithMany(p => p.EdoProviderProductMappings)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_provider_product_mapping_organization_id_fkey");
+
+            entity.HasOne(d => d.InvProduct).WithMany(p => p.EdoProviderProductMappings)
+                .HasPrincipalKey(p => new { p.OrganizationId, p.Id })
+                .HasForeignKey(d => new { d.OrganizationId, d.ProductId })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("edo_provider_product_mapping_product_organization_fkey");
         });
 
         modelBuilder.Entity<FaAsset>(entity =>
@@ -2403,6 +2427,10 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
+            entity.HasOne(d => d.Direction).WithMany(p => p.InvInventoryAdjustmentDocs)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_inventory_adjustment_doc_direction_id_fkey");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.InvInventoryAdjustmentDocs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_inventory_adjustment_doc_organization_id_fkey");
@@ -2662,13 +2690,13 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
 
+            entity.HasOne(d => d.Direction).WithMany(p => p.InvRegBalances)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_reg_balance_direction_id_fkey");
+
             entity.HasOne(d => d.DocumentType).WithMany(p => p.InvRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_operation_type_id_fkey");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.InvRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2839,6 +2867,10 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("inv_warehouse_product_movement_pkey");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
+
+            entity.HasOne(d => d.Direction).WithMany(p => p.InvWarehouseProductMovements)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("inv_warehouse_product_movement_direction_id_fkey");
 
             entity.HasOne(d => d.DocumentType).WithMany(p => p.InvWarehouseProductMovements)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -3035,13 +3067,13 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("money_reg_balance_currency_id_fkey");
 
+            entity.HasOne(d => d.Direction).WithMany(p => p.MoneyRegBalances)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("money_reg_balance_direction_id_fkey");
+
             entity.HasOne(d => d.DocumentType).WithMany(p => p.MoneyRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("money_reg_balance_document_type_id_fkey");
-
-            entity.HasOne(d => d.OperationType).WithMany(p => p.MoneyRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("money_reg_balance_operation_type_id_fkey");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.MoneyRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)

@@ -50,9 +50,6 @@ public partial class EdoDocument
     [Column("document_date")]
     public DateOnly? DocumentDate { get; set; }
 
-    [Column("document_date_time", TypeName = "timestamp without time zone")]
-    public DateTime? DocumentDateTime { get; set; }
-
     [Column("status")]
     [StringLength(40)]
     public string Status { get; set; } = null!;
@@ -81,6 +78,9 @@ public partial class EdoDocument
 
     [Column("updated_at", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedAt { get; set; }
+
+    [Column("document_date_time", TypeName = "timestamp without time zone")]
+    public DateTime? DocumentDateTime { get; set; }
 
     [InverseProperty("Document")]
     public virtual ICollection<EdoDocumentSigningSession> EdoDocumentSigningSessions { get; set; } = new List<EdoDocumentSigningSession>();

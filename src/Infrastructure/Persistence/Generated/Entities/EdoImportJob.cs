@@ -82,6 +82,12 @@ public partial class EdoImportJob
     [Column("skipped_count")]
     public int SkippedCount { get; set; }
 
+    [Column("created_date", TypeName = "timestamp without time zone")]
+    public DateTime CreatedDate { get; set; }
+
+    [Column("updated_date", TypeName = "timestamp without time zone")]
+    public DateTime? UpdatedDate { get; set; }
+
     [Column("bulk_import_status")]
     [StringLength(30)]
     public string? BulkImportStatus { get; set; }
@@ -127,12 +133,6 @@ public partial class EdoImportJob
 
     [Column("bulk_cancel_requested_at", TypeName = "timestamp without time zone")]
     public DateTime? BulkCancelRequestedAt { get; set; }
-
-    [Column("created_date", TypeName = "timestamp without time zone")]
-    public DateTime CreatedDate { get; set; }
-
-    [Column("updated_date", TypeName = "timestamp without time zone")]
-    public DateTime? UpdatedDate { get; set; }
 
     [InverseProperty("EdoImportJob")]
     public virtual ICollection<EdoImportCandidate> EdoImportCandidates { get; set; } = new List<EdoImportCandidate>();

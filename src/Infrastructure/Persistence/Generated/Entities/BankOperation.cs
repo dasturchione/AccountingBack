@@ -11,9 +11,9 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("BankChartAccountId", Name = "idx_bank_operation_bank_chart_account_id")]
 [Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
+[Index("DirectionId", Name = "idx_bank_operation_direction_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
 [Index("OffsetAccountId", Name = "idx_bank_operation_offset_account_id")]
-[Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
 [Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 [Index("StateId", Name = "idx_bank_operation_state_id")]
@@ -29,9 +29,6 @@ public partial class BankOperation
 
     [Column("bank_account_id")]
     public int BankAccountId { get; set; }
-
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
 
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
@@ -94,6 +91,9 @@ public partial class BankOperation
     [Column("offset_account_id")]
     public int? OffsetAccountId { get; set; }
 
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
     [ForeignKey("BankAccountId")]
     [InverseProperty("BankOperations")]
     public virtual OrgBankAccount BankAccount { get; set; } = null!;
@@ -118,13 +118,13 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual CmnCurrency Currency { get; set; } = null!;
 
+    [ForeignKey("DirectionId")]
+    [InverseProperty("BankOperations")]
+    public virtual CmnMovementDirection Direction { get; set; } = null!;
+
     [ForeignKey("OffsetAccountId")]
     [InverseProperty("BankOperationOffsetAccounts")]
     public virtual AccChartAccount? OffsetAccount { get; set; }
-
-    [ForeignKey("OperationTypeId")]
-    [InverseProperty("BankOperations")]
-    public virtual CmnOperationType OperationType { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("BankOperations")]

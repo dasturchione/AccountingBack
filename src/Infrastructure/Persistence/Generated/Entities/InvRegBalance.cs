@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_reg_balance")]
+[Index("DirectionId", Name = "idx_inv_reg_balance_direction_id")]
 [Index("DocDate", Name = "idx_inv_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_inv_reg_balance_document")]
 [Index("DocumentTypeId", "DocumentId", "ProductId", "ProductTableId", Name = "idx_inv_reg_balance_document_product_id", IsUnique = true)]
@@ -37,9 +38,6 @@ public partial class InvRegBalance
     [Column("product_id")]
     public int ProductId { get; set; }
 
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
-
     [Column("quantity")]
     [Precision(18, 3)]
     public decimal Quantity { get; set; }
@@ -66,13 +64,16 @@ public partial class InvRegBalance
     [Column("product_table_id")]
     public int? ProductTableId { get; set; }
 
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
+    [ForeignKey("DirectionId")]
+    [InverseProperty("InvRegBalances")]
+    public virtual CmnMovementDirection Direction { get; set; } = null!;
+
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("InvRegBalances")]
     public virtual CmnDocumentType DocumentType { get; set; } = null!;
-
-    [ForeignKey("OperationTypeId")]
-    [InverseProperty("InvRegBalances")]
-    public virtual CmnOperationType OperationType { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("InvRegBalances")]

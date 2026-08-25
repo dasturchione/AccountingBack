@@ -17,6 +17,7 @@
 00_sys/0014_create_table_sys_user_kind_translation.sql
 00_sys/0015_alter_table_sys_user.sql
 00_sys/0016_alter_table_sys_role.sql
+00_sys/0017_insert_movement_direction_manual_permission.sql
 01_cmn/0101_create_cmn_state.sql
 01_cmn/0102_create_cmn_region.sql
 01_cmn/0103_create_cmn_district.sql

@@ -8,7 +8,7 @@ namespace Domain.Entities;
 [Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
 [Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
 [Index("DocDate", Name = "idx_bank_operation_doc_date")]
-[Index("OperationTypeId", Name = "idx_bank_operation_operation_type_id")]
+[Index("DirectionId", Name = "idx_bank_operation_direction_id")]
 [Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
 [Index("StateId", Name = "idx_bank_operation_state_id")]
 [Index("StatusId", Name = "idx_bank_operation_status_id")]
@@ -26,8 +26,8 @@ public partial class BankOperation
     [Column("bank_account_id")]
     public int BankAccountId { get; set; }
 
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
 
     [Column("payment_type_id")]
     public short? PaymentTypeId { get; set; }
@@ -117,9 +117,9 @@ public partial class BankOperation
     [InverseProperty("BankOperations")]
     public virtual Currency Currency { get; set; } = null!;
 
-    [ForeignKey("OperationTypeId")]
-    [InverseProperty("BankOperations")]
-    public virtual OperationType OperationType { get; set; } = null!;
+    [ForeignKey(nameof(DirectionId))]
+    [InverseProperty(nameof(MovementDirection.BankOperations))]
+    public virtual MovementDirection Direction { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("BankOperations")]

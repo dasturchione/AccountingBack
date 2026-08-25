@@ -76,6 +76,9 @@ public partial class CmnLanguage
     public virtual ICollection<CmnDocumentTypeTranslation> CmnDocumentTypeTranslations { get; set; } = new List<CmnDocumentTypeTranslation>();
 
     [InverseProperty("Language")]
+    public virtual ICollection<CmnMovementDirectionTranslation> CmnMovementDirectionTranslations { get; set; } = new List<CmnMovementDirectionTranslation>();
+
+    [InverseProperty("Language")]
     public virtual ICollection<CmnOperationTypeTranslation> CmnOperationTypeTranslations { get; set; } = new List<CmnOperationTypeTranslation>();
 
     [InverseProperty("Language")]

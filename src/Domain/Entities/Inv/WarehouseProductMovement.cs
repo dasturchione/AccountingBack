@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Domain.Entities;
 
 [Table("inv_warehouse_product_movement")]
+[Index(nameof(DirectionId), Name = "idx_inv_warehouse_product_movement_direction_id")]
 public partial class WarehouseProductMovement
 {
     [Key]
@@ -33,14 +34,18 @@ public partial class WarehouseProductMovement
     [Precision(19, 6)]
     public decimal Quantity { get; set; }
 
-    [Column("movement_sign")]
-    public short MovementSign { get; set; }
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
 
     [Column("movement_date", TypeName = "timestamp without time zone")]
     public DateTime MovementDate { get; set; }
 
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
+
+    [ForeignKey(nameof(DirectionId))]
+    [InverseProperty(nameof(MovementDirection.WarehouseProductMovements))]
+    public virtual MovementDirection Direction { get; set; } = null!;
 
     [ForeignKey("DocumentTypeId")]
     [InverseProperty(nameof(DocumentType.WarehouseProductMovements))]

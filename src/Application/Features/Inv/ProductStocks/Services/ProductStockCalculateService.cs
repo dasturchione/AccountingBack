@@ -251,7 +251,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
                 DocumentId = x.DocumentId,
                 ProductId = x.ProductId,
                 ProductGroupId = x.Product.ProductGroupId,
-                QuantityDelta = x.MovementSign * x.Quantity
+                QuantityDelta = x.DirectionId * x.Quantity
             })
             .Build();
 

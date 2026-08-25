@@ -217,6 +217,14 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetOperationTypes)]
+    [HttpGet("movement-directions")]
+    public async Task<IActionResult> GetMovementDirections(CancellationToken ct)
+    {
+        var result = await _manualService.GetMovementDirectionsAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetTaxTypes)]
     [HttpGet("tax-types")]
     public async Task<IActionResult> GetTaxTypes(CancellationToken ct)

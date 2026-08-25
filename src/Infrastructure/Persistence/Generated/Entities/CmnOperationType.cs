@@ -33,9 +33,6 @@ public partial class CmnOperationType
     public virtual ICollection<AccRegEntry> AccRegEntries { get; set; } = new List<AccRegEntry>();
 
     [InverseProperty("OperationType")]
-    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
-
-    [InverseProperty("OperationType")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("OperationType")]
@@ -43,12 +40,6 @@ public partial class CmnOperationType
 
     [InverseProperty("OperationType")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
-
-    [InverseProperty("OperationType")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("OperationType")]
-    public virtual ICollection<MoneyRegBalance> MoneyRegBalances { get; set; } = new List<MoneyRegBalance>();
 
     [ForeignKey("StateId")]
     [InverseProperty("CmnOperationTypes")]

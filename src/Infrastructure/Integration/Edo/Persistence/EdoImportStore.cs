@@ -413,7 +413,7 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
                     .Where(line => line.Markings.Length == 0).ToArray(),
                 EdoImportMarkingPolicy.CountMismatch => goodsLines
                     .Where(line => IsPositiveWholeQuantity(line.Quantity)
-                        && line.Markings.Length != decimal.ToInt32(line.Quantity!.Value)).ToArray(),
+                        && line.Markings.Length > decimal.ToInt32(line.Quantity!.Value)).ToArray(),
                 EdoImportMarkingPolicy.Duplicate => goodsLines
                     .Where(line => line.Markings.Distinct(StringComparer.Ordinal).Count()
                         != line.Markings.Length).ToArray(),

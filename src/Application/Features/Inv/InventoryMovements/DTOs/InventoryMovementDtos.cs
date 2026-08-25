@@ -9,7 +9,7 @@ public sealed class InventoryMovementListDto
     public int WarehouseId { get; set; }
     public int ProductId { get; set; }
     public int? ProductTableId { get; set; }
-    public short OperationTypeId { get; set; }
+    public short DirectionId { get; set; }
     public decimal Quantity { get; set; }
     public decimal Amount { get; set; }
     public DateTime DocDate { get; set; }

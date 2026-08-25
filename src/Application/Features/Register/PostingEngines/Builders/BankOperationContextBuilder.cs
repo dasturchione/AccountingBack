@@ -124,9 +124,9 @@ public class BankOperationContextBuilder :
     {
         var content = ResolvePaymentMethod(operation.PaymentTypeId, paymentTypeMap);
 
-        return operation.OperationTypeId switch
+        return operation.DirectionId switch
         {
-            OperationTypeIdConst.IN => new PostingEntryContext
+            MovementDirectionIdConst.IN => new PostingEntryContext
             {
                 DebitAccountId = operation.BankChartAccountId,
                 CreditAccountId = operation.OffsetAccountId,
@@ -134,7 +134,7 @@ public class BankOperationContextBuilder :
                 Content = content,
                 SourceLineId = sourceLineId
             },
-            OperationTypeIdConst.OUT => new PostingEntryContext
+            MovementDirectionIdConst.OUT => new PostingEntryContext
             {
                 DebitAccountId = operation.OffsetAccountId,
                 CreditAccountId = operation.BankChartAccountId,
@@ -143,9 +143,9 @@ public class BankOperationContextBuilder :
                 SourceLineId = sourceLineId
             },
             _ => throw new ArgumentOutOfRangeException(
-                nameof(operation.OperationTypeId),
-                operation.OperationTypeId,
-                "Unsupported bank operation type for accounting posting.")
+                nameof(operation.DirectionId),
+                operation.DirectionId,
+                "Unsupported bank movement direction for accounting posting.")
         };
     }
 

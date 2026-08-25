@@ -52,6 +52,11 @@ public static class InventoryAdjustmentErrors
     public static Error InvalidAdjustmentType(string adjustmentType, short? languageId = null) =>
         Error.Business("InventoryAdjustment.InvalidAdjustmentType", $"Adjustment type '{adjustmentType}' is not supported.");
 
+    public static Error InvalidDirection(string adjustmentType, short directionId, short? languageId = null) =>
+        Error.Business(
+            "InventoryAdjustment.InvalidDirection",
+            $"Direction {directionId} is not valid for adjustment type '{adjustmentType}'.");
+
     public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) =>
         Error.Conflict("InventoryAdjustment.BusinessEffectsAlreadyExist", $"Inventory adjustment with id {id} already has inventory movements.");
 

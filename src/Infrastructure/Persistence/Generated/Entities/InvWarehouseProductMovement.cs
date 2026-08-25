@@ -8,6 +8,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 
 [Table("inv_warehouse_product_movement")]
 [Index("OrganizationId", "MovementDate", Name = "idx_inv_warehouse_product_movement_date")]
+[Index("DirectionId", Name = "idx_inv_warehouse_product_movement_direction_id")]
 [Index("OrganizationId", "DocumentTypeId", "DocumentId", Name = "idx_inv_warehouse_product_movement_document")]
 [Index("OrganizationId", "DocumentTypeId", "DocumentId", "DocumentLineId", Name = "idx_inv_warehouse_product_movement_document_line")]
 [Index("OrganizationId", "WarehouseId", "ProductId", Name = "idx_inv_warehouse_product_movement_warehouse_product")]
@@ -45,8 +46,12 @@ public partial class InvWarehouseProductMovement
     [Column("created_date", TypeName = "timestamp without time zone")]
     public DateTime CreatedDate { get; set; }
 
-    [Column("movement_sign")]
-    public short MovementSign { get; set; }
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
+    [ForeignKey("DirectionId")]
+    [InverseProperty("InvWarehouseProductMovements")]
+    public virtual CmnMovementDirection Direction { get; set; } = null!;
 
     [ForeignKey("DocumentTypeId")]
     [InverseProperty("InvWarehouseProductMovements")]

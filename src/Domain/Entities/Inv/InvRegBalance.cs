@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("inv_reg_balance")]
+[Index("DirectionId", Name = "idx_inv_reg_balance_direction_id")]
 [Index("DocDate", Name = "idx_inv_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_inv_reg_balance_document")]
 [Index("DocumentTypeId", "DocumentId", "ProductId", "ProductTableId", Name = "idx_inv_reg_balance_document_product_id", IsUnique = true)]
@@ -35,8 +36,8 @@ public partial class InvRegBalance
     [Column("product_id")]
     public int ProductId { get; set; }
 
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
 
     [Column("quantity")]
     [Precision(18, 3)]
@@ -67,8 +68,9 @@ public partial class InvRegBalance
     [ForeignKey(nameof(DocumentTypeId))]
     public virtual DocumentType DocumentType { get; set; } = null!;
 
-    [ForeignKey(nameof(OperationTypeId))]
-    public virtual OperationType OperationType { get; set; } = null!;
+    [ForeignKey(nameof(DirectionId))]
+    [InverseProperty(nameof(MovementDirection.InvRegBalances))]
+    public virtual MovementDirection Direction { get; set; } = null!;
 
     [ForeignKey(nameof(OrganizationId))]
     public virtual Organization Organization { get; set; } = null!;

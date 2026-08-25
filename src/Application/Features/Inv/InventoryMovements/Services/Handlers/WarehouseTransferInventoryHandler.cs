@@ -14,15 +14,15 @@ public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<Wareh
         {
             if (!line.Product.IsPieceTracked)
             {
-                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, null, line.Quantity, 0m, line.Id));
-                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, null, line.Quantity, 0m, line.Id));
+                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, MovementDirectionIdConst.OUT, null, line.Quantity, 0m, line.Id));
+                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, MovementDirectionIdConst.IN, null, line.Quantity, 0m, line.Id));
                 continue;
             }
 
             foreach (var table in line.WarehouseTransferDocTables)
             {
-                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, OperationTypeIdConst.OUT, table.ProductTableId, 1m, table.CostPrice, table.Id));
-                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, OperationTypeIdConst.IN, table.ProductTableId, 1m, table.CostPrice, table.Id));
+                entries.Add(CreateEntry(document, line, document.SourceWarehouseId, MovementDirectionIdConst.OUT, table.ProductTableId, 1m, table.CostPrice, table.Id));
+                entries.Add(CreateEntry(document, line, document.DestinationWarehouseId, MovementDirectionIdConst.IN, table.ProductTableId, 1m, table.CostPrice, table.Id));
             }
         }
 
@@ -33,7 +33,7 @@ public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<Wareh
         WarehouseTransferDoc document,
         WarehouseTransferLine line,
         int warehouseId,
-        short operationTypeId,
+        short directionId,
         int? productTableId,
         decimal quantity,
         decimal amount,
@@ -46,7 +46,7 @@ public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<Wareh
             WarehouseId = warehouseId,
             ProductId = line.ProductId,
             ProductTableId = productTableId,
-            OperationTypeId = operationTypeId,
+            DirectionId = directionId,
             Quantity = quantity,
             Amount = amount,
             DocDate = document.DocDate,

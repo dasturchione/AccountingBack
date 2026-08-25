@@ -51,10 +51,10 @@ public class CashBookReadRepository : ICashBookReadRepository
         }
 
         var totalReceipt = await SumAsync(
-            filteredEntries.Select(x => (decimal?)(x.OperationTypeId == OperationTypeIdConst.IN ? x.Amount : 0m)),
+            filteredEntries.Select(x => (decimal?)(x.DirectionId == MovementDirectionIdConst.IN ? x.Amount : 0m)),
             ct);
         var totalPayment = await SumAsync(
-            filteredEntries.Select(x => (decimal?)(x.OperationTypeId == OperationTypeIdConst.OUT ? x.Amount : 0m)),
+            filteredEntries.Select(x => (decimal?)(x.DirectionId == MovementDirectionIdConst.OUT ? x.Amount : 0m)),
             ct);
 
         return new CashBookReadResult
@@ -88,7 +88,7 @@ public class CashBookReadRepository : ICashBookReadRepository
                 Comment = document.Comment,
                 CurrencyId = document.CurrencyId,
                 CurrencyName = document.Currency.Code,
-                OperationTypeId = entry.OperationTypeId,
+                DirectionId = entry.DirectionId,
                 Amount = entry.Amount
             };
 
@@ -115,18 +115,18 @@ public class CashBookReadRepository : ICashBookReadRepository
             CashOperationId = row.CashOperationId,
             DocDate = row.DocDate,
             DocNumber = row.DocNumber,
-            DocumentKind = row.OperationTypeId == OperationTypeIdConst.IN ? "PKO" : "RKO",
+            DocumentKind = row.DirectionId == MovementDirectionIdConst.IN ? "PKO" : "RKO",
             CounterpartyId = row.CounterpartyId,
             CounterpartyName = row.CounterpartyName,
             Comment = row.Comment,
             CurrencyId = row.CurrencyId,
             CurrencyName = row.CurrencyName,
-            Receipt = row.OperationTypeId == OperationTypeIdConst.IN ? row.Amount : 0m,
-            Payment = row.OperationTypeId == OperationTypeIdConst.OUT ? row.Amount : 0m
+            Receipt = row.DirectionId == MovementDirectionIdConst.IN ? row.Amount : 0m,
+            Payment = row.DirectionId == MovementDirectionIdConst.OUT ? row.Amount : 0m
         };
 
     private static async Task<decimal> SumNetAsync(IQueryable<CashBookQueryRow> query, CancellationToken ct) =>
-        await SumAsync(query.Select(x => (decimal?)(x.OperationTypeId == OperationTypeIdConst.IN ? x.Amount : -x.Amount)), ct);
+        await SumAsync(query.Select(x => (decimal?)(x.DirectionId * x.Amount)), ct);
 
     private static async Task<decimal> SumAsync(IQueryable<decimal?> query, CancellationToken ct) =>
         (await query.SumAsync(ct)) ?? 0m;
@@ -142,7 +142,7 @@ public class CashBookReadRepository : ICashBookReadRepository
         public string? Comment { get; set; }
         public short CurrencyId { get; set; }
         public string CurrencyName { get; set; } = null!;
-        public short OperationTypeId { get; set; }
+        public short DirectionId { get; set; }
         public decimal Amount { get; set; }
     }
 }

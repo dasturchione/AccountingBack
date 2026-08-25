@@ -13,8 +13,8 @@ public class BankOperationDto
     public string BankName { get; set; } = null!;
     public string? BankMfo { get; set; }
     public string? BankInn { get; set; }
-    public short OperationTypeId { get; set; }
-    public string OperationTypeName { get; set; } = null!;
+    public short DirectionId { get; set; }
+    public string DirectionName { get; set; } = null!;
     public short? PaymentTypeId { get; set; }
     public string? PaymentTypeName { get; set; }
     public int? BankChartAccountId { get; set; }

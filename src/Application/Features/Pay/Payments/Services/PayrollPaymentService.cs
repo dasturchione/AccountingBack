@@ -317,7 +317,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                     var createResult = await _bankOperationService.CreateAsync(new BankOperationCreateDto
                     {
                         BankAccountId = batch.BankAccountId!.Value,
-                        OperationTypeId = OperationTypeIdConst.OUT,
+                        DirectionId = MovementDirectionIdConst.OUT,
                         PaymentTypeId = PaymentTypeIdConst.BANK,
                         BankChartAccountId = batch.SourceChartAccountId,
                         OffsetAccountId = offsetAccountId,

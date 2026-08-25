@@ -81,6 +81,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InventoryAdjustmentType> InventoryAdjustmentTypes { get; set; }
     public virtual DbSet<MovementDirection> MovementDirections { get; set; }
     public virtual DbSet<MxikCatalog> MxikCatalogs { get; set; }
+    public virtual DbSet<MovementDirectionTranslation> MovementDirectionTranslations { get; set; }
     public virtual DbSet<OperationType> OperationTypes { get; set; }
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
     public virtual DbSet<PaymentMethod> PaymentMethods { get; set; }
@@ -777,6 +778,55 @@ public partial class AppDbContext : DbContext
                     .HasConstraintName("fk_acc_chart_account_preset_account_parent")
                     );
 
+        modelBuilder.Entity<MovementDirection>(entity =>
+        {
+            entity.HasKey(e => e.Id)
+                .HasName("cmn_movement_direction_pkey");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<MovementDirectionTranslation>(entity =>
+        {
+            entity.HasKey(e => new { e.MovementDirectionId, e.LanguageId })
+                .HasName("cmn_movement_direction_translation_pkey");
+
+            entity.HasOne(e => e.Language)
+                .WithMany(e => e.MovementDirectionTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_movement_direction_translation_language_id_fkey");
+
+            entity.HasOne(e => e.MovementDirection)
+                .WithMany(e => e.MovementDirectionTranslations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("cmn_movement_direction_translation_movement_direction_id_fkey");
+        });
+
+        modelBuilder.Entity<BankOperation>()
+            .HasOne(e => e.Direction)
+            .WithMany(e => e.BankOperations)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("bank_operation_direction_id_fkey");
+
+        modelBuilder.Entity<WarehouseProductMovement>()
+            .HasOne(e => e.Direction)
+            .WithMany(e => e.WarehouseProductMovements)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("inv_warehouse_product_movement_direction_id_fkey");
+
+        modelBuilder.Entity<InventoryAdjustmentDoc>()
+            .HasOne(e => e.Direction)
+            .WithMany(e => e.InventoryAdjustmentDocs)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("inv_inventory_adjustment_doc_direction_id_fkey");
+
+        modelBuilder.Entity<MoneyRegisterBalance>()
+            .HasOne(e => e.Direction)
+            .WithMany(e => e.MoneyRegisterBalances)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("money_reg_balance_direction_id_fkey");
+
         modelBuilder.Entity<WarehouseProduct>()
             .Property(x => x.AvailableQuantity)
             .HasComputedColumnSql("quantity - reserved_quantity - blocked_quantity", stored: true);
@@ -791,10 +841,10 @@ public partial class AppDbContext : DbContext
                 .WithMany()
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-            entity.HasOne(e => e.OperationType)
-                .WithMany()
+            entity.HasOne(e => e.Direction)
+                .WithMany(e => e.InvRegBalances)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_operation_type_id_fkey");
+                .HasConstraintName("inv_reg_balance_direction_id_fkey");
             entity.HasOne(e => e.Organization)
                 .WithMany()
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -842,9 +892,17 @@ public partial class AppDbContext : DbContext
                 "source_warehouse_id <> destination_warehouse_id"));
 
         modelBuilder.Entity<InventoryAdjustmentDoc>()
-            .ToTable(t => t.HasCheckConstraint(
-                "ck_inv_inventory_adjustment_doc_adjustment_type",
-                "adjustment_type in ('POSITIVE_ADJUSTMENT','NEGATIVE_ADJUSTMENT','WRITE_OFF','DAMAGE','LOSS','FOUND_STOCK','CORRECTION')"));
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "ck_inv_inventory_adjustment_doc_adjustment_type",
+                    "adjustment_type in ('POSITIVE_ADJUSTMENT','NEGATIVE_ADJUSTMENT','WRITE_OFF','DAMAGE','LOSS','FOUND_STOCK','CORRECTION')");
+                t.HasCheckConstraint(
+                    "ck_inv_inventory_adjustment_doc_type_direction",
+                    "(upper(adjustment_type) in ('POSITIVE_ADJUSTMENT','FOUND_STOCK') and direction_id = 1) or " +
+                    "(upper(adjustment_type) in ('NEGATIVE_ADJUSTMENT','WRITE_OFF','DAMAGE','LOSS') and direction_id = -1) or " +
+                    "(upper(adjustment_type) = 'CORRECTION' and direction_id in (-1,1))");
+            });
 
         modelBuilder.Entity<InventoryAdjustmentDoc>()
             .HasIndex(x => new { x.OrganizationId, x.DocNumber })

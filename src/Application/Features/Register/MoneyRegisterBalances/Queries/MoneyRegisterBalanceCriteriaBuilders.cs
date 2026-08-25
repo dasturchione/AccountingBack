@@ -16,7 +16,7 @@ public class MoneyRegisterBalanceByListFilterCriteriaBuilder : ICriteriaBuilder<
                     (!options.DocumentId.HasValue || x.DocumentId == options.DocumentId.Value) &&
                     (sourceTypePattern == null || EF.Functions.Like(x.SourceType, sourceTypePattern)) &&
                     (!options.SourceId.HasValue || x.SourceId == options.SourceId.Value) &&
-                    (!options.OperationTypeId.HasValue || x.OperationTypeId == options.OperationTypeId.Value) &&
+                    (!options.DirectionId.HasValue || x.DirectionId == options.DirectionId.Value) &&
                     (!options.CurrencyId.HasValue || x.CurrencyId == options.CurrencyId.Value) &&
                     (options.DateFrom == null || x.DocDate >= options.DateFrom) &&
                     (options.DateTo == null || x.DocDate <= options.DateTo);

@@ -3,7 +3,7 @@ namespace Application.Features.BankOperations;
 public class BankOperationBaseDto
 {
     public int BankAccountId { get; set; }
-    public short OperationTypeId { get; set; }
+    public short DirectionId { get; set; }
     public short? PaymentTypeId { get; set; }
     public int? BankChartAccountId { get; set; }
     public int? OffsetAccountId { get; set; }

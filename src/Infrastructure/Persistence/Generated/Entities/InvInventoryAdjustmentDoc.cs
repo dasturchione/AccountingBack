@@ -9,6 +9,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Table("inv_inventory_adjustment_doc")]
 [Index("AdjustmentType", Name = "idx_inv_inventory_adjustment_doc_adjustment_type")]
 [Index("CancelledByUserId", Name = "idx_inv_inventory_adjustment_doc_cancelled_by_user_id")]
+[Index("DirectionId", Name = "idx_inv_inventory_adjustment_doc_direction_id")]
 [Index("DocDate", Name = "idx_inv_inventory_adjustment_doc_doc_date")]
 [Index("OrganizationId", Name = "idx_inv_inventory_adjustment_doc_organization_id")]
 [Index("PostedByUserId", Name = "idx_inv_inventory_adjustment_doc_posted_by_user_id")]
@@ -63,6 +64,13 @@ public partial class InvInventoryAdjustmentDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
+    [ForeignKey("DirectionId")]
+    [InverseProperty("InvInventoryAdjustmentDocs")]
+    public virtual CmnMovementDirection Direction { get; set; } = null!;
 
     [InverseProperty("Owner")]
     public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();

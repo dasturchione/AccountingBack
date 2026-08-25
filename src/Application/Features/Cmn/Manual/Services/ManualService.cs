@@ -41,6 +41,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<CostingMethod> _costingMethodQuery;
     private readonly IQueryRepository<DocumentType> _documentTypeQuery;
     private readonly IQueryRepository<OperationType> _operationTypeQuery;
+    private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly IQueryRepository<ContractType> _contractTypeQuery;
     private readonly IQueryRepository<Position> _positionQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
@@ -89,6 +90,7 @@ public class ManualService : IManualService
         IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
+        IQueryRepository<MovementDirection> movementDirectionQuery,
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<ContractType> contractTypeQuery,
@@ -142,6 +144,7 @@ public class ManualService : IManualService
         _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
+        _movementDirectionQuery = movementDirectionQuery;
         _taxTypeQuery = taxTypeQuery;
         _vatRateQuery = vatRateQuery;
         _contractTypeQuery = contractTypeQuery;
@@ -512,6 +515,21 @@ public class ManualService : IManualService
                                  .Build();
 
         return await _operationTypeQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<MovementDirection>()
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.Code
+            })
+            .OrderBy(x => x.Id)
+            .Build();
+
+        return await _movementDirectionQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default)

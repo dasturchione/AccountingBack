@@ -122,7 +122,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             if (!directionIdResult.IsSuccess)
                 return Result.Failure<long>(directionIdResult.Error);
 
-            var validationResult = await ValidateDraftAsync(organizationId, dto, ct);
+            var validationResult = await ValidateDraftAsync(organizationId, dto, directionIdResult.Value, ct);
             if (!validationResult.IsSuccess)
                 return Result.Failure<long>(validationResult.Error);
 
@@ -183,7 +183,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
             if (!directionIdResult.IsSuccess)
                 return Result.Failure(directionIdResult.Error);
 
-            var validationResult = await ValidateDraftAsync(_userContext.OrganizationId.Value, dto, ct);
+            var validationResult = await ValidateDraftAsync(_userContext.OrganizationId.Value, dto, directionIdResult.Value, ct);
             if (!validationResult.IsSuccess)
                 return Result.Failure(validationResult.Error);
 
@@ -320,7 +320,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<Result> ValidateDraftAsync(int organizationId, InventoryAdjustmentBaseDto dto, CancellationToken ct)
+    private async Task<Result> ValidateDraftAsync(int organizationId, InventoryAdjustmentBaseDto dto, short directionId, CancellationToken ct)
     {
         var organizationExists = await _organizationQuery.AnyAsync(x => x.Id == organizationId, ct);
         if (!organizationExists)
@@ -329,6 +329,9 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
         var normalizedType = dto.AdjustmentType.Trim().ToUpperInvariant();
         if (!AllowedAdjustmentTypes.Contains(normalizedType))
             return Result.Failure(InventoryAdjustmentErrors.InvalidAdjustmentType(dto.AdjustmentType, _userContext.LanguageId));
+
+        if (!InventoryAdjustmentDirectionPolicy.IsCompatible(normalizedType, directionId))
+            return Result.Failure(InventoryAdjustmentErrors.InvalidDirection(normalizedType, directionId, _userContext.LanguageId));
 
         var warehouseQuery = _queryBuilder.For<Warehouse>().Where(x => x.Id == dto.WarehouseId).Build();
         var warehouse = await _warehouseQuery.GetAsync(warehouseQuery, ct);
@@ -413,7 +416,7 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
 
                 if (!item.ProductTableId.HasValue)
                 {
-                    if (!IsPositiveFlow(normalizedType))
+                    if (directionId == MovementDirectionIdConst.OUT)
                         return Result.Failure(InventoryAdjustmentErrors.ProductTableNotFound(0, _userContext.LanguageId));
 
                     continue;
@@ -466,7 +469,4 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 CostPrice = item.CostPrice
             }).ToList()
         }).ToList();
-
-    private static bool IsPositiveFlow(string adjustmentType) =>
-        adjustmentType is "POSITIVE_ADJUSTMENT" or "FOUND_STOCK" or "CORRECTION";
 }

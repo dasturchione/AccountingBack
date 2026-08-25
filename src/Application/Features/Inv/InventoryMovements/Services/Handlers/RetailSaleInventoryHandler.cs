@@ -17,7 +17,7 @@ public sealed class RetailSaleInventoryHandler : IInventoryDocumentHandler<Retai
                 DocumentId = document.Id,
                 WarehouseId = document.WarehouseId,
                 ProductId = x.ProductId,
-                OperationTypeId = OperationTypeIdConst.OUT,
+                DirectionId = MovementDirectionIdConst.OUT,
                 Quantity = x.Quantity,
                 Amount = x.CostPrice * x.Quantity,
                 DocDate = document.DocDate,

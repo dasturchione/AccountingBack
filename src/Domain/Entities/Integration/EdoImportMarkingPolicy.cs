@@ -27,17 +27,15 @@ public static class EdoImportMarkingPolicy
             || quantity.Value > int.MaxValue
             || decimal.Truncate(quantity.Value) != quantity.Value)
             return QuantityInvalid;
-        if (markings.Count == 0)
-            return ProviderDataRequired;
         if (markings.Distinct(StringComparer.Ordinal).Count() != markings.Count)
             return Duplicate;
-        return markings.Count == decimal.ToInt32(quantity.Value)
+        return markings.Count <= decimal.ToInt32(quantity.Value)
             ? null
             : CountMismatch;
     }
 
     public static bool IsStructuralFailure(string? safeErrorCode) => safeErrorCode is
-        ProviderDataRequired or CountMismatch or Duplicate or QuantityInvalid;
+        ProviderDataRequired or Duplicate or QuantityInvalid;
 
     public static bool CanSkipConflict(string? safeErrorCode) => safeErrorCode is
         AlreadyUsed or CountMismatch or ProviderDataRequired or Duplicate or QuantityInvalid;

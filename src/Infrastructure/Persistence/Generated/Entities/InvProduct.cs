@@ -17,6 +17,7 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("Sku", Name = "idx_inv_product_sku")]
 [Index("StateId", Name = "idx_inv_product_state_id")]
 [Index("UnitId", Name = "idx_inv_product_unit_id")]
+[Index("OrganizationId", "Id", Name = "ux_inv_product_organization_id_id", IsUnique = true)]
 public partial class InvProduct
 {
     [Key]
@@ -91,6 +92,9 @@ public partial class InvProduct
 
     [InverseProperty("SelectedProduct")]
     public virtual ICollection<EdoImportCandidateLine> EdoImportCandidateLines { get; set; } = new List<EdoImportCandidateLine>();
+
+    [InverseProperty("InvProduct")]
+    public virtual ICollection<EdoProviderProductMapping> EdoProviderProductMappings { get; set; } = new List<EdoProviderProductMapping>();
 
     [InverseProperty("Product")]
     public virtual ICollection<InvInventoryAdjustmentLine> InvInventoryAdjustmentLines { get; set; } = new List<InvInventoryAdjustmentLine>();

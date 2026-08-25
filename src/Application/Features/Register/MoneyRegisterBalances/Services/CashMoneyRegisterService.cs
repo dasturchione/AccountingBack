@@ -61,9 +61,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
             DocumentId = entry.DocumentId,
             SourceType = entry.SourceType,
             SourceId = entry.SourceId,
-            OperationTypeId = entry.OperationTypeId == OperationTypeIdConst.IN
-                ? OperationTypeIdConst.OUT
-                : OperationTypeIdConst.IN,
+            DirectionId = MovementDirectionIdConst.Reverse(entry.DirectionId),
             CurrencyId = entry.CurrencyId,
             Amount = entry.Amount,
             DocDate = now,
@@ -84,8 +82,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
         var openingBalance = await GetOpeningBalanceAsync(cashBoxId, ct);
         var rows = await GetCashBoxEntriesAsync(cashBoxId, asOfDate, ct);
 
-        return openingBalance + rows.Where(x => x.OperationTypeId == OperationTypeIdConst.IN).Sum(x => x.Amount)
-                                  - rows.Where(x => x.OperationTypeId == OperationTypeIdConst.OUT).Sum(x => x.Amount);
+        return openingBalance + rows.Sum(x => x.DirectionId * x.Amount);
     }
 
     private List<MoneyRegisterBalance> BuildEntries(
@@ -106,7 +103,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     DocumentId = cashOperation.Id,
                     SourceType = sourceType,
                     SourceId = cashOperation.CashBoxId,
-                    OperationTypeId = isReversed ? OperationTypeIdConst.OUT : OperationTypeIdConst.IN,
+                    DirectionId = isReversed ? MovementDirectionIdConst.OUT : MovementDirectionIdConst.IN,
                     CurrencyId = cashOperation.CurrencyId,
                     Amount = cashOperation.Amount,
                     DocDate = cashOperation.DocDate,
@@ -123,7 +120,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     DocumentId = cashOperation.Id,
                     SourceType = sourceType,
                     SourceId = cashOperation.CashBoxId,
-                    OperationTypeId = isReversed ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT,
+                    DirectionId = isReversed ? MovementDirectionIdConst.IN : MovementDirectionIdConst.OUT,
                     CurrencyId = cashOperation.CurrencyId,
                     Amount = cashOperation.Amount,
                     DocDate = cashOperation.DocDate,
@@ -140,7 +137,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     DocumentId = cashOperation.Id,
                     SourceType = RegisterDefaultsConst.CashOperationOut,
                     SourceId = cashOperation.CashBoxId,
-                    OperationTypeId = isReversed ? OperationTypeIdConst.IN : OperationTypeIdConst.OUT,
+                    DirectionId = isReversed ? MovementDirectionIdConst.IN : MovementDirectionIdConst.OUT,
                     CurrencyId = cashOperation.CurrencyId,
                     Amount = cashOperation.Amount,
                     DocDate = cashOperation.DocDate,
@@ -154,7 +151,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
                     DocumentId = cashOperation.Id,
                     SourceType = RegisterDefaultsConst.CashOperationIn,
                     SourceId = cashOperation.DestinationCashBoxId!.Value,
-                    OperationTypeId = isReversed ? OperationTypeIdConst.OUT : OperationTypeIdConst.IN,
+                    DirectionId = isReversed ? MovementDirectionIdConst.OUT : MovementDirectionIdConst.IN,
                     CurrencyId = cashOperation.CurrencyId,
                     Amount = cashOperation.Amount,
                     DocDate = cashOperation.DocDate,

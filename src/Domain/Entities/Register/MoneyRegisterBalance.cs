@@ -6,6 +6,7 @@ namespace Domain.Entities;
 
 [Table("money_reg_balance")]
 [Index("CurrencyId", Name = "idx_money_reg_balance_currency_id")]
+[Index("DirectionId", Name = "idx_money_reg_balance_direction_id")]
 [Index("DocDate", Name = "idx_money_reg_balance_doc_date")]
 [Index("DocumentTypeId", "DocumentId", Name = "idx_money_reg_balance_document")]
 [Index("OrganizationId", Name = "idx_money_reg_balance_organization_id")]
@@ -34,8 +35,8 @@ public partial class MoneyRegisterBalance
     [Column("source_id")]
     public int SourceId { get; set; }
 
-    [Column("operation_type_id")]
-    public short OperationTypeId { get; set; }
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
 
     [Column("currency_id")]
     public short CurrencyId { get; set; }
@@ -67,9 +68,9 @@ public partial class MoneyRegisterBalance
     [InverseProperty("MoneyRegisterBalances")]
     public virtual DocumentType DocumentType { get; set; } = null!;
 
-    [ForeignKey("OperationTypeId")]
-    [InverseProperty("MoneyRegisterBalances")]
-    public virtual OperationType OperationType { get; set; } = null!;
+    [ForeignKey(nameof(DirectionId))]
+    [InverseProperty(nameof(MovementDirection.MoneyRegisterBalances))]
+    public virtual MovementDirection Direction { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     [InverseProperty("MoneyRegisterBalances")]

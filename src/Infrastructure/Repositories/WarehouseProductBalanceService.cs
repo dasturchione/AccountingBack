@@ -485,17 +485,21 @@ public partial class WarehouseProductBalanceService : IWarehouseProductBalanceSe
     {
         var now = DateTime.Now;
         return entries
-            .GroupBy(entry => new WarehouseMovementGroupKey(
-                entry.OrganizationId,
-                entry.WarehouseId,
-                entry.ProductId,
-                entry.DocumentTypeId,
-                entry.DocumentId,
-                entry.OperationTypeId,
-                entry.ProductTableId.HasValue && entry.DocumentTypeId != DocumentTypeIdConst.FARECEIPT
-                    ? null
-                    : entry.SourceLineId,
-                entry.ProductTableId.HasValue))
+            .GroupBy(entry =>
+            {
+                var separateProductTableMovement = entry.ProductTableId.HasValue
+                    && entry.DocumentTypeId is not (DocumentTypeIdConst.FARECEIPT or DocumentTypeIdConst.PURCHASE);
+
+                return new WarehouseMovementGroupKey(
+                    entry.OrganizationId,
+                    entry.WarehouseId,
+                    entry.ProductId,
+                    entry.DocumentTypeId,
+                    entry.DocumentId,
+                    entry.OperationTypeId,
+                    separateProductTableMovement ? null : entry.SourceLineId,
+                    separateProductTableMovement);
+            })
             .Select(group =>
             {
                 var groupedEntries = group.ToList();

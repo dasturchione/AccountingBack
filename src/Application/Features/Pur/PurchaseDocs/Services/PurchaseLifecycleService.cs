@@ -312,7 +312,7 @@ public class PurchaseLifecycleService : BaseService, IPurchaseLifecycleService
                 continue;
             }
 
-            if (line.PurchaseDocTables.Count != (int)line.Quantity)
+            if (line.PurchaseDocTables.Count > line.Quantity)
             {
                 return Result.Failure(PurchaseDocTableErrors.ProductQuantityItemsMismatch(
                     line.ProductId,

@@ -1259,7 +1259,9 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         var requestMarkings = requestItems
             .Select(item => item.MarkingNumber?.Trim())
             .ToList();
-        if (requestMarkings.Count == 0 || requestMarkings.Any(string.IsNullOrWhiteSpace))
+        if (requestMarkings.Count == 0)
+            return null;
+        if (requestMarkings.Any(string.IsNullOrWhiteSpace))
             return "MARKING_MAPPING_REQUIRED";
 
         if (requestMarkings.Distinct(StringComparer.OrdinalIgnoreCase).Count() != requestMarkings.Count)
@@ -1268,7 +1270,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         if (!quantity.HasValue
             || quantity.Value <= 0
             || quantity.Value != decimal.Truncate(quantity.Value)
-            || requestMarkings.Count != (int)quantity.Value)
+            || requestMarkings.Count > quantity.Value)
         {
             return "MARKING_MAPPING_COUNT_MISMATCH";
         }
@@ -1283,19 +1285,19 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         var requestSet = requestMarkings
             .Select(code => code!)
             .ToHashSet(StringComparer.Ordinal);
-        return requestSet.SetEquals(providerSet)
+        return requestSet.IsSubsetOf(providerSet)
             ? null
             : "MARKING_MAPPING_MISMATCH";
     }
 
     private static string GetMarkingValidationMessage(string errorCode) => errorCode switch
     {
-        "MARKING_MAPPING_REQUIRED" => "The selected piece-tracked product requires marking items.",
+        "MARKING_MAPPING_REQUIRED" => "The selected marking items must contain valid marking numbers.",
         "MARKING_MAPPING_DUPLICATE" => "Duplicate marking numbers are not allowed.",
-        "MARKING_MAPPING_COUNT_MISMATCH" => "The marking item count must equal the provider line quantity.",
+        "MARKING_MAPPING_COUNT_MISMATCH" => "The marking item count must not exceed the provider line quantity.",
         "MARKING_PROVIDER_DATA_REQUIRED" => "Provider marking data is required to verify a piece-tracked product.",
         "PRODUCT_PIECE_TRACKING_REQUIRED" => "Marked goods require a piece-tracked local product.",
-        _ => "Purchase marking items must exactly match the provider document markings."
+        _ => "Purchase marking items must belong to the provider document markings."
     };
 
     private async Task<VatRate?> ResolveVatRateAsync(
@@ -1552,11 +1554,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                     return Result.Failure<List<PurchaseDocProduct>>(
                         PurchaseDocTableErrors.InvalidProductQuantity(dto.ProductId, dto.Quantity, _userContext.LanguageId));
 
-                if (dto.Items.Count == 0)
-                    return Result.Failure<List<PurchaseDocProduct>>(
-                        PurchaseDocTableErrors.ProductItemsRequired(dto.ProductId, _userContext.LanguageId));
-
-                if (dto.Quantity != dto.Items.Count)
+                if (dto.Items.Count > dto.Quantity)
                     return Result.Failure<List<PurchaseDocProduct>>(
                         PurchaseDocTableErrors.ProductQuantityItemsMismatch(dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
 
@@ -1583,9 +1581,14 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
 
             var lineAmounts = ResolveLineAmounts(dto, vatRate?.Rate);
 
-            var itemVatAmounts = product.IsService
+            var itemVatAmounts = product.IsService || !product.IsPieceTracked
                 ? new List<decimal>()
-                : SplitAmount(lineAmounts.VatAmount, dto.Items.Count, lineAmounts.IsProviderSourced ? 2 : 8);
+                : SplitAmount(
+                        lineAmounts.VatAmount,
+                        decimal.ToInt32(dto.Quantity),
+                        lineAmounts.IsProviderSourced ? 2 : 8)
+                    .Take(dto.Items.Count)
+                    .ToList();
 
             lines.Add(new PurchaseDocProduct
             {

@@ -17,6 +17,8 @@
 00_sys/0014_create_table_sys_user_kind_translation.sql
 00_sys/0015_alter_table_sys_user.sql
 00_sys/0016_alter_table_sys_role.sql
+00_sys/0017_insert_movement_direction_manual_permission.sql
+00_sys/0018_insert_cash_fiscal_transfer_permissions.sql
 01_cmn/0101_create_cmn_state.sql
 01_cmn/0102_create_cmn_region.sql
 01_cmn/0103_create_cmn_district.sql
@@ -66,6 +68,7 @@
 01_cmn/0148_unify_document_number_generation.sql
 01_cmn/0149_create_cmn_movement_direction.sql
 01_cmn/0150_create_cmn_movement_direction_translation.sql
+01_cmn/0151_add_cash_fiscal_transfer_document_type.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql
@@ -115,6 +118,7 @@
 06_cash/0603_create_fiscal_cash_register_type.sql
 06_cash/0604_create_fiscal_cash_register_type_translation.sql
 06_cash/0605_create_fiscal_cash_register.sql
+06_cash/0606_create_cash_fiscal_transfer_doc.sql
 07_pur/0701_create_pur_doc.sql
 07_pur/0702_create_pur_doc_product.sql
 07_pur/0703_create_pur_doc_table.sql

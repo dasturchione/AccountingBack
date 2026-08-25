@@ -101,6 +101,16 @@ public static class PermissionCodeConst
     public const string CashOperationDelete     = "CASH_OPERATION_DELETE";
     #endregion
 
+    #region CashFiscalTransfer
+    public const string CashFiscalTransferView = "CASH_FISCAL_TRANSFER_VIEW";
+    public const string CashFiscalTransferViewDetail = "CASH_FISCAL_TRANSFER_VIEW_DETAIL";
+    public const string CashFiscalTransferCreate = "CASH_FISCAL_TRANSFER_CREATE";
+    public const string CashFiscalTransferUpdate = "CASH_FISCAL_TRANSFER_UPDATE";
+    public const string CashFiscalTransferDelete = "CASH_FISCAL_TRANSFER_DELETE";
+    public const string ConfirmCashFiscalTransfer = "CONFIRM_CASH_FISCAL_TRANSFER";
+    public const string CancelCashFiscalTransfer = "CANCEL_CASH_FISCAL_TRANSFER";
+    #endregion
+
     #region DocumentAccountSetting
     public const string DocumentAccountSettingView = "DOCUMENT_ACCOUNT_SETTING_VIEW";
     public const string DocumentAccountSettingViewDetail = "DOCUMENT_ACCOUNT_SETTING_VIEW_DETAIL";
@@ -179,6 +189,7 @@ public static class PermissionCodeConst
     public const string ManualGetBanks                    = "MANUAL_GET_BANKS";
     public const string ManualGetDocumentTypes            = "MANUAL_GET_DOCUMENT_TYPES";
     public const string ManualGetOperationTypes           = "MANUAL_GET_OPERATION_TYPES";
+    public const string ManualGetMovementDirections      = "MANUAL_GET_MOVEMENT_DIRECTIONS";
     public const string ManualGetTaxTypes                 = "MANUAL_GET_TAX_TYPES";
     public const string ManualGetVatRates                 = "MANUAL_GET_VAT_RATES";
     public const string ManualGetContractTypes            = "MANUAL_GET_CONTRACT_TYPES";

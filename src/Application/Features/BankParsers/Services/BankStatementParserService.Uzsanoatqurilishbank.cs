@@ -42,25 +42,28 @@ public partial class BankStatementParserService
         int lastRow)
     {
         var account = ParseUzsanoatqurilishbankAccount(
-            FindUzsanoatqurilishbankTextAbove(worksheet, headerRow, value => UzsanoatqurilishbankAccountRegex().IsMatch(value)));
-        var client = ParseUzsanoatqurilishbankClient(
-            FindUzsanoatqurilishbankTextAbove(worksheet, headerRow, value => UzsanoatqurilishbankClientRegex().IsMatch(value)));
+            FindUzsanoatqurilishbankTextAbove(worksheet, headerRow, value => UzsanoatqurilishbankAccountRegex().IsMatch(NormalizeUzsanoatqurilishbankText(value))));
         var period = ParseUzsanoatqurilishbankPeriod(
             FindUzsanoatqurilishbankTextAbove(worksheet, headerRow, value => UzsanoatqurilishbankPeriodRegex().IsMatch(value)));
-        var openingBalanceRow = FindUzsanoatqurilishbankRowAbove(
+        var balanceRow = FindUzsanoatqurilishbankRowAbove(
             worksheet,
             headerRow,
-            IsUzsanoatqurilishbankOpeningBalanceRow);
+            value => value.Contains("Остаток на начало периода", StringComparison.OrdinalIgnoreCase));
 
         var statement = new AccountStatementDto
         {
-            BankName = GetText(worksheet, Math.Max(1, headerRow - 6), 1),
-            AccountNumber = account,
-            CompanyName = client.Name,
-            CompanyInn = client.Inn,
+            BankName = GetText(worksheet, 1, 1).TrimStart('/', ' '),
+            AccountNumber = account.AccountNumber,
+            CompanyName = account.CompanyName,
+            CompanyInn = account.CompanyInn,
             PeriodFrom = period.From,
             PeriodTo = period.To,
-            OpeningBalance = openingBalanceRow == 0 ? 0m : GetDecimal(worksheet, openingBalanceRow, 5)
+            OpeningBalance = balanceRow == 0
+                ? 0m
+                : ParseAmountFromText(GetText(worksheet, balanceRow, 1)),
+            ClosingBalance = balanceRow == 0
+                ? 0m
+                : ParseAmountFromText(GetText(worksheet, balanceRow, 2))
         };
 
         for (var row = headerRow + 1; row <= lastRow; row++)
@@ -68,17 +71,8 @@ public partial class BankStatementParserService
             var firstCell = GetText(worksheet, row, 1);
             if (IsUzsanoatqurilishbankTotalRow(firstCell))
             {
-                statement.TotalDebit = GetDecimal(worksheet, row, 4);
-                statement.TotalCredit = GetDecimal(worksheet, row, 5);
-
-                var closingBalanceRow = FindUzsanoatqurilishbankRowBelow(
-                    worksheet,
-                    row + 1,
-                    lastRow,
-                    IsUzsanoatqurilishbankClosingBalanceRow);
-                if (closingBalanceRow != 0)
-                    statement.ClosingBalance = GetDecimal(worksheet, closingBalanceRow, 5);
-
+                statement.TotalDebit = GetDecimal(worksheet, row, 9);
+                statement.TotalCredit = GetDecimal(worksheet, row, 8);
                 break;
             }
 
@@ -86,25 +80,24 @@ public partial class BankStatementParserService
             if (date is null)
                 continue;
 
-            var debit = GetDecimal(worksheet, row, 4);
-            var credit = GetDecimal(worksheet, row, 5);
-            if (debit == 0m && credit == 0m)
+            var bankDebit = GetDecimal(worksheet, row, 8);
+            var bankCredit = GetDecimal(worksheet, row, 9);
+            if (bankDebit == 0m && bankCredit == 0m)
                 continue;
 
-            var counterparty = ParseUzsanoatqurilishbankCounterparty(GetText(worksheet, row, 3));
             statement.Transactions.Add(new TransactionDto
             {
                 Date = date.Value,
                 DocNumber = GetText(worksheet, row, 2),
-                MfoCounterparty = counterparty.Mfo,
-                CounterpartyAccount = counterparty.Account,
-                CounterpartyInn = counterparty.Inn,
-                CounterpartyName = counterparty.Name,
-                Debit = debit,
-                Credit = credit,
-                Purpose = counterparty.Purpose,
-                Direction = debit > 0m ? "outgoing" : "incoming",
-                Amount = debit > 0m ? debit : credit
+                MfoCounterparty = NormalizeUzsanoatqurilishbankMfo(GetText(worksheet, row, 3)),
+                CounterpartyAccount = NormalizeKey(GetText(worksheet, row, 4)),
+                CounterpartyName = GetText(worksheet, row, 5),
+                CounterpartyInn = NormalizeKey(GetText(worksheet, row, 6)),
+                Debit = bankCredit,
+                Credit = bankDebit,
+                Purpose = GetText(worksheet, row, 7),
+                Direction = bankCredit > 0m ? "incoming" : "outgoing",
+                Amount = bankCredit > 0m ? bankCredit : bankDebit
             });
         }
 
@@ -141,19 +134,17 @@ public partial class BankStatementParserService
 
     private static bool IsUzsanoatqurilishbankHeaderRow(IXLWorksheet worksheet, int row) =>
         GetText(worksheet, row, 1).Equals("Дата", StringComparison.OrdinalIgnoreCase) &&
-        GetText(worksheet, row, 2).Contains("Номер", StringComparison.OrdinalIgnoreCase) &&
-        GetText(worksheet, row, 3).Contains("Корреспондент", StringComparison.OrdinalIgnoreCase) &&
-        GetText(worksheet, row, 4).Equals("Дебет", StringComparison.OrdinalIgnoreCase) &&
-        GetText(worksheet, row, 5).Equals("Кредит", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsUzsanoatqurilishbankOpeningBalanceRow(string value) =>
-        value.Contains("Входящий остаток", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsUzsanoatqurilishbankClosingBalanceRow(string value) =>
-        value.Contains("Исходящий остаток", StringComparison.OrdinalIgnoreCase);
+        GetText(worksheet, row, 2).Contains("Номер документа", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 3).Contains("МФО корресп", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 4).Contains("Счет корреспондента", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 5).Contains("Наименование корресп", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 6).Contains("ИНН корреспондента", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 7).Contains("Назначение платежа", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 8).Equals("Дебет", StringComparison.OrdinalIgnoreCase) &&
+        GetText(worksheet, row, 9).Equals("Кредит", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsUzsanoatqurilishbankTotalRow(string value) =>
-        value.Contains("Сумма оборотов", StringComparison.OrdinalIgnoreCase);
+        value.Contains("Итоговый оборот за период", StringComparison.OrdinalIgnoreCase);
 
     private static string FindUzsanoatqurilishbankTextAbove(
         IXLWorksheet worksheet,
@@ -178,21 +169,6 @@ public partial class BankStatementParserService
         return 0;
     }
 
-    private static int FindUzsanoatqurilishbankRowBelow(
-        IXLWorksheet worksheet,
-        int startRow,
-        int lastRow,
-        Func<string, bool> predicate)
-    {
-        for (var row = startRow; row <= Math.Min(lastRow, startRow + 5); row++)
-        {
-            if (predicate(GetText(worksheet, row, 1)))
-                return row;
-        }
-
-        return 0;
-    }
-
     private static (DateTime From, DateTime To) ParseUzsanoatqurilishbankPeriod(string value)
     {
         var match = UzsanoatqurilishbankPeriodRegex().Match(value);
@@ -201,47 +177,32 @@ public partial class BankStatementParserService
             : (default, default);
     }
 
-    private static string ParseUzsanoatqurilishbankAccount(string value)
+    private static (string AccountNumber, string CompanyName, string CompanyInn)
+        ParseUzsanoatqurilishbankAccount(string value)
     {
-        var match = UzsanoatqurilishbankAccountRegex().Match(value);
-        return match.Success ? match.Groups["account"].Value : string.Empty;
-    }
-
-    private static (string Name, string Inn) ParseUzsanoatqurilishbankClient(string value)
-    {
-        var match = UzsanoatqurilishbankClientRegex().Match(value);
+        var match = UzsanoatqurilishbankAccountRegex().Match(NormalizeUzsanoatqurilishbankText(value));
         return match.Success
-            ? (match.Groups["name"].Value.Trim(), match.Groups["inn"].Value)
-            : (string.Empty, string.Empty);
+            ? (
+                match.Groups["account"].Value,
+                match.Groups["name"].Value.Trim(),
+                match.Groups["inn"].Value)
+            : (string.Empty, string.Empty, string.Empty);
     }
 
-    private static (string Mfo, string Account, string Inn, string Name, string Purpose)
-        ParseUzsanoatqurilishbankCounterparty(string value)
+    private static string NormalizeUzsanoatqurilishbankText(string value) =>
+        Regex.Replace(value.Replace('\u00a0', ' ').Trim(), @"\s+", " ");
+
+    private static string NormalizeUzsanoatqurilishbankMfo(string value)
     {
-        var match = UzsanoatqurilishbankCounterpartyRegex().Match(value.Replace('\u00a0', ' '));
-        if (!match.Success)
-            return (string.Empty, string.Empty, string.Empty, string.Empty, value.Trim());
-
-        var tailLines = match.Groups["tail"].Value
-            .Split(['\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        return (
-            match.Groups["mfo"].Value,
-            match.Groups["account"].Value,
-            match.Groups["inn"].Value,
-            tailLines.FirstOrDefault() ?? string.Empty,
-            string.Join(Environment.NewLine, tailLines.Skip(1)));
+        var normalized = NormalizeKey(value);
+        return normalized.All(char.IsDigit) && normalized.Length < 5
+            ? normalized.PadLeft(5, '0')
+            : normalized;
     }
 
-    [GeneratedRegex(@"Период\s+выписки\s+с\s+(?<from>\d{2}\.\d{2}\.\d{4})\s+по\s+(?<to>\d{2}\.\d{2}\.\d{4})", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"Сведения\s+о\s+работе\s+счета\s+[cс]\s+(?<from>\d{2}\.\d{2}\.\d{4})\s+по\s+(?<to>\d{2}\.\d{2}\.\d{4})", RegexOptions.IgnoreCase)]
     private static partial Regex UzsanoatqurilishbankPeriodRegex();
 
-    [GeneratedRegex(@"Лицевой\s+счет\s*:\s*(?<account>\d+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"[CС]чет\s*:\s*(?<account>\d+)\s+(?<name>.*?)\s+ИНН\s*:\s*(?<inn>\d+)", RegexOptions.IgnoreCase)]
     private static partial Regex UzsanoatqurilishbankAccountRegex();
-
-    [GeneratedRegex(@"Клиент\s*(?<name>.*?)\s+Инн\s*(?<inn>\d+)", RegexOptions.IgnoreCase)]
-    private static partial Regex UzsanoatqurilishbankClientRegex();
-
-    [GeneratedRegex(@"МФО\s*:\s*(?<mfo>\d+)\s+Счет\s*:\s*(?<account>\d+)\s+ИНН\s*:\s*(?<inn>\d+)\s*(?<tail>.*)", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
-    private static partial Regex UzsanoatqurilishbankCounterpartyRegex();
 }

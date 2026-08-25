@@ -217,7 +217,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetOperationTypes)]
+    [ModuleAuthorize(PermissionCodeConst.ManualGetMovementDirections)]
     [HttpGet("movement-directions")]
     public async Task<IActionResult> GetMovementDirections(CancellationToken ct)
     {

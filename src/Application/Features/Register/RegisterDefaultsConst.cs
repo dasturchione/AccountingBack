@@ -16,6 +16,9 @@ public static class RegisterDefaultsConst
     public const string CashOperation = "CASH_OPERATION";
     public const string CashOperationIn = "CASH_OPERATION_IN";
     public const string CashOperationOut = "CASH_OPERATION_OUT";
+    public const string CashFiscalTransferCashBox = "CASH_BOX_TRANSFER";
+    public const string FiscalCashRegister = "FISCAL_CASH_REGISTER";
+    public const string CashBoxBalance = "CASH_BOX";
     public const string SourceCashBoxDisplayPrefix = "SourceCashBox";
     public const string DestinationCashBoxDisplayPrefix = "DestinationCashBox";
 }

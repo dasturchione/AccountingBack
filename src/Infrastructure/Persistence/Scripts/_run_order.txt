@@ -64,6 +64,8 @@
 02_org/0201_create_org_organization.sql
 01_cmn/0147_harden_org_organization_tenant_id.sql
 01_cmn/0148_unify_document_number_generation.sql
+01_cmn/0149_create_cmn_movement_direction.sql
+01_cmn/0150_create_cmn_movement_direction_translation.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql
@@ -103,9 +105,11 @@
 04_inv/0426_create_table_inv_product_group_translation.sql
 04_inv/0427_insert_into_inv_product_group.sql
 04_inv/0428_insert_into_inv_product_group_translation.sql
+04_inv/0429_migrate_inventory_movement_direction.sql
 05_bank/0501_create_org_bank_account.sql
 05_bank/0502_create_bank_operation.sql
 05_bank/0503_create_bank_terminal.sql
+05_bank/0504_migrate_bank_operation_direction.sql
 06_cash/0601_create_cash_box.sql
 06_cash/0602_create_cash_operation.sql
 06_cash/0603_create_fiscal_cash_register_type.sql
@@ -130,6 +134,7 @@
 09_register/0903_create_counterparty_reg_balance.sql
 09_register/0904_create_acc_reg_entry.sql
 09_register/0905_create_acc_reg_entry_subkonto.sql
+09_register/0906_migrate_register_movement_direction.sql
 10_acc/1001_create_acc_account_type.sql
 10_acc/1002_create_acc_chart_account.sql
 10_acc/1003_create_acc_subkonto_type.sql

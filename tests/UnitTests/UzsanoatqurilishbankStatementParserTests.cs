@@ -25,8 +25,8 @@ public sealed class UzsanoatqurilishbankStatementParserTests
         Assert.Equal(new DateTime(2026, 8, 24), statement.PeriodTo);
         Assert.Equal(0m, statement.OpeningBalance);
         Assert.Equal(7_829_465.93m, statement.ClosingBalance);
-        Assert.Equal(56_000m, statement.TotalDebit);
-        Assert.Equal(1_000_000m, statement.TotalCredit);
+        Assert.Equal(1_000_000m, statement.TotalDebit);
+        Assert.Equal(56_000m, statement.TotalCredit);
 
         Assert.Collection(
             statement.Transactions,
@@ -39,8 +39,8 @@ public sealed class UzsanoatqurilishbankStatementParserTests
                 Assert.Equal("Айланма кассадаги накд пуллар", incoming.CounterpartyName);
                 Assert.Equal("200833707", incoming.CounterpartyInn);
                 Assert.Equal("Устав фондини шакллантириш учун тулов", incoming.Purpose);
-                Assert.Equal(0m, incoming.Debit);
-                Assert.Equal(1_000_000m, incoming.Credit);
+                Assert.Equal(1_000_000m, incoming.Debit);
+                Assert.Equal(0m, incoming.Credit);
                 Assert.Equal("incoming", incoming.Direction);
             },
             outgoing =>
@@ -52,8 +52,8 @@ public sealed class UzsanoatqurilishbankStatementParserTests
                 Assert.Equal("Начисленные %% DANIEFF TEAM TRADERS MCHJ", outgoing.CounterpartyName);
                 Assert.Equal("311444422", outgoing.CounterpartyInn);
                 Assert.Equal("Комиссия банка", outgoing.Purpose);
-                Assert.Equal(56_000m, outgoing.Debit);
-                Assert.Equal(0m, outgoing.Credit);
+                Assert.Equal(0m, outgoing.Debit);
+                Assert.Equal(56_000m, outgoing.Credit);
                 Assert.Equal("outgoing", outgoing.Direction);
             });
     }

@@ -71,8 +71,8 @@ public partial class BankStatementParserService
             var firstCell = GetText(worksheet, row, 1);
             if (IsUzsanoatqurilishbankTotalRow(firstCell))
             {
-                statement.TotalDebit = GetDecimal(worksheet, row, 8);
-                statement.TotalCredit = GetDecimal(worksheet, row, 9);
+                statement.TotalDebit = GetDecimal(worksheet, row, 9);
+                statement.TotalCredit = GetDecimal(worksheet, row, 8);
                 break;
             }
 
@@ -80,9 +80,9 @@ public partial class BankStatementParserService
             if (date is null)
                 continue;
 
-            var debit = GetDecimal(worksheet, row, 8);
-            var credit = GetDecimal(worksheet, row, 9);
-            if (debit == 0m && credit == 0m)
+            var bankDebit = GetDecimal(worksheet, row, 8);
+            var bankCredit = GetDecimal(worksheet, row, 9);
+            if (bankDebit == 0m && bankCredit == 0m)
                 continue;
 
             statement.Transactions.Add(new TransactionDto
@@ -93,11 +93,11 @@ public partial class BankStatementParserService
                 CounterpartyAccount = NormalizeKey(GetText(worksheet, row, 4)),
                 CounterpartyName = GetText(worksheet, row, 5),
                 CounterpartyInn = NormalizeKey(GetText(worksheet, row, 6)),
-                Debit = debit,
-                Credit = credit,
+                Debit = bankCredit,
+                Credit = bankDebit,
                 Purpose = GetText(worksheet, row, 7),
-                Direction = debit > 0m ? "outgoing" : "incoming",
-                Amount = debit > 0m ? debit : credit
+                Direction = bankCredit > 0m ? "incoming" : "outgoing",
+                Amount = bankCredit > 0m ? bankCredit : bankDebit
             });
         }
 

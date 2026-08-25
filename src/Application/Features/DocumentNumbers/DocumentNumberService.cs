@@ -106,7 +106,6 @@ public sealed class DocumentNumberService : IDocumentNumberService
             var maxExistingNumber = await GetMaxExistingInventoryAdjustmentNumberAsync(
                 organizationId,
                 documentTypeId,
-                documentYear,
                 ct);
 
             if (maxExistingNumber == long.MaxValue)
@@ -169,18 +168,13 @@ public sealed class DocumentNumberService : IDocumentNumberService
     private async Task<long> GetMaxExistingInventoryAdjustmentNumberAsync(
         int organizationId,
         short documentTypeId,
-        short documentYear,
         CancellationToken ct)
     {
         if (documentTypeId != DocumentTypeIdConst.INVENTORYADJUSTMENT)
             return 0;
 
-        var yearStart = new DateTime(documentYear, 1, 1);
-        var nextYearStart = yearStart.AddYears(1);
         var query = _queryBuilder.For<InventoryAdjustmentDoc>()
-            .Where(x => x.OrganizationId == organizationId &&
-                        x.DocDate >= yearStart &&
-                        x.DocDate < nextYearStart)
+            .Where(x => x.OrganizationId == organizationId)
             .Build();
 
         var documents = await _inventoryAdjustmentQuery.GetAllAsync(query, ct);

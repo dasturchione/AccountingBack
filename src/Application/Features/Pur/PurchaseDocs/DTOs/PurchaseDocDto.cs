@@ -72,9 +72,7 @@ public class PurchaseDocProductItemDto
 {
     public long Id { get; set; }
     public int ProductTableId { get; set; }
-    [JsonIgnore]
     public string? MarkingNumber { get; set; }
-    [JsonIgnore]
     public string? SerialNumber { get; set; }
     public bool HasMarking { get; set; }
     public int MarkingCount { get; set; }

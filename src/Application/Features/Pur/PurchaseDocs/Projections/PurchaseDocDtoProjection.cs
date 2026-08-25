@@ -71,6 +71,8 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
                         ProductTableId = t.ProductTableId,
                         HasMarking     = !string.IsNullOrWhiteSpace(t.ProductTable.MarkingNumber),
                         MarkingCount   = string.IsNullOrWhiteSpace(t.ProductTable.MarkingNumber) ? 0 : 1,
+                        MarkingNumber  = t.ProductTable.MarkingNumber,
+                        SerialNumber   = t.ProductTable.SerialNumber,
                         Amount         = t.Amount,
                         VatRateId      = t.VatRateId,
                         VatRateName    = t.VatRate != null ? t.VatRate.Name : null,

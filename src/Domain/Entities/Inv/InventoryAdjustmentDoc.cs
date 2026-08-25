@@ -14,6 +14,7 @@ namespace Domain.Entities;
 [Index("StateId", Name = "idx_inv_inventory_adjustment_doc_state_id")]
 [Index("PostedByUserId", Name = "idx_inv_inventory_adjustment_doc_posted_by_user_id")]
 [Index("CancelledByUserId", Name = "idx_inv_inventory_adjustment_doc_cancelled_by_user_id")]
+[Index("DirectionId", Name = "idx_inv_inventory_adjustment_doc_direction_id")]
 public partial class InventoryAdjustmentDoc
 {
     [Key]
@@ -61,6 +62,13 @@ public partial class InventoryAdjustmentDoc
 
     [Column("cancelled_by_user_id")]
     public int? CancelledByUserId { get; set; }
+
+    [Column("direction_id")]
+    public short DirectionId { get; set; }
+
+    [ForeignKey(nameof(DirectionId))]
+    [InverseProperty(nameof(MovementDirection.InventoryAdjustmentDocs))]
+    public virtual MovementDirection Direction { get; set; } = null!;
 
     [ForeignKey("OrganizationId")]
     public virtual Organization Organization { get; set; } = null!;

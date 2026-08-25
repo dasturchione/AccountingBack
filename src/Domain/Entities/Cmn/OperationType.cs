@@ -31,16 +31,10 @@ public partial class OperationType
     public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
 
     [InverseProperty("OperationType")]
-    public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
-
-    [InverseProperty("OperationType")]
     public virtual ICollection<CashOperation> CashOperations { get; set; } = new List<CashOperation>();
 
     [InverseProperty("OperationType")]
     public virtual ICollection<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; } = new List<CounterpartyRegisterBalance>();
-
-    [InverseProperty("OperationType")]
-    public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
 
     [ForeignKey("StateId")]
     [InverseProperty("OperationTypes")]

@@ -70,6 +70,9 @@ public partial class Language
     [InverseProperty(nameof(OperationTypeTranslation.Language))]
     public virtual ICollection<OperationTypeTranslation> OperationTypeTranslations { get; set; } = new List<OperationTypeTranslation>();
 
+    [InverseProperty(nameof(MovementDirectionTranslation.Language))]
+    public virtual ICollection<MovementDirectionTranslation> MovementDirectionTranslations { get; set; } = new List<MovementDirectionTranslation>();
+
     [InverseProperty(nameof(CostingMethodTranslation.Language))]
     public virtual ICollection<CostingMethodTranslation> CostingMethodTranslations { get; set; } = new List<CostingMethodTranslation>();
 

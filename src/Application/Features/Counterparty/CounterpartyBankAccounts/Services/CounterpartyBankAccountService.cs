@@ -14,14 +14,17 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CounterpartyBankAccount> _query;
     private readonly ICommandRepository<CounterpartyBankAccount> _command;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
 
     public CounterpartyBankAccountService(IUserContext userContext,
                                           IQueryBuilder queryBuilder, 
                                           IQueryRepository<CounterpartyBankAccount> query,
-                                          ICommandRepository<CounterpartyBankAccount> command)
+                                          ICommandRepository<CounterpartyBankAccount> command,
+                                          IQueryRepository<BankBranch> bankBranchQuery)
     {
         _query = query;
         _command = command;
+        _bankBranchQuery = bankBranchQuery;
         _userContext = userContext; 
         _queryBuilder = queryBuilder;
     }
@@ -33,11 +36,16 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
         if (await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure<int>(CounterpartyBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
 
+        if (!await IsBankBranchValidAsync(dto.BankId, dto.BankBranchId, ct))
+            return Result.Failure<int>(
+                CounterpartyBankAccountErrors.BankBranchMismatch(dto.BankId, dto.BankBranchId!.Value, _userContext.LanguageId));
+
         var entity = new CounterpartyBankAccount
         {
             OrganizationId = orgId,
             CounterpartyId = dto.CounterpartyId,
             BankId = dto.BankId,
+            BankBranchId = dto.BankBranchId,
             AccountNumber = dto.AccountNumber,
             CurrencyId = dto.CurrencyId,
             IsMain = dto.IsMain,
@@ -86,8 +94,14 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
 
         if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure(CounterpartyBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
+
+        if (!await IsBankBranchValidAsync(dto.BankId, dto.BankBranchId, ct))
+            return Result.Failure(
+                CounterpartyBankAccountErrors.BankBranchMismatch(dto.BankId, dto.BankBranchId!.Value, _userContext.LanguageId));
+
         entity.CounterpartyId = dto.CounterpartyId;
         entity.BankId = dto.BankId;
+        entity.BankBranchId = dto.BankBranchId;
         entity.AccountNumber = dto.AccountNumber;
         entity.CurrencyId = dto.CurrencyId;
         entity.IsMain = dto.IsMain;
@@ -96,4 +110,13 @@ public class CounterpartyBankAccountService : ICounterpartyBankAccountService
         await _command.UpdateAsync(entity, ct);
         return Result.Success();
     }
+
+    private Task<bool> IsBankBranchValidAsync(int bankId, int? bankBranchId, CancellationToken ct) =>
+        !bankBranchId.HasValue
+            ? Task.FromResult(true)
+            : _bankBranchQuery.AnyAsync(
+                x => x.Id == bankBranchId.Value &&
+                     x.BankId == bankId &&
+                     x.StateId == StateIdConst.ACTIVE,
+                ct);
 }

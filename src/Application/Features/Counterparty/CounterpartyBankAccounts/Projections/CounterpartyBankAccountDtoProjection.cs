@@ -14,6 +14,7 @@ public class CounterpartyBankAccountDtoProjection : IProjectionBuilder<Counterpa
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty.ShortName,
             BankId = x.BankId,
+            BankBranchId = x.BankBranchId,
             BankName = x.Bank.Name,
             AccountNumber = x.AccountNumber,
             CurrencyId = x.CurrencyId,

@@ -9,7 +9,7 @@ public sealed class UzsanoatqurilishbankStatementParserTests
     public async Task ParseExcelAsync_ParsesNineColumnUzsanoatqurilishbankTemplate()
     {
         using var stream = CreateWorkbook();
-        var service = new BankStatementParserService(null!, null!, null!, null!, null!, null!);
+        var service = new BankStatementParserService(null!, null!, null!, null!, null!, null!, null!);
 
         var result = await service.ParseExcelAsync(
             stream,

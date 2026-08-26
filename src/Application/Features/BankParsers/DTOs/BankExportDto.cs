@@ -26,6 +26,9 @@ public class AccountStatementDto
     [JsonPropertyName("bankId")]
     public int? BankId { get; set; }
 
+    [JsonPropertyName("bankBranchId")]
+    public int? BankBranchId { get; set; }
+
     [JsonPropertyName("bankInn")]
     public string? BankInn { get; set; }
 

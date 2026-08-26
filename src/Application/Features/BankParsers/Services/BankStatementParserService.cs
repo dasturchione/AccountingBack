@@ -14,6 +14,7 @@ public partial class BankStatementParserService : IBankStatementParserService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
@@ -22,6 +23,7 @@ public partial class BankStatementParserService : IBankStatementParserService
     public BankStatementParserService(
         IUserContext userContext,
         IQueryRepository<Bank> bankQuery,
+        IQueryRepository<BankBranch> bankBranchQuery,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
@@ -29,6 +31,7 @@ public partial class BankStatementParserService : IBankStatementParserService
     {
         _userContext = userContext;
         _bankQuery = bankQuery;
+        _bankBranchQuery = bankBranchQuery;
         _bankAccountQuery = bankAccountQuery;
         _counterpartyQuery = counterpartyQuery;
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
@@ -105,8 +108,45 @@ public partial class BankStatementParserService : IBankStatementParserService
     {
         await SetBankIdsAsync(export, ct);
         await SetBankAccountIdsAsync(export, ct);
+        await SetBankBranchIdsAsync(export, ct);
         await SetCounterpartyIdsAsync(export, ct);
         await SetCounterpartyBankAccountIdsAsync(export, ct);
+    }
+
+    private async Task SetBankBranchIdsAsync(BankExportDto export, CancellationToken ct)
+    {
+        var mfos = export.Accounts
+            .Select(x => NormalizeKey(x.BankMfo))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        if (mfos.Count == 0)
+            return;
+
+        var specification = _queryBuilder.For<BankBranch>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE && mfos.Contains(x.Mfo))
+            .As(x => new BankBranchMatch
+            {
+                Id = x.Id,
+                BankId = x.BankId,
+                Mfo = x.Mfo
+            })
+            .Build();
+
+        var matches = await _bankBranchQuery.GetAllAsync(specification, ct);
+        var branchesByMfo = matches
+            .GroupBy(x => NormalizeKey(x.Mfo))
+            .ToDictionary(x => x.Key, x => x.First());
+
+        foreach (var account in export.Accounts)
+        {
+            if (!branchesByMfo.TryGetValue(NormalizeKey(account.BankMfo), out var match))
+                continue;
+
+            account.BankBranchId = match.Id;
+            account.BankId = match.BankId;
+        }
     }
 
     private async Task SetBankIdsAsync(BankExportDto export, CancellationToken ct)
@@ -165,8 +205,9 @@ public partial class BankStatementParserService : IBankStatementParserService
                 Id = x.Id,
                 AccountNumber = x.AccountNumber,
                 BankId = x.BankId,
+                BankBranchId = x.BankBranchId,
                 BankInn = x.Bank.Inn,
-                BankMfo = x.Bank.Mfo,
+                BankMfo = x.BankBranch != null ? x.BankBranch.Mfo : x.Bank.Mfo,
                 BankName = x.Bank.Name
             })
             .Build();
@@ -181,6 +222,7 @@ public partial class BankStatementParserService : IBankStatementParserService
             if (idsByKey.TryGetValue(NormalizeKey(account.AccountNumber), out var match))
             {
                 account.BankAccountId = match.Id;
+                account.BankBranchId ??= match.BankBranchId;
                 if (account.BankId is null)
                     account.BankId = match.BankId;
 
@@ -469,9 +511,17 @@ public partial class BankStatementParserService : IBankStatementParserService
         public int Id { get; set; }
         public string AccountNumber { get; set; } = "";
         public int BankId { get; set; }
+        public int? BankBranchId { get; set; }
         public string? BankInn { get; set; }
         public string? BankMfo { get; set; }
         public string? BankName { get; set; }
+    }
+
+    private sealed class BankBranchMatch
+    {
+        public int Id { get; set; }
+        public int BankId { get; set; }
+        public string Mfo { get; set; } = "";
     }
 
     private sealed class CounterpartyMatch

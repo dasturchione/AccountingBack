@@ -15,16 +15,19 @@ public class OrgBankAccountService : IOrgBankAccountService
     private readonly IQueryRepository<BankAccount> _query;
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly ICommandRepository<BankAccount> _command;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
 
     public OrgBankAccountService(IUserContext userContext,
                                  IQueryBuilder queryBuilder, 
                                  IQueryRepository<BankAccount> query,
                                  IQueryRepository<Organization> organizationQuery,
-                                 ICommandRepository<BankAccount> command)
+                                 ICommandRepository<BankAccount> command,
+                                 IQueryRepository<BankBranch> bankBranchQuery)
     {
         _query = query;
         _organizationQuery = organizationQuery;
         _command = command;
+        _bankBranchQuery = bankBranchQuery;
         _userContext = userContext; 
         _queryBuilder = queryBuilder;
     }
@@ -35,6 +38,10 @@ public class OrgBankAccountService : IOrgBankAccountService
 
         if (await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure<OrgBankAccountCreateResultDto>(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
+
+        if (!await IsBankBranchValidAsync(dto.BankId, dto.BankBranchId, ct))
+            return Result.Failure<OrgBankAccountCreateResultDto>(
+                OrgBankAccountErrors.BankBranchMismatch(dto.BankId, dto.BankBranchId!.Value, _userContext.LanguageId));
 
         var entity = BuildCreateEntity(dto, orgId);
         await _command.CreateAsync(entity, ct);
@@ -58,6 +65,10 @@ public class OrgBankAccountService : IOrgBankAccountService
         {
             if (await _query.AnyAsync(x => x.AccountNumber == account.AccountNumber, ct))
                 return Result.Failure<List<OrgBankAccountCreateResultDto>>(OrgBankAccountErrors.AccountNumberConflict(account.AccountNumber, _userContext.LanguageId));
+
+            if (!await IsBankBranchValidAsync(account.BankId, account.BankBranchId, ct))
+                return Result.Failure<List<OrgBankAccountCreateResultDto>>(
+                    OrgBankAccountErrors.BankBranchMismatch(account.BankId, account.BankBranchId!.Value, _userContext.LanguageId));
         }
 
         var entities = dto.Accounts.Select(account => BuildCreateEntity(account, orgId)).ToList();
@@ -106,7 +117,13 @@ public class OrgBankAccountService : IOrgBankAccountService
 
         if (entity.AccountNumber != dto.AccountNumber && await _query.AnyAsync(x => x.AccountNumber == dto.AccountNumber, ct))
             return Result.Failure(OrgBankAccountErrors.AccountNumberConflict(dto.AccountNumber, _userContext.LanguageId));
+
+        if (!await IsBankBranchValidAsync(dto.BankId, dto.BankBranchId, ct))
+            return Result.Failure(
+                OrgBankAccountErrors.BankBranchMismatch(dto.BankId, dto.BankBranchId!.Value, _userContext.LanguageId));
+
         entity.BankId = dto.BankId;
+        entity.BankBranchId = dto.BankBranchId;
         entity.Code = dto.Code;
         entity.Name = dto.Name;
         entity.AccountNumber = dto.AccountNumber;
@@ -125,6 +142,7 @@ public class OrgBankAccountService : IOrgBankAccountService
         {
             OrganizationId = orgId,
             BankId = dto.BankId,
+            BankBranchId = dto.BankBranchId,
             Code = dto.Code,
             Name = dto.Name,
             AccountNumber = dto.AccountNumber,
@@ -143,10 +161,20 @@ public class OrgBankAccountService : IOrgBankAccountService
         return organization?.Inn ?? string.Empty;
     }
 
+    private Task<bool> IsBankBranchValidAsync(int bankId, int? bankBranchId, CancellationToken ct) =>
+        !bankBranchId.HasValue
+            ? Task.FromResult(true)
+            : _bankBranchQuery.AnyAsync(
+                x => x.Id == bankBranchId.Value &&
+                     x.BankId == bankId &&
+                     x.StateId == StateIdConst.ACTIVE,
+                ct);
+
     private static OrgBankAccountCreateResultDto ToCreateResult(BankAccount entity, string inn) =>
         new()
         {
             Id = entity.Id,
+            BankBranchId = entity.BankBranchId,
             Inn = inn,
             AccountNumber = entity.AccountNumber
         };

@@ -117,6 +117,7 @@
 05_bank/0502_create_bank_operation.sql
 05_bank/0503_create_bank_terminal.sql
 05_bank/0504_migrate_bank_operation_direction.sql
+05_bank/0505_add_bank_branch_to_bank_accounts.sql
 06_cash/0601_create_cash_box.sql
 06_cash/0602_create_cash_operation.sql
 06_cash/0603_create_fiscal_cash_register_type.sql

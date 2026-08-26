@@ -17,6 +17,9 @@ public partial class BankAccount
     [Column("bank_id")]
     public int BankId { get; set; }
 
+    [Column("bank_branch_id")]
+    public int? BankBranchId { get; set; }
+
     [Column("account_number")]
     [StringLength(50)]
     public string AccountNumber { get; set; } = null!;
@@ -50,6 +53,10 @@ public partial class BankAccount
     [ForeignKey("BankId")]
     [InverseProperty("BankAccounts")]
     public virtual Bank Bank { get; set; } = null!;
+
+    [ForeignKey(nameof(BankBranchId))]
+    [InverseProperty(nameof(Domain.Entities.BankBranch.BankAccounts))]
+    public virtual BankBranch? BankBranch { get; set; }
 
     [InverseProperty("BankAccount")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();

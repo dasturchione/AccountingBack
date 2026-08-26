@@ -76,6 +76,12 @@ public class BankBranch
     [InverseProperty(nameof(Bank.BankBranches))]
     public virtual Bank Bank { get; set; } = null!;
 
+    [InverseProperty(nameof(BankAccount.BankBranch))]
+    public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+
+    [InverseProperty(nameof(CounterpartyBankAccount.BankBranch))]
+    public virtual ICollection<CounterpartyBankAccount> CounterpartyBankAccounts { get; set; } = new List<CounterpartyBankAccount>();
+
     [ForeignKey(nameof(RegionId))]
     [InverseProperty(nameof(Region.BankBranches))]
     public virtual Region? Region { get; set; }

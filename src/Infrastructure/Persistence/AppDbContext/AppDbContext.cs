@@ -45,6 +45,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<CashFiscalTransferDoc> CashFiscalTransferDocs { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
     public virtual DbSet<BankBranch> BankBranches { get; set; }
+    public virtual DbSet<BankStatementTemplate> BankStatementTemplates { get; set; }
+    public virtual DbSet<BankStatementTemplateHeaderRule> BankStatementTemplateHeaderRules { get; set; }
+    public virtual DbSet<BankStatementTemplateRowRule> BankStatementTemplateRowRules { get; set; }
+    public virtual DbSet<BankStatementTemplateField> BankStatementTemplateFields { get; set; }
     public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }

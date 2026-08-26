@@ -72,6 +72,7 @@ public sealed class BankBranchAssociationTests
     {
         var service = new BankStatementParserService(
             new TestUserContext(organizationId: 7),
+            new InMemoryQueryRepository<BankStatementTemplate>(),
             new InMemoryQueryRepository<Bank>(),
             new InMemoryQueryRepository<BankBranch>(
                 new BankBranch
@@ -112,6 +113,7 @@ public sealed class BankBranchAssociationTests
         var bank = new Bank { Id = 2, Code = "SQB", Name = "SQB", Mfo = "00440" };
         var service = new BankStatementParserService(
             new TestUserContext(organizationId: 7),
+            new InMemoryQueryRepository<BankStatementTemplate>(),
             new InMemoryQueryRepository<Bank>(),
             new InMemoryQueryRepository<BankBranch>(
                 new BankBranch

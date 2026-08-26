@@ -77,6 +77,7 @@
 01_cmn/0158_create_cmn_bank_statement_template_header_rule.sql
 01_cmn/0159_create_cmn_bank_statement_template_row_rule.sql
 01_cmn/0160_create_cmn_bank_statement_template_field.sql
+01_cmn/0161_insert_cmn_bank_statement_template.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql

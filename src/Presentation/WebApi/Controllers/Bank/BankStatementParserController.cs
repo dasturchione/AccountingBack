@@ -20,7 +20,7 @@ public class BankStatementParserController : ControllerBase
         _service = service;
     }
 
-    public record BankStatementParseRequest(IFormFile File, BankStatementBankType BankType);
+    public record BankStatementParseRequest(IFormFile File, int BankId);
 
     [HttpPost("parse")]
     [Consumes("multipart/form-data")]
@@ -61,7 +61,7 @@ public class BankStatementParserController : ControllerBase
         if (!stream.CanRead || stream.Length == 0)
             return Results.BadRequest("Invalid file stream.");
 
-        var result = await _service.ParseAsync(stream, request.BankType, ct);
+        var result = await _service.ParseAsync(stream, request.BankId, ct);
 
         return result.Match(Results.Ok, CustomResults.Problem);
     }

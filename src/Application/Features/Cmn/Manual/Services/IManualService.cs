@@ -25,6 +25,7 @@ public interface IManualService
     Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetBanksAsync(CancellationToken ct = default);
+    Task<List<BankBranchSelectListDto>> GetBankBranchesAsync(int? bankId = null, CancellationToken ct = default);
     Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default);

@@ -9,5 +9,6 @@ public class BankListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<BankListD
         x => string.IsNullOrEmpty(options.Search) ||
              x.Code.ToLower().Contains(options.Search.ToLower()) ||
              x.Name.ToLower().Contains(options.Search.ToLower()) ||
-             (x.Mfo != null && x.Mfo.ToLower().Contains(options.Search.ToLower()));
+             (x.LegalName != null && x.LegalName.ToLower().Contains(options.Search.ToLower())) ||
+             (x.Inn != null && x.Inn.ToLower().Contains(options.Search.ToLower()));
 }

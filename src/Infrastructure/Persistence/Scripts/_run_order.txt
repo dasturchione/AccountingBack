@@ -69,6 +69,10 @@
 01_cmn/0149_create_cmn_movement_direction.sql
 01_cmn/0150_create_cmn_movement_direction_translation.sql
 01_cmn/0151_add_cash_fiscal_transfer_document_type.sql
+01_cmn/0153_alter_cmn_bank_details.sql
+01_cmn/0154_insert_cmn_bank.sql
+01_cmn/0155_create_cmn_bank_branch.sql
+01_cmn/0156_insert_cmn_bank_branch.sql
 02_org/0202_create_org_branch.sql
 02_org/0203_create_org_department.sql
 02_org/0204_create_org_position.sql

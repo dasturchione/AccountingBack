@@ -13,11 +13,11 @@ public static class BankErrors
             _ => $"Bank with id {id} was not found."
         });
 
-    public static Error CodeConflict(string code, short? languageId = null) =>
-        Error.Conflict("Bank.CodeConflict", languageId switch
+    public static Error BranchNotFound(string mfo, short? languageId = null) =>
+        Error.NotFound("BankBranch.NotFound", languageId switch
         {
-            LanguageIdConst.UZ => $"Kodi '{code}' bo'lgan bank allaqachon mavjud.",
-            LanguageIdConst.RU => $"Bank with code '{code}' already exists.",
-            _ => $"Bank with code '{code}' already exists."
+            LanguageIdConst.UZ => $"MFOsi '{mfo}' bo'lgan bank filiali topilmadi.",
+            LanguageIdConst.RU => $"Bank branch with MFO '{mfo}' was not found.",
+            _ => $"Bank branch with MFO '{mfo}' was not found."
         });
 }

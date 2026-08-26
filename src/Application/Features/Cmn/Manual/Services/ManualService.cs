@@ -12,6 +12,7 @@ public class ManualService : IManualService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
     private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
     private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
@@ -86,6 +87,7 @@ public class ManualService : IManualService
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
+        IQueryRepository<BankBranch> bankBranchQuery,
         IQueryRepository<BankTerminal> bankTerminalQuery,
         IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
@@ -140,6 +142,7 @@ public class ManualService : IManualService
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
         _bankQuery = bankQuery;
+        _bankBranchQuery = bankBranchQuery;
         _bankTerminalQuery = bankTerminalQuery;
         _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
@@ -489,6 +492,27 @@ public class ManualService : IManualService
             .OrderBy(q => q.OrderBy(b => b.Name))
             .Build();
         return (await _bankQuery.GetAllAsync(spec, ct)).ToList();
+    }
+
+    public async Task<List<BankBranchSelectListDto>> GetBankBranchesAsync(
+        int? bankId = null,
+        CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<BankBranch>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!bankId.HasValue || x.BankId == bankId.Value))
+            .As(x => new BankBranchSelectListDto
+            {
+                Id = x.Id,
+                BankId = x.BankId,
+                Name = x.Name,
+                Code = x.Mfo,
+                Mfo = x.Mfo
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankBranchQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default)

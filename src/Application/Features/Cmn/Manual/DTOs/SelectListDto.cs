@@ -7,6 +7,12 @@ public class SelectListDto
     public string? Code { get; set; }
 }
 
+public class BankBranchSelectListDto : SelectListDto
+{
+    public int BankId { get; set; }
+    public string Mfo { get; set; } = null!;
+}
+
 public class ProductSelectListDto : SelectListDto
 {
     public string? Mxik { get; set; }

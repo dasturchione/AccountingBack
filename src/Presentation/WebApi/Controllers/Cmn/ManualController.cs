@@ -201,6 +201,14 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetBanks)]
+    [HttpGet("bank-branches")]
+    public async Task<IActionResult> GetBankBranches([FromQuery] int? bankId, CancellationToken ct)
+    {
+        var result = await _manualService.GetBankBranchesAsync(bankId, ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetDocumentTypes)]
     [HttpGet("document-types")]
     public async Task<IActionResult> GetDocumentTypes(CancellationToken ct)

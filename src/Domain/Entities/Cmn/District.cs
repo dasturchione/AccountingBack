@@ -33,6 +33,9 @@ public partial class District
     [InverseProperty("District")]
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
 
+    [InverseProperty(nameof(BankBranch.District))]
+    public virtual ICollection<BankBranch> BankBranches { get; set; } = new List<BankBranch>();
+
     [InverseProperty("District")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();
 }

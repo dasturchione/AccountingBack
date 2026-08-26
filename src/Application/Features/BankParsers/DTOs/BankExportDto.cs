@@ -71,6 +71,9 @@ public class TransactionDto
     [JsonPropertyName("docNumber")]
     public string DocNumber { get; set; } = "";
 
+    [JsonPropertyName("bankDocumentNumber")]
+    public string BankDocumentNumber { get; set; } = "";
+
     [JsonPropertyName("directionId")]
     public short DirectionId => Debit > Credit ? MovementDirectionIdConst.IN : MovementDirectionIdConst.OUT;
 

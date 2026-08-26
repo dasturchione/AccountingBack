@@ -599,7 +599,10 @@ internal static class BankStatementTemplateParser
         switch (targetCode)
         {
             case "DATE": transaction.Date = AsDate(value); break;
-            case "DOC_NUMBER": transaction.DocNumber = AsString(value); break;
+            case "DOC_NUMBER":
+                transaction.DocNumber = AsString(value);
+                transaction.BankDocumentNumber = transaction.DocNumber;
+                break;
             case "OPERATION_CODE": transaction.OperationCode = AsString(value); break;
             case "COUNTERPARTY_MFO": transaction.MfoCounterparty = AsString(value); break;
             case "COUNTERPARTY_ACCOUNT": transaction.CounterpartyAccount = AsString(value); break;

@@ -29,6 +29,7 @@ public class BankOperationDto
     public string? CounterpartyName { get; set; }
     public string? CounterpartyInn { get; set; }
     public string DocNumber { get; set; } = null!;
+    public string? BankDocumentNumber { get; set; }
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;

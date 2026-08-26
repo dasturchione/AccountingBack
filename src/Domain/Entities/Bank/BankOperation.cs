@@ -45,6 +45,10 @@ public partial class BankOperation
     [StringLength(100)]
     public string DocNumber { get; set; } = null!;
 
+    [Column("bank_document_number")]
+    [StringLength(150)]
+    public string? BankDocumentNumber { get; set; }
+
     [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
 

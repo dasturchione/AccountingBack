@@ -149,6 +149,7 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.BankChartAccountId = dto.BankChartAccountId;
             entity.OffsetAccountId = dto.OffsetAccountId;
             entity.ContractId = dto.ContractId;
+            entity.BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber);
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;
             entity.Amount = dto.Amount;
@@ -242,6 +243,7 @@ public class BankOperationService : BaseService, IBankOperationService
             OffsetAccountId = dto.OffsetAccountId,
             ContractId = dto.ContractId,
             DocNumber = documentNumberResult.Value.DocumentNumber,
+            BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber),
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
@@ -252,4 +254,7 @@ public class BankOperationService : BaseService, IBankOperationService
             CreatedDate = DateTime.Now
         });
     }
+
+    private static string? NormalizeBankDocumentNumber(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

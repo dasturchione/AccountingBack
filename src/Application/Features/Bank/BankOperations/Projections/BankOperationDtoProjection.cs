@@ -36,6 +36,7 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             CounterpartyBankAccountId = x.CounterpartyBankAccountId,
             CounterpartyBankAccountNumber = x.CounterpartyBankAccount == null ? null : x.CounterpartyBankAccount.AccountNumber,
             DocNumber = x.DocNumber,
+            BankDocumentNumber = x.BankDocumentNumber,
             DocDate = x.DocDate,
             CurrencyId = x.CurrencyId,
             CurrencyName = x.Currency.Name,

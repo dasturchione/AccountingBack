@@ -5,6 +5,24 @@ namespace Application.Features.BankOperations;
 
 public static class BankOperationErrors
 {
+    public static Error ClassificationCategoryRequired() =>
+        Error.Business("BankOperation.ClassificationCategoryRequired", "Classification category is required when a rule is specified.");
+
+    public static Error ClassificationCategoryNotFound(short categoryId) =>
+        Error.NotFound("BankOperation.ClassificationCategoryNotFound", $"Active classification category {categoryId} was not found.");
+
+    public static Error ClassificationRuleNotFound(int ruleId) =>
+        Error.NotFound("BankOperation.ClassificationRuleNotFound", $"Active classification rule {ruleId} was not found.");
+
+    public static Error ClassificationBankAccountNotFound(int bankAccountId) =>
+        Error.NotFound("BankOperation.ClassificationBankAccountNotFound", $"Active bank account {bankAccountId} was not found in the current organization.");
+
+    public static Error ClassificationCategoryMismatch(int ruleId, short categoryId) =>
+        Error.Business("BankOperation.ClassificationCategoryMismatch", $"Rule {ruleId} does not belong to category {categoryId}.");
+
+    public static Error ClassificationBankMismatch(int ruleId, int bankId) =>
+        Error.Business("BankOperation.ClassificationBankMismatch", $"Rule {ruleId} does not belong to bank {bankId}.");
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("BankOperation.NotFound", languageId switch
         {

@@ -310,7 +310,9 @@ namespace Infrastructure
             services.AddScoped<IOrgBankAccountService, OrgBankAccountService>();
             services.AddScoped<IBankTerminalService, BankTerminalService>();
             services.AddScoped<IBankOperationService, BankOperationService>();
+            services.AddScoped<IBankOperationClassificationSelectionValidator, BankOperationClassificationSelectionValidator>();
             services.AddScoped<IBankLifecycleService, BankLifecycleService>();
+            services.AddScoped<IBankOperationClassifier, BankOperationClassifier>();
             services.AddScoped<IBankStatementParserService, BankStatementParserService>();
             services.AddScoped<IBankService, BankService>();
             services.AddScoped<ICashBoxService, CashBoxService>();

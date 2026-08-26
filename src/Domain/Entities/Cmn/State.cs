@@ -84,6 +84,15 @@ public partial class State
     [InverseProperty(nameof(BankStatementTemplate.State))]
     public virtual ICollection<BankStatementTemplate> BankStatementTemplates { get; set; } = new List<BankStatementTemplate>();
 
+    [InverseProperty(nameof(BankOperationCategory.State))]
+    public virtual ICollection<BankOperationCategory> BankOperationCategories { get; set; } = [];
+
+    [InverseProperty(nameof(BankOperationClassificationRuleSet.State))]
+    public virtual ICollection<BankOperationClassificationRuleSet> BankOperationClassificationRuleSets { get; set; } = [];
+
+    [InverseProperty(nameof(BankOperationClassificationRule.State))]
+    public virtual ICollection<BankOperationClassificationRule> BankOperationClassificationRules { get; set; } = [];
+
     [InverseProperty("State")]
     public virtual ICollection<CounterpartyType> CounterpartyTypes { get; set; } = new List<CounterpartyType>();
 

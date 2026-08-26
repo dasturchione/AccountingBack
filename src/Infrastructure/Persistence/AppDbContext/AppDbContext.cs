@@ -49,6 +49,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<BankStatementTemplateHeaderRule> BankStatementTemplateHeaderRules { get; set; }
     public virtual DbSet<BankStatementTemplateRowRule> BankStatementTemplateRowRules { get; set; }
     public virtual DbSet<BankStatementTemplateField> BankStatementTemplateFields { get; set; }
+    public virtual DbSet<BankOperationCategory> BankOperationCategories { get; set; }
+    public virtual DbSet<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; }
+    public virtual DbSet<BankOperationClassificationRuleSet> BankOperationClassificationRuleSets { get; set; }
+    public virtual DbSet<BankOperationClassificationRule> BankOperationClassificationRules { get; set; }
+    public virtual DbSet<BankOperationClassificationCondition> BankOperationClassificationConditions { get; set; }
+    public virtual DbSet<BankOperationClassificationConditionValue> BankOperationClassificationConditionValues { get; set; }
     public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }

@@ -18,6 +18,7 @@ public class BankStatementParserService : IBankStatementParserService
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IBankOperationClassifier _operationClassifier;
 
     public BankStatementParserService(
         IUserContext userContext,
@@ -27,7 +28,8 @@ public class BankStatementParserService : IBankStatementParserService
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
-        IQueryBuilder queryBuilder)
+        IQueryBuilder queryBuilder,
+        IBankOperationClassifier operationClassifier)
     {
         _userContext = userContext;
         _templateQuery = templateQuery;
@@ -37,6 +39,7 @@ public class BankStatementParserService : IBankStatementParserService
         _counterpartyQuery = counterpartyQuery;
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
         _queryBuilder = queryBuilder;
+        _operationClassifier = operationClassifier;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(
@@ -48,7 +51,11 @@ public class BankStatementParserService : IBankStatementParserService
         if (!parsedResult.IsSuccess)
             return Result.Failure<BankExportDto>(parsedResult.Error);
 
-        return await EnrichAsync(parsedResult.Value, ct);
+        var enrichedResult = await EnrichAsync(parsedResult.Value, ct);
+        if (!enrichedResult.IsSuccess)
+            return enrichedResult;
+
+        return await _operationClassifier.ClassifyAsync(enrichedResult.Value, bankId, ct);
     }
 
     public async Task<Result<BankExportDto>> ParseExcelAsync(

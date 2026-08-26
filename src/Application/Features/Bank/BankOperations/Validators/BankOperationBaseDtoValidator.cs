@@ -12,6 +12,9 @@ public class BankOperationBaseDtoValidator : AbstractValidator<BankOperationBase
         RuleFor(x => x.CurrencyId).GreaterThan((short)0);
         RuleFor(x => x.Amount).GreaterThan(0);
         RuleFor(x => x.BankDocumentNumber).MaximumLength(150).When(x => x.BankDocumentNumber != null);
+        RuleFor(x => x.ClassificationCategoryId).GreaterThan((short)0).When(x => x.ClassificationCategoryId.HasValue);
+        RuleFor(x => x.ClassificationRuleId).GreaterThan(0).When(x => x.ClassificationRuleId.HasValue);
+        RuleFor(x => x.ClassificationCategoryId).NotNull().When(x => x.ClassificationRuleId.HasValue);
         RuleFor(x => x.Comment).MaximumLength(1000).When(x => x.Comment != null);
     }
 }

@@ -1,10 +1,13 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.BankParsers;
 using Domain.Entities;
 using Infrastructure.Query;
 using SharedKernel.Query;
 using SharedKernel.Query.Specifications;
 using SharedKernel.QueryResults;
+using SharedKernel.Constants;
+using SharedKernel.Results;
 using System.Linq.Expressions;
 
 namespace UnitTests;
@@ -65,16 +68,36 @@ public sealed class BankStatementTemplateVersionTests
         Assert.Empty(result.Value.Accounts);
     }
 
+    [Fact]
+    public async Task ParseAsync_InvokesMandatoryOperationClassifierAfterParsingAndEnrichment()
+    {
+        var classifier = new RecordingClassifier();
+        var service = CreateService(classifier, BankStatementTemplateTestData.CreateUzsanoatqurilishbank());
+        await using var stream = CreateWorkbookStream();
+
+        var result = await service.ParseAsync(stream, bankId: 2);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, classifier.BankId);
+        Assert.Same(result.Value, classifier.Export);
+    }
+
     private static BankStatementParserService CreateService(params BankStatementTemplate[] templates) =>
+        CreateService(null!, templates);
+
+    private static BankStatementParserService CreateService(
+        IBankOperationClassifier classifier,
+        params BankStatementTemplate[] templates) =>
         new(
-            null!,
+            new TestUserContext(),
             new InMemoryQueryRepository<BankStatementTemplate>(templates),
             new InMemoryQueryRepository<Bank>(),
             new InMemoryQueryRepository<BankBranch>(),
             new InMemoryQueryRepository<BankAccount>(),
             new InMemoryQueryRepository<CounterpartyCard>(),
             new InMemoryQueryRepository<CounterpartyBankAccount>(),
-            new QueryBuilder(new NullQueryBuilderResolver()));
+            new QueryBuilder(new NullQueryBuilderResolver()),
+            classifier);
 
     private static MemoryStream CreateWorkbookStream()
     {
@@ -124,5 +147,30 @@ public sealed class BankStatementTemplateVersionTests
         public ICriteriaBuilder<TEntity, TOptions>? GetCriteriaBuilder<TEntity, TOptions>() => null;
         public IProjectionBuilder<TEntity, TResult> GetProjectionBuilder<TEntity, TResult>() => throw new NotSupportedException();
         public IOrderByBuilder<TEntity, TResult>? GetOrderByBuilder<TEntity, TResult>() => null;
+    }
+
+    private sealed class RecordingClassifier : IBankOperationClassifier
+    {
+        public int? BankId { get; private set; }
+        public BankExportDto? Export { get; private set; }
+
+        public Task<Result<BankExportDto>> ClassifyAsync(BankExportDto export, int bankId, CancellationToken ct = default)
+        {
+            Export = export;
+            BankId = bankId;
+            return Task.FromResult(Result.Success(export));
+        }
+    }
+
+    private sealed class TestUserContext : IUserContext
+    {
+        public int? Id => 1;
+        public int? RoleId => 1;
+        public CurrentUserKind UserKind => CurrentUserKind.TenantUser;
+        public short? LanguageId => LanguageIdConst.RU;
+        public int? TenantId => 1;
+        public int? OrganizationId => 7;
+        public List<int> AllowedOrganizationIds => [7];
+        public int? BranchId => null;
     }
 }

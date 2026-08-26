@@ -49,6 +49,12 @@ public partial class BankOperation
     [StringLength(150)]
     public string? BankDocumentNumber { get; set; }
 
+    [Column("classification_category_id")]
+    public short? ClassificationCategoryId { get; set; }
+
+    [Column("classification_rule_id")]
+    public int? ClassificationRuleId { get; set; }
+
     [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
 
@@ -89,6 +95,14 @@ public partial class BankOperation
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual Contract? Contract { get; set; }
+
+    [ForeignKey(nameof(ClassificationCategoryId))]
+    [InverseProperty(nameof(BankOperationCategory.BankOperations))]
+    public virtual BankOperationCategory? ClassificationCategory { get; set; }
+
+    [ForeignKey(nameof(ClassificationRuleId))]
+    [InverseProperty(nameof(BankOperationClassificationRule.BankOperations))]
+    public virtual BankOperationClassificationRule? ClassificationRule { get; set; }
 
     [Column("exchange_rate")]
     [Precision(18, 6)]

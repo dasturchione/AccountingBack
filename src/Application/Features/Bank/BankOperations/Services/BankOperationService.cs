@@ -20,6 +20,7 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly IQueryRepository<BankOperation> _query;
     private readonly ICommandRepository<BankOperation> _command;
     private readonly IDocumentNumberService _documentNumberService;
+    private readonly IBankOperationClassificationSelectionValidator _classificationValidator;
 
     public BankOperationService(
         IUserContext userContext,
@@ -27,6 +28,7 @@ public class BankOperationService : BaseService, IBankOperationService
         IAuditLogService auditLogService,
         IBankLifecycleService bankLifecycleService,
         IDocumentNumberService documentNumberService,
+        IBankOperationClassificationSelectionValidator classificationValidator,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
         ILogger<BankOperationService> logger,
@@ -38,6 +40,7 @@ public class BankOperationService : BaseService, IBankOperationService
         _auditLogService = auditLogService;
         _bankLifecycleService = bankLifecycleService;
         _documentNumberService = documentNumberService;
+        _classificationValidator = classificationValidator;
         _query = query;
         _command = command;
     }
@@ -137,6 +140,15 @@ public class BankOperationService : BaseService, IBankOperationService
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(BankOperationErrors.CannotUpdateInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
 
+            var classificationResult = await _classificationValidator.ValidateAsync(
+                _userContext.OrganizationId.Value,
+                dto.BankAccountId,
+                dto.ClassificationCategoryId,
+                dto.ClassificationRuleId,
+                ct);
+            if (!classificationResult.IsSuccess)
+                return classificationResult;
+
             var oldDocDto = await GetByIdInternalAsync(id, ct);
             if (oldDocDto != null)
                 _auditLogService.SetOldValues(oldDocDto);
@@ -150,6 +162,8 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.OffsetAccountId = dto.OffsetAccountId;
             entity.ContractId = dto.ContractId;
             entity.BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber);
+            entity.ClassificationCategoryId = dto.ClassificationCategoryId;
+            entity.ClassificationRuleId = dto.ClassificationRuleId;
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;
             entity.Amount = dto.Amount;
@@ -223,6 +237,15 @@ public class BankOperationService : BaseService, IBankOperationService
 
     private async Task<Result<BankOperation>> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
     {
+        var classificationResult = await _classificationValidator.ValidateAsync(
+            organizationId,
+            dto.BankAccountId,
+            dto.ClassificationCategoryId,
+            dto.ClassificationRuleId,
+            ct);
+        if (!classificationResult.IsSuccess)
+            return Result.Failure<BankOperation>(classificationResult.Error);
+
         var documentNumberResult = await _documentNumberService.GetNextAsync(
             organizationId,
             DocumentTypeIdConst.BANKOPERATION,
@@ -244,6 +267,8 @@ public class BankOperationService : BaseService, IBankOperationService
             ContractId = dto.ContractId,
             DocNumber = documentNumberResult.Value.DocumentNumber,
             BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber),
+            ClassificationCategoryId = dto.ClassificationCategoryId,
+            ClassificationRuleId = dto.ClassificationRuleId,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,

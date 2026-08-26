@@ -86,7 +86,8 @@ public sealed class BankBranchAssociationTests
             new InMemoryQueryRepository<BankAccount>(),
             new InMemoryQueryRepository<CounterpartyCard>(),
             new InMemoryQueryRepository<CounterpartyBankAccount>(),
-            new QueryBuilder(new NullQueryBuilderResolver()));
+            new QueryBuilder(new NullQueryBuilderResolver()),
+            null!);
         var export = new BankExportDto
         {
             Accounts =
@@ -136,7 +137,8 @@ public sealed class BankBranchAssociationTests
                 }),
             new InMemoryQueryRepository<CounterpartyCard>(),
             new InMemoryQueryRepository<CounterpartyBankAccount>(),
-            new QueryBuilder(new NullQueryBuilderResolver()));
+            new QueryBuilder(new NullQueryBuilderResolver()),
+            null!);
         var export = new BankExportDto
         {
             Accounts =

@@ -80,6 +80,8 @@ public partial class AppDbContext
         ApplyScopedFilter<EdoDocumentSigningSession>(modelBuilder);
         ApplyScopedFilter<EdoAuthSigningSession>(modelBuilder);
         ApplyScopedFilter<EdoImportJob>(modelBuilder);
+        ApplyScopedFilter<EdoImportBatch>(modelBuilder);
+        ApplyScopedFilter<EdoImportBatchDocument>(modelBuilder);
         ApplyScopedFilter<EdoImportCandidate>(modelBuilder);
         ApplyScopedFilter<EdoProviderProductMapping>(modelBuilder);
         ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);

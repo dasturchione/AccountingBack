@@ -107,8 +107,12 @@ public sealed class EdoController(
     [ProducesResponseType(typeof(EdoOutboxProviderDocumentDetailDto), StatusCodes.Status200OK)]
     public async Task<IResult> GetOutboxProviderDocumentDetails(
         string providerDocumentId,
+        [FromQuery] bool allowSentDocuments = false,
         CancellationToken ct = default) =>
-        Results.Ok(await inboxService.GetOutboxProviderDocumentDetailsAsync(providerDocumentId, ct));
+        Results.Ok(await inboxService.GetOutboxProviderDocumentDetailsAsync(
+            providerDocumentId,
+            ct,
+            allowSentDocuments: allowSentDocuments));
 
     [HttpGet("inbox/summary")]
     [ProducesResponseType(typeof(EdoPublicInboxSummaryDto), StatusCodes.Status200OK)]

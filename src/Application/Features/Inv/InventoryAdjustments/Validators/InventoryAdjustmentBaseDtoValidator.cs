@@ -1,5 +1,4 @@
 using FluentValidation;
-using SharedKernel.Constants;
 
 namespace Application.Features.InventoryAdjustments;
 
@@ -10,7 +9,6 @@ public class InventoryAdjustmentBaseDtoValidator : AbstractValidator<InventoryAd
         RuleFor(x => x.DocDate).NotEmpty();
         RuleFor(x => x.WarehouseId).GreaterThan(0);
         RuleFor(x => x.AdjustmentType).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.DirectionId).Must(MovementDirectionIdConst.IsValid);
         RuleFor(x => x.Comment).MaximumLength(1000).When(x => x.Comment != null);
         RuleFor(x => x.Lines).NotEmpty();
         RuleForEach(x => x.Lines).SetValidator(new InventoryAdjustmentLineRequestDtoValidator());

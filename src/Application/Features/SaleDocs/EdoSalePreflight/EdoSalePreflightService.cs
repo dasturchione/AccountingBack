@@ -31,7 +31,13 @@ public sealed class EdoSalePreflightService(
     private const string SourceLinkInvalid = "SALE_SOURCE_LINK_INVALID";
     private const string SaleAlreadyLinked = "SALE_DOCUMENT_ALREADY_LINKED";
 
-    public async Task<EdoSalePreflightPlanDto> GetPlanAsync(CancellationToken ct = default)
+    public Task<EdoSalePreflightPlanDto> GetPlanAsync(CancellationToken ct = default) =>
+        GetPlanAsync(ct, allowSentDocuments: false, documentType: "FACTURA");
+
+    public async Task<EdoSalePreflightPlanDto> GetPlanAsync(
+        CancellationToken ct,
+        bool allowSentDocuments,
+        string documentType)
     {
         var organizationId = userContext.OrganizationId
             ?? throw new EdoOrganizationScopeRequiredException();
@@ -44,15 +50,22 @@ public sealed class EdoSalePreflightService(
                 ["ACTIVE_PROVIDER_NOT_EDOCS"]);
         }
 
+        var normalizedDocumentType = NormalizeDocumentType(documentType);
         var (listedDocuments, hasDuplicateProviderIds, hasIncompletePagination) =
-            await LoadSignedOutboxDocumentsAsync(ct);
+            await LoadSignedOutboxDocumentsAsync(ct, allowSentDocuments, normalizedDocumentType);
         var masterData = await LoadMasterDataAsync(organizationId, listedDocuments, ct);
         var candidates = new List<EdoSalePreflightCandidateDto>(listedDocuments.Count);
 
         foreach (var listedDocument in listedDocuments
                      .OrderBy(x => x.ProviderDocumentId ?? string.Empty, StringComparer.Ordinal))
         {
-            candidates.Add(await BuildCandidateAsync(organizationId, listedDocument, masterData, ct));
+            candidates.Add(await BuildCandidateAsync(
+                organizationId,
+                listedDocument,
+                masterData,
+                allowSentDocuments,
+                normalizedDocumentType,
+                ct));
         }
 
         return BuildPlan(
@@ -71,6 +84,8 @@ public sealed class EdoSalePreflightService(
         int organizationId,
         EdoDocumentDto listedDocument,
         MasterData masterData,
+        bool allowSentDocuments,
+        string documentType,
         CancellationToken ct)
     {
         var codes = new HashSet<string>(StringComparer.Ordinal);
@@ -86,7 +101,9 @@ public sealed class EdoSalePreflightService(
             {
                 detail = await edoInboxService.GetOutboxProviderDocumentDetailsAsync(
                     listedDocument.ProviderDocumentId,
-                    ct);
+                    ct,
+                    providerDocumentType: documentType,
+                    allowSentDocuments: allowSentDocuments);
             }
             catch (EdoOutboxProviderDocumentException exception)
             {
@@ -474,7 +491,10 @@ public sealed class EdoSalePreflightService(
     private async Task<(
         IReadOnlyCollection<EdoDocumentDto> Documents,
         bool HasDuplicateProviderIds,
-        bool HasIncompletePagination)> LoadSignedOutboxDocumentsAsync(CancellationToken ct)
+        bool HasIncompletePagination)> LoadSignedOutboxDocumentsAsync(
+        CancellationToken ct,
+        bool allowSentDocuments,
+        string documentType)
     {
         var result = new List<EdoDocumentDto>();
         var page = 1;
@@ -487,12 +507,13 @@ public sealed class EdoSalePreflightService(
                 Page = page,
                 Limit = ProviderPageSize,
                 Category = EdoDocumentCategory.OUTBOX,
-                Status = EdoDocumentStatusCode.SIGNED
+                Status = allowSentDocuments ? null : EdoDocumentStatusCode.SIGNED
             }, ct);
             result.AddRange(response.Items.Where(x => x.ProviderCode == EdoProviderCode.EDOCS
                 && x.Direction == EdoDirection.OUTBOX
-                && string.Equals(x.DocumentType, "FACTURA", StringComparison.OrdinalIgnoreCase)
-                && x.Status.Code == EdoDocumentStatusCode.SIGNED));
+                && NormalizeDocumentType(x.DocumentType) == documentType
+                && (x.Status.Code == EdoDocumentStatusCode.SIGNED
+                    || (allowSentDocuments && x.Status.Code == EdoDocumentStatusCode.SENT))));
 
             var hasNextPage = response.TotalPages.HasValue
                 ? page < response.TotalPages.Value
@@ -541,6 +562,14 @@ public sealed class EdoSalePreflightService(
             Candidates = ordered
         };
     }
+
+    private static string NormalizeDocumentType(string? value) =>
+        string.Equals(value?.Trim(), "waybillLocal", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value?.Trim(), "WAYBILL_LOCAL", StringComparison.OrdinalIgnoreCase)
+            ? "WAYBILL_LOCAL"
+            : string.Equals(value?.Trim(), "FACTURA", StringComparison.OrdinalIgnoreCase)
+                ? "FACTURA"
+                : value?.Trim().ToUpperInvariant() ?? string.Empty;
 
     private static EdoSaleMappingStatusDto Mapping(
         string status,

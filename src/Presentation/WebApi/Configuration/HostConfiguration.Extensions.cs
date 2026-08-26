@@ -223,6 +223,13 @@ namespace WebApi.Configuration
 
         private static WebApplicationBuilder AddQuartz(this WebApplicationBuilder builder)
         {
+            var backgroundJobsEnabled = builder.Configuration.GetValue("BackgroundJobs:Enabled", true);
+            if (!backgroundJobsEnabled)
+            {
+                Log.Information("Background jobs are disabled by configuration.");
+                return builder;
+            }
+
             var backupSchedule = builder.Configuration.GetSection("BackupJob");
             var backupHour = backupSchedule.GetValue<int?>(nameof(BackupJobSettings.ScheduleHour)) ?? 4;
             var backupMinute = backupSchedule.GetValue<int?>(nameof(BackupJobSettings.ScheduleMinute)) ?? 5;

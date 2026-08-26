@@ -279,20 +279,32 @@ public sealed class EdoInboxService(
 
     public async Task<EdoOutboxProviderDocumentDetailDto> GetOutboxProviderDocumentDetailsAsync(
         string providerDocumentId,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string providerDocumentType = "FACTURA",
+        bool allowSentDocuments = false)
     {
-        var source = await GetOutboxProviderDocumentMappingSourceAsync(providerDocumentId, ct);
+        var source = await GetOutboxProviderDocumentMappingSourceAsync(
+            providerDocumentId,
+            ct,
+            providerDocumentType,
+            allowSentDocuments);
         return source.Document;
     }
 
     public async Task<EdoOutboxProviderDocumentMappingSourceDto> GetOutboxProviderDocumentMappingSourceAsync(
         string providerDocumentId,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string providerDocumentType = "FACTURA",
+        bool allowSentDocuments = false)
     {
         RequireOrganization();
         var identity = EdoOutboxProviderDocumentDetailMapper.RequireProviderDocumentId(providerDocumentId);
-        var providerDocument = await LoadEdocsOutboxProviderDocumentAsync(identity, ct);
-        var detail = EdoOutboxProviderDocumentDetailMapper.MapAndValidate(providerDocument, identity);
+        var providerDocument = await LoadEdocsOutboxProviderDocumentAsync(identity, providerDocumentType, ct);
+        var detail = EdoOutboxProviderDocumentDetailMapper.MapAndValidate(
+            providerDocument,
+            identity,
+            providerDocumentType,
+            allowSentDocuments);
         var markingCodes = providerDocument.PreviewLines
             .OrderBy(x => x.Number)
             .ToDictionary(
@@ -308,6 +320,7 @@ public sealed class EdoInboxService(
 
     private async Task<EdoDocumentDto> LoadEdocsOutboxProviderDocumentAsync(
         string identity,
+        string providerDocumentType,
         CancellationToken ct)
     {
         var provider = await activeProviderResolver.GetActiveProviderAsync(ct);
@@ -328,7 +341,7 @@ public sealed class EdoInboxService(
         {
             return await provider.GetDocumentDetailsAsync(
                 EdoDirection.OUTBOX,
-                "FACTURA",
+                providerDocumentType,
                 identity,
                 ct);
         }

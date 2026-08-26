@@ -480,7 +480,9 @@ public sealed class EdocsEdoOperations(
             DocumentDateTime = documentDateTime,
             Status = status,
             Seller = seller,
-            Buyer = ReadBuyerParty(item),
+            Buyer = ReadBuyerParty(item, documentType),
+            NetAmount = ReadDecimal(item, "totalSum", strictHistoricalDecimals),
+            VatAmount = ReadDecimal(item, "totalVatSum", strictHistoricalDecimals),
             TotalAmount = ReadDecimal(item, "totalSumWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "totalWithVat", strictHistoricalDecimals)
                 ?? ReadDecimal(item, "TotalAmount", strictHistoricalDecimals),
@@ -816,7 +818,7 @@ public sealed class EdocsEdoOperations(
             ? throw new InvalidOperationException("Edocs document status requires a provider document ID.")
             : providerDocumentId;
 
-    private static string MapStatusDocumentType(string providerDocumentType)
+    internal static string MapStatusDocumentType(string providerDocumentType)
     {
         if (string.IsNullOrWhiteSpace(providerDocumentType))
             throw new IntegrationHttpException(
@@ -826,7 +828,10 @@ public sealed class EdocsEdoOperations(
         var type = providerDocumentType.Trim();
         return string.Equals(type, "FACTURA", StringComparison.OrdinalIgnoreCase)
             ? "factura"
-            : type;
+            : string.Equals(type, "WAYBILL_LOCAL", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(type, "waybillLocal", StringComparison.OrdinalIgnoreCase)
+                ? "waybillLocal"
+                : type;
     }
 
     private static EdoPartyDto? ReadParty(JsonElement item, string name)
@@ -860,7 +865,7 @@ public sealed class EdocsEdoOperations(
         };
     }
 
-    private static EdoPartyDto? ReadBuyerParty(JsonElement item)
+    internal static EdoPartyDto? ReadBuyerParty(JsonElement item, string? documentType)
     {
         var rootBuyer = TryGetPropertyIgnoreCase(item, "Buyer", out var rootBuyerProperty)
             && rootBuyerProperty.ValueKind == JsonValueKind.Object
@@ -869,6 +874,9 @@ public sealed class EdocsEdoOperations(
         var nestedBuyerProperty = ReadPath(item, "data", "buyer");
         var nestedBuyer = nestedBuyerProperty is { ValueKind: JsonValueKind.Object }
             ? nestedBuyerProperty
+            : null;
+        var waybillConsignee = IsWaybillLocalDocumentType(documentType)
+            ? ReadPath(item, "data", "consignee")
             : null;
         var preferredBuyer = rootBuyer ?? nestedBuyer;
 
@@ -894,12 +902,19 @@ public sealed class EdocsEdoOperations(
             return BuildBuyerParty(preferredBuyer, buyerTin);
         }
 
+        if (waybillConsignee is { ValueKind: JsonValueKind.Object }
+            && TryReadNormalizedTin(waybillConsignee, "tinorpinfl", out buyerTin)
+            && buyerTin is not null)
+        {
+            return BuildBuyerParty(waybillConsignee, buyerTin);
+        }
+
         return preferredBuyer is { } buyer
             ? ReadPartyObject(buyer, taxIdentifierOverride: null, useTaxIdentifierOverride: true)
             : null;
     }
 
-    private static EdoPartyDto? ReadSellerParty(JsonElement item, string? documentType)
+    internal static EdoPartyDto? ReadSellerParty(JsonElement item, string? documentType)
     {
         var rootSeller = TryGetPropertyIgnoreCase(item, "Seller", out var rootSellerProperty)
             && rootSellerProperty.ValueKind == JsonValueKind.Object
@@ -908,6 +923,9 @@ public sealed class EdocsEdoOperations(
         var nestedSellerProperty = ReadPath(item, "data", "seller");
         var nestedSeller = nestedSellerProperty is { ValueKind: JsonValueKind.Object }
             ? nestedSellerProperty
+            : null;
+        var waybillConsignor = IsWaybillLocalDocumentType(documentType)
+            ? ReadPath(item, "data", "consignor")
             : null;
         var preferredSeller = rootSeller ?? nestedSeller;
 
@@ -955,10 +973,21 @@ public sealed class EdocsEdoOperations(
             return BuildSellerParty(preferredSeller, sellerTin);
         }
 
+        if (waybillConsignor is { ValueKind: JsonValueKind.Object }
+            && TryReadNormalizedTin(waybillConsignor, "tinorpinfl", out sellerTin)
+            && sellerTin is not null)
+        {
+            return BuildSellerParty(waybillConsignor, sellerTin);
+        }
+
         return preferredSeller is { } seller
             ? ReadPartyObject(seller, taxIdentifierOverride: null, useTaxIdentifierOverride: true)
             : null;
     }
+
+    private static bool IsWaybillLocalDocumentType(string? documentType) =>
+        string.Equals(documentType, "WAYBILL_LOCAL", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(documentType, "waybillLocal", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadSellerObjectTin(JsonElement? seller, out string? normalizedTin)
     {
@@ -1081,10 +1110,14 @@ public sealed class EdocsEdoOperations(
             ? field.GetString()
             : null;
 
-    private static IReadOnlyCollection<EdoDocumentPreviewLineDto> ReadPreviewLines(
+    internal static IReadOnlyCollection<EdoDocumentPreviewLineDto> ReadPreviewLines(
         JsonElement item,
         bool strictHistoricalDecimals = false)
     {
+        var waybillLines = ReadWaybillProductGroupLines(item, strictHistoricalDecimals);
+        if (waybillLines is not null)
+            return waybillLines;
+
         if (ReadPath(item, "data", "productlist", "products") is { } products
             && products.ValueKind == JsonValueKind.Array)
         {
@@ -1112,7 +1145,8 @@ public sealed class EdocsEdoOperations(
                     VatRate = ReadDecimal(product, "vatrate", strictHistoricalDecimals),
                     VatAmount = ReadDecimal(product, "vatsum", strictHistoricalDecimals),
                     TotalWithVat = ReadDecimal(product, "deliverysumwithvat", strictHistoricalDecimals),
-                    MarkingCodes = ReadMarkingCodes(product)
+                    MarkingCodes = ReadMarkingCodes(product),
+                    MarkingCount = ReadMarkingCount(product)
                 });
             }
 
@@ -1129,7 +1163,8 @@ public sealed class EdocsEdoOperations(
             UnitPrice = ReadDecimal(item, "unitPrice", strictHistoricalDecimals),
             VatRate = ReadDecimal(item, "vatRate", strictHistoricalDecimals),
             TotalWithVat = ReadDecimal(item, "totalWithVat", strictHistoricalDecimals),
-            MarkingCodes = ReadMarkingCodes(item)
+            MarkingCodes = ReadMarkingCodes(item),
+            MarkingCount = ReadMarkingCount(item)
         };
 
         return line.CatalogCode is null
@@ -1139,6 +1174,199 @@ public sealed class EdocsEdoOperations(
             && line.TotalWithVat is null
             ? []
             : [line];
+    }
+
+    private static IReadOnlyCollection<EdoDocumentPreviewLineDto>? ReadWaybillProductGroupLines(
+        JsonElement item,
+        bool strictHistoricalDecimals)
+    {
+        var groups = ReadPath(item, "data", "productgroups")
+            ?? ReadPath(item, "data", "roadway", "productgroups");
+        if (groups is null)
+            return null;
+
+        var products = EnumerateWaybillProducts(groups.Value).ToArray();
+        if (products.Length == 0)
+            return [];
+
+        var lines = new List<EdoDocumentPreviewLineDto>(products.Length);
+        var fallbackNumber = 1;
+        foreach (var product in products)
+        {
+            var number = ReadIntegerFromAliases(
+                product,
+                "ordno",
+                "number",
+                "lineNumber",
+                "lineNo") ?? fallbackNumber;
+
+            lines.Add(new EdoDocumentPreviewLineDto
+            {
+                Number = number,
+                CatalogCode = ReadStringFromAliases(
+                    product,
+                    "catalogcode",
+                    "catalogCode",
+                    "mxik",
+                    "mxikCode",
+                    "mxik_code",
+                    "productCode",
+                    "code"),
+                CatalogName = ReadStringFromAliases(
+                    product,
+                    "productName",
+                    "name",
+                    "catalogname",
+                    "catalogName"),
+                PackageCode = ReadStringFromAliases(
+                    product,
+                    "packagecode",
+                    "packageCode",
+                    "unitCode",
+                    "unit_code"),
+                PackageName = ReadStringFromAliases(
+                    product,
+                    "packagename",
+                    "packageName",
+                    "unitName",
+                    "unit_name"),
+                Quantity = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "count",
+                    "amount",
+                    "quantity",
+                    "qty"),
+                UnitPrice = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "summa",
+                    "price",
+                    "unitPrice",
+                    "unit_price"),
+                NetAmount = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "deliverysum",
+                    "netAmount",
+                    "amount"),
+                VatRate = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "vatrate",
+                    "vatRate",
+                    "vatPercent",
+                    "ndsRate")
+                    ?? ReadDecimalFromNestedAliases(product, strictHistoricalDecimals, "vat", "rate"),
+                VatAmount = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "vatsum",
+                    "vatAmount",
+                    "ndsAmount")
+                    ?? ReadDecimalFromNestedAliases(product, strictHistoricalDecimals, "vat", "sum"),
+                TotalWithVat = ReadDecimalFromAliases(
+                    product,
+                    strictHistoricalDecimals,
+                    "deliverysumwithvat",
+                    "totalWithVat",
+                    "totalAmount",
+                    "amountWithVat"),
+                MarkingCodes = ReadMarkingCodes(product),
+                MarkingCount = ReadMarkingCount(product)
+            });
+            fallbackNumber++;
+        }
+
+        return lines;
+    }
+
+    private static IEnumerable<JsonElement> EnumerateWaybillProducts(JsonElement groups)
+    {
+        if (groups.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var group in groups.EnumerateArray())
+            {
+                foreach (var product in EnumerateWaybillProducts(group))
+                    yield return product;
+            }
+
+            yield break;
+        }
+
+        if (groups.ValueKind != JsonValueKind.Object)
+            yield break;
+
+        foreach (var name in new[] { "productinfo", "products" })
+        {
+            if (TryGetPropertyIgnoreCase(groups, name, out var nested))
+            {
+                foreach (var product in EnumerateWaybillProducts(nested))
+                    yield return product;
+                yield break;
+            }
+        }
+
+        if (LooksLikeWaybillProduct(groups))
+            yield return groups;
+    }
+
+    private static bool LooksLikeWaybillProduct(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Object
+        && (HasAnyProperty(value, "catalogcode", "catalogCode", "mxik", "mxikCode", "productCode", "code")
+            || HasAnyProperty(value, "quantity", "qty", "count"))
+        && HasAnyProperty(value, "summa", "unitPrice", "price", "deliverysum", "netAmount", "amount");
+
+    private static bool HasAnyProperty(JsonElement item, params string[] names) =>
+        names.Any(name => TryGetPropertyIgnoreCase(item, name, out _));
+
+    private static string? ReadStringFromAliases(JsonElement item, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var value = ReadOptionalString(item, name);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+
+        return null;
+    }
+
+    private static int? ReadIntegerFromAliases(JsonElement item, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (TryGetPropertyIgnoreCase(item, name, out _))
+                return ReadInteger(item, name);
+        }
+
+        return null;
+    }
+
+    private static decimal? ReadDecimalFromAliases(
+        JsonElement item,
+        bool strictHistoricalDecimals,
+        params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (TryGetPropertyIgnoreCase(item, name, out _))
+                return ReadDecimal(item, name, strictHistoricalDecimals);
+        }
+
+        return null;
+    }
+
+    private static decimal? ReadDecimalFromNestedAliases(
+        JsonElement item,
+        bool strictHistoricalDecimals,
+        string parentName,
+        params string[] names)
+    {
+        var nested = ReadPath(item, parentName);
+        return nested is { } value
+            ? ReadDecimalFromAliases(value, strictHistoricalDecimals, names)
+            : null;
     }
 
     private static IReadOnlyCollection<string> ReadMarkingCodes(JsonElement product)
@@ -1152,12 +1380,30 @@ public sealed class EdocsEdoOperations(
             AppendMarkingArray(marks, "identtransupak", result);
             AppendMarkingArray(marks, "kiz", result);
             AppendMarkingArray(marks, "nomupak", result);
+            AppendMarkingArray(marks, "markCodes", result);
+            AppendMarkingArray(marks, "markingCodes", result);
         }
 
         AppendMarkingArray(product, "identtransupak", result);
         AppendMarkingArray(product, "kiz", result);
         AppendMarkingArray(product, "nomupak", result);
+        AppendMarkingArray(product, "markCodes", result);
+        AppendMarkingArray(product, "markingCodes", result);
         return result;
+    }
+
+    private static int? ReadMarkingCount(JsonElement product)
+    {
+        foreach (var name in new[] { "markingCount", "markCount", "marksCount" })
+        {
+            if (TryGetPropertyIgnoreCase(product, name, out var count)
+                && count.ValueKind == JsonValueKind.Number
+                && count.TryGetInt32(out var numericCount)
+                && numericCount >= 0)
+                return numericCount;
+        }
+
+        return null;
     }
 
     private static void AppendMarkingArray(JsonElement owner, string propertyName, List<string> target)

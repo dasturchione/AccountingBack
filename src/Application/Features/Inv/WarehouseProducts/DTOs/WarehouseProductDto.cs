@@ -10,12 +10,14 @@ public sealed class WarehouseProductDto
     public short UnitId { get; init; }
     public string UnitName { get; init; } = null!;
     public string UnitCode { get; init; } = null!;
+    public bool IsService { get; init; }
     public bool IsPieceTracked { get; init; }
     public decimal Quantity { get; init; }
     public decimal ReservedQuantity { get; init; }
     public decimal BlockedQuantity { get; init; }
     public decimal AvailableQuantity { get; init; }
     public int MarkingCount { get; init; }
+    public IReadOnlyList<int> AvailableProductTableIds { get; init; } = Array.Empty<int>();
     public IReadOnlyList<WarehouseProductBatchDto> Batches { get; init; } = Array.Empty<WarehouseProductBatchDto>();
 }
 

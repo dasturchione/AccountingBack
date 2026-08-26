@@ -10,8 +10,16 @@ public static class EdoOutboxProviderDocumentDetailMapper
     public static EdoOutboxProviderDocumentDetailDto MapAndValidate(
         EdoDocumentDto document,
         string requestedProviderDocumentId)
+        => MapAndValidate(document, requestedProviderDocumentId, "FACTURA", allowSentDocuments: false);
+
+    public static EdoOutboxProviderDocumentDetailDto MapAndValidate(
+        EdoDocumentDto document,
+        string requestedProviderDocumentId,
+        string expectedDocumentType,
+        bool allowSentDocuments)
     {
         var requestedId = RequireProviderDocumentId(requestedProviderDocumentId);
+        var normalizedExpectedType = NormalizeDocumentType(expectedDocumentType);
 
         if (document is null
             || string.IsNullOrWhiteSpace(document.ProviderDocumentId)
@@ -22,7 +30,8 @@ public static class EdoOutboxProviderDocumentDetailMapper
 
         if (document.ProviderCode != EdoProviderCode.EDOCS
             || document.Direction != EdoDirection.OUTBOX
-            || !string.Equals(document.DocumentType, "FACTURA", StringComparison.OrdinalIgnoreCase))
+            || NormalizeDocumentType(document.DocumentType) != normalizedExpectedType
+            || normalizedExpectedType is not ("FACTURA" or "WAYBILL_LOCAL"))
         {
             throw Failure("EDO_OUTBOX_DETAIL_INVALID", 502);
         }
@@ -30,7 +39,8 @@ public static class EdoOutboxProviderDocumentDetailMapper
         if (document.Status.Code == EdoDocumentStatusCode.UNKNOWN)
             throw Failure("EDO_OUTBOX_DETAIL_STATUS_INVALID", 502);
 
-        if (document.Status.Code != EdoDocumentStatusCode.SIGNED)
+        if (document.Status.Code != EdoDocumentStatusCode.SIGNED
+            && !(allowSentDocuments && document.Status.Code == EdoDocumentStatusCode.SENT))
             throw Failure("EDO_OUTBOX_DETAIL_NOT_SIGNED", 422);
 
         if (string.IsNullOrWhiteSpace(document.DocumentNumber)
@@ -76,17 +86,17 @@ public static class EdoOutboxProviderDocumentDetailMapper
                 TotalWithVat = sourceLine.TotalWithVat.Value,
                 Marking = new EdoProviderMarkingMetadataDto
                 {
-                    HasMarkings = sourceLine.MarkingCodes.Count > 0,
-                    Count = sourceLine.MarkingCodes.Count
+                    HasMarkings = GetMarkingCount(sourceLine) > 0,
+                    Count = GetMarkingCount(sourceLine)
                 }
             });
         }
 
         var safeStatus = new EdoDocumentStatusDto
         {
-            Code = EdoDocumentStatusCode.SIGNED,
-            LocalCode = EdoDocumentStatusCode.SIGNED,
-            ProviderStatusCode = nameof(EdoDocumentStatusCode.SIGNED),
+            Code = document.Status.Code,
+            LocalCode = document.Status.Code,
+            ProviderStatusCode = document.Status.Code.ToString(),
             IsTerminal = document.Status.IsTerminal,
             IsSuccessful = document.Status.IsSuccessful,
             IsReconciliationRequired = document.Status.IsReconciliationRequired
@@ -98,7 +108,7 @@ public static class EdoOutboxProviderDocumentDetailMapper
             ProviderCode = EdoProviderCode.EDOCS,
             Direction = EdoDirection.OUTBOX,
             Category = EdoDocumentCategory.OUTBOX,
-            DocumentType = "FACTURA",
+            DocumentType = normalizedExpectedType,
             DocumentNumber = document.DocumentNumber.Trim(),
             DocumentDate = document.DocumentDate.Value,
             Status = safeStatus,
@@ -106,8 +116,8 @@ public static class EdoOutboxProviderDocumentDetailMapper
             Buyer = document.Buyer,
             ContractNumber = CleanOptional(document.PreviewContractNumber),
             ContractDate = document.PreviewContractDate,
-            NetAmount = lines.Sum(x => x.NetAmount),
-            VatAmount = lines.Sum(x => x.VatAmount),
+            NetAmount = document.NetAmount,
+            VatAmount = document.VatAmount,
             TotalAmount = document.TotalAmount.Value,
             CurrencyCode = CleanOptional(document.CurrencyCode),
             Lines = lines
@@ -129,6 +139,19 @@ public static class EdoOutboxProviderDocumentDetailMapper
 
     private static string? CleanOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static int GetMarkingCount(EdoDocumentPreviewLineDto line) =>
+        line.MarkingCount.GetValueOrDefault() > 0
+            ? line.MarkingCount.Value
+            : line.MarkingCodes.Count;
+
+    private static string NormalizeDocumentType(string? value) =>
+        string.Equals(value?.Trim(), "waybillLocal", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value?.Trim(), "WAYBILL_LOCAL", StringComparison.OrdinalIgnoreCase)
+            ? "WAYBILL_LOCAL"
+            : string.Equals(value?.Trim(), "FACTURA", StringComparison.OrdinalIgnoreCase)
+                ? "FACTURA"
+                : value?.Trim().ToUpperInvariant() ?? string.Empty;
 
     private static EdoOutboxProviderDocumentException Failure(string code, int statusCode) =>
         new(code, statusCode);

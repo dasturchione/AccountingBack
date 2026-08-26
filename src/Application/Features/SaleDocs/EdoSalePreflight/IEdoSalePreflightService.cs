@@ -5,4 +5,9 @@ namespace Application.Features.SaleDocs;
 public interface IEdoSalePreflightService
 {
     Task<EdoSalePreflightPlanDto> GetPlanAsync(CancellationToken ct = default);
+
+    Task<EdoSalePreflightPlanDto> GetPlanAsync(
+        CancellationToken ct,
+        bool allowSentDocuments,
+        string documentType);
 }

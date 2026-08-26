@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_bank")]
-[Index("Code", Name = "idx_cmn_bank_code", IsUnique = true)]
 public partial class Bank
 {
     [Key]

@@ -5,13 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("cmn_bank_branch")]
-[Index(nameof(Mfo), Name = "uq_cmn_bank_branch_mfo", IsUnique = true)]
-[Index(nameof(BankId), Name = "idx_cmn_bank_branch_bank_id")]
-[Index(nameof(BranchType), Name = "idx_cmn_bank_branch_branch_type")]
-[Index(nameof(RegionId), Name = "idx_cmn_bank_branch_region_id")]
-[Index(nameof(DistrictId), Name = "idx_cmn_bank_branch_district_id")]
-[Index(nameof(Inn), Name = "idx_cmn_bank_branch_inn")]
-[Index(nameof(StateId), Name = "idx_cmn_bank_branch_state_id")]
 public class BankBranch
 {
     [Key]

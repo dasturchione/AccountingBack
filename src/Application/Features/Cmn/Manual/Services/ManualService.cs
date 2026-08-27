@@ -13,6 +13,7 @@ public class ManualService : IManualService
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
     private readonly IQueryRepository<BankBranch> _bankBranchQuery;
+    private readonly IQueryRepository<BankOperationCategory> _bankOperationCategoryQuery;
     private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
     private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
@@ -88,6 +89,7 @@ public class ManualService : IManualService
         IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
         IQueryRepository<BankBranch> bankBranchQuery,
+        IQueryRepository<BankOperationCategory> bankOperationCategoryQuery,
         IQueryRepository<BankTerminal> bankTerminalQuery,
         IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
@@ -143,6 +145,7 @@ public class ManualService : IManualService
         _costingMethodQuery = costingMethodQuery;
         _bankQuery = bankQuery;
         _bankBranchQuery = bankBranchQuery;
+        _bankOperationCategoryQuery = bankOperationCategoryQuery;
         _bankTerminalQuery = bankTerminalQuery;
         _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
@@ -513,6 +516,26 @@ public class ManualService : IManualService
             .Build();
 
         return await _bankBranchQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetBankOperationCategoriesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<BankOperationCategory>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankOperationCategoryQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default)

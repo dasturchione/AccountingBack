@@ -82,6 +82,83 @@ public sealed class BankStatementTemplateVersionTests
         Assert.Same(result.Value, classifier.Export);
     }
 
+    [Fact]
+    public async Task ParseAsync_UsesStatementBankAsCounterpartyForBankServicePaidToOwnInn()
+    {
+        var bank = new Bank
+        {
+            Id = 2,
+            Code = "UZSANOATQURILISHBANK",
+            Name = "Uzsanoatqurilishbank",
+            Inn = "200833707",
+            Mfo = "00440",
+            StateId = StateIdConst.ACTIVE
+        };
+        var classifier = new BankServiceClassifier();
+        var service = new BankStatementParserService(
+            new TestUserContext(),
+            new InMemoryQueryRepository<BankStatementTemplate>(BankStatementTemplateTestData.CreateUzsanoatqurilishbank()),
+            new InMemoryQueryRepository<Bank>(bank),
+            new InMemoryQueryRepository<BankBranch>(),
+            new InMemoryQueryRepository<BankAccount>(new BankAccount
+            {
+                Id = 20,
+                OrganizationId = 7,
+                BankId = bank.Id,
+                Bank = bank,
+                AccountNumber = "20208000607099548001",
+                StateId = StateIdConst.ACTIVE
+            }),
+            new InMemoryQueryRepository<CounterpartyCard>(new CounterpartyCard
+            {
+                Id = 99,
+                OrganizationId = 7,
+                ShortName = bank.Name,
+                Inn = bank.Inn,
+                StateId = StateIdConst.ACTIVE
+            }),
+            new InMemoryQueryRepository<CounterpartyBankAccount>(new CounterpartyBankAccount
+            {
+                Id = 88,
+                OrganizationId = 7,
+                CounterpartyId = 77,
+                AccountNumber = "16401000907099548001",
+                StateId = StateIdConst.ACTIVE
+            }),
+            new QueryBuilder(new NullQueryBuilderResolver()),
+            classifier);
+        await using var stream = CreateWorkbookStream();
+
+        var result = await service.ParseAsync(stream, bankId: bank.Id);
+
+        Assert.True(result.IsSuccess);
+        var transaction = Assert.Single(
+            Assert.Single(result.Value.Accounts).Transactions,
+            item => item.ClassificationCode == "BANK_SERVICE");
+        Assert.Equal("200833707", transaction.CounterpartyInn);
+        Assert.Equal("Uzsanoatqurilishbank", transaction.CounterpartyName);
+        Assert.Equal("00440", transaction.MfoCounterparty);
+        Assert.Equal(99, transaction.CounterpartyId);
+        Assert.Null(transaction.CounterpartyBankAccountId);
+    }
+
+    [Fact]
+    public async Task ParseAsync_DoesNotReplaceCounterpartyForOtherCategory()
+    {
+        var classifier = new BankServiceClassifier();
+        var service = CreateService(classifier, BankStatementTemplateTestData.CreateUzsanoatqurilishbank());
+        await using var stream = CreateWorkbookStream();
+
+        var result = await service.ParseAsync(stream, bankId: 2);
+
+        Assert.True(result.IsSuccess);
+        var transaction = Assert.Single(
+            Assert.Single(result.Value.Accounts).Transactions,
+            item => item.ClassificationCode == "COUNTERPARTY");
+        Assert.Equal("200833707", transaction.CounterpartyInn);
+        Assert.Equal("Айланма кассадаги накд пуллар", transaction.CounterpartyName);
+    }
+
     private static BankStatementParserService CreateService(params BankStatementTemplate[] templates) =>
         CreateService(null!, templates);
 
@@ -158,6 +235,27 @@ public sealed class BankStatementTemplateVersionTests
         {
             Export = export;
             BankId = bankId;
+            return Task.FromResult(Result.Success(export));
+        }
+    }
+
+    private sealed class BankServiceClassifier : IBankOperationClassifier
+    {
+        public Task<Result<BankExportDto>> ClassifyAsync(
+            BankExportDto export,
+            int bankId,
+            CancellationToken ct = default)
+        {
+            foreach (var account in export.Accounts)
+            {
+                foreach (var transaction in account.Transactions)
+                {
+                    transaction.ClassificationCode = transaction.CounterpartyInn == account.CompanyInn
+                        ? "BANK_SERVICE"
+                        : "COUNTERPARTY";
+                }
+            }
+
             return Task.FromResult(Result.Success(export));
         }
     }

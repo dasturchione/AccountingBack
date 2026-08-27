@@ -55,7 +55,15 @@ public class BankStatementParserService : IBankStatementParserService
         if (!enrichedResult.IsSuccess)
             return enrichedResult;
 
-        return await _operationClassifier.ClassifyAsync(enrichedResult.Value, bankId, ct);
+        var classifiedResult = await _operationClassifier.ClassifyAsync(enrichedResult.Value, bankId, ct);
+        if (!classifiedResult.IsSuccess)
+            return classifiedResult;
+
+        ReplaceOrganizationWithBankForBankServices(classifiedResult.Value);
+        await SetCounterpartyIdsAsync(classifiedResult.Value, ct);
+        await SetCounterpartyBankAccountIdsAsync(classifiedResult.Value, ct);
+
+        return classifiedResult;
     }
 
     public async Task<Result<BankExportDto>> ParseExcelAsync(
@@ -251,20 +259,30 @@ public class BankStatementParserService : IBankStatementParserService
             .As(x => new CounterpartyMatch
             {
                 Id = x.Id,
-                Inn = x.Inn!
+                Inn = x.Inn!,
+                ShortName = x.ShortName
             })
             .Build();
 
         var cardMatches = await _counterpartyQuery.GetAllAsync(cardSpecification, ct);
         var idsByInn = cardMatches
             .GroupBy(x => NormalizeKey(x.Inn))
-            .ToDictionary(x => x.Key, x => x.First().Id);
+            .ToDictionary(x => x.Key, x => x.First());
 
         foreach (var transaction in export.Accounts.SelectMany(x => x.Transactions))
         {
             var key = NormalizeKey(transaction.CounterpartyInn);
-            if (idsByInn.TryGetValue(key, out var id))
-                transaction.CounterpartyId = id;
+            if (!idsByInn.TryGetValue(key, out var match))
+                continue;
+
+            transaction.CounterpartyId = match.Id;
+            if (string.Equals(
+                    transaction.ClassificationCode,
+                    BankOperationCategoryCodeConst.BANK_SERVICE,
+                    StringComparison.Ordinal))
+            {
+                transaction.CounterpartyName = match.ShortName;
+            }
         }
     }
 
@@ -302,8 +320,14 @@ public class BankStatementParserService : IBankStatementParserService
         {
             if (idsByAccount.TryGetValue(NormalizeKey(transaction.CounterpartyAccount), out var match))
             {
+                if (transaction.CounterpartyId.HasValue &&
+                    transaction.CounterpartyId.Value != match.CounterpartyId)
+                {
+                    continue;
+                }
+
                 transaction.CounterpartyBankAccountId = match.Id;
-                transaction.CounterpartyId ??= match.CounterpartyId;
+                transaction.CounterpartyId = match.CounterpartyId;
             }
         }
     }
@@ -328,6 +352,33 @@ public class BankStatementParserService : IBankStatementParserService
         public string? BankName { get; set; }
     }
 
+    private static void ReplaceOrganizationWithBankForBankServices(BankExportDto export)
+    {
+        foreach (var account in export.Accounts)
+        {
+            var organizationInn = NormalizeKey(account.CompanyInn);
+            foreach (var transaction in account.Transactions)
+            {
+                if (!string.Equals(
+                        transaction.ClassificationCode,
+                        BankOperationCategoryCodeConst.BANK_SERVICE,
+                        StringComparison.Ordinal) ||
+                    !NormalizeKey(transaction.CounterpartyInn).Equals(
+                        organizationInn,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                transaction.CounterpartyInn = account.BankInn ?? string.Empty;
+                transaction.CounterpartyName = account.BankName;
+                transaction.MfoCounterparty = account.BankMfo;
+                transaction.CounterpartyId = null;
+                transaction.CounterpartyBankAccountId = null;
+            }
+        }
+    }
+
     private sealed class BankBranchMatch
     {
         public int Id { get; set; }
@@ -339,6 +390,7 @@ public class BankStatementParserService : IBankStatementParserService
     {
         public int Id { get; set; }
         public string Inn { get; set; } = "";
+        public string ShortName { get; set; } = "";
     }
 
     private sealed class CounterpartyAccountMatch

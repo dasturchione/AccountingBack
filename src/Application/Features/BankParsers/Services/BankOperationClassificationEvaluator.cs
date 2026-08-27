@@ -43,7 +43,7 @@ internal static class BankOperationClassificationEvaluator
                 categoryName ?? rule.Category.Name,
                 rule.Id,
                 rule.Code,
-                string.Equals(rule.Category.Code, BankOperationCategoryCode.ReviewRequired, StringComparison.Ordinal));
+                string.Equals(rule.Category.Code, BankOperationCategoryCodeConst.REVIEW_REQUIRED, StringComparison.Ordinal));
         }
 
         return null;
@@ -206,11 +206,6 @@ internal sealed record BankOperationClassificationMatch(
     bool RequiresReview);
 
 internal sealed class BankOperationClassificationConfigurationException(string message) : Exception(message);
-
-internal static class BankOperationCategoryCode
-{
-    public const string ReviewRequired = "REVIEW_REQUIRED";
-}
 
 internal static class BankOperationClassificationField
 {

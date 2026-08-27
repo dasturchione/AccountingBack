@@ -84,7 +84,7 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
                 {
                     var categorySpecification = _queryBuilder.For<BankOperationCategory>()
                         .Where(category =>
-                            category.Code == BankOperationCategoryCode.ReviewRequired &&
+                            category.Code == BankOperationCategoryCodeConst.REVIEW_REQUIRED &&
                             category.StateId == StateIdConst.ACTIVE)
                         .AddIncludes(includes => includes.Include(category => category.Translations))
                         .Build();

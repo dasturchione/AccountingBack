@@ -8,7 +8,6 @@ namespace Domain.Entities;
 [Index("OrganizationId", Name = "idx_inv_inventory_count_doc_organization_id")]
 [Index("DocDate", Name = "idx_inv_inventory_count_doc_doc_date")]
 [Index("WarehouseId", Name = "idx_inv_inventory_count_doc_warehouse_id")]
-[Index("OrganizationId", "DocNumber", Name = "ux_inv_inventory_count_doc_org_doc_number", IsUnique = true)]
 [Index("StatusId", Name = "idx_inv_inventory_count_doc_status_id")]
 [Index("StateId", Name = "idx_inv_inventory_count_doc_state_id")]
 public partial class InventoryCountDoc

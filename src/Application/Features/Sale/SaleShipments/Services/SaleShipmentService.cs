@@ -110,7 +110,11 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
             var docDate = dto.DocDate == default
                 ? now
                 : DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
-            var docNumberResult = await ResolveDocNumberAsync(organizationId, dto.DocNumber, docDate, ct);
+            var docNumberResult = await _documentNumberService.GetNextAsync(
+                organizationId,
+                DocumentTypeIdConst.SALESHIPMENT,
+                docDate,
+                ct);
             if (!docNumberResult.IsSuccess)
                 return Result.Failure<long>(docNumberResult.Error);
 
@@ -119,7 +123,7 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
                 OrganizationId = organizationId,
                 WarehouseId = dto.WarehouseId,
                 CounterpartyId = dto.CounterpartyId,
-                DocNumber = docNumberResult.Value,
+                DocNumber = docNumberResult.Value.DocumentNumber,
                 DocDate = docDate,
                 Comment = dto.Comment,
                 StatusId = DocumentStatusIdConst.DRAFT,
@@ -153,9 +157,6 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
             if (!productsResult.IsSuccess)
                 return Result.Failure(productsResult.Error);
 
-            if (!string.IsNullOrWhiteSpace(dto.DocNumber) && dto.DocNumber.Trim().Length > 50)
-                return Result.Failure(SaleShipmentErrors.InvalidDocNumber(_userContext.LanguageId));
-
             await _shipmentTableCommand.DeleteAsync(x => x.ShipmentProduct.OwnerId == id, ct);
             await _shipmentProductBatchCommand.DeleteAsync(x => x.ShipmentProduct.OwnerId == id, ct);
             await _shipmentProductCommand.DeleteAsync(x => x.OwnerId == id, ct);
@@ -166,7 +167,6 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
 
             shipment.WarehouseId = dto.WarehouseId;
             shipment.CounterpartyId = dto.CounterpartyId;
-            shipment.DocNumber = string.IsNullOrWhiteSpace(dto.DocNumber) ? shipment.DocNumber : dto.DocNumber.Trim();
             shipment.DocDate = dto.DocDate == default
                 ? shipment.DocDate
                 : DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
@@ -227,27 +227,6 @@ public sealed class SaleShipmentService : BaseService, ISaleShipmentService
             return Result.Failure(SaleShipmentErrors.CounterpartyOrganizationMismatch(counterpartyId.Value, organizationId, _userContext.LanguageId));
 
         return Result.Success();
-    }
-
-    private async Task<Result<string?>> ResolveDocNumberAsync(int organizationId, string? docNumber, DateTime docDate, CancellationToken ct)
-    {
-        if (!string.IsNullOrWhiteSpace(docNumber))
-        {
-            var normalizedDocNumber = docNumber.Trim();
-            return normalizedDocNumber.Length > 50
-                ? Result.Failure<string?>(SaleShipmentErrors.InvalidDocNumber(_userContext.LanguageId))
-                : Result.Success<string?>(normalizedDocNumber);
-        }
-
-        var documentNumberResult = await _documentNumberService.GetNextAsync(
-            organizationId,
-            DocumentTypeIdConst.SALESHIPMENT,
-            docDate,
-            ct);
-
-        return documentNumberResult.IsSuccess
-            ? Result.Success<string?>(documentNumberResult.Value.DocumentNumber)
-            : Result.Failure<string?>(documentNumberResult.Error);
     }
 
     private async Task<Result<List<SaleShipmentProduct>>> BuildProductsAsync(

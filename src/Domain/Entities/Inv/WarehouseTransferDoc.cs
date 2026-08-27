@@ -9,7 +9,6 @@ namespace Domain.Entities;
 [Index("DocDate", Name = "idx_inv_transfer_doc_doc_date")]
 [Index("SourceWarehouseId", Name = "idx_inv_transfer_doc_source_warehouse_id")]
 [Index("DestinationWarehouseId", Name = "idx_inv_transfer_doc_destination_warehouse_id")]
-[Index("OrganizationId", "DocNumber", Name = "ux_inv_transfer_doc_doc_number_org", IsUnique = true)]
 [Index("StatusId", Name = "idx_inv_transfer_doc_status_id")]
 [Index("StateId", Name = "idx_inv_transfer_doc_state_id")]
 [Index("PostedByUserId", Name = "idx_inv_transfer_doc_posted_by_user_id")]

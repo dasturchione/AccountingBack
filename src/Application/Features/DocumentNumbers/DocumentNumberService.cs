@@ -106,6 +106,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
             var maxExistingNumber = await GetMaxExistingInventoryAdjustmentNumberAsync(
                 organizationId,
                 documentTypeId,
+                documentYear,
                 ct);
 
             if (maxExistingNumber == long.MaxValue)
@@ -143,10 +144,7 @@ public sealed class DocumentNumberService : IDocumentNumberService
 
             return Result.Success(new DocumentNumberResult(
                 sequence.LastNumber,
-                historical
-                    ? HistoricalDocumentNumberPolicy.Format(
-                        sequence.DocumentYear, sequence.LastNumber)
-                    : sequence.LastNumber.ToString(CultureInfo.InvariantCulture),
+                sequence.LastNumber.ToString(CultureInfo.InvariantCulture),
                 normalizedDocumentDate));
         }
         catch (OperationCanceledException)
@@ -168,13 +166,15 @@ public sealed class DocumentNumberService : IDocumentNumberService
     private async Task<long> GetMaxExistingInventoryAdjustmentNumberAsync(
         int organizationId,
         short documentTypeId,
+        short documentYear,
         CancellationToken ct)
     {
         if (documentTypeId != DocumentTypeIdConst.INVENTORYADJUSTMENT)
             return 0;
 
         var query = _queryBuilder.For<InventoryAdjustmentDoc>()
-            .Where(x => x.OrganizationId == organizationId)
+            .Where(x => x.OrganizationId == organizationId
+                && x.DocDate.Year == documentYear)
             .Build();
 
         var documents = await _inventoryAdjustmentQuery.GetAllAsync(query, ct);

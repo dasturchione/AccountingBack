@@ -10,7 +10,6 @@ namespace Domain.Entities;
 [Index(nameof(ReceiptTypeId), Name = "ix_fa_receipt_doc_receipt_type_id")]
 [Index(nameof(StatusId), Name = "ix_fa_receipt_doc_status_id")]
 [Index(nameof(SupplierAccountId), Name = "ix_fa_receipt_doc_supplier_account_id")]
-[Index(nameof(OrganizationId), nameof(DocNumber), Name = "uq_fa_receipt_doc_org_number", IsUnique = true)]
 public partial class FaReceiptDoc
 {
     [Key]

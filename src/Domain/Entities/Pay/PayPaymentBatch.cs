@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pay_payment_batch")]
-[Index(nameof(OrganizationId), nameof(DocNumber), Name = "ux_pay_payment_batch_org_doc_number", IsUnique = true)]
 [Index(nameof(PeriodId), Name = "idx_pay_payment_batch_period_id")]
 [Index(nameof(PayrollDocId), Name = "idx_pay_payment_batch_payroll_doc_id")]
 [Index(nameof(StatusId), Name = "idx_pay_payment_batch_status_id")]

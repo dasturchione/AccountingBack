@@ -70,8 +70,6 @@ public static class SaleShipmentErrors
     public static Error ProductTablesNotAllowed(int productId, short? languageId = null) =>
         Error.Business("SaleShipment.ProductTablesNotAllowed", $"Product tables are not allowed for non-piece-tracked product {productId}.");
 
-    public static Error InvalidDocNumber(short? languageId = null) =>
-        Error.Business("SaleShipment.InvalidDocNumber", "Sale shipment document number is invalid.");
     public static Error LinkedDocumentCannotBeChanged(long id, short? languageId = null) =>
         Error.Conflict("SaleShipment.LinkedDocumentCannotBeChanged", $"Sale shipment {id} is already linked to a sale document and cannot be changed.");
 

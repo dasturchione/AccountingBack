@@ -278,3 +278,4 @@
 17_rtl/1704_create_rtl_sale_doc_product.sql
 17_rtl/1705_create_rtl_sale_doc_table.sql
 17_rtl/1706_create_rtl_sale_doc_payment.sql
+17_rtl/1707_unify_document_number_year_uniqueness.sql

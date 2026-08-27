@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("fa_movement_doc")]
-[Index("OrganizationId", "DocNumber", Name = "ux_fa_movement_doc_org_doc_number", IsUnique = true)]
 [Index("StateId", Name = "idx_fa_movement_doc_state_id")]
 [Index("StatusId", Name = "idx_fa_movement_doc_status_id")]
 [Index("DocDate", Name = "idx_fa_movement_doc_doc_date")]

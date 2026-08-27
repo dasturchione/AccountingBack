@@ -42,4 +42,40 @@ public static class AccountingRegisterEntryErrors
             LanguageIdConst.RU => "Тип документа не поддерживается.", 
             _ => "Document type is not supported."
         };
+
+    public static Error UnsupportedRebuildDocumentType(short documentTypeId, short? languageId = null) =>
+        Error.Business("AccountingRegisterEntry.UnsupportedRebuildDocumentType", languageId switch
+        {
+            LanguageIdConst.UZ => $"DocumentTypeId {documentTypeId} uchun buxgalteriya o'tkazmalarini qayta tuzish qo'llab-quvvatlanmaydi.",
+            LanguageIdConst.UZ_CYRL => $"DocumentTypeId {documentTypeId} учун бухгалтерия ўтказмаларини қайта тузиш қўллаб-қувватланмайди.",
+            LanguageIdConst.RU => $"Пересборка бухгалтерских проводок для DocumentTypeId {documentTypeId} не поддерживается.",
+            _ => $"Accounting entry rebuild is not supported for DocumentTypeId {documentTypeId}."
+        });
+
+    public static Error PostedDocumentNotFound(short documentTypeId, long documentId, short? languageId = null) =>
+        Error.NotFound("AccountingRegisterEntry.PostedDocumentNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} bo'yicha o'tkazilgan hujjat topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} бўйича ўтказилган ҳужжат топилмади.",
+            LanguageIdConst.RU => $"Проведённый документ с DocumentTypeId {documentTypeId} и DocumentId {documentId} не найден.",
+            _ => $"Posted document with DocumentTypeId {documentTypeId} and DocumentId {documentId} was not found."
+        });
+
+    public static Error AlreadyRebuilding(short documentTypeId, long documentId, short? languageId = null) =>
+        Error.Conflict("AccountingRegisterEntry.AlreadyRebuilding", languageId switch
+        {
+            LanguageIdConst.UZ => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} uchun o'tkazmalar hozir qayta tuzilmoqda.",
+            LanguageIdConst.UZ_CYRL => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} учун ўтказмалар ҳозир қайта тузилмоқда.",
+            LanguageIdConst.RU => $"Проводки для DocumentTypeId {documentTypeId}, DocumentId {documentId} уже пересобираются.",
+            _ => $"Entries for DocumentTypeId {documentTypeId}, DocumentId {documentId} are already being rebuilt."
+        });
+
+    public static Error RebuildProducedNoEntries(short documentTypeId, long documentId, short? languageId = null) =>
+        Error.Business("AccountingRegisterEntry.RebuildProducedNoEntries", languageId switch
+        {
+            LanguageIdConst.UZ => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} uchun yangi buxgalteriya o'tkazmalari yaratilmadi.",
+            LanguageIdConst.UZ_CYRL => $"DocumentTypeId {documentTypeId}, DocumentId {documentId} учун янги бухгалтерия ўтказмалари яратилмади.",
+            LanguageIdConst.RU => $"Для DocumentTypeId {documentTypeId}, DocumentId {documentId} не создано ни одной новой проводки.",
+            _ => $"No accounting entries were produced for DocumentTypeId {documentTypeId}, DocumentId {documentId}."
+        });
 }

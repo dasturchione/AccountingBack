@@ -344,6 +344,8 @@ namespace Infrastructure
             services.AddScoped<IAccountingPeriodService, AccountingPeriodService>();
             services.AddScoped<IAccountingPeriodReadRepository, AccountingPeriodReadRepository>();
             services.AddScoped<IAccountingRegisterEntryService, AccountingRegisterEntryService>();
+            services.AddScoped<IAccountingRegisterEntryRebuildService, AccountingRegisterEntryRebuildService>();
+            services.AddScoped<IAccountingRegisterEntryRebuildRepository, AccountingRegisterEntryRebuildRepository>();
             services.AddScoped<IAccountingReportService, AccountingReportService>();
             services.AddScoped<IAccountingReportReadRepository, AccountingReportReadRepository>();
             services.AddScoped<IPdfReportTemplate, PdfReportTemplate>();

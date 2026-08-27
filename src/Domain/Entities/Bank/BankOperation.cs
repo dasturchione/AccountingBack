@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("bank_operation")]
-[Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
-[Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
-[Index("DocDate", Name = "idx_bank_operation_doc_date")]
-[Index("DirectionId", Name = "idx_bank_operation_direction_id")]
-[Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
-[Index("StateId", Name = "idx_bank_operation_state_id")]
-[Index("StatusId", Name = "idx_bank_operation_status_id")]
-[Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 public partial class BankOperation
 {
     [Key]

@@ -55,7 +55,7 @@ public partial class BankAccount
     public virtual Bank Bank { get; set; } = null!;
 
     [ForeignKey(nameof(BankBranchId))]
-    [InverseProperty(nameof(Domain.Entities.BankBranch.BankAccounts))]
+    [InverseProperty(nameof(BankBranch.BankAccounts))]
     public virtual BankBranch? BankBranch { get; set; }
 
     [InverseProperty("BankAccount")]

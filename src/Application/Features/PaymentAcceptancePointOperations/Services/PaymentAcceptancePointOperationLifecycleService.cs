@@ -72,7 +72,7 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
                 return await GetActiveBatchAsync(id, ct) is not null
                     ? Result.Success()
                     : Result.Failure(PaymentAcceptancePointOperationErrors.MissingPostingBatch(id));
-            if (operation.StatusId != DocumentStatusIdConst.DRAFT)
+            if (!PaymentAcceptancePointOperationStatusPolicy.CanConfirm(operation.StatusId))
                 return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "confirmed"));
 
             var period = await _periodValidator.EnsureOpenAsync(operation.OrganizationId, operation.DocDate, ct);
@@ -132,7 +132,7 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
                 return Result.Failure(PaymentAcceptancePointOperationErrors.NotFound(id, _userContext.LanguageId));
             if (operation.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
-            if (operation.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.POSTED))
+            if (!PaymentAcceptancePointOperationStatusPolicy.CanCancel(operation.StatusId))
                 return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "cancelled"));
 
             if (operation.StatusId == DocumentStatusIdConst.POSTED)

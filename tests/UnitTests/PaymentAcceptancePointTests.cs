@@ -21,7 +21,8 @@ public sealed class PaymentAcceptancePointTests
         Assert.Equal("payment_acceptance_point_operation", operationType!.GetCustomAttributes(typeof(TableAttribute), false).Cast<TableAttribute>().Single().Name);
         Assert.NotNull(operationType.GetProperty("DirectionId"));
         Assert.Null(operationType.GetProperty("OperationTypeId"));
-        Assert.Null(operationType.GetProperty("RelatedDocumentId"));
+        Assert.NotNull(operationType.GetProperty("RelatedDocumentId"));
+        Assert.NotNull(operationType.GetProperty("RelatedDocument"));
         Assert.Null(operationType.GetProperty("CommissionPercent"));
         Assert.Null(operationType.GetProperty("CommissionAmount"));
     }
@@ -43,7 +44,28 @@ public sealed class PaymentAcceptancePointTests
         Assert.Contains("where status_id = 1", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("commission_percent", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("operation_type_id", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("related_document_id", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("related_document_id", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RetailPaymentConstraintSql_EnforcesPaymentPointAndOrganizationRules()
+    {
+        var root = FindRepositoryRoot();
+        var migration = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "Infrastructure",
+            "Persistence",
+            "Scripts",
+            "05_bank",
+            "0510_add_payment_operation_document_link_and_retail_constraints.sql"));
+
+        Assert.Contains("payment_method_code = 'CASH' and new.payment_acceptance_point_id is not null", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("payment_method_code <> 'CASH' and new.payment_acceptance_point_id is null", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("organization_id = new.organization_id", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("state_id = 1", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("id = new.related_document_id", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("update of organization_id, payment_acceptance_point_id, related_document_id", migration, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

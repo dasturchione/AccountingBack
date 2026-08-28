@@ -345,6 +345,7 @@ namespace Infrastructure
             services.AddScoped<IPurchaseDocTableService, PurchaseDocTableService>();
             services.AddScoped<ISaleDocService, SaleDocService>();
             services.AddScoped<IRetailSaleDocService, RetailSaleDocService>();
+            services.AddScoped<IRetailSalePaymentAcceptancePointService, RetailSalePaymentAcceptancePointService>();
             services.AddScoped<ISaleShipmentService, SaleShipmentService>();
             services.AddScoped<ISaleLifecycleService, SaleLifecycleService>();
             services.AddScoped<ISaleDocTableService, SaleDocTableService>();

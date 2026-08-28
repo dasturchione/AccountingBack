@@ -14,6 +14,7 @@ public sealed class PaymentAcceptancePointOperationByListFilterCriteriaBuilder
              (!filter.DirectionId.HasValue || x.DirectionId == filter.DirectionId.Value) &&
              (!filter.CurrencyId.HasValue || x.CurrencyId == filter.CurrencyId.Value) &&
              (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
+             (!filter.RelatedDocumentId.HasValue || x.RelatedDocumentId == filter.RelatedDocumentId.Value) &&
              (!filter.DateFrom.HasValue || x.DocDate >= filter.DateFrom.Value) &&
              (!filter.DateTo.HasValue || x.DocDate <= filter.DateTo.Value);
 }

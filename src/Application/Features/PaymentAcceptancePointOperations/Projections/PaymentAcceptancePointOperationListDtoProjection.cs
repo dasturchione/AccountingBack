@@ -22,6 +22,8 @@ public sealed class PaymentAcceptancePointOperationListDtoProjection
             CurrencyCode = x.Currency.Code,
             Amount = x.Amount,
             ExternalTransactionNumber = x.ExternalTransactionNumber,
+            RelatedDocumentId = x.RelatedDocumentId,
+            RelatedDocumentNumber = x.RelatedDocument == null ? null : x.RelatedDocument.DocNumber,
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             StateId = x.StateId,

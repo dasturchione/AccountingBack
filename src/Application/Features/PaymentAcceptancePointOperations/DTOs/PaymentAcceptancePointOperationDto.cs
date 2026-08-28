@@ -18,6 +18,11 @@ public sealed class PaymentAcceptancePointOperationDto
     public decimal Amount { get; set; }
     public decimal ExchangeRate { get; set; }
     public string? ExternalTransactionNumber { get; set; }
+    public long? RelatedDocumentId { get; set; }
+    public short? RelatedDocumentTypeId { get; set; }
+    public long? RelatedDocumentEntityId { get; set; }
+    public string? RelatedDocumentNumber { get; set; }
+    public DateTime? RelatedDocumentDate { get; set; }
     public string? Comment { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;

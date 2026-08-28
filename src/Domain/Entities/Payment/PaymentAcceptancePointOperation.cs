@@ -42,6 +42,9 @@ public sealed class PaymentAcceptancePointOperation
     [StringLength(150)]
     public string? ExternalTransactionNumber { get; set; }
 
+    [Column("related_document_id")]
+    public long? RelatedDocumentId { get; set; }
+
     [Column("comment")]
     [StringLength(1000)]
     public string? Comment { get; set; }
@@ -90,4 +93,8 @@ public sealed class PaymentAcceptancePointOperation
     [ForeignKey(nameof(StateId))]
     [InverseProperty(nameof(State.PaymentAcceptancePointOperations))]
     public State State { get; set; } = null!;
+
+    [ForeignKey(nameof(RelatedDocumentId))]
+    [InverseProperty(nameof(DocumentRegistry.PaymentAcceptancePointOperations))]
+    public DocumentRegistry? RelatedDocument { get; set; }
 }

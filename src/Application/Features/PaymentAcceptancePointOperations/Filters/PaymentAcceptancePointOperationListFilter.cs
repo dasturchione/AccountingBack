@@ -8,6 +8,7 @@ public sealed class PaymentAcceptancePointOperationListFilter : ISearchFilter, I
     public short? DirectionId { get; set; }
     public short? CurrencyId { get; set; }
     public short? StatusId { get; set; }
+    public long? RelatedDocumentId { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
     public string? Search { get; set; }

@@ -73,4 +73,7 @@ public sealed class DocumentRegistry
     [InverseProperty(nameof(BankOperation.RelatedDocument))]
     public ICollection<BankOperation> BankOperations { get; set; } = [];
 
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.RelatedDocument))]
+    public ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
+
 }

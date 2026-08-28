@@ -14,6 +14,8 @@ public sealed class PaymentAcceptancePointOperationListDto
     public string CurrencyCode { get; set; } = null!;
     public decimal Amount { get; set; }
     public string? ExternalTransactionNumber { get; set; }
+    public long? RelatedDocumentId { get; set; }
+    public string? RelatedDocumentNumber { get; set; }
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public short StateId { get; set; }

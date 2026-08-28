@@ -25,6 +25,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
     private readonly IActiveInventoryCountGuardService _inventoryCountGuard;
     private readonly IInventoryDispatcher _inventoryDispatcher;
     private readonly IAccountingDispatcher _accountingDispatcher;
+    private readonly IRetailSalePaymentAcceptancePointService _paymentAcceptancePointService;
     private readonly IQueryRepository<RetailSaleDoc> _documentQuery;
     private readonly ICommandRepository<RetailSaleDoc> _documentCommand;
     private readonly IQueryRepository<Warehouse> _warehouseQuery;
@@ -54,6 +55,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         IActiveInventoryCountGuardService inventoryCountGuard,
         IInventoryDispatcher inventoryDispatcher,
         IAccountingDispatcher accountingDispatcher,
+        IRetailSalePaymentAcceptancePointService paymentAcceptancePointService,
         IQueryRepository<RetailSaleDoc> documentQuery,
         ICommandRepository<RetailSaleDoc> documentCommand,
         IQueryRepository<Warehouse> warehouseQuery,
@@ -85,6 +87,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         _inventoryCountGuard = inventoryCountGuard;
         _inventoryDispatcher = inventoryDispatcher;
         _accountingDispatcher = accountingDispatcher;
+        _paymentAcceptancePointService = paymentAcceptancePointService;
         _documentQuery = documentQuery;
         _documentCommand = documentCommand;
         _warehouseQuery = warehouseQuery;
@@ -271,6 +274,10 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 activeBatch.ReversedAt = DateTime.Now;
                 activeBatch.ReversedByUserId = _userContext.Id;
                 await _postingBatchCommand.UpdateAsync(activeBatch, ct);
+
+                var paymentOperations = await _paymentAcceptancePointService.ReverseAsync(document, ct);
+                if (!paymentOperations.IsSuccess)
+                    return paymentOperations;
             }
 
             document.StatusId = DocumentStatusIdConst.CANCELLED;
@@ -344,6 +351,10 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         document.PostedAt = DateTime.Now;
         document.PostedByUserId = _userContext.Id;
         await _documentCommand.UpdateAsync(document, ct);
+
+        var paymentOperations = await _paymentAcceptancePointService.PostAsync(document, ct);
+        if (!paymentOperations.IsSuccess)
+            return paymentOperations;
         return Result.Success();
     }
 
@@ -451,9 +462,19 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
 
         var methodIds = dtoPayments.Select(x => x.PaymentMethodId).Distinct().ToList();
         var methods = await _paymentMethodQuery.GetAllAsync(_queryBuilder.For<PaymentMethod>()
-            .Where(x => methodIds.Contains(x.Id)).As(x => x.Id).Build(), ct);
+            .Where(x => methodIds.Contains(x.Id)).Build(), ct);
         if (methods.Count != methodIds.Count)
             return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
+
+        var methodCodes = methods.ToDictionary(x => x.Id, x => x.Code);
+        foreach (var payment in dtoPayments)
+        {
+            var plan = RetailSalePaymentAcceptancePointPolicy.Build(
+                methodCodes[payment.PaymentMethodId],
+                payment.PaymentAcceptancePointId);
+            if (!plan.IsSuccess)
+                return Result.Failure<List<RetailSaleDocPayment>>(plan.Error);
+        }
 
         var pointIds = dtoPayments.Where(x => x.PaymentAcceptancePointId.HasValue).Select(x => x.PaymentAcceptancePointId!.Value).Distinct().ToList();
         if (pointIds.Count > 0)

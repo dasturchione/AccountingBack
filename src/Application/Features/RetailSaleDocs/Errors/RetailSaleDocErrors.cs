@@ -45,4 +45,18 @@ public static class RetailSaleDocErrors
 
     public static Error BusinessEffectsExist(long id) =>
         Error.Conflict("RetailSaleDoc.BusinessEffectsExist", $"Retail sale document {id} already has business effects.");
+
+    public static Error DocumentRegistryNotFound(long id) =>
+        Error.Conflict("RetailSaleDoc.DocumentRegistryNotFound", $"Document registry row for retail sale {id} was not found.");
+
+    public static Error PaymentOperationsAlreadyExist(long id) =>
+        Error.Conflict("RetailSaleDoc.PaymentOperationsAlreadyExist", $"Retail sale {id} already has payment acceptance point operations.");
+
+    public static Error MissingPaymentOperationBatch(long operationId) =>
+        Error.Conflict("RetailSaleDoc.MissingPaymentOperationBatch", $"Posting batch for payment acceptance point operation {operationId} was not found.");
+
+    public static Error InsufficientPaymentPointBalance(decimal currentBalance, decimal balanceAfterReversal) =>
+        Error.Business(
+            "RetailSaleDoc.InsufficientPaymentPointBalance",
+            $"Payment acceptance point balance {currentBalance} cannot be reversed because the resulting balance would be {balanceAfterReversal}.");
 }

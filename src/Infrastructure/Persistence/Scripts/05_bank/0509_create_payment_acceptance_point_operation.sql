@@ -14,6 +14,7 @@ create table payment_acceptance_point_operation
     amount                          numeric(24, 8) not null,
     exchange_rate                   numeric(18, 6) not null default 1,
     external_transaction_number     varchar(150),
+    related_document_id             bigint references cmn_document_registry(id),
     comment                         varchar(1000),
     status_id                       smallint not null references cmn_document_status(id),
     state_id                        smallint not null default 1 references cmn_state(id),
@@ -46,9 +47,17 @@ create index ix_payment_acceptance_point_operation_external_transaction_number
     on payment_acceptance_point_operation(external_transaction_number)
     where external_transaction_number is not null;
 
+create index ix_payment_acceptance_point_operation_related_document_id
+    on payment_acceptance_point_operation(related_document_id)
+    where related_document_id is not null;
+
 create index ix_payment_acceptance_point_operation_draft
     on payment_acceptance_point_operation(organization_id, doc_date desc, id desc)
     where status_id = 1 and state_id = 1;
+
+create index ix_payment_acceptance_point_operation_pending
+    on payment_acceptance_point_operation(organization_id, doc_date desc, id desc)
+    where status_id = 4 and state_id = 1;
 
 create or replace function check_payment_acceptance_point_operation_organization()
 returns trigger
@@ -62,6 +71,7 @@ begin
         from org_payment_acceptance_point
         where id = new.payment_acceptance_point_id
           and organization_id = new.organization_id
+          and state_id = 1
     )
     then
         raise exception
@@ -70,12 +80,28 @@ begin
             new.organization_id;
     end if;
 
+    if new.related_document_id is not null
+       and not exists
+       (
+           select 1
+           from cmn_document_registry
+           where id = new.related_document_id
+             and organization_id = new.organization_id
+             and state_id = 1
+       )
+    then
+        raise exception
+            'Related document % is inactive or does not belong to organization %',
+            new.related_document_id,
+            new.organization_id;
+    end if;
+
     return new;
 end;
 $$;
 
 create trigger trg_payment_acceptance_point_operation_check_organization
-before insert or update of organization_id, payment_acceptance_point_id
+before insert or update of organization_id, payment_acceptance_point_id, related_document_id
 on payment_acceptance_point_operation
 for each row execute function check_payment_acceptance_point_operation_organization();
 

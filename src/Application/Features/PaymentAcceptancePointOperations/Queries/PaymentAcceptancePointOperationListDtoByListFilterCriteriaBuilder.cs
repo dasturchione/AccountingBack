@@ -11,6 +11,7 @@ public sealed class PaymentAcceptancePointOperationListDtoByListFilterCriteriaBu
              x.DocNumber.ToLower().Contains(filter.Search.ToLower()) ||
              x.PaymentAcceptancePointCode.ToLower().Contains(filter.Search.ToLower()) ||
              x.PaymentAcceptancePointName.ToLower().Contains(filter.Search.ToLower()) ||
+             (x.RelatedDocumentNumber != null && x.RelatedDocumentNumber.ToLower().Contains(filter.Search.ToLower())) ||
              (x.ExternalTransactionNumber != null &&
               x.ExternalTransactionNumber.ToLower().Contains(filter.Search.ToLower()));
 }

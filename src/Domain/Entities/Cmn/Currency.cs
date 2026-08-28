@@ -44,6 +44,9 @@ public partial class Currency
     [InverseProperty(nameof(BankOperation.Currency))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.Currency))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
+
     [InverseProperty(nameof(CashBox.Currency))]
     public virtual ICollection<CashBox> CashBoxes { get; set; } = new List<CashBox>();
 

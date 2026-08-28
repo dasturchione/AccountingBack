@@ -50,12 +50,23 @@ public static class PermissionCodeConst
     public const string OrgBankAccountDelete     = "ORG_BANK_ACCOUNT_DELETE";
     #endregion
 
-    #region BankTerminal
-    public const string BankTerminalView       = "BANK_TERMINAL_VIEW";
-    public const string BankTerminalViewDetail = "BANK_TERMINAL_VIEW_DETAIL";
-    public const string BankTerminalCreate     = "BANK_TERMINAL_CREATE";
-    public const string BankTerminalUpdate     = "BANK_TERMINAL_UPDATE";
-    public const string BankTerminalDelete     = "BANK_TERMINAL_DELETE";
+    #region PaymentAcceptancePoint
+    public const string PaymentAcceptancePointView       = "PAYMENT_ACCEPTANCE_POINT_VIEW";
+    public const string PaymentAcceptancePointViewDetail = "PAYMENT_ACCEPTANCE_POINT_VIEW_DETAIL";
+    public const string PaymentAcceptancePointCreate     = "PAYMENT_ACCEPTANCE_POINT_CREATE";
+    public const string PaymentAcceptancePointUpdate     = "PAYMENT_ACCEPTANCE_POINT_UPDATE";
+    public const string PaymentAcceptancePointDelete     = "PAYMENT_ACCEPTANCE_POINT_DELETE";
+    #endregion
+
+    #region PaymentAcceptancePointOperation
+    public const string PaymentAcceptancePointOperationView       = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW";
+    public const string PaymentAcceptancePointOperationViewDetail = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW_DETAIL";
+    public const string PaymentAcceptancePointOperationCreate     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CREATE";
+    public const string PaymentAcceptancePointOperationUpdate     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_UPDATE";
+    public const string PaymentAcceptancePointOperationDelete     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_DELETE";
+    public const string PaymentAcceptancePointOperationConfirm    = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CONFIRM";
+    public const string PaymentAcceptancePointOperationCancel     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CANCEL";
+    public const string PaymentAcceptancePointOperationBalance    = "PAYMENT_ACCEPTANCE_POINT_OPERATION_BALANCE";
     #endregion
 
     #region CashBox
@@ -221,7 +232,8 @@ public static class PermissionCodeConst
     public const string ManualGetCashOperations           = "MANUAL_GET_CASH_OPERATIONS";
     public const string ManualGetLanguages                = "MANUAL_GET_LANGUAGES";
     public const string ManualGetModuleSubGroups          = "MANUAL_GET_MODULE_SUB_GROUPS";
-    public const string ManualGetBankTerminals            = "MANUAL_GET_BANK_TERMINALS";
+    public const string ManualGetPaymentAcceptancePoints      = "MANUAL_GET_PAYMENT_ACCEPTANCE_POINTS";
+    public const string ManualGetPaymentAcceptancePointTypes  = "MANUAL_GET_PAYMENT_ACCEPTANCE_POINT_TYPES";
     public const string ManualGetPaymentMethods           = "MANUAL_GET_PAYMENT_METHODS";
     public const string ManualGetFiscalCashRegisters      = "MANUAL_GET_FISCAL_CASH_REGISTERS";
     public const string ManualGetFiscalCashRegisterTypes  = "MANUAL_GET_FISCAL_CASH_REGISTER_TYPES";

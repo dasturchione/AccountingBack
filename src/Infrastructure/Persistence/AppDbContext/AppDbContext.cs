@@ -35,7 +35,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; }
     public virtual DbSet<OpeningBalanceAccountDetailSubkonto> OpeningBalanceAccountDetailSubkontos { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
-    public virtual DbSet<BankTerminal> BankTerminals { get; set; }
+    public virtual DbSet<PaymentAcceptancePointType> PaymentAcceptancePointTypes { get; set; }
+    public virtual DbSet<PaymentAcceptancePointTypeTranslation> PaymentAcceptancePointTypeTranslations { get; set; }
+    public virtual DbSet<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; }
+    public virtual DbSet<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
     public virtual DbSet<FiscalCashRegister> FiscalCashRegisters { get; set; }

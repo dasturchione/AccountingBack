@@ -390,11 +390,19 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetBankTerminals)]
-    [HttpGet("bank-terminals")]
-    public async Task<IActionResult> GetBankTerminals(CancellationToken ct)
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentAcceptancePoints)]
+    [HttpGet("payment-acceptance-points")]
+    public async Task<IActionResult> GetPaymentAcceptancePoints(CancellationToken ct)
     {
-        var result = await _manualService.GetBankTerminalsAsync(ct);
+        var result = await _manualService.GetPaymentAcceptancePointsAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentAcceptancePointTypes)]
+    [HttpGet("payment-acceptance-point-types")]
+    public async Task<IActionResult> GetPaymentAcceptancePointTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetPaymentAcceptancePointTypesAsync(ct);
         return Ok(result);
     }
 

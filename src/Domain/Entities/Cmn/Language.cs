@@ -73,6 +73,9 @@ public partial class Language
     [InverseProperty(nameof(MovementDirectionTranslation.Language))]
     public virtual ICollection<MovementDirectionTranslation> MovementDirectionTranslations { get; set; } = new List<MovementDirectionTranslation>();
 
+    [InverseProperty(nameof(PaymentAcceptancePointTypeTranslation.Language))]
+    public virtual ICollection<PaymentAcceptancePointTypeTranslation> PaymentAcceptancePointTypeTranslations { get; set; } = [];
+
     [InverseProperty(nameof(BankOperationCategoryTranslation.Language))]
     public virtual ICollection<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; } = [];
 

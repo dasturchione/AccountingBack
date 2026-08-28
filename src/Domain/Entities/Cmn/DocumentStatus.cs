@@ -24,6 +24,9 @@ public partial class DocumentStatus
     [InverseProperty(nameof(BankOperation.Status))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.Status))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
+
     [InverseProperty(nameof(SaleShipmentDoc.Status))]
     public virtual ICollection<SaleShipmentDoc> SaleShipmentDocs { get; set; } = new List<SaleShipmentDoc>();
 

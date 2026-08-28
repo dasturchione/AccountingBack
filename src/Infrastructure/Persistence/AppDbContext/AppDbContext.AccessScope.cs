@@ -69,7 +69,8 @@ public partial class AppDbContext
 
 // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
         ApplyScopedFilter<BankAccount>(modelBuilder);
-        ApplyScopedFilter<BankTerminal>(modelBuilder);
+        ApplyScopedFilter<PaymentAcceptancePoint>(modelBuilder);
+        ApplyScopedFilter<PaymentAcceptancePointOperation>(modelBuilder);
         ApplyScopedFilter<AccountingPeriod>(modelBuilder);
         ApplyScopedFilter<ChartAccount>(modelBuilder);
         ApplyScopedFilter<PostingBatch>(modelBuilder);

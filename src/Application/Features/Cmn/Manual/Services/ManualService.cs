@@ -14,7 +14,8 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Bank> _bankQuery;
     private readonly IQueryRepository<BankBranch> _bankBranchQuery;
     private readonly IQueryRepository<BankOperationCategory> _bankOperationCategoryQuery;
-    private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
+    private readonly IQueryRepository<PaymentAcceptancePoint> _paymentAcceptancePointQuery;
+    private readonly IQueryRepository<PaymentAcceptancePointType> _paymentAcceptancePointTypeQuery;
     private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<UserKind> _userKindQuery;
@@ -88,7 +89,8 @@ public class ManualService : IManualService
         IQueryRepository<Bank> bankQuery,
         IQueryRepository<BankBranch> bankBranchQuery,
         IQueryRepository<BankOperationCategory> bankOperationCategoryQuery,
-        IQueryRepository<BankTerminal> bankTerminalQuery,
+        IQueryRepository<PaymentAcceptancePoint> paymentAcceptancePointQuery,
+        IQueryRepository<PaymentAcceptancePointType> paymentAcceptancePointTypeQuery,
         IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
@@ -143,7 +145,8 @@ public class ManualService : IManualService
         _bankQuery = bankQuery;
         _bankBranchQuery = bankBranchQuery;
         _bankOperationCategoryQuery = bankOperationCategoryQuery;
-        _bankTerminalQuery = bankTerminalQuery;
+        _paymentAcceptancePointQuery = paymentAcceptancePointQuery;
+        _paymentAcceptancePointTypeQuery = paymentAcceptancePointTypeQuery;
         _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
@@ -893,20 +896,40 @@ public class ManualService : IManualService
         return await _orgBankAccountQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetPaymentAcceptancePointsAsync(CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<BankTerminal>()
+        var query = _queryBuilder.For<PaymentAcceptancePoint>()
             .Where(x => x.StateId == StateIdConst.ACTIVE)
             .As(x => new SelectListDto
             {
                 Id = x.Id,
                 Name = x.Name,
-                Code = x.ExternalTerminalId ?? x.SerialNumber
+                Code = x.Code
             })
             .OrderBy(x => x.Name)
             .Build();
 
-        return await _bankTerminalQuery.GetAllAsync(query, ct);
+        return await _paymentAcceptancePointQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPaymentAcceptancePointTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<PaymentAcceptancePointType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _paymentAcceptancePointTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPaymentMethodsAsync(CancellationToken ct = default)

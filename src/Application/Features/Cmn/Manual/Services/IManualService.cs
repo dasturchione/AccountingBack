@@ -70,7 +70,8 @@ public interface IManualService
 
     // bank
     Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPaymentAcceptancePointsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPaymentAcceptancePointTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCounterpartyBankAccountsAsync(int? counterpartyId = null, int? bankId = null, CancellationToken ct = default);
 
     // payment

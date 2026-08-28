@@ -300,7 +300,7 @@ set short_name = excluded.short_name,
     sort_order = excluded.sort_order,
     is_visible = excluded.is_visible;
 
--- BANK TERMINAL
+-- PAYMENT ACCEPTANCE POINT
 insert into sys_module (
     code,
     short_name,
@@ -315,18 +315,26 @@ select
     seed.code,
     seed.short_name,
     seed.full_name,
-    (select id from sys_module_sub_group where code = 'BANK_TERMINAL'),
+    (select id from sys_module_sub_group where code = 'PAYMENT_ACCEPTANCE_POINT'),
     1,
     now(),
     seed.sort_order,
     seed.is_visible
 from (
     values
-        ('BANK_TERMINAL_CREATE', 'Bank terminal yaratish', 'Yangi bank terminal qo''shish', 0, false),
-        ('BANK_TERMINAL_DELETE', 'Bank terminal o''chirish', 'Bank terminalni o''chirish', 0, false),
-        ('BANK_TERMINAL_UPDATE', 'Bank terminal tahrirlash', 'Bank terminalni tahrirlash', 0, false),
-        ('BANK_TERMINAL_VIEW', 'Bank terminallari', 'Bank terminallari ro''yxati', 0, false),
-        ('BANK_TERMINAL_VIEW_DETAIL', 'Bank terminal detail', 'Bank terminalni batafsil ko''rish', 0, false)
+        ('PAYMENT_ACCEPTANCE_POINT_CREATE', 'To''lov nuqtasini yaratish', 'Yangi to''lov qabul qilish nuqtasini qo''shish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_DELETE', 'To''lov nuqtasini o''chirish', 'To''lov qabul qilish nuqtasini o''chirish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_UPDATE', 'To''lov nuqtasini tahrirlash', 'To''lov qabul qilish nuqtasini tahrirlash', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_VIEW', 'To''lov qabul qilish nuqtalari', 'To''lov qabul qilish nuqtalari ro''yxati', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_VIEW_DETAIL', 'To''lov nuqtasi tafsiloti', 'To''lov qabul qilish nuqtasini batafsil ko''rish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW', 'To''lov nuqtasi operatsiyalari', 'To''lov qabul qilish nuqtasi operatsiyalari ro''yxati', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW_DETAIL', 'To''lov nuqtasi operatsiyasi tafsiloti', 'To''lov qabul qilish nuqtasi operatsiyasini batafsil ko''rish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_CREATE', 'To''lov nuqtasi operatsiyasini yaratish', 'Yangi to''lov qabul qilish nuqtasi operatsiyasini yaratish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_UPDATE', 'To''lov nuqtasi operatsiyasini tahrirlash', 'To''lov qabul qilish nuqtasi operatsiyasini tahrirlash', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_DELETE', 'To''lov nuqtasi operatsiyasini o''chirish', 'To''lov qabul qilish nuqtasi operatsiyasini o''chirish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_CONFIRM', 'To''lov nuqtasi operatsiyasini tasdiqlash', 'To''lov qabul qilish nuqtasi operatsiyasini tasdiqlash', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_CANCEL', 'To''lov nuqtasi operatsiyasini bekor qilish', 'To''lov qabul qilish nuqtasi operatsiyasini bekor qilish', 0, false),
+        ('PAYMENT_ACCEPTANCE_POINT_OPERATION_BALANCE', 'To''lov nuqtasi qoldig''i', 'To''lov qabul qilish nuqtasi qoldig''ini ko''rish', 0, false)
 ) as seed (code, short_name, full_name, sort_order, is_visible)
 on conflict (code) do update
 set short_name = excluded.short_name,
@@ -726,7 +734,8 @@ from (
         ('CURRENCY_VIEW_DETAIL', 'Valyuta detail', 'Valyutani batafsil ko''rish', 0, false),
         ('MANUAL_GET_ACCOUNTING_POLICIES', 'Manual Get Accounting Policies', 'Manual Get Accounting Policies', 0, false),
         ('MANUAL_GET_BANKS', 'Manual Get Banks', 'Manual Get Banks', 0, false),
-        ('MANUAL_GET_BANK_TERMINALS', 'Manual Get Bank Terminals', 'Manual Get Bank Terminals', 0, false),
+        ('MANUAL_GET_PAYMENT_ACCEPTANCE_POINTS', 'Manual Get Payment Acceptance Points', 'Manual Get Payment Acceptance Points', 0, false),
+        ('MANUAL_GET_PAYMENT_ACCEPTANCE_POINT_TYPES', 'Manual Get Payment Acceptance Point Types', 'Manual Get Payment Acceptance Point Types', 0, false),
         ('MANUAL_GET_BRANCHES', 'Manual Get Branches', 'Manual Get Branches', 0, false),
         ('MANUAL_GET_CASH_BOXES', 'Manual Get Cash Boxes', 'Manual Get Cash Boxes', 0, false),
         ('MANUAL_GET_CASH_OPERATIONS', 'Manual Get Cash Operations', 'Manual Get Cash Operations', 0, false),

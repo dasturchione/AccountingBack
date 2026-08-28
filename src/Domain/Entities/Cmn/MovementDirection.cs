@@ -37,4 +37,7 @@ public partial class MovementDirection
 
     [InverseProperty(nameof(MoneyRegisterBalance.Direction))]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
+
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.Direction))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 }

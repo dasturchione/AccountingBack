@@ -34,7 +34,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
     private readonly IQueryRepository<ProductTable> _productTableQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
-    private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
+    private readonly IQueryRepository<PaymentAcceptancePoint> _paymentAcceptancePointQuery;
     private readonly IQueryRepository<ChartAccount> _chartAccountQuery;
     private readonly ICommandRepository<RetailSaleDocProduct> _lineCommand;
     private readonly ICommandRepository<RetailSaleDocTable> _tableCommand;
@@ -63,7 +63,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         IQueryRepository<ProductTable> productTableQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<PaymentMethod> paymentMethodQuery,
-        IQueryRepository<BankTerminal> bankTerminalQuery,
+        IQueryRepository<PaymentAcceptancePoint> paymentAcceptancePointQuery,
         IQueryRepository<ChartAccount> chartAccountQuery,
         ICommandRepository<RetailSaleDocProduct> lineCommand,
         ICommandRepository<RetailSaleDocTable> tableCommand,
@@ -94,7 +94,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         _productTableQuery = productTableQuery;
         _vatRateQuery = vatRateQuery;
         _paymentMethodQuery = paymentMethodQuery;
-        _bankTerminalQuery = bankTerminalQuery;
+        _paymentAcceptancePointQuery = paymentAcceptancePointQuery;
         _chartAccountQuery = chartAccountQuery;
         _lineCommand = lineCommand;
         _tableCommand = tableCommand;
@@ -455,20 +455,20 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         if (methods.Count != methodIds.Count)
             return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
 
-        var terminalIds = dtoPayments.Where(x => x.BankTerminalId.HasValue).Select(x => x.BankTerminalId!.Value).Distinct().ToList();
-        if (terminalIds.Count > 0)
+        var pointIds = dtoPayments.Where(x => x.PaymentAcceptancePointId.HasValue).Select(x => x.PaymentAcceptancePointId!.Value).Distinct().ToList();
+        if (pointIds.Count > 0)
         {
-            var terminals = await _bankTerminalQuery.GetAllAsync(_queryBuilder.For<BankTerminal>()
-                .Where(x => terminalIds.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
+            var points = await _paymentAcceptancePointQuery.GetAllAsync(_queryBuilder.For<PaymentAcceptancePoint>()
+                .Where(x => pointIds.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
                 .As(x => x.Id).Build(), ct);
-            if (terminals.Count != terminalIds.Count)
+            if (points.Count != pointIds.Count)
                 return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
         }
 
         return Result.Success(dtoPayments.Select(x => new RetailSaleDocPayment
         {
             PaymentMethodId = x.PaymentMethodId,
-            BankTerminalId = x.BankTerminalId,
+            PaymentAcceptancePointId = x.PaymentAcceptancePointId,
             DebitAccountId = x.DebitAccountId,
             Amount = x.Amount,
             TransactionNumber = x.TransactionNumber

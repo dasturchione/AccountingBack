@@ -126,5 +126,10 @@ namespace SharedKernel.Constants
         /// Cash collection from a cash box through cash in transit to a bank account.
         /// </summary>
         public const short CASHCOLLECTION = 24;
+
+        /// <summary>
+        /// Movement of funds at a payment acceptance point.
+        /// </summary>
+        public const short PAYMENT_ACCEPTANCE_POINT_OPERATION = 25;
     }
 }

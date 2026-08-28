@@ -8,9 +8,9 @@ create table rtl_sale_doc_payment
     payment_method_id       smallint not null
         references rtl_payment_method(id),
 
-    -- Для CARD
-    bank_terminal_id        int
-        references bank_terminal(id),
+    -- Для оплат через POS/QR/merchant/другую точку приёма платежей
+    payment_acceptance_point_id int
+        references org_payment_acceptance_point(id),
 
     -- Дебетовый бухгалтерский счет:
     -- CASH -> 5010
@@ -34,8 +34,8 @@ create index ix_rtl_sale_doc_payment_owner_id
 create index ix_rtl_sale_doc_payment_payment_method_id
     on rtl_sale_doc_payment(payment_method_id);
 
-create index ix_rtl_sale_doc_payment_bank_terminal_id
-    on rtl_sale_doc_payment(bank_terminal_id);
+create index ix_rtl_sale_doc_payment_payment_acceptance_point_id
+    on rtl_sale_doc_payment(payment_acceptance_point_id);
 
 create index ix_rtl_sale_doc_payment_debit_account_id
     on rtl_sale_doc_payment(debit_account_id);

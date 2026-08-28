@@ -17,8 +17,8 @@ public partial class RetailSaleDocPayment
     [Column("payment_method_id")]
     public short PaymentMethodId { get; set; }
 
-    [Column("bank_terminal_id")]
-    public int? BankTerminalId { get; set; }
+    [Column("payment_acceptance_point_id")]
+    public int? PaymentAcceptancePointId { get; set; }
 
     [Column("debit_account_id")]
     public int DebitAccountId { get; set; }
@@ -31,9 +31,9 @@ public partial class RetailSaleDocPayment
     [StringLength(100)]
     public string? TransactionNumber { get; set; }
 
-    [ForeignKey(nameof(BankTerminalId))]
-    [InverseProperty(nameof(BankTerminal.RetailSaleDocPayments))]
-    public virtual BankTerminal? BankTerminal { get; set; }
+    [ForeignKey(nameof(PaymentAcceptancePointId))]
+    [InverseProperty(nameof(PaymentAcceptancePoint.RetailSaleDocPayments))]
+    public virtual PaymentAcceptancePoint? PaymentAcceptancePoint { get; set; }
 
     [ForeignKey(nameof(DebitAccountId))]
     [InverseProperty(nameof(ChartAccount.RetailSaleDocPayments))]

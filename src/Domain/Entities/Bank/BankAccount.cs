@@ -61,8 +61,8 @@ public partial class BankAccount
     [InverseProperty("BankAccount")]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
-    [InverseProperty(nameof(BankTerminal.BankAccount))]
-    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+    [InverseProperty(nameof(PaymentAcceptancePoint.BankAccount))]
+    public virtual ICollection<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; } = [];
 
     [ForeignKey("CurrencyId")]
     [InverseProperty("BankAccounts")]

@@ -14,7 +14,7 @@ public sealed class AccountingPolicySelectListDtoOrderByBuilder : NameSelectList
 public sealed class AccountTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<AccountType, SelectListDto>;
 public sealed class BankSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Bank, SelectListDto>;
 public sealed class BankAccountSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<BankAccount, SelectListDto>;
-public sealed class BankTerminalSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<BankTerminal, SelectListDto>;
+public sealed class PaymentAcceptancePointSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<PaymentAcceptancePoint, SelectListDto>;
 public sealed class BranchSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Branch, SelectListDto>;
 public sealed class CashBoxSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CashBox, SelectListDto>;
 public sealed class CashOperationSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CashOperation, SelectListDto>;

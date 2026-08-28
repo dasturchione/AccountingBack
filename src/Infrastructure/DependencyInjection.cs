@@ -49,6 +49,7 @@ using Application.Features.Integration.Edo;
 using Application.Features.Integration.Edo.UnifiedImport;
 using Infrastructure.Integration.Edo.Persistence;
 using Application.Features.Cmn.CurrencyRates;
+using Application.Features.Cmn.Documents;
 using Application.Features.Departments;
 using Application.Features.Fa;
 using Application.Features.FaAssets;
@@ -331,7 +332,8 @@ namespace Infrastructure
             services.AddScoped<ICashCollectionService, CashCollectionService>();
             services.AddScoped<ICashCollectionLifecycleService, CashCollectionLifecycleService>();
             services.AddScoped<ICashCollectionMoneyService, CashCollectionMoneyService>();
-            services.AddScoped<ICashCollectionBankLinkService, CashCollectionBankLinkService>();
+            services.AddScoped<IBankOperationRelatedDocumentService, BankOperationRelatedDocumentService>();
+            services.AddScoped<IDocumentRegistryService, DocumentRegistryService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();
             services.AddScoped<IEdoHistoricalPurchaseDraftFactory>(provider =>
                 (IEdoHistoricalPurchaseDraftFactory)provider.GetRequiredService<IPurchaseDocService>());

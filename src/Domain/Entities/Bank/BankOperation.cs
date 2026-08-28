@@ -46,8 +46,8 @@ public partial class BankOperation
     [Column("classification_rule_id")]
     public int? ClassificationRuleId { get; set; }
 
-    [Column("cash_collection_doc_id")]
-    public long? CashCollectionDocId { get; set; }
+    [Column("related_document_id")]
+    public long? RelatedDocumentId { get; set; }
 
     [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
@@ -98,9 +98,9 @@ public partial class BankOperation
     [InverseProperty(nameof(BankOperationClassificationRule.BankOperations))]
     public virtual BankOperationClassificationRule? ClassificationRule { get; set; }
 
-    [ForeignKey(nameof(CashCollectionDocId))]
-    [InverseProperty(nameof(CashCollectionDoc.BankOperations))]
-    public virtual CashCollectionDoc? CashCollectionDoc { get; set; }
+    [ForeignKey(nameof(RelatedDocumentId))]
+    [InverseProperty(nameof(DocumentRegistry.BankOperations))]
+    public virtual DocumentRegistry? RelatedDocument { get; set; }
 
     [Column("exchange_rate")]
     [Precision(18, 6)]

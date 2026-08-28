@@ -74,6 +74,7 @@ public partial class AppDbContext
         ApplyScopedFilter<ChartAccount>(modelBuilder);
         ApplyScopedFilter<PostingBatch>(modelBuilder);
         ApplyScopedFilter<DocumentNumberSequence>(modelBuilder);
+        ApplyScopedFilter<DocumentRegistry>(modelBuilder);
         ApplyScopedFilter<OrganizationSetupState>(modelBuilder);
         ApplyScopedFilter<OrganizationEdoProvider>(modelBuilder);
         ApplyScopedFilter<EdoDocument>(modelBuilder);

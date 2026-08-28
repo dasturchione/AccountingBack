@@ -73,17 +73,8 @@ public sealed class CashCollectionTests
     public void CancellationPolicy_RejectsCollectionWithActiveBankOperation()
     {
         var document = CreateInTransitDocument();
-        document.BankOperations =
-        [
-            new BankOperation
-            {
-                Id = 81,
-                StateId = StateIdConst.ACTIVE,
-                StatusId = DocumentStatusIdConst.DRAFT
-            }
-        ];
 
-        var result = CashCollectionBankLinkPolicy.ValidateCancellation(document);
+        var result = CashCollectionBankLinkPolicy.ValidateCancellation(document, hasActiveBankOperation: true);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("CashCollection.ActiveBankOperation", result.Error.Code);
@@ -93,6 +84,12 @@ public sealed class CashCollectionTests
     public void BankLinkPolicy_AppliesInternalSettlementAccountsAndClearsCounterpartyLinks()
     {
         var document = CreateInTransitDocument();
+        var registry = new DocumentRegistry
+        {
+            Id = 77,
+            DocumentTypeId = DocumentTypeIdConst.CASHCOLLECTION,
+            DocumentId = document.Id
+        };
         var operation = new BankOperation
         {
             CounterpartyId = 31,
@@ -100,9 +97,9 @@ public sealed class CashCollectionTests
             ContractId = 33
         };
 
-        CashCollectionBankLinkPolicy.Apply(operation, document, cashCollectionCategoryId: 4);
+        CashCollectionBankLinkPolicy.Apply(operation, registry, document, cashCollectionCategoryId: 4);
 
-        Assert.Equal(document.Id, operation.CashCollectionDocId);
+        Assert.Equal(registry.Id, operation.RelatedDocumentId);
         Assert.Equal(document.BankChartAccountId, operation.BankChartAccountId);
         Assert.Equal(document.CashInTransitAccountId, operation.OffsetAccountId);
         Assert.Equal((short)4, operation.ClassificationCategoryId);
@@ -175,11 +172,20 @@ public sealed class CashCollectionTests
     }
 
     [Fact]
-    public void BankOperationProjections_ReturnCashCollectionLink()
+    public void BankOperationProjections_ReturnUniversalDocumentLink()
     {
         var entity = new BankOperation
         {
-            CashCollectionDocId = 77,
+            RelatedDocumentId = 77,
+            RelatedDocument = new DocumentRegistry
+            {
+                Id = 77,
+                DocumentTypeId = DocumentTypeIdConst.SALARY,
+                DocumentId = 91,
+                DocNumber = "PAY-12",
+                DocDate = new DateTime(2026, 8, 28),
+                DocumentType = new DocumentType { Name = "Salary" }
+            },
             Organization = new Organization(),
             BankAccount = new BankAccount { Bank = new Bank() },
             Direction = new MovementDirection(),
@@ -188,8 +194,16 @@ public sealed class CashCollectionTests
             State = new State()
         };
 
-        Assert.Equal(77, new BankOperationDtoProjection().Build().Compile()(entity).CashCollectionDocId);
-        Assert.Equal(77, new BankOperationListDtoProjection().Build().Compile()(entity).CashCollectionDocId);
+        var detail = new BankOperationDtoProjection().Build().Compile()(entity);
+        var list = new BankOperationListDtoProjection().Build().Compile()(entity);
+
+        Assert.Equal(77, detail.RelatedDocumentId);
+        Assert.Equal(DocumentTypeIdConst.SALARY, detail.RelatedDocumentTypeId);
+        Assert.Equal(91, detail.RelatedDocumentEntityId);
+        Assert.Equal("PAY-12", detail.RelatedDocumentNumber);
+        Assert.Equal("Salary", detail.RelatedDocumentTypeName);
+        Assert.Equal(77, list.RelatedDocumentId);
+        Assert.Equal("PAY-12", list.RelatedDocumentNumber);
     }
 
     private static CashCollectionDoc CreateInTransitDocument() => new()

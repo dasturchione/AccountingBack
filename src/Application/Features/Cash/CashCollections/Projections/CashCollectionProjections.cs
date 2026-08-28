@@ -1,5 +1,4 @@
 using Domain.Entities;
-using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -33,11 +32,6 @@ public sealed class CashCollectionDtoProjection : IProjectionBuilder<CashCollect
         BankChartAccountId = x.BankChartAccountId,
         BankChartAccountNumber = x.BankChartAccount == null ? null : x.BankChartAccount.Number,
         BankChartAccountName = x.BankChartAccount == null ? null : x.BankChartAccount.Name,
-        BankOperationId = x.BankOperations
-            .Where(operation => operation.StateId == StateIdConst.ACTIVE && operation.StatusId != DocumentStatusIdConst.CANCELLED)
-            .OrderByDescending(operation => operation.Id)
-            .Select(operation => (long?)operation.Id)
-            .FirstOrDefault(),
         StatusId = x.StatusId,
         StatusName = x.Status.Name,
         StateId = x.StateId,
@@ -84,11 +78,6 @@ public sealed class CashCollectionListDtoProjection : IProjectionBuilder<CashCol
             BankChartAccountId = x.BankChartAccountId,
             BankChartAccountNumber = x.BankChartAccount == null ? null : x.BankChartAccount.Number,
             BankChartAccountName = x.BankChartAccount == null ? null : x.BankChartAccount.Name,
-            BankOperationId = x.BankOperations
-                .Where(operation => operation.StateId == StateIdConst.ACTIVE && operation.StatusId != DocumentStatusIdConst.CANCELLED)
-                .OrderByDescending(operation => operation.Id)
-                .Select(operation => (long?)operation.Id)
-                .FirstOrDefault(),
             StatusId = x.StatusId,
             StatusName = x.Status.Name,
             StateId = x.StateId,

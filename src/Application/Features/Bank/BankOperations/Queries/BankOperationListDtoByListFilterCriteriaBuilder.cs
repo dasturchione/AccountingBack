@@ -10,6 +10,6 @@ public class BankOperationListDtoByListFilterCriteriaBuilder : ICriteriaBuilder<
                 x.DocNumber.ToLower().Contains(options.Search.ToLower()) ||
                 (x.BankDocumentNumber != null &&
                  x.BankDocumentNumber.ToLower().Contains(options.Search.ToLower())) ||
-                (x.CashCollectionDocNumber != null &&
-                 x.CashCollectionDocNumber.ToLower().Contains(options.Search.ToLower()));
+                (x.RelatedDocumentNumber != null &&
+                 x.RelatedDocumentNumber.ToLower().Contains(options.Search.ToLower()));
 }

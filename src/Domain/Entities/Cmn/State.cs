@@ -105,6 +105,9 @@ public partial class State
     [InverseProperty("State")]
     public virtual ICollection<DocumentType> DocumentTypes { get; set; } = new List<DocumentType>();
 
+    [InverseProperty(nameof(DocumentRegistry.State))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
+
     [InverseProperty("State")]
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
 

@@ -33,7 +33,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
     private readonly IQueryRepository<MoneyRegisterBalance> _moneyRegisterQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
-    private readonly ICashCollectionBankLinkService _cashCollectionLinkService;
+    private readonly IBankOperationRelatedDocumentService _relatedDocumentService;
     private readonly ICommandRepository<CashCollectionDoc> _cashCollectionCommand;
 
     public BankLifecycleService(
@@ -54,7 +54,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
         IQueryRepository<MoneyRegisterBalance> moneyRegisterQuery,
         IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
-        ICashCollectionBankLinkService cashCollectionLinkService,
+        IBankOperationRelatedDocumentService relatedDocumentService,
         ICommandRepository<CashCollectionDoc> cashCollectionCommand,
         ILogger<BankLifecycleService> logger,
         IUnitOfWork unitOfWork)
@@ -77,7 +77,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         _accountingRegisterCommand = accountingRegisterCommand;
         _moneyRegisterQuery = moneyRegisterQuery;
         _counterpartyRegisterQuery = counterpartyRegisterQuery;
-        _cashCollectionLinkService = cashCollectionLinkService;
+        _relatedDocumentService = relatedDocumentService;
         _cashCollectionCommand = cashCollectionCommand;
     }
 
@@ -113,11 +113,15 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             if (bankOperation.StatusId != DocumentStatusIdConst.DRAFT && bankOperation.StatusId != DocumentStatusIdConst.PENDING)
                 return Result.Failure(BankOperationErrors.CannotConfirmInCurrentStatus(id, bankOperation.StatusId, _userContext.LanguageId));
 
-            CashCollectionDoc? cashCollection = null;
-            if (bankOperation.CashCollectionDocId is { } cashCollectionDocId)
+            var linkedCashCollection = await _relatedDocumentService.GetLinkedCashCollectionAsync(bankOperation, ct);
+            if (!linkedCashCollection.IsSuccess)
+                return Result.Failure(linkedCashCollection.Error);
+
+            CashCollectionDoc? cashCollection = linkedCashCollection.Value;
+            if (cashCollection is not null)
             {
-                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollectionDocId, ct);
-                var linkValidation = await _cashCollectionLinkService.ValidateForConfirmAsync(bankOperation, ct);
+                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollection.Id, ct);
+                var linkValidation = await _relatedDocumentService.ValidateCashCollectionForConfirmAsync(bankOperation, ct);
                 if (!linkValidation.IsSuccess)
                     return Result.Failure(linkValidation.Error);
                 cashCollection = linkValidation.Value;
@@ -208,17 +212,17 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 return Result.Failure(BankOperationErrors.CannotCancelInCurrentStatus(id, bankOperation.StatusId, _userContext.LanguageId));
 
             var wasPosted = bankOperation.StatusId == DocumentStatusIdConst.POSTED;
-            CashCollectionDoc? cashCollection = null;
-            if (bankOperation.CashCollectionDocId is { } cashCollectionDocId)
-            {
-                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollectionDocId, ct);
-                var link = await _cashCollectionLinkService.GetLinkedAsync(bankOperation, ct);
-                if (!link.IsSuccess)
-                    return Result.Failure(link.Error);
-                cashCollection = link.Value;
+            var linkedCashCollection = await _relatedDocumentService.GetLinkedCashCollectionAsync(bankOperation, ct);
+            if (!linkedCashCollection.IsSuccess)
+                return Result.Failure(linkedCashCollection.Error);
 
-                if (wasPosted && cashCollection?.StatusId != DocumentStatusIdConst.COMPLETED)
-                    return Result.Failure(CashCollectionErrors.InvalidStatus(cashCollectionDocId, cashCollection?.StatusId ?? 0));
+            CashCollectionDoc? cashCollection = linkedCashCollection.Value;
+            if (cashCollection is not null)
+            {
+                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollection.Id, ct);
+
+                if (wasPosted && cashCollection.StatusId != DocumentStatusIdConst.COMPLETED)
+                    return Result.Failure(CashCollectionErrors.InvalidStatus(cashCollection.Id, cashCollection.StatusId));
             }
 
             var periodValidation = await _periodValidator.EnsureOpenAsync(bankOperation.OrganizationId, bankOperation.DocDate, ct);

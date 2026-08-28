@@ -83,6 +83,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<District> Districts { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
+    public virtual DbSet<DocumentRegistry> DocumentRegistries { get; set; }
     public virtual DbSet<DocumentAccountType> DocumentAccountTypes { get; set; }
     public virtual DbSet<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; }
     public virtual DbSet<DocumentAccountRole> DocumentAccountRoles { get; set; }

@@ -282,3 +282,6 @@
 17_rtl/1705_create_rtl_sale_doc_table.sql
 17_rtl/1706_create_rtl_sale_doc_payment.sql
 17_rtl/1707_unify_document_number_year_uniqueness.sql
+01_cmn/0169_create_cmn_document_registry.sql
+17_rtl/1708_connect_cmn_document_registry.sql
+17_rtl/1709_replace_bank_operation_cash_collection_link.sql

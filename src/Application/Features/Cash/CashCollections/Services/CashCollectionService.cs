@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.DocumentNumbers;
+using Application.Features.BankOperations;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -18,6 +19,7 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
     private readonly IAuditLogService _auditLogService;
     private readonly IDocumentNumberService _documentNumberService;
     private readonly ICashCollectionLifecycleService _lifecycleService;
+    private readonly IBankOperationRelatedDocumentService _relatedDocumentService;
     private readonly IQueryRepository<CashCollectionDoc> _query;
     private readonly ICommandRepository<CashCollectionDoc> _command;
 
@@ -27,6 +29,7 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         IAuditLogService auditLogService,
         IDocumentNumberService documentNumberService,
         ICashCollectionLifecycleService lifecycleService,
+        IBankOperationRelatedDocumentService relatedDocumentService,
         IQueryRepository<CashCollectionDoc> query,
         ICommandRepository<CashCollectionDoc> command,
         ILogger<CashCollectionService> logger,
@@ -37,6 +40,7 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         _auditLogService = auditLogService;
         _documentNumberService = documentNumberService;
         _lifecycleService = lifecycleService;
+        _relatedDocumentService = relatedDocumentService;
         _query = query;
         _command = command;
     }
@@ -46,6 +50,7 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         {
             var query = _queryBuilder.BuildPaged<CashCollectionDoc, CashCollectionListDto, CashCollectionListFilter>(filter);
             var page = await _query.GetPagedAsync(query, ct);
+            await PopulateDocumentLinksAsync(page.Items, ct);
             return Result.Success(PagedResponseFactory.Create(page, filter.Page, filter.PageSize));
         });
 
@@ -69,14 +74,22 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
                 .Where(x => x.OrganizationId == organizationId &&
                             x.StateId == StateIdConst.ACTIVE &&
                             x.StatusId == DocumentStatusIdConst.IN_TRANSIT &&
-                            (!bankAccountId.HasValue || x.BankAccountId == bankAccountId.Value) &&
-                            !x.BankOperations.Any(operation =>
-                                operation.StateId == StateIdConst.ACTIVE &&
-                                operation.StatusId != DocumentStatusIdConst.CANCELLED))
+                            (!bankAccountId.HasValue || x.BankAccountId == bankAccountId.Value))
                 .As<CashCollectionInTransitDto>()
                 .OrderBy(items => items.OrderBy(x => x.DocDate).ThenBy(x => x.Id))
                 .Build();
-            return Result.Success(await _query.GetAllAsync(query, ct));
+            var documents = await _query.GetAllAsync(query, ct);
+            var links = await _relatedDocumentService.GetActiveCashCollectionBankOperationIdsAsync(
+                documents.Select(document => document.Id).ToArray(),
+                ct);
+            var registryIds = await _relatedDocumentService.GetCashCollectionRegistryIdsAsync(
+                documents.Select(document => document.Id).ToArray(),
+                ct);
+            foreach (var document in documents)
+                document.DocumentRegistryId = registryIds.TryGetValue(document.Id, out var registryId)
+                    ? registryId
+                    : null;
+            return Result.Success(documents.Where(document => !links.ContainsKey(document.Id)).ToList());
         });
 
     public Task<Result<long>> CreateAsync(CashCollectionCreateDto dto, CancellationToken ct = default) =>
@@ -173,6 +186,29 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         return await _query.GetAsync(query, ct);
     }
 
+    private async Task PopulateDocumentLinksAsync<TDto>(IReadOnlyCollection<TDto> documents, CancellationToken ct)
+        where TDto : CashCollectionDto
+    {
+        if (documents.Count == 0)
+            return;
+
+        var links = await _relatedDocumentService.GetActiveCashCollectionBankOperationIdsAsync(
+            documents.Select(document => document.Id).ToArray(),
+            ct);
+        var registryIds = await _relatedDocumentService.GetCashCollectionRegistryIdsAsync(
+            documents.Select(document => document.Id).ToArray(),
+            ct);
+        foreach (var document in documents)
+        {
+            document.BankOperationId = links.TryGetValue(document.Id, out var bankOperationId)
+                ? bankOperationId
+                : null;
+            document.DocumentRegistryId = registryIds.TryGetValue(document.Id, out var registryId)
+                ? registryId
+                : null;
+        }
+    }
+
     private async Task<CashCollectionDto?> GetDtoAsync(long id, CancellationToken ct)
     {
         if (_userContext.OrganizationId is null)
@@ -183,7 +219,10 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
             .Where(x => x.Id == id && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
             .As<CashCollectionDto>()
             .Build();
-        return await _query.GetAsync(query, ct);
+        var dto = await _query.GetAsync(query, ct);
+        if (dto is not null)
+            await PopulateDocumentLinksAsync([dto], ct);
+        return dto;
     }
 
     private static void Apply(CashCollectionBaseDto dto, CashCollectionDoc entity)

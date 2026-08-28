@@ -4,6 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.Register;
 using Application.Features.Register.AccountingRegisterEntries;
+using Application.Features.BankOperations;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingCommand;
     private readonly IQueryRepository<MoneyRegisterBalance> _moneyQuery;
+    private readonly IBankOperationRelatedDocumentService _relatedDocumentService;
 
     public CashCollectionLifecycleService(
         IUserContext userContext,
@@ -45,6 +47,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         IQueryRepository<AccountingRegisterEntry> accountingQuery,
         ICommandRepository<AccountingRegisterEntry> accountingCommand,
         IQueryRepository<MoneyRegisterBalance> moneyQuery,
+        IBankOperationRelatedDocumentService relatedDocumentService,
         ILogger<CashCollectionLifecycleService> logger,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
@@ -62,6 +65,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         _accountingQuery = accountingQuery;
         _accountingCommand = accountingCommand;
         _moneyQuery = moneyQuery;
+        _relatedDocumentService = relatedDocumentService;
     }
 
     public Task<Result> SendToBankAsync(long id, CancellationToken ct = default) =>
@@ -138,7 +142,11 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
 
-            var linkValidation = CashCollectionBankLinkPolicy.ValidateCancellation(document);
+            var hasActiveBankOperation = await _relatedDocumentService.HasActiveCashCollectionLinkAsync(
+                document.Id,
+                excludedBankOperationId: null,
+                ct);
+            var linkValidation = CashCollectionBankLinkPolicy.ValidateCancellation(document, hasActiveBankOperation);
             if (!linkValidation.IsSuccess)
                 return linkValidation;
 
@@ -231,7 +239,6 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         query.AddIncludes(x => x.Include(document => document.CashChartAccount));
         query.AddIncludes(x => x.Include(document => document.CashInTransitAccount));
         query.AddIncludes(x => x.Include(document => document.BankChartAccount));
-        query.AddIncludes(x => x.Include(document => document.BankOperations));
         return await _query.GetAsync(query, ct);
     }
 

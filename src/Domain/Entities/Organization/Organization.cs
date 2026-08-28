@@ -92,6 +92,9 @@ public partial class Organization
     [InverseProperty(nameof(DocumentNumberSequence.Organization))]
     public virtual ICollection<DocumentNumberSequence> DocumentNumberSequences { get; set; } = new List<DocumentNumberSequence>();
 
+    [InverseProperty(nameof(DocumentRegistry.Organization))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
+
     [InverseProperty(nameof(OpeningInventory.Organization))]
     public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
 

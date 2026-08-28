@@ -108,6 +108,4 @@ public sealed class CashCollectionDoc
     [ForeignKey(nameof(StateId))]
     public State State { get; set; } = null!;
 
-    [InverseProperty(nameof(BankOperation.CashCollectionDoc))]
-    public ICollection<BankOperation> BankOperations { get; set; } = [];
 }

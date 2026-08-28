@@ -22,7 +22,7 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly ICommandRepository<BankOperation> _command;
     private readonly IDocumentNumberService _documentNumberService;
     private readonly IBankOperationClassificationSelectionValidator _classificationValidator;
-    private readonly ICashCollectionBankLinkService _cashCollectionLinkService;
+    private readonly IBankOperationRelatedDocumentService _relatedDocumentService;
 
     public BankOperationService(
         IUserContext userContext,
@@ -31,7 +31,7 @@ public class BankOperationService : BaseService, IBankOperationService
         IBankLifecycleService bankLifecycleService,
         IDocumentNumberService documentNumberService,
         IBankOperationClassificationSelectionValidator classificationValidator,
-        ICashCollectionBankLinkService cashCollectionLinkService,
+        IBankOperationRelatedDocumentService relatedDocumentService,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
         ILogger<BankOperationService> logger,
@@ -44,7 +44,7 @@ public class BankOperationService : BaseService, IBankOperationService
         _bankLifecycleService = bankLifecycleService;
         _documentNumberService = documentNumberService;
         _classificationValidator = classificationValidator;
-        _cashCollectionLinkService = cashCollectionLinkService;
+        _relatedDocumentService = relatedDocumentService;
         _query = query;
         _command = command;
     }
@@ -83,7 +83,7 @@ public class BankOperationService : BaseService, IBankOperationService
             if (!entityResult.IsSuccess)
                 return Result.Failure<long>(entityResult.Error);
 
-            var entity = entityResult.Value;
+            var entity = entityResult.Value.Entity;
             await _command.CreateAsync(entity, ct);
 
             var docDto = await GetByIdInternalAsync(entity.Id, ct);
@@ -110,11 +110,11 @@ public class BankOperationService : BaseService, IBankOperationService
                 if (!entityResult.IsSuccess)
                     return Result.Failure<List<long>>(entityResult.Error);
 
-                if (entityResult.Value.CashCollectionDocId is { } cashCollectionDocId &&
-                    !linkedCashCollections.Add(cashCollectionDocId))
-                    return Result.Failure<List<long>>(CashCollectionErrors.AlreadyLinked(cashCollectionDocId));
+                if (entityResult.Value.Link?.CashCollection is { } cashCollection &&
+                    !linkedCashCollections.Add(entityResult.Value.Link.Registry.Id))
+                    return Result.Failure<List<long>>(CashCollectionErrors.AlreadyLinked(cashCollection.Id));
 
-                entities.Add(entityResult.Value);
+                entities.Add(entityResult.Value.Entity);
             }
 
             await _command.CreateAsync(entities, ct);
@@ -149,8 +149,8 @@ public class BankOperationService : BaseService, IBankOperationService
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(BankOperationErrors.CannotUpdateInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
 
-            var cashCollectionLink = await _cashCollectionLinkService.ResolveDraftAsync(
-                dto.CashCollectionDocId,
+            var relatedDocumentLink = await _relatedDocumentService.ResolveDraftAsync(
+                dto.RelatedDocumentId,
                 _userContext.OrganizationId.Value,
                 dto.BankAccountId,
                 dto.DirectionId,
@@ -159,10 +159,10 @@ public class BankOperationService : BaseService, IBankOperationService
                 dto.ClassificationCategoryId,
                 id,
                 ct);
-            if (!cashCollectionLink.IsSuccess)
-                return Result.Failure(cashCollectionLink.Error);
+            if (!relatedDocumentLink.IsSuccess)
+                return Result.Failure(relatedDocumentLink.Error);
 
-            var classificationCategoryId = cashCollectionLink.Value?.CategoryId ?? dto.ClassificationCategoryId;
+            var classificationCategoryId = relatedDocumentLink.Value?.ForcedCategoryId ?? dto.ClassificationCategoryId;
             var classificationResult = await _classificationValidator.ValidateAsync(
                 _userContext.OrganizationId.Value,
                 dto.BankAccountId,
@@ -179,7 +179,7 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.BankAccountId = dto.BankAccountId;
             entity.DirectionId = dto.DirectionId;
             entity.PaymentTypeId = PaymentTypeIdConst.BANK;
-            entity.CashCollectionDocId = dto.CashCollectionDocId;
+            entity.RelatedDocumentId = dto.RelatedDocumentId;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
             entity.BankChartAccountId = dto.BankChartAccountId;
@@ -195,8 +195,14 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.Comment = dto.Comment;
             entity.StateId = StateIdConst.ACTIVE;
 
-            if (cashCollectionLink.Value is not null)
-                CashCollectionBankLinkPolicy.Apply(entity, cashCollectionLink.Value.Document, cashCollectionLink.Value.CategoryId);
+            if (relatedDocumentLink.Value?.CashCollection is not null)
+            {
+                CashCollectionBankLinkPolicy.Apply(
+                    entity,
+                    relatedDocumentLink.Value.Registry,
+                    relatedDocumentLink.Value.CashCollection,
+                    relatedDocumentLink.Value.ForcedCategoryId!.Value);
+            }
 
             await _command.UpdateAsync(entity, ct);
 
@@ -262,10 +268,10 @@ public class BankOperationService : BaseService, IBankOperationService
         return await _query.GetAsync(query, ct);
     }
 
-    private async Task<Result<BankOperation>> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
+    private async Task<Result<BankOperationBuildResult>> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
     {
-        var cashCollectionLink = await _cashCollectionLinkService.ResolveDraftAsync(
-            dto.CashCollectionDocId,
+        var relatedDocumentLink = await _relatedDocumentService.ResolveDraftAsync(
+            dto.RelatedDocumentId,
             organizationId,
             dto.BankAccountId,
             dto.DirectionId,
@@ -274,10 +280,10 @@ public class BankOperationService : BaseService, IBankOperationService
             dto.ClassificationCategoryId,
             currentBankOperationId: null,
             ct: ct);
-        if (!cashCollectionLink.IsSuccess)
-            return Result.Failure<BankOperation>(cashCollectionLink.Error);
+        if (!relatedDocumentLink.IsSuccess)
+            return Result.Failure<BankOperationBuildResult>(relatedDocumentLink.Error);
 
-        var classificationCategoryId = cashCollectionLink.Value?.CategoryId ?? dto.ClassificationCategoryId;
+        var classificationCategoryId = relatedDocumentLink.Value?.ForcedCategoryId ?? dto.ClassificationCategoryId;
         var classificationResult = await _classificationValidator.ValidateAsync(
             organizationId,
             dto.BankAccountId,
@@ -285,7 +291,7 @@ public class BankOperationService : BaseService, IBankOperationService
             dto.ClassificationRuleId,
             ct);
         if (!classificationResult.IsSuccess)
-            return Result.Failure<BankOperation>(classificationResult.Error);
+            return Result.Failure<BankOperationBuildResult>(classificationResult.Error);
 
         var documentNumberResult = await _documentNumberService.GetNextAsync(
             organizationId,
@@ -293,7 +299,7 @@ public class BankOperationService : BaseService, IBankOperationService
             dto.DocDate,
             ct);
         if (!documentNumberResult.IsSuccess)
-            return Result.Failure<BankOperation>(documentNumberResult.Error);
+            return Result.Failure<BankOperationBuildResult>(documentNumberResult.Error);
 
         var entity = new BankOperation
         {
@@ -310,7 +316,7 @@ public class BankOperationService : BaseService, IBankOperationService
             BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber),
             ClassificationCategoryId = classificationCategoryId,
             ClassificationRuleId = dto.ClassificationRuleId,
-            CashCollectionDocId = dto.CashCollectionDocId,
+            RelatedDocumentId = dto.RelatedDocumentId,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
@@ -321,11 +327,21 @@ public class BankOperationService : BaseService, IBankOperationService
             CreatedDate = DateTime.Now
         };
 
-        if (cashCollectionLink.Value is not null)
-            CashCollectionBankLinkPolicy.Apply(entity, cashCollectionLink.Value.Document, cashCollectionLink.Value.CategoryId);
+        if (relatedDocumentLink.Value?.CashCollection is not null)
+        {
+            CashCollectionBankLinkPolicy.Apply(
+                entity,
+                relatedDocumentLink.Value.Registry,
+                relatedDocumentLink.Value.CashCollection,
+                relatedDocumentLink.Value.ForcedCategoryId!.Value);
+        }
 
-        return Result.Success(entity);
+        return Result.Success(new BankOperationBuildResult(entity, relatedDocumentLink.Value));
     }
+
+    private sealed record BankOperationBuildResult(
+        BankOperation Entity,
+        BankOperationRelatedDocumentLink? Link);
 
     private static string? NormalizeBankDocumentNumber(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

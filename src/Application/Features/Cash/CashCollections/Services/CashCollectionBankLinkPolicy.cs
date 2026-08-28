@@ -38,18 +38,20 @@ public static class CashCollectionBankLinkPolicy
         return Result.Success();
     }
 
-    public static Result ValidateCancellation(CashCollectionDoc document)
+    public static Result ValidateCancellation(CashCollectionDoc document, bool hasActiveBankOperation)
     {
-        return document.BankOperations.Any(x =>
-            x.StateId == StateIdConst.ACTIVE &&
-            x.StatusId != DocumentStatusIdConst.CANCELLED)
+        return hasActiveBankOperation
             ? Result.Failure(CashCollectionErrors.ActiveBankOperation(document.Id))
             : Result.Success();
     }
 
-    public static void Apply(BankOperation operation, CashCollectionDoc document, short cashCollectionCategoryId)
+    public static void Apply(
+        BankOperation operation,
+        DocumentRegistry registry,
+        CashCollectionDoc document,
+        short cashCollectionCategoryId)
     {
-        operation.CashCollectionDocId = document.Id;
+        operation.RelatedDocumentId = registry.Id;
         operation.BankChartAccountId = document.BankChartAccountId;
         operation.OffsetAccountId = document.CashInTransitAccountId;
         operation.PaymentTypeId = PaymentTypeIdConst.BANK;

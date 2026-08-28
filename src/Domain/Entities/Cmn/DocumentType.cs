@@ -33,6 +33,9 @@ public partial class DocumentType
     [InverseProperty(nameof(DocumentNumberSequence.DocumentType))]
     public virtual ICollection<DocumentNumberSequence> DocumentNumberSequences { get; set; } = new List<DocumentNumberSequence>();
 
+    [InverseProperty(nameof(DocumentRegistry.DocumentType))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
+
     [InverseProperty(nameof(WarehouseProductMovement.DocumentType))]
     public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
 

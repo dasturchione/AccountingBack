@@ -35,6 +35,9 @@ public partial class Currency
     [InverseProperty(nameof(CurrencyTranslation.Currency))]
     public virtual ICollection<CurrencyTranslation> CurrencyTranslations { get; set; } = new List<CurrencyTranslation>();
 
+    [InverseProperty(nameof(DocumentRegistry.Currency))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
+
     [InverseProperty(nameof(AccountingRegisterEntry.Currency))]
     public virtual ICollection<AccountingRegisterEntry> AccountingRegisterEntries { get; set; } = new List<AccountingRegisterEntry>();
 

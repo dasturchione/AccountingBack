@@ -5,6 +5,21 @@ namespace Application.Features.BankOperations;
 
 public static class BankOperationErrors
 {
+    public static Error RelatedDocumentNotFound(long id) =>
+        Error.NotFound(
+            "BankOperation.RelatedDocumentNotFound",
+            $"Active related document {id} was not found in the current organization.");
+
+    public static Error RelatedDocumentOrganizationMismatch(long id) =>
+        Error.Business(
+            "BankOperation.RelatedDocumentOrganizationMismatch",
+            $"Related document {id} belongs to another organization.");
+
+    public static Error RelatedDocumentInactive(long id) =>
+        Error.Business(
+            "BankOperation.RelatedDocumentInactive",
+            $"Related document {id} is inactive.");
+
     public static Error ClassificationCategoryRequired() =>
         Error.Business("BankOperation.ClassificationCategoryRequired", "Classification category is required when a rule is specified.");
 

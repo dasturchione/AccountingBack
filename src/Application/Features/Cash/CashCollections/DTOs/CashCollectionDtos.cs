@@ -21,6 +21,7 @@ public sealed class CashCollectionUpdateDto : CashCollectionBaseDto;
 public class CashCollectionDto
 {
     public long Id { get; set; }
+    public long? DocumentRegistryId { get; set; }
     public int OrganizationId { get; set; }
     public string OrganizationName { get; set; } = null!;
     public string DocNumber { get; set; } = null!;
@@ -65,6 +66,7 @@ public sealed class CashCollectionListDto : CashCollectionDto;
 public sealed class CashCollectionInTransitDto
 {
     public long Id { get; set; }
+    public long? DocumentRegistryId { get; set; }
     public string DocNumber { get; set; } = null!;
     public DateTime DocDate { get; set; }
     public int CashBoxId { get; set; }

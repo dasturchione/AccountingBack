@@ -30,6 +30,9 @@ public partial class DocumentStatus
     [InverseProperty(nameof(DocumentStatusTranslation.Status))]
     public virtual ICollection<DocumentStatusTranslation> DocumentStatusTranslations { get; set; } = new List<DocumentStatusTranslation>();
 
+    [InverseProperty(nameof(DocumentRegistry.Status))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
+
     [InverseProperty(nameof(OpeningInventory.Status))]
     public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();
 

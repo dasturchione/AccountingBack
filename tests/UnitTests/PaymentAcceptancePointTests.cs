@@ -79,7 +79,7 @@ public sealed class PaymentAcceptancePointTests
     }
 
     [Fact]
-    public void Migration_PreservesTerminalIdsAndRetailPaymentLink()
+    public void Migration_CopiesTerminalDataAndRetailLinksBeforeDroppingOldTable()
     {
         var root = FindRepositoryRoot();
         var migration = File.ReadAllText(Path.Combine(
@@ -91,8 +91,13 @@ public sealed class PaymentAcceptancePointTests
             "05_bank",
             "0508_migrate_bank_terminal_to_payment_acceptance_point.sql"));
 
-        Assert.Contains("alter table bank_terminal rename to org_payment_acceptance_point", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("alter table bank_terminal rename to org_payment_acceptance_point", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("insert into org_payment_acceptance_point", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("temporary table tmp_bank_terminal_map", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("update rtl_sale_doc_payment", migration, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("rename column bank_terminal_id to payment_acceptance_point_id", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("references org_payment_acceptance_point(id)", migration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("drop table bank_terminal", migration, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("delete from bank_terminal", migration, StringComparison.OrdinalIgnoreCase);
     }
 

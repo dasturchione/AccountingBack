@@ -37,9 +37,6 @@ public partial class InvProductTable
     public virtual ICollection<InvOpeningInventoryTable> InvOpeningInventoryTables { get; set; } = new List<InvOpeningInventoryTable>();
 
     [InverseProperty("ProductTable")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("ProductTable")]
     public virtual ICollection<InvTransferDocTable> InvTransferDocTables { get; set; } = new List<InvTransferDocTable>();
 
     [InverseProperty("ProductTable")]

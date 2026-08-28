@@ -152,12 +152,12 @@
 08_sale/0808_create_sale_shipment_product_batch.sql
 08_sale/0809_create_sale_shipment_table.sql
 08_sale/0810_allow_sale_marking_occurrences.sql
-09_register/0901_create_inv_reg_balance.sql
 09_register/0902_create_money_reg_balance.sql
 09_register/0903_create_counterparty_reg_balance.sql
 09_register/0904_create_acc_reg_entry.sql
 09_register/0905_create_acc_reg_entry_subkonto.sql
 09_register/0906_migrate_register_movement_direction.sql
+09_register/0907_drop_inv_reg_balance.sql
 10_acc/1001_create_acc_account_type.sql
 10_acc/1002_create_acc_chart_account.sql
 10_acc/1003_create_acc_subkonto_type.sql

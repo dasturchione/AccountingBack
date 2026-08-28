@@ -177,7 +177,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountingRegisterEntry> AccountingRegisterEntries { get; set; }
     public virtual DbSet<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; }
     public virtual DbSet<MoneyRegisterBalance> MoneyRegisterBalances { get; set; }
-    public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
     public virtual DbSet<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; }
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
@@ -842,37 +841,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WarehouseProduct>()
             .Property(x => x.AvailableQuantity)
             .HasComputedColumnSql("quantity - reserved_quantity - blocked_quantity", stored: true);
-
-        modelBuilder.Entity<InvRegBalance>(entity =>
-        {
-            entity.ToTable("inv_reg_balance");
-            entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(e => e.DocumentType)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-            entity.HasOne(e => e.Direction)
-                .WithMany(e => e.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_direction_id_fkey");
-            entity.HasOne(e => e.Organization)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_organization_id_fkey");
-            entity.HasOne(e => e.Product)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_product_id_fkey");
-            entity.HasOne(e => e.ProductTable)
-                .WithMany()
-                .HasConstraintName("inv_reg_balance_product_table_id_fkey");
-            entity.HasOne(e => e.Warehouse)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
-        });
 
         modelBuilder.Entity<WarehouseProduct>()
             .Property<uint>("xmin")

@@ -224,7 +224,6 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
         var counterparties = await context.CounterpartyCards.IgnoreQueryFilters().AsNoTracking()
             .Where(counterparty => counterparty.OrganizationId == organizationId
                 && counterparty.StateId == SharedKernel.Constants.StateIdConst.ACTIVE
-                && counterparty.IsSupplier
                 && counterparty.Inn != null
                 && sellerTins.Contains(counterparty.Inn))
             .Select(counterparty => new EdoImportExistingCounterpartySourceDto
@@ -753,7 +752,6 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
                 .ToListAsync(ct);
             var reusable = matches.Count == 1
                 && matches[0].StateId == SharedKernel.Constants.StateIdConst.ACTIVE
-                && matches[0].IsSupplier
                     ? matches[0]
                     : null;
             if (matches.Count > 1 || matches.Count == 1 && reusable is null)
@@ -774,12 +772,9 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
             var entity = new CounterpartyCard
             {
                 OrganizationId = organizationId,
-                CounterpartyTypeId = 2,
                 ShortName = item.Name,
                 FullName = item.Name,
                 Inn = item.SellerTin,
-                IsSupplier = true,
-                IsCustomer = false,
                 IsVatPayer = false,
                 StateId = SharedKernel.Constants.StateIdConst.ACTIVE,
                 CreatedDate = now
@@ -797,8 +792,7 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
                 var matches = await context.CounterpartyCards.IgnoreQueryFilters().AsNoTracking()
                     .Where(entity => entity.OrganizationId == organizationId
                         && entity.Inn == item.SellerTin
-                        && entity.StateId == SharedKernel.Constants.StateIdConst.ACTIVE
-                        && entity.IsSupplier)
+                        && entity.StateId == SharedKernel.Constants.StateIdConst.ACTIVE)
                     .Select(entity => entity.Id)
                     .Take(2)
                     .ToListAsync(ct);
@@ -1366,7 +1360,6 @@ public sealed class EdoImportStore(AppDbContext context) : IEdoImportStore
             .Where(item => item.OrganizationId == organizationId
                 && item.Inn == sellerTin
                 && item.StateId == SharedKernel.Constants.StateIdConst.ACTIVE
-                && item.IsSupplier
                 && (selectedCounterpartyId.HasValue
                     ? item.Id == selectedCounterpartyId.Value
                     : allowAutomaticFallback))

@@ -12,7 +12,6 @@ public interface IManualService
     Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetUnitsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default);
@@ -51,8 +50,6 @@ public interface IManualService
 
     // counterparty
     Task<List<SelectListDto>> GetCounterpartiesAsync(CancellationToken ct = default);
-    Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default);
-    Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default);
 
     // inv
     Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default);

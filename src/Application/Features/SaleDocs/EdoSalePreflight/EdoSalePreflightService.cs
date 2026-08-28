@@ -387,7 +387,7 @@ public sealed class EdoSalePreflightService(
     {
         var counterparties = await counterpartyQuery.GetAllAsync(
             queryBuilder.For<CounterpartyCard>()
-                .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE && x.IsCustomer)
+                .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
                 .Build(), ct);
         var contracts = await contractQuery.GetAllAsync(
             queryBuilder.For<Contract>()

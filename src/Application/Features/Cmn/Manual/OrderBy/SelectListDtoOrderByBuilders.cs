@@ -23,7 +23,6 @@ public sealed class ContractTypeSelectListDtoOrderByBuilder : NameSelectListDtoO
 public sealed class CostingMethodSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CostingMethod, SelectListDto>;
 public sealed class CounterpartyBankAccountSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyBankAccount, SelectListDto>;
 public sealed class CounterpartyCardSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyCard, SelectListDto>;
-public sealed class CounterpartyTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyType, SelectListDto>;
 public sealed class CurrencySelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Currency, SelectListDto>;
 public sealed class DepartmentSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Department, SelectListDto>;
 public sealed class DistrictSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<District, SelectListDto>;
@@ -58,7 +57,6 @@ public sealed class VatRateSelectListDtoOrderByBuilder : NameSelectListDtoOrderB
 public sealed class WarehouseSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Warehouse, SelectListDto>;
 
 public sealed class ProductSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Product, ProductSelectListDto>;
-public sealed class CounterpartySelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyCard, CounterpartySelectListDto>;
 
 public sealed class ChartAccountSelectListDtoOrderByBuilder : IOrderByBuilder<ChartAccount, ChartAccountSelectListDto>
 {

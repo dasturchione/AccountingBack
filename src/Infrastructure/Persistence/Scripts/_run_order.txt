@@ -26,7 +26,6 @@
 01_cmn/0104_create_cmn_currency.sql
 01_cmn/0105_create_cmn_unit.sql
 01_cmn/0106_create_cmn_document_status.sql
-01_cmn/0107_create_cmn_counterparty_type.sql
 01_cmn/0108_create_cmn_payment_type.sql
 01_cmn/0109_create_cmn_language.sql
 01_cmn/0110_create_cmn_translation.sql
@@ -55,7 +54,6 @@
 01_cmn/0134_create_cmn_mxik_catalog.sql
 01_cmn/0135_create_cmn_contract_type_translation.sql
 01_cmn/0136_create_cmn_costing_method_translation.sql
-01_cmn/0137_create_cmn_counterparty_type_translation.sql
 01_cmn/0138_create_cmn_currency_translation.sql
 01_cmn/0139_create_cmn_document_status_translation.sql
 01_cmn/0140_create_cmn_document_type_translation.sql
@@ -99,6 +97,7 @@
 03_counterparty/0301_create_counterparty_card.sql
 03_counterparty/0302_create_counterparty_bank_account.sql
 03_counterparty/0303_create_counterparty_contact.sql
+03_counterparty/0304_remove_counterparty_role_classification.sql
 04_inv/0401_create_inv_product_group.sql
 04_inv/0402_create_inv_product.sql
 04_inv/0403_create_inv_warehouse.sql

@@ -187,7 +187,6 @@ public static class PermissionCodeConst
     public const string ManualGetCurrencies               = "MANUAL_GET_CURRENCIES";
     public const string ManualGetUnits                    = "MANUAL_GET_UNITS";
     public const string ManualGetDocumentStatuses         = "MANUAL_GET_DOCUMENT_STATUSES";
-    public const string ManualGetCounterpartyTypes        = "MANUAL_GET_COUNTERPARTY_TYPES";
     public const string ManualGetPaymentTypes             = "MANUAL_GET_PAYMENT_TYPES";
     public const string ManualGetInventoryAdjustmentTypes = "MANUAL_GET_INVENTORY_ADJUSTMENT_TYPES";
     public const string ManualGetFaGroups                 = "MANUAL_GET_FA_GROUPS";
@@ -211,8 +210,6 @@ public static class PermissionCodeConst
     public const string ManualGetPositions                = "MANUAL_GET_POSITIONS";
     public const string ManualGetContracts                = "MANUAL_GET_CONTRACTS";
     public const string ManualGetCounterparties           = "MANUAL_GET_COUNTERPARTIES";
-    public const string ManualGetSuppliers                = "MANUAL_GET_SUPPLIERS";
-    public const string ManualGetClients                  = "MANUAL_GET_CLIENTS";
     public const string ManualGetProductGroups            = "MANUAL_GET_PRODUCT_GROUPS";
     public const string ManualGetProducts                 = "MANUAL_GET_PRODUCTS";
     public const string ManualGetWarehouses               = "MANUAL_GET_WAREHOUSES";

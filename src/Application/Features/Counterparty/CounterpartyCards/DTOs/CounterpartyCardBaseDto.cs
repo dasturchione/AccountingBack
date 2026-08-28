@@ -2,10 +2,7 @@ namespace Application.Features.CounterpartyCards;
 
 public class CounterpartyCardBaseDto
 {
-    public short CounterpartyTypeId { get; set; }
     public string? Code { get; set; }
-    public bool IsCustomer { get; set; }
-    public bool IsSupplier { get; set; }
     public bool IsVatPayer { get; set; }
     public string ShortName { get; set; } = null!;
     public string? FullName { get; set; }

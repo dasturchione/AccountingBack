@@ -32,7 +32,6 @@ public class ManualService : IManualService
     private readonly IQueryRepository<District> _districtQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
     private readonly IQueryRepository<DocumentStatus> _documentStatusQuery;
-    private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<InventoryAdjustmentType> _inventoryAdjustmentTypeQuery;
     private readonly IQueryRepository<FaDepreciationMethod> _faDepreciationMethodQuery;
     private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
@@ -75,7 +74,6 @@ public class ManualService : IManualService
         IQueryRepository<Currency> currencyQuery,
         IQueryRepository<Unit> unitQuery,
         IQueryRepository<DocumentStatus> documentStatusQuery,
-        IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<InventoryAdjustmentType> inventoryAdjustmentTypeQuery,
         IQueryRepository<FaGroup> faGroupQuery,
@@ -131,7 +129,6 @@ public class ManualService : IManualService
         _currencyQuery = currencyQuery;
         _unitQuery = unitQuery;
         _documentStatusQuery = documentStatusQuery;
-        _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery = paymentTypeQuery;
         _inventoryAdjustmentTypeQuery = inventoryAdjustmentTypeQuery;
         _faGroupQuery = faGroupQuery;
@@ -270,16 +267,6 @@ public class ManualService : IManualService
                                  .Build();
 
         return await _documentStatusQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default)
-    {
-        var spec = _queryBuilder.For<CounterpartyType>()
-            .Where(c => c.StateId == StateIdConst.ACTIVE)
-            .As(c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code })
-            .OrderBy(q => q.OrderBy(c => c.Name))
-            .Build();
-        return (await _counterpartyTypeQuery.GetAllAsync(spec, ct)).ToList();
     }
 
     public async Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default)
@@ -728,42 +715,6 @@ public class ManualService : IManualService
                                  {
                                      Id = s.Id,
                                      Name = s.ShortName!
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
-
-        return await _counterpartyQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<CounterpartyCard>()
-                                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                             (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
-                                              x.CounterpartyTypeId == CounterPartyTypeIdConst.SUPPLIER))
-                                 .As(s => new CounterpartySelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Name = s.FullName!,
-                                     Inn = s.Inn
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
-
-        return await _counterpartyQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<CounterpartyCard>()
-                                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                             (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
-                                              x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT))
-                                 .As(s => new CounterpartySelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Name = s.FullName!,
-                                     Inn = s.Inn
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();

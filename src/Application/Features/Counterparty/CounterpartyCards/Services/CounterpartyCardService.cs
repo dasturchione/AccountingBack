@@ -100,10 +100,7 @@ public class CounterpartyCardService : ICounterpartyCardService
 
         if (entity.ShortName != dto.ShortName && await _query.AnyAsync(x => x.ShortName == dto.ShortName, ct))
             return Result.Failure(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
-        entity.CounterpartyTypeId = dto.CounterpartyTypeId;
         entity.Code = dto.Code;
-        entity.IsCustomer = dto.IsCustomer;
-        entity.IsSupplier = dto.IsSupplier;
         entity.IsVatPayer = dto.IsVatPayer;
         entity.ShortName = dto.ShortName;
         entity.FullName = dto.FullName;
@@ -125,10 +122,7 @@ public class CounterpartyCardService : ICounterpartyCardService
         new()
         {
             OrganizationId = orgId,
-            CounterpartyTypeId = dto.CounterpartyTypeId,
             Code = dto.Code,
-            IsCustomer = dto.IsCustomer,
-            IsSupplier = dto.IsSupplier,
             IsVatPayer = dto.IsVatPayer,
             ShortName = dto.ShortName,
             FullName = dto.FullName,

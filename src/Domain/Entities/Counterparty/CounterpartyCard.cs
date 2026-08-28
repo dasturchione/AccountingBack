@@ -13,9 +13,6 @@ public partial class CounterpartyCard
     [Column("organization_id")]
     public int OrganizationId { get; set; }
 
-    [Column("counterparty_type_id")]
-    public short CounterpartyTypeId { get; set; }
-
     [Column("short_name")]
     [StringLength(250)]
     public string ShortName { get; set; } = null!;
@@ -56,12 +53,6 @@ public partial class CounterpartyCard
     [StringLength(100)]
     public string? Code { get; set; }
 
-    [Column("is_customer")]
-    public bool IsCustomer { get; set; }
-
-    [Column("is_supplier")]
-    public bool IsSupplier { get; set; }
-
     [Column("is_vat_payer")]
     public bool IsVatPayer { get; set; }
 
@@ -79,10 +70,6 @@ public partial class CounterpartyCard
     [ForeignKey(nameof(StateId))]
     [InverseProperty(nameof(State.CounterpartyCards))]
     public virtual State State { get; set; } = null!;
-
-    [ForeignKey(nameof(CounterpartyTypeId))]
-    [InverseProperty(nameof(CounterpartyType.CounterpartyCards))]
-    public virtual CounterpartyType CounterpartyType { get; set; } = null!;
 
     [ForeignKey(nameof(DistrictId))]
     [InverseProperty(nameof(District.CounterpartyCards))]

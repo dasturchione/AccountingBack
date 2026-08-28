@@ -5,11 +5,7 @@ public class CounterpartyCardListDto
     public int Id { get; set; } 
     public int OrganizationId { get; set; } 
     public string OrganizationName { get; set; } = null!;
-    public short CounterpartyTypeId { get; set; } 
-    public string CounterpartyTypeName { get; set; } = null!;
     public string? Code { get; set; }
-    public bool IsCustomer { get; set; }
-    public bool IsSupplier { get; set; }
     public bool IsVatPayer { get; set; }
     public string ShortName { get; set; } = null!; 
     public string? FullName { get; set; } 

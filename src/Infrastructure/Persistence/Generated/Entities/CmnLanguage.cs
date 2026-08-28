@@ -64,9 +64,6 @@ public partial class CmnLanguage
     public virtual ICollection<CmnCostingMethodTranslation> CmnCostingMethodTranslations { get; set; } = new List<CmnCostingMethodTranslation>();
 
     [InverseProperty("Language")]
-    public virtual ICollection<CmnCounterpartyTypeTranslation> CmnCounterpartyTypeTranslations { get; set; } = new List<CmnCounterpartyTypeTranslation>();
-
-    [InverseProperty("Language")]
     public virtual ICollection<CmnCurrencyTranslation> CmnCurrencyTranslations { get; set; } = new List<CmnCurrencyTranslation>();
 
     [InverseProperty("Language")]

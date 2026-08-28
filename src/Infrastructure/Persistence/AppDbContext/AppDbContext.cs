@@ -56,7 +56,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<BankOperationClassificationRule> BankOperationClassificationRules { get; set; }
     public virtual DbSet<BankOperationClassificationCondition> BankOperationClassificationConditions { get; set; }
     public virtual DbSet<BankOperationClassificationConditionValue> BankOperationClassificationConditionValues { get; set; }
-    public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }
     public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
@@ -107,7 +106,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Translation> Translations { get; set; }
     public virtual DbSet<ContractTypeTranslation> ContractTypeTranslations { get; set; }
     public virtual DbSet<CostingMethodTranslation> CostingMethodTranslations { get; set; }
-    public virtual DbSet<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; }
     public virtual DbSet<CurrencyTranslation> CurrencyTranslations { get; set; }
     public virtual DbSet<DocumentStatusTranslation> DocumentStatusTranslations { get; set; }
     public virtual DbSet<DocumentTypeTranslation> DocumentTypeTranslations { get; set; }

@@ -94,9 +94,6 @@ public partial class State
     public virtual ICollection<BankOperationClassificationRule> BankOperationClassificationRules { get; set; } = [];
 
     [InverseProperty("State")]
-    public virtual ICollection<CounterpartyType> CounterpartyTypes { get; set; } = new List<CounterpartyType>();
-
-    [InverseProperty("State")]
     public virtual ICollection<ProductTableStatus> ProductTableStatuses { get; set; } = new List<ProductTableStatus>();
 
     [InverseProperty("State")]

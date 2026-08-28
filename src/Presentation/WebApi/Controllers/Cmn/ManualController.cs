@@ -98,14 +98,6 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetCounterpartyTypes)]
-    [HttpGet("counterparty-types")]
-    public async Task<IActionResult> GetCounterpartyTypes(CancellationToken ct)
-    {
-        var result = await _manualService.GetCounterpartyTypesAsync(ct);
-        return Ok(result);
-    }
-
     [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentTypes)]
     [HttpGet("payment-types")]
     public async Task<IActionResult> GetPaymentTypes(CancellationToken ct)
@@ -333,22 +325,6 @@ public class ManualController : ControllerBase
     public async Task<IActionResult> GetCounterparties(CancellationToken ct)
     {
         var result = await _manualService.GetCounterpartiesAsync(ct);
-        return Ok(result);
-    }
-
-    [ModuleAuthorize(PermissionCodeConst.ManualGetSuppliers)]
-    [HttpGet("suppliers")]
-    public async Task<IActionResult> GetSuppliers(CancellationToken ct)
-    {
-        var result = await _manualService.GetSuppliersAsync(ct);
-        return Ok(result);
-    }
-
-    [ModuleAuthorize(PermissionCodeConst.ManualGetClients)]
-    [HttpGet("clients")]
-    public async Task<IActionResult> GetClients(CancellationToken ct)
-    {
-        var result = await _manualService.GetClientsAsync(ct);
         return Ok(result);
     }
 

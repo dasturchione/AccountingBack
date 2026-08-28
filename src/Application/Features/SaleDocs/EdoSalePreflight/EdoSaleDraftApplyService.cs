@@ -279,8 +279,7 @@ public sealed class EdoSaleDraftApplyService(
             queryBuilder.For<CounterpartyCard>()
                 .Where(x => x.Id == item.CounterpartyId
                     && x.OrganizationId == organizationId
-                    && x.StateId == StateIdConst.ACTIVE
-                    && x.IsCustomer)
+                    && x.StateId == StateIdConst.ACTIVE)
                 .Build(), ct);
         if (counterparty is null
             || !string.Equals(counterparty.Inn?.Trim(), detail.Buyer.TaxIdentifier?.Trim(), StringComparison.Ordinal))

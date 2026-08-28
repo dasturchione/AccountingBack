@@ -187,7 +187,8 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
     {
         var query = _queryBuilder.For<MoneyRegisterBalance>()
             .Where(x => (x.SourceType.StartsWith(RegisterDefaultsConst.CashOperation) ||
-                         x.SourceType == RegisterDefaultsConst.CashFiscalTransferCashBox) &&
+                         x.SourceType == RegisterDefaultsConst.CashFiscalTransferCashBox ||
+                         x.SourceType == RegisterDefaultsConst.CashCollection) &&
                         x.SourceId == cashBoxId &&
                         x.DocDate <= asOfDate)
             .Build();

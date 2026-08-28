@@ -42,6 +42,8 @@ public class BankOperationDtoProjection : IProjectionBuilder<BankOperation, Bank
             ClassificationName = x.ClassificationCategory == null ? null : x.ClassificationCategory.Name,
             ClassificationRuleId = x.ClassificationRuleId,
             ClassificationRuleCode = x.ClassificationRule == null ? null : x.ClassificationRule.Code,
+            CashCollectionDocId = x.CashCollectionDocId,
+            CashCollectionDocNumber = x.CashCollectionDoc == null ? null : x.CashCollectionDoc.DocNumber,
             DocDate = x.DocDate,
             CurrencyId = x.CurrencyId,
             CurrencyName = x.Currency.Name,

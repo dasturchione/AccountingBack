@@ -9,6 +9,7 @@ public static class AuditLogTableConst
     public const string BankOperation = "bank_operation";
     public const string CashOperation = "cash_operation";
     public const string CashFiscalTransfer = "cash_fiscal_transfer_doc";
+    public const string CashCollection = "cash_collection_doc";
     public const string WarehouseTransferDoc = "inv_transfer_doc";
     public const string InventoryAdjustmentDoc = "inv_inventory_adjustment_doc";
     public const string InventoryCountDoc = "inv_inventory_count_doc";

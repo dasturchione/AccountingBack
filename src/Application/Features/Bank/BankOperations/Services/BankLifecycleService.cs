@@ -4,6 +4,7 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.CounterpartyRegisterBalances;
 using Application.Features.MoneyRegisterBalances;
+using Application.Features.CashCollections;
 using Application.Features.Register.AccountingRegisterEntries;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,8 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
     private readonly IQueryRepository<MoneyRegisterBalance> _moneyRegisterQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyRegisterQuery;
+    private readonly ICashCollectionBankLinkService _cashCollectionLinkService;
+    private readonly ICommandRepository<CashCollectionDoc> _cashCollectionCommand;
 
     public BankLifecycleService(
         IUserContext userContext,
@@ -51,6 +54,8 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
         IQueryRepository<MoneyRegisterBalance> moneyRegisterQuery,
         IQueryRepository<CounterpartyRegisterBalance> counterpartyRegisterQuery,
+        ICashCollectionBankLinkService cashCollectionLinkService,
+        ICommandRepository<CashCollectionDoc> cashCollectionCommand,
         ILogger<BankLifecycleService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -72,6 +77,8 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
         _accountingRegisterCommand = accountingRegisterCommand;
         _moneyRegisterQuery = moneyRegisterQuery;
         _counterpartyRegisterQuery = counterpartyRegisterQuery;
+        _cashCollectionLinkService = cashCollectionLinkService;
+        _cashCollectionCommand = cashCollectionCommand;
     }
 
     public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
@@ -106,6 +113,16 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             if (bankOperation.StatusId != DocumentStatusIdConst.DRAFT && bankOperation.StatusId != DocumentStatusIdConst.PENDING)
                 return Result.Failure(BankOperationErrors.CannotConfirmInCurrentStatus(id, bankOperation.StatusId, _userContext.LanguageId));
 
+            CashCollectionDoc? cashCollection = null;
+            if (bankOperation.CashCollectionDocId is { } cashCollectionDocId)
+            {
+                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollectionDocId, ct);
+                var linkValidation = await _cashCollectionLinkService.ValidateForConfirmAsync(bankOperation, ct);
+                if (!linkValidation.IsSuccess)
+                    return Result.Failure(linkValidation.Error);
+                cashCollection = linkValidation.Value;
+            }
+
             var periodValidation = await _periodValidator.EnsureOpenAsync(bankOperation.OrganizationId, bankOperation.DocDate, ct);
             if (!periodValidation.IsSuccess)
                 return periodValidation;
@@ -139,6 +156,19 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             bankOperation.PostedAt ??= DateTime.Now;
             bankOperation.PostedByUserId = _userContext.Id;
             await _command.UpdateAsync(bankOperation, ct);
+
+            if (cashCollection is not null)
+            {
+                cashCollection.StatusId = DocumentStatusIdConst.COMPLETED;
+                cashCollection.CompletedAt = DateTime.Now;
+                cashCollection.CompletedByUserId = _userContext.Id;
+                await _cashCollectionCommand.UpdateAsync(cashCollection, ct);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.CashCollection,
+                    cashCollection.Id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    $"Completed by bank operation {bankOperation.Id}");
+            }
 
             var newDocDto = await GetByIdInternalAsync(id, ct);
             if (newDocDto != null)
@@ -176,6 +206,20 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 bankOperation.StatusId != DocumentStatusIdConst.PENDING &&
                 bankOperation.StatusId != DocumentStatusIdConst.POSTED)
                 return Result.Failure(BankOperationErrors.CannotCancelInCurrentStatus(id, bankOperation.StatusId, _userContext.LanguageId));
+
+            var wasPosted = bankOperation.StatusId == DocumentStatusIdConst.POSTED;
+            CashCollectionDoc? cashCollection = null;
+            if (bankOperation.CashCollectionDocId is { } cashCollectionDocId)
+            {
+                await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollectionDocId, ct);
+                var link = await _cashCollectionLinkService.GetLinkedAsync(bankOperation, ct);
+                if (!link.IsSuccess)
+                    return Result.Failure(link.Error);
+                cashCollection = link.Value;
+
+                if (wasPosted && cashCollection?.StatusId != DocumentStatusIdConst.COMPLETED)
+                    return Result.Failure(CashCollectionErrors.InvalidStatus(cashCollectionDocId, cashCollection?.StatusId ?? 0));
+            }
 
             var periodValidation = await _periodValidator.EnsureOpenAsync(bankOperation.OrganizationId, bankOperation.DocDate, ct);
             if (!periodValidation.IsSuccess)
@@ -222,6 +266,19 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             bankOperation.CancelledAt ??= DateTime.Now;
             bankOperation.CancelledByUserId = _userContext.Id;
             await _command.UpdateAsync(bankOperation, ct);
+
+            if (wasPosted && cashCollection is not null)
+            {
+                cashCollection.StatusId = DocumentStatusIdConst.IN_TRANSIT;
+                cashCollection.CompletedAt = null;
+                cashCollection.CompletedByUserId = null;
+                await _cashCollectionCommand.UpdateAsync(cashCollection, ct);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.CashCollection,
+                    cashCollection.Id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    $"Returned to in transit after bank operation {bankOperation.Id} cancellation");
+            }
 
             var newDocDto = await GetByIdInternalAsync(id, ct);
             if (newDocDto != null)

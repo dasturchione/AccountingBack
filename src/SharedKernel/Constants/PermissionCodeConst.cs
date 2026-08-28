@@ -111,6 +111,16 @@ public static class PermissionCodeConst
     public const string CancelCashFiscalTransfer = "CANCEL_CASH_FISCAL_TRANSFER";
     #endregion
 
+    #region CashCollection
+    public const string CashCollectionView = "CASH_COLLECTION_VIEW";
+    public const string CashCollectionViewDetail = "CASH_COLLECTION_VIEW_DETAIL";
+    public const string CashCollectionCreate = "CASH_COLLECTION_CREATE";
+    public const string CashCollectionUpdate = "CASH_COLLECTION_UPDATE";
+    public const string CashCollectionDelete = "CASH_COLLECTION_DELETE";
+    public const string CashCollectionSendToBank = "CASH_COLLECTION_SEND_TO_BANK";
+    public const string CashCollectionCancel = "CASH_COLLECTION_CANCEL";
+    #endregion
+
     #region DocumentAccountSetting
     public const string DocumentAccountSettingView = "DOCUMENT_ACCOUNT_SETTING_VIEW";
     public const string DocumentAccountSettingViewDetail = "DOCUMENT_ACCOUNT_SETTING_VIEW_DETAIL";

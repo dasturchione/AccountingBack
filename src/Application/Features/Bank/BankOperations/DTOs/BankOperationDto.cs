@@ -35,6 +35,8 @@ public class BankOperationDto
     public string? ClassificationName { get; set; }
     public int? ClassificationRuleId { get; set; }
     public string? ClassificationRuleCode { get; set; }
+    public long? CashCollectionDocId { get; set; }
+    public string? CashCollectionDocNumber { get; set; }
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;

@@ -21,7 +21,8 @@ public sealed class AccountingRegisterEntryRebuildRepository : IAccountingRegist
         DocumentTypeIdConst.FADISPOSAL,
         DocumentTypeIdConst.FAREVALUATION,
         DocumentTypeIdConst.FACOMMISSIONING,
-        DocumentTypeIdConst.CASHFISCALTRANSFER
+        DocumentTypeIdConst.CASHFISCALTRANSFER,
+        DocumentTypeIdConst.CASHCOLLECTION
     ];
 
     private readonly AppDbContext _context;
@@ -90,6 +91,7 @@ public sealed class AccountingRegisterEntryRebuildRepository : IAccountingRegist
             DocumentTypeIdConst.FAREVALUATION => GetFaRevaluationAsync(documentId, organizationId, ct),
             DocumentTypeIdConst.FACOMMISSIONING => GetFaCommissioningAsync(documentId, organizationId, ct),
             DocumentTypeIdConst.CASHFISCALTRANSFER => GetCashFiscalTransferAsync(documentId, organizationId, ct),
+            DocumentTypeIdConst.CASHCOLLECTION => GetCashCollectionAsync(documentId, organizationId, ct),
             _ => Task.FromResult<object?>(null)
         };
 
@@ -238,5 +240,17 @@ public sealed class AccountingRegisterEntryRebuildRepository : IAccountingRegist
                 document.Id == id &&
                 document.OrganizationId == organizationId &&
                 document.StatusId == DocumentStatusIdConst.POSTED,
+                ct);
+
+    private async Task<object?> GetCashCollectionAsync(long id, int organizationId, CancellationToken ct) =>
+        await _context.CashCollectionDocs
+            .AsNoTracking()
+            .Include(document => document.CashBox)
+            .Include(document => document.BankAccount)
+            .SingleOrDefaultAsync(document =>
+                document.Id == id &&
+                document.OrganizationId == organizationId &&
+                (document.StatusId == DocumentStatusIdConst.IN_TRANSIT ||
+                 document.StatusId == DocumentStatusIdConst.COMPLETED),
                 ct);
 }

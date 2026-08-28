@@ -204,6 +204,13 @@ public class LedgerReadRepository : ILedgerReadRepository
             result,
             ct);
 
+        await AddDocumentNumbersAsync(
+            details,
+            DocumentTypeIdConst.CASHCOLLECTION,
+            _context.CashCollectionDocs.Select(x => new { x.Id, x.DocNumber }),
+            result,
+            ct);
+
         return result;
     }
 

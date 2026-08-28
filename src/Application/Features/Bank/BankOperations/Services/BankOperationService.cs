@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
 using Application.Features.DocumentNumbers;
+using Application.Features.CashCollections;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
@@ -21,6 +22,7 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly ICommandRepository<BankOperation> _command;
     private readonly IDocumentNumberService _documentNumberService;
     private readonly IBankOperationClassificationSelectionValidator _classificationValidator;
+    private readonly ICashCollectionBankLinkService _cashCollectionLinkService;
 
     public BankOperationService(
         IUserContext userContext,
@@ -29,6 +31,7 @@ public class BankOperationService : BaseService, IBankOperationService
         IBankLifecycleService bankLifecycleService,
         IDocumentNumberService documentNumberService,
         IBankOperationClassificationSelectionValidator classificationValidator,
+        ICashCollectionBankLinkService cashCollectionLinkService,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
         ILogger<BankOperationService> logger,
@@ -41,6 +44,7 @@ public class BankOperationService : BaseService, IBankOperationService
         _bankLifecycleService = bankLifecycleService;
         _documentNumberService = documentNumberService;
         _classificationValidator = classificationValidator;
+        _cashCollectionLinkService = cashCollectionLinkService;
         _query = query;
         _command = command;
     }
@@ -99,11 +103,16 @@ public class BankOperationService : BaseService, IBankOperationService
                 return Result.Failure<List<long>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var entities = new List<BankOperation>(dto.Operations.Count);
+            var linkedCashCollections = new HashSet<long>();
             foreach (var operation in dto.Operations)
             {
                 var entityResult = await BuildCreateEntityAsync(operation, _userContext.OrganizationId.Value, ct);
                 if (!entityResult.IsSuccess)
                     return Result.Failure<List<long>>(entityResult.Error);
+
+                if (entityResult.Value.CashCollectionDocId is { } cashCollectionDocId &&
+                    !linkedCashCollections.Add(cashCollectionDocId))
+                    return Result.Failure<List<long>>(CashCollectionErrors.AlreadyLinked(cashCollectionDocId));
 
                 entities.Add(entityResult.Value);
             }
@@ -140,10 +149,24 @@ public class BankOperationService : BaseService, IBankOperationService
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(BankOperationErrors.CannotUpdateInCurrentStatus(id, entity.StatusId, _userContext.LanguageId));
 
+            var cashCollectionLink = await _cashCollectionLinkService.ResolveDraftAsync(
+                dto.CashCollectionDocId,
+                _userContext.OrganizationId.Value,
+                dto.BankAccountId,
+                dto.DirectionId,
+                dto.CurrencyId,
+                dto.Amount,
+                dto.ClassificationCategoryId,
+                id,
+                ct);
+            if (!cashCollectionLink.IsSuccess)
+                return Result.Failure(cashCollectionLink.Error);
+
+            var classificationCategoryId = cashCollectionLink.Value?.CategoryId ?? dto.ClassificationCategoryId;
             var classificationResult = await _classificationValidator.ValidateAsync(
                 _userContext.OrganizationId.Value,
                 dto.BankAccountId,
-                dto.ClassificationCategoryId,
+                classificationCategoryId,
                 dto.ClassificationRuleId,
                 ct);
             if (!classificationResult.IsSuccess)
@@ -156,13 +179,14 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.BankAccountId = dto.BankAccountId;
             entity.DirectionId = dto.DirectionId;
             entity.PaymentTypeId = PaymentTypeIdConst.BANK;
+            entity.CashCollectionDocId = dto.CashCollectionDocId;
             entity.CounterpartyId = dto.CounterpartyId;
             entity.CounterpartyBankAccountId = dto.CounterpartyBankAccountId;
             entity.BankChartAccountId = dto.BankChartAccountId;
             entity.OffsetAccountId = dto.OffsetAccountId;
             entity.ContractId = dto.ContractId;
             entity.BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber);
-            entity.ClassificationCategoryId = dto.ClassificationCategoryId;
+            entity.ClassificationCategoryId = classificationCategoryId;
             entity.ClassificationRuleId = dto.ClassificationRuleId;
             entity.DocDate = dto.DocDate;
             entity.CurrencyId = dto.CurrencyId;
@@ -170,6 +194,9 @@ public class BankOperationService : BaseService, IBankOperationService
             entity.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             entity.Comment = dto.Comment;
             entity.StateId = StateIdConst.ACTIVE;
+
+            if (cashCollectionLink.Value is not null)
+                CashCollectionBankLinkPolicy.Apply(entity, cashCollectionLink.Value.Document, cashCollectionLink.Value.CategoryId);
 
             await _command.UpdateAsync(entity, ct);
 
@@ -237,10 +264,24 @@ public class BankOperationService : BaseService, IBankOperationService
 
     private async Task<Result<BankOperation>> BuildCreateEntityAsync(BankOperationCreateDto dto, int organizationId, CancellationToken ct)
     {
+        var cashCollectionLink = await _cashCollectionLinkService.ResolveDraftAsync(
+            dto.CashCollectionDocId,
+            organizationId,
+            dto.BankAccountId,
+            dto.DirectionId,
+            dto.CurrencyId,
+            dto.Amount,
+            dto.ClassificationCategoryId,
+            currentBankOperationId: null,
+            ct: ct);
+        if (!cashCollectionLink.IsSuccess)
+            return Result.Failure<BankOperation>(cashCollectionLink.Error);
+
+        var classificationCategoryId = cashCollectionLink.Value?.CategoryId ?? dto.ClassificationCategoryId;
         var classificationResult = await _classificationValidator.ValidateAsync(
             organizationId,
             dto.BankAccountId,
-            dto.ClassificationCategoryId,
+            classificationCategoryId,
             dto.ClassificationRuleId,
             ct);
         if (!classificationResult.IsSuccess)
@@ -254,7 +295,7 @@ public class BankOperationService : BaseService, IBankOperationService
         if (!documentNumberResult.IsSuccess)
             return Result.Failure<BankOperation>(documentNumberResult.Error);
 
-        return Result.Success(new BankOperation
+        var entity = new BankOperation
         {
             OrganizationId = organizationId,
             BankAccountId = dto.BankAccountId,
@@ -267,8 +308,9 @@ public class BankOperationService : BaseService, IBankOperationService
             ContractId = dto.ContractId,
             DocNumber = documentNumberResult.Value.DocumentNumber,
             BankDocumentNumber = NormalizeBankDocumentNumber(dto.BankDocumentNumber),
-            ClassificationCategoryId = dto.ClassificationCategoryId,
+            ClassificationCategoryId = classificationCategoryId,
             ClassificationRuleId = dto.ClassificationRuleId,
+            CashCollectionDocId = dto.CashCollectionDocId,
             DocDate = dto.DocDate,
             CurrencyId = dto.CurrencyId,
             Amount = dto.Amount,
@@ -277,7 +319,12 @@ public class BankOperationService : BaseService, IBankOperationService
             StatusId = DocumentStatusIdConst.DRAFT,
             StateId = StateIdConst.ACTIVE,
             CreatedDate = DateTime.Now
-        });
+        };
+
+        if (cashCollectionLink.Value is not null)
+            CashCollectionBankLinkPolicy.Apply(entity, cashCollectionLink.Value.Document, cashCollectionLink.Value.CategoryId);
+
+        return Result.Success(entity);
     }
 
     private static string? NormalizeBankDocumentNumber(string? value) =>

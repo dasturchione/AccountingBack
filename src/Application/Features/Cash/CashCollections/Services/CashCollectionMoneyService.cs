@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Register;
 using Domain.Entities;
@@ -17,17 +18,20 @@ public interface ICashCollectionMoneyService
 
 public sealed class CashCollectionMoneyService : ICashCollectionMoneyService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly ICashMoneyRegisterService _cashMoneyRegisterService;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
 
     public CashCollectionMoneyService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         ICashMoneyRegisterService cashMoneyRegisterService,
         IQueryRepository<MoneyRegisterBalance> query,
         ICommandRepository<MoneyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _cashMoneyRegisterService = cashMoneyRegisterService;
         _query = query;
@@ -70,7 +74,7 @@ public sealed class CashCollectionMoneyService : ICashCollectionMoneyService
             .Build();
         var originals = await _query.GetAllAsync(query, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<MoneyRegisterBalance>>(CashCollectionErrors.MissingMoneyEntries(document.Id));
+            return Result.Failure<List<MoneyRegisterBalance>>(CashCollectionErrors.MissingMoneyEntries(document.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(x => new MoneyRegisterBalance

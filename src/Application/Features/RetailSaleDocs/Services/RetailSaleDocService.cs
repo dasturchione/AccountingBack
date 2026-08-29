@@ -121,7 +121,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
             var result = await GetByIdInternalAsync(id, ct);
-            return result is null ? Result.Failure<RetailSaleDocDto>(RetailSaleDocErrors.NotFound(id)) : Result.Success(result);
+            return result is null ? Result.Failure<RetailSaleDocDto>(RetailSaleDocErrors.NotFound(id, _userContext.LanguageId)) : Result.Success(result);
         });
 
     public Task<Result<long>> CreateAsync(RetailSaleDocCreateDto dto, CancellationToken ct = default) =>
@@ -188,9 +188,9 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
 
             var document = await GetDocumentAsync(id, ct);
             if (document is null)
-                return Result.Failure(RetailSaleDocErrors.NotFound(id));
+                return Result.Failure(RetailSaleDocErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(RetailSaleDocErrors.CannotUpdate(id, document.StatusId));
+                return Result.Failure(RetailSaleDocErrors.CannotUpdate(id, document.StatusId, _userContext.LanguageId));
 
             var header = await ValidateHeaderAsync(organizationResult.Value, dto.CounterpartyId, dto.WarehouseId, dto.CashRegisterId, dto.ReceivableAccountId, dto.VatAccountId, ct);
             if (!header.IsSuccess)
@@ -239,11 +239,11 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             await _postingLock.AcquireAsync(DocumentTypeIdConst.RETAIL_SALE, id, ct);
             var document = await GetDocumentAsync(id, ct);
             if (document is null)
-                return Result.Failure(RetailSaleDocErrors.NotFound(id));
+                return Result.Failure(RetailSaleDocErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
             if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.POSTED))
-                return Result.Failure(RetailSaleDocErrors.CannotCancel(id, document.StatusId));
+                return Result.Failure(RetailSaleDocErrors.CannotCancel(id, document.StatusId, _userContext.LanguageId));
 
             await _postingLock.AcquireInventoryAsync(
                 document.OrganizationId,
@@ -260,7 +260,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             {
                 var activeBatch = await GetActivePostingBatchAsync(id, ct);
                 if (activeBatch is null)
-                    return Result.Failure(RetailSaleDocErrors.MissingPostingBatch(id));
+                    return Result.Failure(RetailSaleDocErrors.MissingPostingBatch(id, _userContext.LanguageId));
 
                 var reverseBatch = await CreatePostingBatchAsync(document, PostingBatchStatusConst.REVERSAL, "Retail sale cancelled", ct);
                 var accounting = await ReverseAccountingEntriesAsync(id, reverseBatch.Id, ct);
@@ -292,9 +292,9 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         {
             var document = await GetDocumentAsync(id, ct);
             if (document is null)
-                return Result.Failure(RetailSaleDocErrors.NotFound(id));
+                return Result.Failure(RetailSaleDocErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(RetailSaleDocErrors.CannotUpdate(id, document.StatusId));
+                return Result.Failure(RetailSaleDocErrors.CannotUpdate(id, document.StatusId, _userContext.LanguageId));
             await _documentCommand.DeleteAsync(document, ct);
             return Result.Success();
         }, ct);
@@ -308,13 +308,13 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         await _postingLock.AcquireAsync(DocumentTypeIdConst.RETAIL_SALE, id, ct);
         var document = await GetDocumentAsync(id, ct);
         if (document is null)
-            return Result.Failure(RetailSaleDocErrors.NotFound(id));
+            return Result.Failure(RetailSaleDocErrors.NotFound(id, _userContext.LanguageId));
         if (document.StatusId == DocumentStatusIdConst.POSTED)
             return await GetActivePostingBatchAsync(id, ct) is null
-                ? Result.Failure(RetailSaleDocErrors.MissingPostingBatch(id))
+                ? Result.Failure(RetailSaleDocErrors.MissingPostingBatch(id, _userContext.LanguageId))
                 : Result.Success();
         if (document.StatusId != DocumentStatusIdConst.DRAFT)
-            return Result.Failure(RetailSaleDocErrors.CannotConfirm(id, document.StatusId));
+            return Result.Failure(RetailSaleDocErrors.CannotConfirm(id, document.StatusId, _userContext.LanguageId));
 
         await _postingLock.AcquireInventoryAsync(
             document.OrganizationId,
@@ -330,7 +330,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         if (!guard.IsSuccess)
             return guard;
         if (await GetActivePostingBatchAsync(id, ct) is not null || await HasBusinessEffectsAsync(id, ct))
-            return Result.Failure(RetailSaleDocErrors.BusinessEffectsExist(id));
+            return Result.Failure(RetailSaleDocErrors.BusinessEffectsExist(id, _userContext.LanguageId));
 
         var amounts = await ApplyConfirmChangesAsync(document, dto, ct);
         if (!amounts.IsSuccess)
@@ -361,7 +361,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
     private async Task<Result<RetailSaleDetails>> BuildDetailsAsync(int organizationId, IReadOnlyCollection<RetailSaleDocProductCreateDto> dtoLines, IReadOnlyCollection<RetailSaleDocPaymentDto> dtoPayments, CancellationToken ct)
     {
         if (dtoLines.Count == 0)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.EmptyLines());
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.EmptyLines(_userContext.LanguageId));
 
         var productIds = dtoLines.Select(x => x.ProductId).Distinct().ToList();
         var products = await _productQuery.GetAllAsync(_queryBuilder.For<Product>()
@@ -369,14 +369,14 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             .Build(), ct);
         var productMap = products.ToDictionary(x => x.Id);
         if (productMap.Count != productIds.Count)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.ProductNotFound(productIds.First(x => !productMap.ContainsKey(x))));
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.ProductNotFound(productIds.First(x => !productMap.ContainsKey(x)), _userContext.LanguageId));
 
         var vatIds = dtoLines.Where(x => x.VatRateId.HasValue).Select(x => x.VatRateId!.Value).Distinct().ToList();
         var vatMap = vatIds.Count == 0
             ? new Dictionary<short, VatRate>()
             : (await _vatRateQuery.GetAllAsync(_queryBuilder.For<VatRate>().Where(x => vatIds.Contains(x.Id)).Build(), ct)).ToDictionary(x => x.Id);
         if (vatMap.Count != vatIds.Count)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(0));
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(0, _userContext.LanguageId));
 
         var tableIds = dtoLines.SelectMany(x => x.Items).Select(x => x.ProductTableId).ToList();
         var distinctTableIds = tableIds.Distinct().ToList();
@@ -384,7 +384,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             _queryBuilder.For<ProductTable>().Where(x => distinctTableIds.Contains(x.Id) && x.Product.OrganizationId == organizationId).Build(), ct);
         var tableMap = tables.ToDictionary(x => x.Id);
         if (tableMap.Count != distinctTableIds.Count)
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(distinctTableIds.First(x => !tableMap.ContainsKey(x))));
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(distinctTableIds.First(x => !tableMap.ContainsKey(x)), _userContext.LanguageId));
 
         var lines = new List<RetailSaleLineDraft>();
         foreach (var dto in dtoLines)
@@ -396,11 +396,11 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                                     !SaleMarkingPolicy.IsOccurrenceCountAllowed(dto.Quantity, dto.Items.Count))) ||
                 (!isPieceTracked && dto.Items.Count > 0))
             {
-                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(dto.ProductId));
+                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidLine(dto.ProductId, _userContext.LanguageId));
             }
 
             if (dto.Items.Any(x => !tableMap.ContainsKey(x.ProductTableId)))
-                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId));
+                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId, _userContext.LanguageId));
 
             var vatRate = dto.VatRateId.HasValue ? vatMap[dto.VatRateId.Value].Rate : (decimal?)null;
             var vatAmount = RetailSaleVatCalculator.ResolveTotal(dto.UnitPrice, dto.Quantity, dto.VatAmount, vatRate);
@@ -438,7 +438,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
 
         var details = new RetailSaleDetails(lines, paymentsResult.Value);
         if (details.FinalAmount != details.Payments.Sum(x => x.Amount))
-            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.PaymentTotalMismatch(details.FinalAmount, details.Payments.Sum(x => x.Amount)));
+            return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.PaymentTotalMismatch(details.FinalAmount, details.Payments.Sum(x => x.Amount), _userContext.LanguageId));
 
         var accountIds = lines.SelectMany(x => new[] { x.Line.InventoryAccountId, x.Line.IncomeAccountId, x.Line.CostAccountId })
             .Concat(details.Payments.Select(x => (int?)x.DebitAccountId))
@@ -449,7 +449,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 .Where(x => accountIds.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
                 .As(x => x.Id).Build(), ct);
             if (accounts.Count != accountIds.Count)
-                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.AccountRequired());
+                return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.AccountRequired(_userContext.LanguageId));
         }
 
         return Result.Success(details);
@@ -458,20 +458,21 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
     private async Task<Result<List<RetailSaleDocPayment>>> BuildPaymentsAsync(int organizationId, IReadOnlyCollection<RetailSaleDocPaymentDto> dtoPayments, CancellationToken ct)
     {
         if (dtoPayments.Count == 0 || dtoPayments.Any(x => x.Amount <= 0m))
-            return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
+            return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment(_userContext.LanguageId));
 
         var methodIds = dtoPayments.Select(x => x.PaymentMethodId).Distinct().ToList();
         var methods = await _paymentMethodQuery.GetAllAsync(_queryBuilder.For<PaymentMethod>()
             .Where(x => methodIds.Contains(x.Id)).Build(), ct);
         if (methods.Count != methodIds.Count)
-            return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
+            return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment(_userContext.LanguageId));
 
         var methodCodes = methods.ToDictionary(x => x.Id, x => x.Code);
         foreach (var payment in dtoPayments)
         {
             var plan = RetailSalePaymentAcceptancePointPolicy.Build(
                 methodCodes[payment.PaymentMethodId],
-                payment.PaymentAcceptancePointId);
+                payment.PaymentAcceptancePointId,
+                _userContext.LanguageId);
             if (!plan.IsSuccess)
                 return Result.Failure<List<RetailSaleDocPayment>>(plan.Error);
         }
@@ -483,7 +484,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 .Where(x => pointIds.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
                 .As(x => x.Id).Build(), ct);
             if (points.Count != pointIds.Count)
-                return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment());
+                return Result.Failure<List<RetailSaleDocPayment>>(RetailSaleDocErrors.InvalidPayment(_userContext.LanguageId));
         }
 
         return Result.Success(dtoPayments.Select(x => new RetailSaleDocPayment
@@ -503,14 +504,14 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         var register = await _cashRegisterQuery.GetAsync(_queryBuilder.For<FiscalCashRegister>()
             .Where(x => x.Id == cashRegisterId && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE).Build(), ct);
         if (warehouse is null || register is null || (register.WarehouseId.HasValue && register.WarehouseId.Value != warehouseId))
-            return Result.Failure(RetailSaleDocErrors.InvalidLine(0));
+            return Result.Failure(RetailSaleDocErrors.InvalidLine(0, _userContext.LanguageId));
 
         if (counterpartyId.HasValue)
         {
             var counterparty = await _counterpartyQuery.GetAsync(_queryBuilder.For<CounterpartyCard>()
                 .Where(x => x.Id == counterpartyId.Value && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE).Build(), ct);
             if (counterparty is null)
-                return Result.Failure(RetailSaleDocErrors.InvalidLine(0));
+                return Result.Failure(RetailSaleDocErrors.InvalidLine(0, _userContext.LanguageId));
         }
 
         var accountIds = new[] { receivableAccountId, vatAccountId }.Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
@@ -520,7 +521,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 .Where(x => accountIds.Contains(x.Id) && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
                 .As(x => x.Id).Build(), ct);
             if (accounts.Count != accountIds.Count)
-                return Result.Failure(RetailSaleDocErrors.AccountRequired());
+                return Result.Failure(RetailSaleDocErrors.AccountRequired(_userContext.LanguageId));
         }
         return Result.Success();
     }
@@ -558,7 +559,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             {
                 if (!lineMap.TryGetValue(dtoLine.Id, out var line) || dtoLine.UnitPrice < 0m ||
                     dtoLine.CostPrice < 0m || dtoLine.VatAmount is < 0m)
-                    return Result.Failure(RetailSaleDocErrors.InvalidLine(0));
+                    return Result.Failure(RetailSaleDocErrors.InvalidLine(0, _userContext.LanguageId));
 
                 var vatRate = line.VatRateId.HasValue ? vatMap[line.VatRateId.Value].Rate : (decimal?)null;
                 var vatAmount = RetailSaleVatCalculator.ResolveTotal(dtoLine.UnitPrice, line.Quantity, dtoLine.VatAmount, vatRate);
@@ -595,7 +596,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             if (!payments.IsSuccess)
                 return Result.Failure(payments.Error);
             if (payments.Value.Sum(x => x.Amount) != document.FinalAmount)
-                return Result.Failure(RetailSaleDocErrors.PaymentTotalMismatch(document.FinalAmount, payments.Value.Sum(x => x.Amount)));
+                return Result.Failure(RetailSaleDocErrors.PaymentTotalMismatch(document.FinalAmount, payments.Value.Sum(x => x.Amount), _userContext.LanguageId));
             if (document.RetailSaleDocPayments.Count > 0)
                 await _paymentCommand.DeleteAsync(document.RetailSaleDocPayments, ct);
             foreach (var payment in payments.Value)
@@ -611,25 +612,25 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
     private Result ValidateForConfirm(RetailSaleDoc document)
     {
         if (document.RetailSaleDocProducts.Count == 0)
-            return Result.Failure(RetailSaleDocErrors.EmptyLines());
+            return Result.Failure(RetailSaleDocErrors.EmptyLines(_userContext.LanguageId));
         if (document.FinalAmount > 0m && (document.ReceivableAccountId is null || document.RetailSaleDocPayments.Count == 0))
-            return Result.Failure(RetailSaleDocErrors.AccountRequired());
+            return Result.Failure(RetailSaleDocErrors.AccountRequired(_userContext.LanguageId));
         if (document.RetailSaleDocPayments.Sum(x => x.Amount) != document.FinalAmount)
-            return Result.Failure(RetailSaleDocErrors.PaymentTotalMismatch(document.FinalAmount, document.RetailSaleDocPayments.Sum(x => x.Amount)));
+            return Result.Failure(RetailSaleDocErrors.PaymentTotalMismatch(document.FinalAmount, document.RetailSaleDocPayments.Sum(x => x.Amount), _userContext.LanguageId));
 
         foreach (var line in document.RetailSaleDocProducts)
         {
             if (line.Quantity <= 0m || line.IncomeAccountId is null)
-                return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId));
+                return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId, _userContext.LanguageId));
             if (line.VatAmount > 0m && document.VatAccountId is null)
-                return Result.Failure(RetailSaleDocErrors.AccountRequired());
+                return Result.Failure(RetailSaleDocErrors.AccountRequired(_userContext.LanguageId));
 
             if (line.Product.IsService || !line.Product.IsPieceTracked)
             {
                 if (line.RetailSaleDocTables.Count > 0)
-                    return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId));
+                    return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId, _userContext.LanguageId));
                 if (!line.Product.IsService && (line.InventoryAccountId is null || line.CostAccountId is null))
-                    return Result.Failure(RetailSaleDocErrors.AccountRequired());
+                    return Result.Failure(RetailSaleDocErrors.AccountRequired(_userContext.LanguageId));
                 continue;
             }
 
@@ -637,7 +638,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 !SaleMarkingPolicy.IsOccurrenceCountAllowed(line.Quantity, line.RetailSaleDocTables.Count) ||
                 line.InventoryAccountId is null || line.CostAccountId is null)
             {
-                return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId));
+                return Result.Failure(RetailSaleDocErrors.InvalidLine(line.ProductId, _userContext.LanguageId));
             }
 
             var invalid = line.RetailSaleDocTables.FirstOrDefault(item =>
@@ -645,7 +646,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 item.ProductTable.WarehouseProductTable.WarehouseId != document.WarehouseId ||
                 item.ProductTable.WarehouseProductTable.StatusId != ProductTableStatusIdConst.IN_STOCK);
             if (invalid is not null)
-                return Result.Failure(RetailSaleDocErrors.InvalidProductTable(invalid.ProductTableId));
+                return Result.Failure(RetailSaleDocErrors.InvalidProductTable(invalid.ProductTableId, _userContext.LanguageId));
         }
         return Result.Success();
     }

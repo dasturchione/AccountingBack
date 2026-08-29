@@ -1,99 +1,47 @@
+using SharedKernel.Constants;
 using SharedKernel.Results;
 
 namespace Application.Features.InventoryCounts;
 
 public static class InventoryCountErrors
 {
-    public static Error NotFound(long id, short? languageId = null) =>
-        Error.NotFound("InventoryCount.NotFound", $"Inventory count with id {id} was not found.");
+    public static Error NotFound(long id, short? languageId = null) => N("InventoryCount.NotFound", languageId, $"Id-si {id} bo'lgan inventarizatsiya topilmadi.", $"Id-си {id} бўлган инвентаризация топилмади.", $"Инвентаризация с id {id} не найдена.", $"Inventory count with id {id} was not found.");
+    public static Error AlreadyCounted(long id, short? languageId = null) => C("InventoryCount.AlreadyCounted", languageId, $"Id-si {id} bo'lgan inventarizatsiya allaqachon hisoblangan.", $"Id-си {id} бўлган инвентаризация аллақачон ҳисобланган.", $"Инвентаризация с id {id} уже подсчитана.", $"Inventory count with id {id} is already counted.");
+    public static Error AlreadyCancelled(long id, short? languageId = null) => C("InventoryCount.AlreadyCancelled", languageId, $"Id-si {id} bo'lgan inventarizatsiya allaqachon bekor qilingan.", $"Id-си {id} бўлган инвентаризация аллақачон бекор қилинган.", $"Инвентаризация с id {id} уже отменена.", $"Inventory count with id {id} is already cancelled.");
+    public static Error CannotConfirmInCurrentStatus(long id, short statusId, short? languageId = null) => Status("CannotConfirmInCurrentStatus", id, statusId, "tasdiqlash", "тасдиқлаш", "подтвердить", "confirmed", languageId);
+    public static Error CannotUpdateInCurrentStatus(long id, short statusId, short? languageId = null) => Status("CannotUpdateInCurrentStatus", id, statusId, "o'zgartirish", "ўзгартириш", "изменить", "updated", languageId);
+    public static Error CannotCancelInCurrentStatus(long id, short statusId, short? languageId = null) => Status("CannotCancelInCurrentStatus", id, statusId, "bekor qilish", "бекор қилиш", "отменить", "cancelled", languageId);
+    public static Error CannotDeleteInCurrentStatus(long id, short statusId, short? languageId = null) => Status("CannotDeleteInCurrentStatus", id, statusId, "o'chirish", "ўчириш", "удалить", "deleted", languageId);
+    public static Error OrganizationNotFound(int id, short? languageId = null) => Entity("OrganizationNotFound", id, "tashkilot", "ташкилот", "организация", "Organization", languageId);
+    public static Error WarehouseNotFound(int id, short? languageId = null) => Entity("WarehouseNotFound", id, "ombor", "омбор", "склад", "Warehouse", languageId);
+    public static Error WarehouseInactive(int id, short? languageId = null) => B("InventoryCount.WarehouseInactive", languageId, $"{id}-ombor faol emas.", $"{id}-омбор фаол эмас.", $"Склад {id} неактивен.", $"Warehouse {id} is not active.");
+    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) => B("InventoryCount.WarehouseOrganizationMismatch", languageId, $"{warehouseId}-ombor {organizationId}-tashkilotga tegishli emas.", $"{warehouseId}-омбор {organizationId}-ташкилотга тегишли эмас.", $"Склад {warehouseId} не относится к организации {organizationId}.", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
+    public static Error LinesRequired(short? languageId = null) => B("InventoryCount.LinesRequired", languageId, "Inventarizatsiyada kamida bitta qator bo'lishi kerak.", "Инвентаризацияда камида битта қатор бўлиши керак.", "Инвентаризация должна содержать хотя бы одну строку.", "Inventory count must contain at least one line.");
+    public static Error SimultaneousCountExists(int warehouseId, short? languageId = null) => C("InventoryCount.SimultaneousCountExists", languageId, $"{warehouseId}-ombor uchun boshqa faol inventarizatsiya mavjud.", $"{warehouseId}-омбор учун бошқа фаол инвентаризация мавжуд.", $"Для склада {warehouseId} уже существует другая активная инвентаризация.", $"Another active inventory count already exists for warehouse {warehouseId}.");
+    public static Error ProductNotFound(int id, short? languageId = null) => Entity("ProductNotFound", id, "mahsulot", "маҳсулот", "товар", "Product", languageId);
+    public static Error ProductServiceNotAllowed(int id, short? languageId = null) => B("InventoryCount.ProductServiceNotAllowed", languageId, $"{id}-xizmat mahsulotini inventarizatsiyada ishlatib bo'lmaydi.", $"{id}-хизмат маҳсулотини инвентаризацияда ишлатиб бўлмайди.", $"Товар-услугу {id} нельзя использовать в инвентаризации.", $"Service product {id} cannot be used in inventory count.");
+    public static Error UnitNotFound(short id, short? languageId = null) => Entity("UnitNotFound", id, "o'lchov birligi", "ўлчов бирлиги", "единица измерения", "Unit", languageId);
+    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) => B("InventoryCount.InvalidQuantity", languageId, $"{productId}-mahsulotning hisoblangan {quantity} miqdori noto'g'ri.", $"{productId}-маҳсулотнинг ҳисобланган {quantity} миқдори нотўғри.", $"У товара {productId} недопустимое подсчитанное количество {quantity}.", $"Product {productId} has invalid counted quantity {quantity}.");
+    public static Error InvalidItemCount(int productId, decimal quantity, int itemCount, short? languageId = null) => B("InventoryCount.InvalidItemCount", languageId, $"{productId}-mahsulot miqdori {quantity} birliklar soni {itemCount} dan kam bo'lishi mumkin emas.", $"{productId}-маҳсулот миқдори {quantity} бирликлар сони {itemCount} дан кам бўлиши мумкин эмас.", $"Количество товара {productId} ({quantity}) не может быть меньше числа экземпляров ({itemCount}).", $"Product {productId} counted quantity {quantity} cannot be lower than item count {itemCount}.");
+    public static Error DuplicateLine(int productId, short unitId, short? languageId = null) => C("InventoryCount.DuplicateLine", languageId, $"{productId}-mahsulot va {unitId}-birlik uchun inventarizatsiya qatori takrorlangan.", $"{productId}-маҳсулот ва {unitId}-бирлик учун инвентаризация қатори такрорланган.", $"Строка инвентаризации товара {productId} и единицы {unitId} повторяется.", $"Duplicate inventory count line for product {productId} and unit {unitId}.");
+    public static Error DuplicateProductTable(int id, short? languageId = null) => Duplicate("DuplicateProductTable", "partiya", "партия", "партия", "product table", id.ToString(), languageId);
+    public static Error DuplicateBarcode(string value, short? languageId = null) => Duplicate("DuplicateBarcode", "shtrix-kod", "штрих-код", "штрихкод", "barcode", value, languageId);
+    public static Error DuplicateSerial(string value, short? languageId = null) => Duplicate("DuplicateSerial", "seriya raqami", "серия рақами", "серийный номер", "serial number", value, languageId);
+    public static Error DuplicateMarking(string value, short? languageId = null) => Duplicate("DuplicateMarking", "markirovka raqami", "маркировка рақами", "номер маркировки", "marking number", value, languageId);
+    public static Error ProductTableNotFound(int id, short? languageId = null) => Entity("ProductTableNotFound", id, "partiya", "партия", "партия", "Product table", languageId);
+    public static Error ProductTableProductMismatch(int tableId, int productId, short? languageId = null) => B("InventoryCount.ProductTableProductMismatch", languageId, $"{tableId}-partiya {productId}-mahsulotga tegishli emas.", $"{tableId}-партия {productId}-маҳсулотга тегишли эмас.", $"Партия {tableId} не относится к товару {productId}.", $"Product table {tableId} does not belong to product {productId}.");
+    public static Error ProductTableWarehouseMismatch(int tableId, int warehouseId, short? languageId = null) => B("InventoryCount.ProductTableWarehouseMismatch", languageId, $"{tableId}-partiya {warehouseId}-omborda joylashmagan.", $"{tableId}-партия {warehouseId}-омборда жойлашмаган.", $"Партия {tableId} не находится на складе {warehouseId}.", $"Product table {tableId} is not located in warehouse {warehouseId}.");
+    public static Error ProductTableInactive(int id, short? languageId = null) => B("InventoryCount.ProductTableInactive", languageId, $"{id}-partiya faol emas.", $"{id}-партия фаол эмас.", $"Партия {id} неактивна.", $"Product table {id} is not active.");
+    public static Error ProductTableUnavailable(int id, short statusId, short? languageId = null) => B("InventoryCount.ProductTableUnavailable", languageId, $"{id}-partiyani {statusId} holatida hisoblab bo'lmaydi.", $"{id}-партияни {statusId} ҳолатида ҳисоблаб бўлмайди.", $"Партия {id} недоступна для инвентаризации в статусе {statusId}.", $"Product table {id} is not available for counting in status {statusId}.");
+    public static Error MissingPostingBatch(long id, short? languageId = null) => C("InventoryCount.MissingPostingBatch", languageId, $"Id-si {id} bo'lgan inventarizatsiya uchun o'tkazmalar paketi topilmadi.", $"Id-си {id} бўлган инвентаризация учун ўтказмалар пакети топилмади.", $"Для инвентаризации с id {id} не найден пакет проводок.", $"Posting batch was not found for inventory count with id {id}.");
+    public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) => C("InventoryCount.BusinessEffectsAlreadyExist", languageId, $"Id-si {id} bo'lgan inventarizatsiyada moliyaviy harakatlar mavjud.", $"Id-си {id} бўлган инвентаризацияда молиявий ҳаракатлар мавжуд.", $"Инвентаризация с id {id} уже имеет финансовые движения.", $"Inventory count with id {id} already has business effects.");
+    public static Error CountNotCompleted(long id, short? languageId = null) => B("InventoryCount.CountNotCompleted", languageId, $"Id-si {id} bo'lgan inventarizatsiya tasdiqlashdan oldin yakunlanishi kerak.", $"Id-си {id} бўлган инвентаризация тасдиқлашдан олдин якунланиши керак.", $"Инвентаризация с id {id} должна быть завершена до подтверждения.", $"Inventory count with id {id} must be completed before confirm.");
 
-    public static Error AlreadyCounted(long id, short? languageId = null) =>
-        Error.Conflict("InventoryCount.AlreadyCounted", $"Inventory count with id {id} is already counted.");
-
-    public static Error AlreadyCancelled(long id, short? languageId = null) =>
-        Error.Conflict("InventoryCount.AlreadyCancelled", $"Inventory count with id {id} is already cancelled.");
-
-    public static Error CannotConfirmInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryCount.CannotConfirmInCurrentStatus", $"Inventory count with id {id} cannot be confirmed in status {statusId}.");
-
-    public static Error CannotUpdateInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryCount.CannotUpdateInCurrentStatus", $"Inventory count with id {id} cannot be updated in status {statusId}.");
-
-    public static Error CannotCancelInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryCount.CannotCancelInCurrentStatus", $"Inventory count with id {id} cannot be cancelled in status {statusId}.");
-
-    public static Error CannotDeleteInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryCount.CannotDeleteInCurrentStatus", $"Inventory count with id {id} cannot be deleted in status {statusId}.");
-
-    public static Error OrganizationNotFound(int organizationId, short? languageId = null) =>
-        Error.NotFound("InventoryCount.OrganizationNotFound", $"Organization with id {organizationId} was not found.");
-
-    public static Error WarehouseNotFound(int warehouseId, short? languageId = null) =>
-        Error.NotFound("InventoryCount.WarehouseNotFound", $"Warehouse with id {warehouseId} was not found.");
-
-    public static Error WarehouseInactive(int warehouseId, short? languageId = null) =>
-        Error.Business("InventoryCount.WarehouseInactive", $"Warehouse {warehouseId} is not active.");
-
-    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) =>
-        Error.Business("InventoryCount.WarehouseOrganizationMismatch", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
-
-    public static Error LinesRequired(short? languageId = null) =>
-        Error.Business("InventoryCount.LinesRequired", "Inventory count must contain at least one line.");
-
-    public static Error SimultaneousCountExists(int warehouseId, short? languageId = null) =>
-        Error.Conflict("InventoryCount.SimultaneousCountExists", $"Another active inventory count already exists for warehouse {warehouseId}.");
-
-    public static Error ProductNotFound(int productId, short? languageId = null) =>
-        Error.NotFound("InventoryCount.ProductNotFound", $"Product with id {productId} was not found.");
-
-    public static Error ProductServiceNotAllowed(int productId, short? languageId = null) =>
-        Error.Business("InventoryCount.ProductServiceNotAllowed", $"Service product {productId} cannot be used in inventory count.");
-
-    public static Error UnitNotFound(short unitId, short? languageId = null) =>
-        Error.NotFound("InventoryCount.UnitNotFound", $"Unit with id {unitId} was not found.");
-
-    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) =>
-        Error.Business("InventoryCount.InvalidQuantity", $"Product {productId} has invalid counted quantity {quantity}.");
-
-    public static Error InvalidItemCount(int productId, decimal quantity, int itemCount, short? languageId = null) =>
-        Error.Business("InventoryCount.InvalidItemCount", $"Product {productId} counted quantity {quantity} cannot be lower than item count {itemCount}.");
-
-    public static Error DuplicateLine(int productId, short unitId, short? languageId = null) =>
-        Error.Conflict("InventoryCount.DuplicateLine", $"Duplicate inventory count line for product {productId} and unit {unitId}.");
-
-    public static Error DuplicateProductTable(int productTableId, short? languageId = null) =>
-        Error.Conflict("InventoryCount.DuplicateProductTable", $"Product table {productTableId} is duplicated in the count.");
-
-    public static Error DuplicateBarcode(string barcode, short? languageId = null) =>
-        Error.Conflict("InventoryCount.DuplicateBarcode", $"Barcode '{barcode}' is duplicated in the count.");
-
-    public static Error DuplicateSerial(string serialNumber, short? languageId = null) =>
-        Error.Conflict("InventoryCount.DuplicateSerial", $"Serial number '{serialNumber}' is duplicated in the count.");
-
-    public static Error DuplicateMarking(string markingNumber, short? languageId = null) =>
-        Error.Conflict("InventoryCount.DuplicateMarking", $"Marking number '{markingNumber}' is duplicated in the count.");
-
-    public static Error ProductTableNotFound(int productTableId, short? languageId = null) =>
-        Error.NotFound("InventoryCount.ProductTableNotFound", $"Product table with id {productTableId} was not found.");
-
-    public static Error ProductTableProductMismatch(int productTableId, int productId, short? languageId = null) =>
-        Error.Business("InventoryCount.ProductTableProductMismatch", $"Product table {productTableId} does not belong to product {productId}.");
-
-    public static Error ProductTableWarehouseMismatch(int productTableId, int warehouseId, short? languageId = null) =>
-        Error.Business("InventoryCount.ProductTableWarehouseMismatch", $"Product table {productTableId} is not located in warehouse {warehouseId}.");
-
-    public static Error ProductTableInactive(int productTableId, short? languageId = null) =>
-        Error.Business("InventoryCount.ProductTableInactive", $"Product table {productTableId} is not active.");
-
-    public static Error ProductTableUnavailable(int productTableId, short statusId, short? languageId = null) =>
-        Error.Business("InventoryCount.ProductTableUnavailable", $"Product table {productTableId} is not available for counting in status {statusId}.");
-
-    public static Error MissingPostingBatch(long id, short? languageId = null) =>
-        Error.Conflict("InventoryCount.MissingPostingBatch", $"Posting batch was not found for inventory count with id {id}.");
-
-    public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) =>
-        Error.Conflict("InventoryCount.BusinessEffectsAlreadyExist", $"Inventory count with id {id} already has business effects.");
-
-    public static Error CountNotCompleted(long id, short? languageId = null) =>
-        Error.Business("InventoryCount.CountNotCompleted", $"Inventory count with id {id} must be completed before confirm.");
+    private static Error Status(string suffix, long id, short status, string uzA, string cyA, string ruA, string enA, short? languageId) => B($"InventoryCount.{suffix}", languageId, $"Id-si {id} bo'lgan inventarizatsiyani {status} holatida {uzA} mumkin emas.", $"Id-си {id} бўлган инвентаризацияни {status} ҳолатида {cyA} мумкин эмас.", $"Инвентаризацию с id {id} нельзя {ruA} в статусе {status}.", $"Inventory count with id {id} cannot be {enA} in status {status}.");
+    private static Error Entity(string suffix, int id, string uz, string cy, string ru, string en, short? languageId) => N($"InventoryCount.{suffix}", languageId, $"Id-si {id} bo'lgan {uz} topilmadi.", $"Id-си {id} бўлган {cy} топилмади.", $"{ru} с id {id} не найден.", $"{en} with id {id} was not found.");
+    private static Error Duplicate(string suffix, string uz, string cy, string ru, string en, string value, short? languageId) => C($"InventoryCount.{suffix}", languageId, $"'{value}' {uz} inventarizatsiyada takrorlangan.", $"'{value}' {cy} инвентаризацияда такрорланган.", $"{ru} '{value}' повторяется в инвентаризации.", $"{en} '{value}' is duplicated in the count.");
+    private static Error B(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Business(code, M(languageId, uz, cy, ru, en));
+    private static Error C(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Conflict(code, M(languageId, uz, cy, ru, en));
+    private static Error N(string code, short? languageId, string uz, string cy, string ru, string en) => Error.NotFound(code, M(languageId, uz, cy, ru, en));
+    private static string M(short? languageId, string uz, string cy, string ru, string en) => languageId switch { LanguageIdConst.UZ => uz, LanguageIdConst.UZ_CYRL => cy, LanguageIdConst.RU => ru, _ => en };
 }

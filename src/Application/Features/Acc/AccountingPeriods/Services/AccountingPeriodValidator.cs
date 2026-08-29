@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Query;
 using SharedKernel.Results;
@@ -9,12 +10,15 @@ public class AccountingPeriodValidator : IAccountingPeriodValidator
 {
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<AccountingPeriod> _query;
+    private readonly IUserContext _userContext;
 
     public AccountingPeriodValidator(IQueryBuilder queryBuilder,
-                                     IQueryRepository<AccountingPeriod> query)
+                                     IQueryRepository<AccountingPeriod> query,
+                                     IUserContext userContext)
     {
         _queryBuilder = queryBuilder;
         _query = query;
+        _userContext = userContext;
     }
 
     public async Task<Result> EnsureOpenAsync(int organizationId, DateTime date, CancellationToken ct = default)
@@ -28,9 +32,7 @@ public class AccountingPeriodValidator : IAccountingPeriodValidator
         var period = await _query.GetAsync(query, ct);
         if (period is { IsClosed: true })
         {
-            return Result.Failure(Error.Business(
-                "AccountingPeriod.Closed",
-                $"Accounting period {date:yyyy-MM} is closed."));
+            return Result.Failure(AccountingPeriodErrors.Closed(date, _userContext.LanguageId));
         }
 
         return Result.Success();

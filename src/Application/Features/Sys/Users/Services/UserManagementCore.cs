@@ -60,7 +60,7 @@ public sealed class UserManagementCore : IUserManagementCore
         CancellationToken ct = default)
     {
         if (options.Scope == UserManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
-            return Result.Failure<UserManagementCreateResult>(PlatformErrors.GlobalAccessRequired());
+            return Result.Failure<UserManagementCreateResult>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
         var prepared = PrepareCreateRequest(request, options.Scope);
         var exists = await _userQuery.AnyAsync(user => user.UserName == prepared.UserName, ct);
@@ -121,7 +121,7 @@ public sealed class UserManagementCore : IUserManagementCore
         CancellationToken ct = default)
     {
         if (options.Scope == UserManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
-            return Result.Failure(PlatformErrors.GlobalAccessRequired());
+            return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
         var user = await _userQuery.GetAsync(_queryBuilder.For<User>().Where(item => item.Id == request.UserId).Build(), ct);
         if (user is null)
@@ -217,13 +217,13 @@ public sealed class UserManagementCore : IUserManagementCore
     private async Task<Error?> ValidateUserKindAsync(short userKindId, CancellationToken ct)
     {
         var exists = await _userKindQuery.AnyAsync(kind => kind.Id == userKindId, ct);
-        return exists ? null : PlatformErrors.UserKindNotFound(userKindId);
+        return exists ? null : PlatformErrors.UserKindNotFound(userKindId, _userContext.LanguageId);
     }
 
     private async Task<Error?> ValidateRoleAsync(int roleId, CancellationToken ct)
     {
         var exists = await _roleQuery.AnyAsync(role => role.Id == roleId && role.StateId == StateIdConst.ACTIVE, ct);
-        return exists ? null : PlatformErrors.RoleNotFound(roleId);
+        return exists ? null : PlatformErrors.RoleNotFound(roleId, _userContext.LanguageId);
     }
 
     private async Task<Error?> ValidateMembershipsAsync(List<UserManagementMembershipRequest> memberships, CancellationToken ct)
@@ -232,7 +232,7 @@ public sealed class UserManagementCore : IUserManagementCore
         {
             var organizationExists = await _organizationQuery.AnyAsync(organization => organization.Id == membership.OrganizationId, ct);
             if (!organizationExists)
-                return PlatformErrors.OrganizationNotFound(membership.OrganizationId);
+                return PlatformErrors.OrganizationNotFound(membership.OrganizationId, _userContext.LanguageId);
 
             if (membership.RoleId.HasValue)
             {
@@ -245,7 +245,7 @@ public sealed class UserManagementCore : IUserManagementCore
             {
                 var userExists = await _userQuery.AnyAsync(user => user.Id == membership.InvitedByUserId.Value, ct);
                 if (!userExists)
-                    return PlatformErrors.UserNotFound(membership.InvitedByUserId.Value);
+                    return PlatformErrors.UserNotFound(membership.InvitedByUserId.Value, _userContext.LanguageId);
             }
         }
 
@@ -443,12 +443,12 @@ public sealed class UserManagementCore : IUserManagementCore
 
     private Error ResolveUserNameConflict(string userName, UserManagementScope scope) =>
         scope == UserManagementScope.Global
-            ? PlatformErrors.UserNameConflict(userName)
+            ? PlatformErrors.UserNameConflict(userName, _userContext.LanguageId)
             : UserErrors.Conflict(userName, _userContext.LanguageId);
 
     private Error ResolveUserNotFound(int userId, UserManagementScope scope) =>
         scope == UserManagementScope.Global
-            ? PlatformErrors.UserNotFound(userId)
+            ? PlatformErrors.UserNotFound(userId, _userContext.LanguageId)
             : UserErrors.NotFound(userId, _userContext.LanguageId);
 
     private static string BuildWelcomeHtml(string greeting, string userName) =>

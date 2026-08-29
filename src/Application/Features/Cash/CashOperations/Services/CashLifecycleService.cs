@@ -265,7 +265,7 @@ public class CashLifecycleService : BaseService, ICashLifecycleService
             return Result.Failure(CashOperationErrors.InvalidOperationType(cashOperation.OperationTypeId, _userContext.LanguageId));
 
         if (cashOperation.CashChartAccountId is null || cashOperation.OffsetAccountId is null)
-            return Result.Failure(Error.Business("CashOperation.ChartAccountRequired", "Cash and offset chart accounts are required for posting."));
+            return Result.Failure(CashOperationErrors.ChartAccountRequired(_userContext.LanguageId));
 
         if (cashOperation.CashBox.OrganizationId != cashOperation.OrganizationId ||
             cashOperation.CashBox.StateId != StateIdConst.ACTIVE)

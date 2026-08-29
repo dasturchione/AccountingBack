@@ -405,6 +405,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<FaRevaluationDoc>, FaRevaluationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaReceiptDoc>, FaReceiptContextBuilder>();
             services.AddScoped<IPostingContextBuilder<PayPayrollDoc>, PayrollDocumentContextBuilder>();
+            services.AddScoped<IPostingContextValidator<PayPayrollDoc>, PayrollDocumentContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();
             services.AddScoped<IInventoryDocumentHandler<PurchaseDoc>, PurchaseInventoryHandler>();

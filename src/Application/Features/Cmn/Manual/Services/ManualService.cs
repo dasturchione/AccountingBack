@@ -674,10 +674,7 @@ public class ManualService : IManualService
         if (choosedDate is { } requestedDate && requestedDate == default)
         {
             return Result.Failure<List<SelectListDto>>(
-                new Error(
-                    "Manual.InvalidContractDate",
-                    "Contract selection date is invalid.",
-                    ErrorType.Validation));
+                ManualErrors.InvalidContractDate(_userContext.LanguageId));
         }
 
         var organizationId = _userContext.OrganizationId.Value;

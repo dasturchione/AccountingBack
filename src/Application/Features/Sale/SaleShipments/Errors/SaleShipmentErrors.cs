@@ -1,89 +1,42 @@
+using SharedKernel.Constants;
 using SharedKernel.Results;
 
 namespace Application.Features.SaleShipments;
 
 public static class SaleShipmentErrors
 {
-    public static Error NotFound(long id, short? languageId = null) =>
-        Error.NotFound("SaleShipment.NotFound", $"Sale shipment with id {id} was not found.");
+    public static Error NotFound(long id, short? languageId = null) => N("SaleShipment.NotFound", languageId, $"Id-si {id} bo'lgan sotuv jo'natmasi topilmadi.", $"Id-си {id} бўлган сотув жўнатмаси топилмади.", $"Отгрузка продажи с id {id} не найдена.", $"Sale shipment with id {id} was not found.");
+    public static Error CurrentUserNotFound(short? languageId = null) => B("SaleShipment.CurrentUserNotFound", languageId, "Sotuv jo'natmasini yaratish uchun joriy foydalanuvchi talab qilinadi.", "Сотув жўнатмасини яратиш учун жорий фойдаланувчи талаб қилинади.", "Для создания отгрузки продажи требуется текущий пользователь.", "Current user is required to create a sale shipment.");
+    public static Error WarehouseNotFound(int id, short? languageId = null) => Entity("WarehouseNotFound", id, "ombor", "омбор", "склад", "Warehouse", languageId);
+    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) => B("SaleShipment.WarehouseOrganizationMismatch", languageId, $"{warehouseId}-ombor {organizationId}-tashkilotga tegishli emas.", $"{warehouseId}-омбор {organizationId}-ташкилотга тегишли эмас.", $"Склад {warehouseId} не относится к организации {organizationId}.", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
+    public static Error WarehouseInactive(int id, short? languageId = null) => B("SaleShipment.WarehouseInactive", languageId, $"{id}-ombor faol emas.", $"{id}-омбор фаол эмас.", $"Склад {id} неактивен.", $"Warehouse {id} is not active.");
+    public static Error CounterpartyNotFound(int id, short? languageId = null) => Entity("CounterpartyNotFound", id, "kontragent", "контрагент", "контрагент", "Counterparty", languageId);
+    public static Error CounterpartyOrganizationMismatch(int counterpartyId, int organizationId, short? languageId = null) => B("SaleShipment.CounterpartyOrganizationMismatch", languageId, $"{counterpartyId}-kontragent {organizationId}-tashkilotga tegishli emas.", $"{counterpartyId}-контрагент {organizationId}-ташкилотга тегишли эмас.", $"Контрагент {counterpartyId} не относится к организации {organizationId}.", $"Counterparty {counterpartyId} does not belong to organization {organizationId}.");
+    public static Error ProductsRequired(short? languageId = null) => B("SaleShipment.ProductsRequired", languageId, "Sotuv jo'natmasida kamida bitta mahsulot bo'lishi kerak.", "Сотув жўнатмасида камида битта маҳсулот бўлиши керак.", "Отгрузка продажи должна содержать хотя бы один товар.", "Sale shipment must contain at least one product.");
+    public static Error ProductNotFound(int id, short? languageId = null) => Entity("ProductNotFound", id, "mahsulot", "маҳсулот", "товар", "Product", languageId);
+    public static Error ProductServiceNotAllowed(int id, short? languageId = null) => B("SaleShipment.ProductServiceNotAllowed", languageId, $"{id}-xizmat mahsulotini sotuv jo'natmasiga kiritib bo'lmaydi.", $"{id}-хизмат маҳсулотини сотув жўнатмасига киритиб бўлмайди.", $"Товар-услугу {id} нельзя включать в отгрузку продажи.", $"Service product {id} cannot be included in a sale shipment.");
+    public static Error ProductUnitMismatch(int productId, short unitId, short? languageId = null) => B("SaleShipment.ProductUnitMismatch", languageId, $"{unitId}-birlik {productId}-mahsulotga mos kelmaydi.", $"{unitId}-бирлик {productId}-маҳсулотга мос келмайди.", $"Единица {unitId} не соответствует товару {productId}.", $"Unit {unitId} does not match product {productId}.");
+    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) => B("SaleShipment.InvalidQuantity", languageId, $"{productId}-mahsulotda {quantity} miqdor noto'g'ri.", $"{productId}-маҳсулотда {quantity} миқдор нотўғри.", $"У товара {productId} недопустимое количество {quantity}.", $"Product {productId} has invalid quantity {quantity}.");
+    public static Error BatchQuantityMismatch(int productId, decimal quantity, decimal batchQuantity, short? languageId = null) => B("SaleShipment.BatchQuantityMismatch", languageId, $"Partiyalar miqdori {batchQuantity} mahsulot {productId} miqdori {quantity} ga mos emas.", $"Партиялар миқдори {batchQuantity} маҳсулот {productId} миқдори {quantity} га мос эмас.", $"Количество по партиям {batchQuantity} не совпадает с количеством товара {productId}: {quantity}.", $"Batch quantity {batchQuantity} does not match product {productId} quantity {quantity}.");
+    public static Error ProductTableQuantityMismatch(int productId, decimal quantity, int count, short? languageId = null) => B("SaleShipment.ProductTableQuantityMismatch", languageId, $"Partiyalar soni {count} mahsulot {productId} miqdori {quantity} ga mos emas.", $"Партиялар сони {count} маҳсулот {productId} миқдори {quantity} га мос эмас.", $"Число экземпляров партий {count} не совпадает с количеством товара {productId}: {quantity}.", $"Product table count {count} does not match product {productId} quantity {quantity}.");
+    public static Error DuplicateBatch(long id, short? languageId = null) => C("SaleShipment.DuplicateBatch", languageId, $"{id}-partiya sotuv jo'natmasida takrorlangan.", $"{id}-партия сотув жўнатмасида такрорланган.", $"Партия {id} повторяется в товаре отгрузки.", $"Batch {id} is duplicated in the sale shipment product.");
+    public static Error DuplicateProductTable(int id, short? languageId = null) => C("SaleShipment.DuplicateProductTable", languageId, $"{id}-partiya birligi sotuv jo'natmasida takrorlangan.", $"{id}-партия бирлиги сотув жўнатмасида такрорланган.", $"Экземпляр партии {id} повторяется в отгрузке продажи.", $"Product table {id} is duplicated in the sale shipment.");
+    public static Error BatchUnavailable(long batchId, int warehouseId, int productId, short? languageId = null) => B("SaleShipment.BatchUnavailable", languageId, $"{batchId}-partiya {warehouseId}-ombordagi {productId}-mahsulot uchun mavjud emas.", $"{batchId}-партия {warehouseId}-омбордаги {productId}-маҳсулот учун мавжуд эмас.", $"Партия {batchId} недоступна для товара {productId} на складе {warehouseId}.", $"Batch {batchId} is unavailable for product {productId} in warehouse {warehouseId}.");
+    public static Error BatchQuantityUnavailable(long batchId, decimal requested, decimal available, short? languageId = null) => B("SaleShipment.BatchQuantityUnavailable", languageId, $"{batchId}-partiyada {available} mavjud, {requested} so'ralgan.", $"{batchId}-партияда {available} мавжуд, {requested} сўралган.", $"В партии {batchId} доступно {available}, запрошено {requested}.", $"Batch {batchId} has available quantity {available}, but {requested} was requested.");
+    public static Error ProductTableNotFound(int id, short? languageId = null) => Entity("ProductTableNotFound", id, "partiya birligi", "партия бирлиги", "экземпляр партии", "Product table", languageId);
+    public static Error ProductTableMismatch(int tableId, int productId, short? languageId = null) => B("SaleShipment.ProductTableMismatch", languageId, $"{tableId}-partiya {productId}-mahsulotga tegishli emas.", $"{tableId}-партия {productId}-маҳсулотга тегишли эмас.", $"Партия {tableId} не относится к товару {productId}.", $"Product table {tableId} does not belong to product {productId}.");
+    public static Error ProductTableUnavailable(int tableId, int warehouseId, short? languageId = null) => B("SaleShipment.ProductTableUnavailable", languageId, $"{tableId}-partiya {warehouseId}-omborda mavjud emas.", $"{tableId}-партия {warehouseId}-омборда мавжуд эмас.", $"Партия {tableId} недоступна на складе {warehouseId}.", $"Product table {tableId} is not available in warehouse {warehouseId}.");
+    public static Error ProductTablesNotAllowed(int productId, short? languageId = null) => B("SaleShipment.ProductTablesNotAllowed", languageId, $"Donabay kuzatilmaydigan {productId}-mahsulot uchun partiya birliklari kiritilmaydi.", $"Донабай кузатилмайдиган {productId}-маҳсулот учун партия бирликлари киритилмайди.", $"Для товара {productId} без поштучного учёта нельзя указывать экземпляры партий.", $"Product tables are not allowed for non-piece-tracked product {productId}.");
+    public static Error LinkedDocumentCannotBeChanged(long id, short? languageId = null) => C("SaleShipment.LinkedDocumentCannotBeChanged", languageId, $"{id}-sotuv jo'natmasi sotuv hujjatiga bog'langan va o'zgartirilmaydi.", $"{id}-сотув жўнатмаси сотув ҳужжатига боғланган ва ўзгартирилмайди.", $"Отгрузка {id} уже связана с документом продажи и не может быть изменена.", $"Sale shipment {id} is already linked to a sale document and cannot be changed.");
+    public static Error AlreadyLinkedToSale(long id, short? languageId = null) => C("SaleShipment.AlreadyLinkedToSale", languageId, "Sotuv jo'natmasi sotuv hujjatiga allaqachon bog'langan.", "Сотув жўнатмаси сотув ҳужжатига аллақачон боғланган.", "Отгрузка уже связана с документом продажи.", "Sale shipment is already linked to a sale document.");
+    public static Error DuplicateShipmentProductLink(short? languageId = null) => C("SaleShipment.DuplicateShipmentProductLink", languageId, "Jo'natma mahsulotini bir nechta sotuv qatoriga bog'lab bo'lmaydi.", "Жўнатма маҳсулотини бир нечта сотув қаторига боғлаб бўлмайди.", "Товар отгрузки нельзя связать более чем с одной строкой продажи.", "Shipment product cannot be linked to more than one sale document line.");
+    public static Error ShipmentProductNotFound(long id, short? languageId = null) => N("SaleShipment.ShipmentProductNotFound", languageId, $"{id}-sotuv jo'natmasi mahsuloti topilmadi.", $"{id}-сотув жўнатмаси маҳсулоти топилмади.", $"Товар отгрузки {id} не найден.", $"Sale shipment product {id} was not found.");
+    public static Error ShipmentProductAlreadyLinked(long id, short? languageId = null) => C("SaleShipment.ShipmentProductAlreadyLinked", languageId, $"{id}-jo'natma mahsuloti sotuv qatoriga allaqachon bog'langan.", $"{id}-жўнатма маҳсулоти сотув қаторига аллақачон боғланган.", $"Товар отгрузки {id} уже связан со строкой продажи.", $"Sale shipment product {id} is already linked to a sale document product.");
+    public static Error ShipmentProductMismatch(long shipmentId, int productId, decimal quantity, short? languageId = null) => B("SaleShipment.ShipmentProductMismatch", languageId, $"{shipmentId}-jo'natma mahsuloti {productId}-mahsulot va {quantity} miqdorga mos emas.", $"{shipmentId}-жўнатма маҳсулоти {productId}-маҳсулот ва {quantity} миқдорга мос эмас.", $"Товар отгрузки {shipmentId} не соответствует товару {productId} и количеству {quantity}.", $"Sale shipment product {shipmentId} does not match product {productId} and quantity {quantity}.");
 
-    public static Error CurrentUserNotFound(short? languageId = null) =>
-        Error.Business("SaleShipment.CurrentUserNotFound", "Current user is required to create a sale shipment.");
-
-    public static Error WarehouseNotFound(int warehouseId, short? languageId = null) =>
-        Error.NotFound("SaleShipment.WarehouseNotFound", $"Warehouse with id {warehouseId} was not found.");
-
-    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) =>
-        Error.Business("SaleShipment.WarehouseOrganizationMismatch", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
-
-    public static Error WarehouseInactive(int warehouseId, short? languageId = null) =>
-        Error.Business("SaleShipment.WarehouseInactive", $"Warehouse {warehouseId} is not active.");
-
-    public static Error CounterpartyNotFound(int counterpartyId, short? languageId = null) =>
-        Error.NotFound("SaleShipment.CounterpartyNotFound", $"Counterparty with id {counterpartyId} was not found.");
-
-    public static Error CounterpartyOrganizationMismatch(int counterpartyId, int organizationId, short? languageId = null) =>
-        Error.Business("SaleShipment.CounterpartyOrganizationMismatch", $"Counterparty {counterpartyId} does not belong to organization {organizationId}.");
-
-    public static Error ProductsRequired(short? languageId = null) =>
-        Error.Business("SaleShipment.ProductsRequired", "Sale shipment must contain at least one product.");
-
-    public static Error ProductNotFound(int productId, short? languageId = null) =>
-        Error.NotFound("SaleShipment.ProductNotFound", $"Product with id {productId} was not found.");
-
-    public static Error ProductServiceNotAllowed(int productId, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductServiceNotAllowed", $"Service product {productId} cannot be included in a sale shipment.");
-
-    public static Error ProductUnitMismatch(int productId, short unitId, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductUnitMismatch", $"Unit {unitId} does not match product {productId}.");
-
-    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) =>
-        Error.Business("SaleShipment.InvalidQuantity", $"Product {productId} has invalid quantity {quantity}.");
-
-    public static Error BatchQuantityMismatch(int productId, decimal quantity, decimal batchQuantity, short? languageId = null) =>
-        Error.Business("SaleShipment.BatchQuantityMismatch", $"Batch quantity {batchQuantity} does not match product {productId} quantity {quantity}.");
-
-    public static Error ProductTableQuantityMismatch(int productId, decimal quantity, int tableCount, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductTableQuantityMismatch", $"Product table count {tableCount} does not match product {productId} quantity {quantity}.");
-
-    public static Error DuplicateBatch(long batchId, short? languageId = null) =>
-        Error.Conflict("SaleShipment.DuplicateBatch", $"Batch {batchId} is duplicated in the sale shipment product.");
-
-    public static Error DuplicateProductTable(int productTableId, short? languageId = null) =>
-        Error.Conflict("SaleShipment.DuplicateProductTable", $"Product table {productTableId} is duplicated in the sale shipment.");
-
-    public static Error BatchUnavailable(long batchId, int warehouseId, int productId, short? languageId = null) =>
-        Error.Business("SaleShipment.BatchUnavailable", $"Batch {batchId} is unavailable for product {productId} in warehouse {warehouseId}.");
-
-    public static Error BatchQuantityUnavailable(long batchId, decimal requested, decimal available, short? languageId = null) =>
-        Error.Business("SaleShipment.BatchQuantityUnavailable", $"Batch {batchId} has available quantity {available}, but {requested} was requested.");
-
-    public static Error ProductTableNotFound(int productTableId, short? languageId = null) =>
-        Error.NotFound("SaleShipment.ProductTableNotFound", $"Product table with id {productTableId} was not found.");
-
-    public static Error ProductTableMismatch(int productTableId, int productId, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductTableMismatch", $"Product table {productTableId} does not belong to product {productId}.");
-
-    public static Error ProductTableUnavailable(int productTableId, int warehouseId, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductTableUnavailable", $"Product table {productTableId} is not available in warehouse {warehouseId}.");
-
-    public static Error ProductTablesNotAllowed(int productId, short? languageId = null) =>
-        Error.Business("SaleShipment.ProductTablesNotAllowed", $"Product tables are not allowed for non-piece-tracked product {productId}.");
-
-    public static Error LinkedDocumentCannotBeChanged(long id, short? languageId = null) =>
-        Error.Conflict("SaleShipment.LinkedDocumentCannotBeChanged", $"Sale shipment {id} is already linked to a sale document and cannot be changed.");
-
-    public static Error AlreadyLinkedToSale(long id, short? languageId = null) =>
-        Error.Conflict("SaleShipment.AlreadyLinkedToSale", "Sale shipment is already linked to a sale document.");
-
-    public static Error DuplicateShipmentProductLink(short? languageId = null) =>
-        Error.Conflict("SaleShipment.DuplicateShipmentProductLink", "Shipment product cannot be linked to more than one sale document line.");
-    public static Error ShipmentProductNotFound(long shipmentProductId, short? languageId = null) =>
-        Error.NotFound("SaleShipment.ShipmentProductNotFound", $"Sale shipment product {shipmentProductId} was not found.");
-
-    public static Error ShipmentProductAlreadyLinked(long shipmentProductId, short? languageId = null) =>
-        Error.Conflict("SaleShipment.ShipmentProductAlreadyLinked", $"Sale shipment product {shipmentProductId} is already linked to a sale document product.");
-
-    public static Error ShipmentProductMismatch(long shipmentProductId, int productId, decimal quantity, short? languageId = null) =>
-        Error.Business("SaleShipment.ShipmentProductMismatch", $"Sale shipment product {shipmentProductId} does not match product {productId} and quantity {quantity}.");
+    private static Error Entity(string suffix, int id, string uz, string cy, string ru, string en, short? languageId) => N($"SaleShipment.{suffix}", languageId, $"Id-si {id} bo'lgan {uz} topilmadi.", $"Id-си {id} бўлган {cy} топилмади.", $"{ru} с id {id} не найден.", $"{en} with id {id} was not found.");
+    private static Error B(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Business(code, M(languageId, uz, cy, ru, en));
+    private static Error C(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Conflict(code, M(languageId, uz, cy, ru, en));
+    private static Error N(string code, short? languageId, string uz, string cy, string ru, string en) => Error.NotFound(code, M(languageId, uz, cy, ru, en));
+    private static string M(short? languageId, string uz, string cy, string ru, string en) => languageId switch { LanguageIdConst.UZ => uz, LanguageIdConst.UZ_CYRL => cy, LanguageIdConst.RU => ru, _ => en };
 }

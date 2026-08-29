@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using SharedKernel.Results;
 
 namespace Application.Features.Register.PostingEngines
@@ -5,10 +6,12 @@ namespace Application.Features.Register.PostingEngines
     public class PostingContextDispatcher : IPostingContextDispatcher
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IUserContext _userContext;
 
-        public PostingContextDispatcher(IServiceProvider serviceProvider)
+        public PostingContextDispatcher(IServiceProvider serviceProvider, IUserContext userContext)
         {
             _serviceProvider = serviceProvider;
+            _userContext = userContext;
         }
 
         public async Task<Result<List<PostingContext>>> ProcessAsync(object document, CancellationToken ct = default)
@@ -17,11 +20,26 @@ namespace Application.Features.Register.PostingEngines
 
             var resolver = ResolveBuilder(document);
             if (resolver is null)
-                return Result.Failure<List<PostingContext>>(PostingContextErrors.UnsupportedDocumentType());
+                return Result.Failure<List<PostingContext>>(PostingContextErrors.UnsupportedDocumentType(_userContext.LanguageId));
+
+            var validator = ResolveValidator(resolver.Value.DocumentType);
+            if (validator is not null)
+            {
+                var validation = await InvokeValidatorAsync(
+                    validator,
+                    resolver.Value.DocumentType,
+                    document,
+                    ct);
+                if (!validation.IsSuccess)
+                    return Result.Failure<List<PostingContext>>(validation.Error);
+            }
 
             var contexts = await InvokeBuilderAsync(resolver.Value.Builder, resolver.Value.DocumentType, document);
             return Result.Success(contexts);
         }
+
+        private object? ResolveValidator(Type documentType) =>
+            _serviceProvider.GetService(typeof(IPostingContextValidator<>).MakeGenericType(documentType));
 
         private (object Builder, Type DocumentType)? ResolveBuilder(object document)
         {
@@ -52,6 +70,27 @@ namespace Application.Features.Register.PostingEngines
             if (task is null)
                 throw new InvalidOperationException(
                     $"Построитель контекста '{builder.GetType().Name}' вернул неожиданный результат.");
+
+            return await task;
+        }
+
+        private static async Task<Result> InvokeValidatorAsync(
+            object validator,
+            Type documentType,
+            object document,
+            CancellationToken ct)
+        {
+            var validateMethod = validator.GetType().GetMethod(
+                nameof(IPostingContextValidator<object>.ValidateAsync),
+                new[] { documentType, typeof(CancellationToken) });
+            if (validateMethod is null)
+                throw new InvalidOperationException(
+                    $"Проверка контекста '{validator.GetType().Name}' не содержит метод ValidateAsync для '{documentType.Name}'.");
+
+            var task = validateMethod.Invoke(validator, new object[] { document, ct }) as Task<Result>;
+            if (task is null)
+                throw new InvalidOperationException(
+                    $"Проверка контекста '{validator.GetType().Name}' вернула неожиданный результат.");
 
             return await task;
         }

@@ -47,7 +47,7 @@ public sealed class DocumentRegistryService : IDocumentRegistryService
             .Build();
         var document = await _query.GetAsync(query, ct);
         return document is null
-            ? Result.Failure<DocumentRegistryDto>(DocumentRegistryErrors.NotFound(id))
+            ? Result.Failure<DocumentRegistryDto>(DocumentRegistryErrors.NotFound(id, _userContext.LanguageId))
             : Result.Success(document);
     }
 }

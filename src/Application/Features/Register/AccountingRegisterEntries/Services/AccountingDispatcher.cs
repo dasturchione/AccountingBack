@@ -40,45 +40,35 @@ namespace Application.Features.Register.AccountingRegisterEntries
             var contextsResult = await _postingContextDispatcher.ProcessAsync(document, ct);
             if (!contextsResult.IsSuccess)
             {
-                if (contextsResult.Error.Code == PostingContextErrors.UnsupportedDocumentType().Code)
+                if (contextsResult.Error.Code == PostingContextErrors.UnsupportedDocumentType(_userContext.LanguageId).Code)
                     return Result.Failure<List<AccountingRegisterEntry>>(AccountingRegisterEntryErrors.UnsupportedDocumentType(_userContext.LanguageId));
 
                 return Result.Failure<List<AccountingRegisterEntry>>(contextsResult.Error);
             }
 
-            try
+            var entriesResult = await _postingService.BuildEntriesAsync(contextsResult.Value);
+            if (!entriesResult.IsSuccess)
+                return Result.Failure<List<AccountingRegisterEntry>>(entriesResult.Error);
+
+            var accountingEntries = entriesResult.Value;
+            if (postingBatchId.HasValue)
             {
-                var entriesResult = await _postingService.BuildEntriesAsync(contextsResult.Value);
-                if (!entriesResult.IsSuccess)
-                    return Result.Failure<List<AccountingRegisterEntry>>(entriesResult.Error);
+                foreach (var entry in accountingEntries)
+                    entry.PostingBatchId = postingBatchId.Value;
+            }
 
-                var accountingEntries = entriesResult.Value;
-                if (postingBatchId.HasValue)
-                {
-                    foreach (var entry in accountingEntries)
-                        entry.PostingBatchId = postingBatchId.Value;
-                }
-
-                var validation = _postingValidator.Validate(accountingEntries);
-                if (!validation.IsSuccess)
-                    return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
+            var validation = _postingValidator.Validate(accountingEntries);
+            if (!validation.IsSuccess)
+                return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
 
                 //var groupAccountValidation = await EnsureNoGroupAccountsAsync(accountingEntries, ct);
                 //if (!groupAccountValidation.IsSuccess)
                 //    return Result.Failure<List<AccountingRegisterEntry>>(groupAccountValidation.Error);
 
-                if (accountingEntries.Count > 0)
-                    await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);
+            if (accountingEntries.Count > 0)
+                await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);
 
-                return Result.Success(accountingEntries);
-            }
-            catch (Exception ex)
-            {
-                return Result.Failure<List<AccountingRegisterEntry>>(
-                    SharedKernel.Results.Error.Problem(
-                        "AccountingRegisterEntry.PostingFailed",
-                        ex.Message));
-            }
+            return Result.Success(accountingEntries);
         }
 
         // Group (header) accounts aggregate their children and must never receive a direct

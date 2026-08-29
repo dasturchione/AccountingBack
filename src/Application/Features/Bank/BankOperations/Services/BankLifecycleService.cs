@@ -222,7 +222,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
                 await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, cashCollection.Id, ct);
 
                 if (wasPosted && cashCollection.StatusId != DocumentStatusIdConst.COMPLETED)
-                    return Result.Failure(CashCollectionErrors.InvalidStatus(cashCollection.Id, cashCollection.StatusId));
+                    return Result.Failure(CashCollectionErrors.InvalidStatus(cashCollection.Id, cashCollection.StatusId, _userContext.LanguageId));
             }
 
             var periodValidation = await _periodValidator.EnsureOpenAsync(bankOperation.OrganizationId, bankOperation.DocDate, ct);
@@ -345,7 +345,7 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             return Result.Failure(BankOperationErrors.InvalidDirection(bankOperation.DirectionId, _userContext.LanguageId));
 
         if (bankOperation.BankChartAccountId is null || bankOperation.OffsetAccountId is null)
-            return Result.Failure(Error.Business("BankOperation.ChartAccountRequired", "Bank and offset chart accounts are required for posting."));
+            return Result.Failure(BankOperationErrors.ChartAccountRequired(_userContext.LanguageId));
 
         if (bankOperation.BankAccount.OrganizationId != bankOperation.OrganizationId ||
             bankOperation.BankAccount.StateId != StateIdConst.ACTIVE)
@@ -391,9 +391,10 @@ public class BankLifecycleService : BaseService, IBankLifecycleService
             var balance = await _moneyRegisterService.GetBankAccountBalanceAsync(bankOperation.BankAccountId, bankOperation.DocDate, ct);
             if (balance < bankOperation.Amount)
             {
-                return Result.Failure(Error.Business(
-                    "BankOperation.InsufficientBalance",
-                    $"Bank account {bankOperation.BankAccountId} has insufficient balance for amount {bankOperation.Amount}."));
+                return Result.Failure(BankOperationErrors.InsufficientBalance(
+                    bankOperation.BankAccountId,
+                    bankOperation.Amount,
+                    _userContext.LanguageId));
             }
         }
 

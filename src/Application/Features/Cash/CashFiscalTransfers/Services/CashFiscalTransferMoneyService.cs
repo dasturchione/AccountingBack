@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.MoneyRegisterBalances;
 using Application.Features.Register;
 using Domain.Entities;
@@ -18,6 +19,7 @@ public interface ICashFiscalTransferMoneyService
 
 public sealed class CashFiscalTransferMoneyService : ICashFiscalTransferMoneyService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly ICashMoneyRegisterService _cashMoneyRegisterService;
     private readonly IQueryRepository<RetailSaleDocPayment> _paymentQuery;
@@ -25,12 +27,14 @@ public sealed class CashFiscalTransferMoneyService : ICashFiscalTransferMoneySer
     private readonly ICommandRepository<MoneyRegisterBalance> _moneyCommand;
 
     public CashFiscalTransferMoneyService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         ICashMoneyRegisterService cashMoneyRegisterService,
         IQueryRepository<RetailSaleDocPayment> paymentQuery,
         IQueryRepository<MoneyRegisterBalance> moneyQuery,
         ICommandRepository<MoneyRegisterBalance> moneyCommand)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _cashMoneyRegisterService = cashMoneyRegisterService;
         _paymentQuery = paymentQuery;
@@ -58,7 +62,7 @@ public sealed class CashFiscalTransferMoneyService : ICashFiscalTransferMoneySer
             .Build();
         var originals = await _moneyQuery.GetAllAsync(query, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<MoneyRegisterBalance>>(CashFiscalTransferErrors.MissingMoneyEntries(document.Id));
+            return Result.Failure<List<MoneyRegisterBalance>>(CashFiscalTransferErrors.MissingMoneyEntries(document.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(x => new MoneyRegisterBalance

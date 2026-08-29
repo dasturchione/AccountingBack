@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.PurchaseDocs;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -9,14 +10,17 @@ namespace Application.Features.CounterpartyRegisterBalances;
 
 public class PurchaseCounterpartyRegisterService : IPurchaseCounterpartyRegisterService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _query;
     private readonly ICommandRepository<CounterpartyRegisterBalance> _command;
 
-    public PurchaseCounterpartyRegisterService(IQueryBuilder queryBuilder,
+    public PurchaseCounterpartyRegisterService(IUserContext userContext,
+                                               IQueryBuilder queryBuilder,
                                                IQueryRepository<CounterpartyRegisterBalance> query,
                                                ICommandRepository<CounterpartyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _query = query;
         _command = command;
@@ -50,7 +54,7 @@ public class PurchaseCounterpartyRegisterService : IPurchaseCounterpartyRegister
         var originalEntries = await GetOriginalEntriesAsync(purchase.Id, ct);
         if (originalEntries.Count == 0)
             return Result.Failure<List<CounterpartyRegisterBalance>>(
-                PurchaseDocErrors.MissingCounterpartyRegisterEntries(purchase.Id, null));
+                PurchaseDocErrors.MissingCounterpartyRegisterEntries(purchase.Id, _userContext.LanguageId));
         var now = DateTime.Now;
 
         var reversalEntries = originalEntries.Select(entry => new CounterpartyRegisterBalance

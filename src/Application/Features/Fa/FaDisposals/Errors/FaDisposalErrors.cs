@@ -9,7 +9,8 @@ public static class FaDisposalErrors
         Error.NotFound("FaDisposal.NotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan disposal hujjati topilmadi.",
-            LanguageIdConst.RU => $"Dokument disposal s id {id} ne nayden.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳисобдан чиқариш ҳужжати топилмади.",
+            LanguageIdConst.RU => $"Документ выбытия с id {id} не найден.",
             _ => $"Fixed asset disposal document with id {id} was not found."
         });
 
@@ -17,7 +18,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.LinesRequired", languageId switch
         {
             LanguageIdConst.UZ => "Kamida bitta disposal qatori kiritilishi shart.",
-            LanguageIdConst.RU => "Nuzhno dobavit khotya by odnu stroku disposal.",
+            LanguageIdConst.UZ_CYRL => "Камида битта ҳисобдан чиқариш қатори киритилиши шарт.",
+            LanguageIdConst.RU => "Необходимо добавить хотя бы одну строку выбытия.",
             _ => "At least one disposal line is required."
         });
 
@@ -25,7 +27,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.InvalidDisposalType", languageId switch
         {
             LanguageIdConst.UZ => "Disposal turi faqat SALE, WRITEOFF yoki BREAKDOWN bo'lishi mumkin.",
-            LanguageIdConst.RU => "Tip disposal dolzhen byt SALE, WRITEOFF ili BREAKDOWN.",
+            LanguageIdConst.UZ_CYRL => "Ҳисобдан чиқариш тури фақат SALE, WRITEOFF ёки BREAKDOWN бўлиши мумкин.",
+            LanguageIdConst.RU => "Тип выбытия должен быть SALE, WRITEOFF или BREAKDOWN.",
             _ => "Disposal type must be SALE, WRITEOFF, or BREAKDOWN."
         });
 
@@ -33,7 +36,8 @@ public static class FaDisposalErrors
         Error.NotFound("FaDisposal.AssetNotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vosita topilmadi.",
-            LanguageIdConst.RU => $"Osnovnoye sredstvo s id {id} ne naydeno.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган асосий восита топилмади.",
+            LanguageIdConst.RU => $"Основное средство с id {id} не найдено.",
             _ => $"Fixed asset with id {id} was not found."
         });
 
@@ -41,7 +45,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.AssetInactive", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vosita aktiv holatda emas.",
-            LanguageIdConst.RU => $"Osnovnoye sredstvo s id {id} ne aktivno.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган асосий восита фаол ҳолатда эмас.",
+            LanguageIdConst.RU => $"Основное средство с id {id} не активно.",
             _ => $"Fixed asset with id {id} is not active."
         });
 
@@ -49,7 +54,8 @@ public static class FaDisposalErrors
         Error.Conflict("FaDisposal.AssetAlreadyDisposed", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vosita allaqachon hisobdan chiqarilgan.",
-            LanguageIdConst.RU => $"Osnovnoye sredstvo s id {id} uzhe spisano.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган асосий восита аллақачон ҳисобдан чиқарилган.",
+            LanguageIdConst.RU => $"Основное средство с id {id} уже выбыло.",
             _ => $"Fixed asset with id {id} is already disposed."
         });
 
@@ -57,7 +63,8 @@ public static class FaDisposalErrors
         Error.Conflict("FaDisposal.DuplicateAsset", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan asosiy vosita hujjatda takrorlangan.",
-            LanguageIdConst.RU => $"Osnovnoye sredstvo s id {id} povtoryayetsya v dokumente.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган асосий восита ҳужжатда такрорланган.",
+            LanguageIdConst.RU => $"Основное средство с id {id} повторяется в документе.",
             _ => $"Fixed asset with id {id} is duplicated in the document."
         });
 
@@ -65,7 +72,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.SaleAmountRequired", languageId switch
         {
             LanguageIdConst.UZ => "SALE disposal turi uchun kamida bitta qatorda sale amount 0 dan katta bo'lishi shart.",
-            LanguageIdConst.RU => "Dlya disposal tipa SALE nuzhna summа prodazhi bolshe 0 khotya by v odnoy stroke.",
+            LanguageIdConst.UZ_CYRL => "SALE турида камида битта қаторнинг сотув суммаси 0 дан катта бўлиши шарт.",
+            LanguageIdConst.RU => "Для выбытия типа SALE хотя бы в одной строке сумма продажи должна быть больше нуля.",
             _ => "SALE disposal requires a positive sale amount on at least one line."
         });
 
@@ -73,7 +81,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.CannotUpdateInCurrentStatus", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida tahrirlab bo'lmaydi.",
-            LanguageIdConst.RU => $"Dokument s id {id} nelzya redaktirovat v statuse {statusId}.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида таҳрирлаб бўлмайди.",
+            LanguageIdConst.RU => $"Документ с id {id} нельзя изменять в статусе {statusId}.",
             _ => $"Document with id {id} cannot be updated in status {statusId}."
         });
 
@@ -81,7 +90,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.CannotConfirmInCurrentStatus", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida tasdiqlab bo'lmaydi.",
-            LanguageIdConst.RU => $"Dokument s id {id} nelzya podtverdit v statuse {statusId}.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида тасдиқлаб бўлмайди.",
+            LanguageIdConst.RU => $"Документ с id {id} нельзя подтвердить в статусе {statusId}.",
             _ => $"Document with id {id} cannot be confirmed in status {statusId}."
         });
 
@@ -89,7 +99,8 @@ public static class FaDisposalErrors
         Error.Business("FaDisposal.CannotCancelInCurrentStatus", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida bekor qilib bo'lmaydi.",
-            LanguageIdConst.RU => $"Dokument s id {id} nelzya otmenit v statuse {statusId}.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида бекор қилиб бўлмайди.",
+            LanguageIdConst.RU => $"Документ с id {id} нельзя отменить в статусе {statusId}.",
             _ => $"Document with id {id} cannot be cancelled in status {statusId}."
         });
 
@@ -97,7 +108,8 @@ public static class FaDisposalErrors
         Error.Conflict("FaDisposal.MissingPostingBatch", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan disposal hujjati uchun posting batch topilmadi.",
-            LanguageIdConst.RU => $"Dlya disposal dokumenta s id {id} ne nayden posting batch.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳисобдан чиқариш ҳужжати учун ўтказмалар пакети топилмади.",
+            LanguageIdConst.RU => $"Для документа выбытия с id {id} не найден пакет проводок.",
             _ => $"Posting batch was not found for disposal document with id {id}."
         });
 }

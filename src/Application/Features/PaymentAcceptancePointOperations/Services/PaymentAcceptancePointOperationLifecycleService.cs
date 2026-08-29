@@ -67,13 +67,13 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
             if (operation is null)
                 return Result.Failure(PaymentAcceptancePointOperationErrors.NotFound(id, _userContext.LanguageId));
             if (operation.StatusId == DocumentStatusIdConst.CANCELLED)
-                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "confirmed"));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "confirmed", _userContext.LanguageId));
             if (operation.StatusId == DocumentStatusIdConst.POSTED)
                 return await GetActiveBatchAsync(id, ct) is not null
                     ? Result.Success()
-                    : Result.Failure(PaymentAcceptancePointOperationErrors.MissingPostingBatch(id));
+                    : Result.Failure(PaymentAcceptancePointOperationErrors.MissingPostingBatch(id, _userContext.LanguageId));
             if (!PaymentAcceptancePointOperationStatusPolicy.CanConfirm(operation.StatusId))
-                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "confirmed"));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "confirmed", _userContext.LanguageId));
 
             var period = await _periodValidator.EnsureOpenAsync(operation.OrganizationId, operation.DocDate, ct);
             if (!period.IsSuccess)
@@ -97,11 +97,11 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
                     operation.DocDate,
                     ct);
                 if (balance < operation.Amount)
-                    return Result.Failure(PaymentAcceptancePointOperationErrors.InsufficientBalance(balance, operation.Amount));
+                    return Result.Failure(PaymentAcceptancePointOperationErrors.InsufficientBalance(balance, operation.Amount, _userContext.LanguageId));
             }
 
             if (await GetActiveBatchAsync(id, ct) is not null || await HasEffectsAsync(id, ct))
-                return Result.Failure(PaymentAcceptancePointOperationErrors.BusinessEffectsAlreadyExist(id));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
 
             var batch = await CreateBatchAsync(operation, PostingBatchStatusConst.POSTED, "Payment acceptance point operation confirmed", ct);
             var money = await _moneyRegisterService.PostAsync(operation, batch.Id, ct);
@@ -133,7 +133,7 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
             if (operation.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
             if (!PaymentAcceptancePointOperationStatusPolicy.CanCancel(operation.StatusId))
-                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "cancelled"));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, operation.StatusId, "cancelled", _userContext.LanguageId));
 
             if (operation.StatusId == DocumentStatusIdConst.POSTED)
             {
@@ -158,12 +158,12 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
                         DateTime.Now,
                         ct);
                     if (balance < operation.Amount)
-                        return Result.Failure(PaymentAcceptancePointOperationErrors.InsufficientBalance(balance, operation.Amount));
+                        return Result.Failure(PaymentAcceptancePointOperationErrors.InsufficientBalance(balance, operation.Amount, _userContext.LanguageId));
                 }
 
                 var activeBatch = await GetActiveBatchAsync(id, ct);
                 if (activeBatch is null)
-                    return Result.Failure(PaymentAcceptancePointOperationErrors.MissingPostingBatch(id));
+                    return Result.Failure(PaymentAcceptancePointOperationErrors.MissingPostingBatch(id, _userContext.LanguageId));
 
                 var reversalBatch = await CreateBatchAsync(operation, PostingBatchStatusConst.REVERSAL, "Payment acceptance point operation cancelled", ct);
                 var reversal = await _moneyRegisterService.ReverseAsync(operation, reversalBatch.Id, ct);
@@ -202,18 +202,18 @@ public sealed class PaymentAcceptancePointOperationLifecycleService
         return await _query.GetAsync(query, ct);
     }
 
-    private static Result ValidateConfiguration(PaymentAcceptancePointOperation operation)
+    private Result ValidateConfiguration(PaymentAcceptancePointOperation operation)
     {
         if (!MovementDirectionIdConst.IsValid(operation.DirectionId) ||
             operation.Amount <= 0m ||
             operation.ExchangeRate <= 0m)
-            return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidConfiguration(
-                "Direction must be IN or OUT; amount and exchange rate must be greater than zero."));
+            return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidValues(
+                _userContext.LanguageId));
 
         if (operation.PaymentAcceptancePoint.OrganizationId != operation.OrganizationId ||
             operation.PaymentAcceptancePoint.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidConfiguration(
-                "Payment acceptance point is inactive or belongs to another organization."));
+            return Result.Failure(PaymentAcceptancePointOperationErrors.PointInvalid(
+                _userContext.LanguageId));
 
         return Result.Success();
     }

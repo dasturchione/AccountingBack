@@ -37,7 +37,7 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
         CancellationToken ct = default)
     {
         if (options.Scope == OrganizationManagementScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin)
-            return Result.Failure<Organization>(PlatformErrors.GlobalAccessRequired());
+            return Result.Failure<Organization>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
         var organization = await _organizationQuery.GetAsync(BuildOrganizationSpec(organizationId, options.IncludeDetails), ct);
         return organization is null
@@ -71,7 +71,7 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
         {
             var tenantExists = await _tenantQuery.AnyAsync(x => x.Id == prepared.TenantId, ct);
             if (!tenantExists)
-                return Result.Failure(PlatformErrors.TenantNotFound(prepared.TenantId));
+                return Result.Failure(PlatformErrors.TenantNotFound(prepared.TenantId, _userContext.LanguageId));
         }
 
         organization.ShortName = prepared.ShortName;
@@ -152,11 +152,11 @@ public sealed class OrganizationManagementCore : IOrganizationManagementCore
 
     private Error ResolveNotFound(int organizationId, OrganizationManagementScope scope) =>
         scope == OrganizationManagementScope.Global
-            ? PlatformErrors.OrganizationNotFound(organizationId)
+            ? PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId)
             : OrganizationErrors.NotFound(organizationId, _userContext.LanguageId);
 
     private Error ResolveInnConflict(string inn, OrganizationManagementScope scope) =>
         scope == OrganizationManagementScope.Global
-            ? PlatformErrors.OrganizationInnConflict(inn)
+            ? PlatformErrors.OrganizationInnConflict(inn, _userContext.LanguageId)
             : OrganizationErrors.InnConflict(inn, _userContext.LanguageId);
 }

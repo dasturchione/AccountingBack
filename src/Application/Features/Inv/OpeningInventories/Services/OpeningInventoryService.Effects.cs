@@ -55,7 +55,7 @@ public partial class OpeningInventoryService
             (await _allocationQuery.AnyAsync(x => batchIds.Contains(x.BatchId), ct) ||
              await _saleBatchQuery.AnyAsync(x => batchIds.Contains(x.WarehouseProductBatchId), ct) ||
              await _shipmentBatchQuery.AnyAsync(x => batchIds.Contains(x.BatchId), ct)))
-            return Result.Failure(OpeningInventoryErrors.EffectsAlreadyUsed(document.Id));
+            return Result.Failure(OpeningInventoryErrors.EffectsAlreadyUsed(document.Id, _userContext.LanguageId));
 
         var productTableIds = document.OpeningInventoryProducts
             .SelectMany(x => x.OpeningInventoryTables)
@@ -75,7 +75,7 @@ public partial class OpeningInventoryService
                 x => x.ProductTableId.HasValue && productTableIds.Contains(x.ProductTableId.Value), ct);
 
         return isReferenced
-            ? Result.Failure(OpeningInventoryErrors.EffectsAlreadyUsed(document.Id))
+            ? Result.Failure(OpeningInventoryErrors.EffectsAlreadyUsed(document.Id, _userContext.LanguageId))
             : Result.Success();
     }
 
@@ -121,7 +121,7 @@ public partial class OpeningInventoryService
                 .Build(),
             ct);
         if (openingBalance is null)
-            return Result.Failure(OpeningInventoryErrors.OpeningBalanceNotFound(document.OrganizationId));
+            return Result.Failure(OpeningInventoryErrors.OpeningBalanceNotFound(document.OrganizationId, _userContext.LanguageId));
 
         var organizationConfig = await _organizationConfigQuery.GetAsync(
             _queryBuilder.For<OrganizationConfig>()
@@ -129,7 +129,7 @@ public partial class OpeningInventoryService
                 .Build(),
             ct);
         if (organizationConfig?.BaseCurrencyId is null)
-            return Result.Failure(OpeningInventoryErrors.BaseCurrencyNotConfigured(document.OrganizationId));
+            return Result.Failure(OpeningInventoryErrors.BaseCurrencyNotConfigured(document.OrganizationId, _userContext.LanguageId));
         var currencyId = organizationConfig.BaseCurrencyId.Value;
 
         // Zero-cost stock is valid in inventory, but the opening-balance detail
@@ -235,7 +235,7 @@ public partial class OpeningInventoryService
                 if (!value.HasValue)
                     return Result.Failure(
                         OpeningInventoryErrors.SubkontoValueUnavailable(
-                            line.DebitAccountId, config.SubkontoTypeId));
+                            line.DebitAccountId, config.SubkontoTypeId, _userContext.LanguageId));
 
                 subkontos.Add(new OpeningBalanceAccountDetailSubkonto
                 {

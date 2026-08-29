@@ -102,7 +102,7 @@ namespace SharedKernel.Results
             return languageId switch
             {
                 LanguageIdConst.UZ =>
-                    $"Warehouse {warehouseId} is blocked by an active inventory count. Operation '{operationName}' is not allowed.",
+                    $"{warehouseId}-omborda faol inventarizatsiya mavjud. '{operationName}' amaliga ruxsat berilmaydi.",
                 LanguageIdConst.UZ_CYRL =>
                     $"Омбор {warehouseId} бўйича фаол инвентар санаш мавжуд. '{operationName}' амалига рухсат йўқ.",
                 LanguageIdConst.RU =>

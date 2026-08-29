@@ -35,19 +35,19 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
         CancellationToken ct = default)
     {
         if (!_userContext.OrganizationId.HasValue)
-            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationRequired());
+            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationRequired(_userContext.LanguageId));
 
         var organizationSpecification = _queryBuilder.For<Organization>()
             .Where(organization => organization.Id == _userContext.OrganizationId.Value)
             .Build();
         var organization = await _organizationQuery.GetAsync(organizationSpecification, ct);
         if (organization is null)
-            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationNotFound());
+            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationNotFound(_userContext.LanguageId));
 
         foreach (var account in export.Accounts)
         {
             if (!NormalizeKey(account.CompanyInn).Equals(NormalizeKey(organization.Inn), StringComparison.Ordinal))
-                return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationMismatch());
+                return Result.Failure<BankExportDto>(BankStatementClassificationErrors.OrganizationMismatch(_userContext.LanguageId));
         }
 
         var ruleSetSpecification = _queryBuilder.For<BankOperationClassificationRuleSet>()
@@ -68,7 +68,7 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
             .ThenByDescending(item => item.Id)
             .FirstOrDefault();
         if (ruleSet is null)
-            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.RuleSetNotFound(bankId));
+            return Result.Failure<BankExportDto>(BankStatementClassificationErrors.RuleSetNotFound(bankId, _userContext.LanguageId));
 
         try
         {
@@ -90,7 +90,7 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
                         .Build();
                     var reviewCategory = await _categoryQuery.GetAsync(categorySpecification, ct);
                     if (reviewCategory is null)
-                        return Result.Failure<BankExportDto>(BankStatementClassificationErrors.ReviewCategoryNotFound());
+                        return Result.Failure<BankExportDto>(BankStatementClassificationErrors.ReviewCategoryNotFound(_userContext.LanguageId));
 
                     transaction.ClassificationCategoryId = reviewCategory.Id;
                     transaction.ClassificationCode = reviewCategory.Code;
@@ -107,10 +107,10 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
                 transaction.RequiresReview = match.RequiresReview;
             }
         }
-        catch (BankOperationClassificationConfigurationException exception)
+        catch (BankOperationClassificationConfigurationException)
         {
             return Result.Failure<BankExportDto>(
-                BankStatementClassificationErrors.InvalidConfiguration(exception.Message));
+                BankStatementClassificationErrors.InvalidConfiguration(_userContext.LanguageId));
         }
 
         return Result.Success(export);
@@ -123,31 +123,4 @@ public sealed class BankOperationClassifier : IBankOperationClassifier
 
     private static string NormalizeKey(string value) =>
         string.Concat(value.Where(character => !char.IsWhiteSpace(character)));
-}
-
-internal static class BankStatementClassificationErrors
-{
-    public static Error OrganizationRequired() =>
-        Error.Business("BankStatement.OrganizationRequired", "Current organization is required for classification.");
-
-    public static Error OrganizationNotFound() =>
-        Error.NotFound("BankStatement.OrganizationNotFound", "Current organization was not found.");
-
-    public static Error OrganizationMismatch() =>
-        Error.Business(
-            "BankStatement.OrganizationMismatch",
-            "The statement taxpayer number does not match the current organization.");
-
-    public static Error RuleSetNotFound(int bankId) =>
-        Error.Problem(
-            "BankStatement.ClassificationRuleSetNotFound",
-            $"No active operation classification rule set was found for bank {bankId}.");
-
-    public static Error ReviewCategoryNotFound() =>
-        Error.Problem(
-            "BankStatement.ReviewCategoryNotFound",
-            "Active REVIEW_REQUIRED bank operation category was not found.");
-
-    public static Error InvalidConfiguration(string detail) =>
-        Error.Problem("BankStatement.ClassificationConfigurationInvalid", detail);
 }

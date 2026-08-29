@@ -31,20 +31,21 @@ public static class RetailSalePaymentAcceptancePointPolicy
 
     public static Result<IReadOnlyList<RetailSalePaymentAcceptancePointMovement>> Build(
         string paymentMethodCode,
-        int? paymentAcceptancePointId)
+        int? paymentAcceptancePointId,
+        short? languageId = null)
     {
         if (paymentMethodCode == PaymentMethodCodeConst.CASH)
         {
             return paymentAcceptancePointId.HasValue
                 ? Result.Failure<IReadOnlyList<RetailSalePaymentAcceptancePointMovement>>(
-                    RetailSaleDocErrors.InvalidPayment())
+                    RetailSaleDocErrors.InvalidPayment(languageId))
                 : Result.Success(NoMovements);
         }
 
         if (!paymentAcceptancePointId.HasValue)
         {
             return Result.Failure<IReadOnlyList<RetailSalePaymentAcceptancePointMovement>>(
-                RetailSaleDocErrors.InvalidPayment());
+                RetailSaleDocErrors.InvalidPayment(languageId));
         }
 
         return Result.Success(

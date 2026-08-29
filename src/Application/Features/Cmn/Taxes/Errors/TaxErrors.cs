@@ -5,6 +5,15 @@ namespace Application.Features.Cmn.Taxes;
 
 public static class TaxErrors
 {
+    public static Error ProviderNotFound(string providerCode, short? languageId = null) =>
+        Error.NotFound("Tax.ProviderNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => $"'{providerCode}' soliq provayderi topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"'{providerCode}' солиқ провайдери топилмади.",
+            LanguageIdConst.RU => $"Налоговый провайдер '{providerCode}' не найден.",
+            _ => $"{providerCode} provider was not found."
+        });
+
     public static Error NotFound(short id, short? languageId = null) =>
         Error.NotFound("Tax.NotFound", languageId switch
         {

@@ -191,7 +191,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
 
             var dto = await GetByIdInternalAsync(id, ct);
             return dto is null
-                ? Result.Failure<OpeningInventoryDto>(OpeningInventoryErrors.NotFound(id))
+                ? Result.Failure<OpeningInventoryDto>(OpeningInventoryErrors.NotFound(id, _userContext.LanguageId))
                 : Result.Success(dto);
         });
 
@@ -242,7 +242,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
             await _command.CreateAsync(document, ct);
             var effectsDocument = await GetForEffectsAsync(document.Id, ct);
             if (effectsDocument is null)
-                return Result.Failure<long>(OpeningInventoryErrors.NotFound(document.Id));
+                return Result.Failure<long>(OpeningInventoryErrors.NotFound(document.Id, _userContext.LanguageId));
 
             var effects = await ApplyEffectsAsync(effectsDocument, ct);
             if (!effects.IsSuccess)
@@ -275,7 +275,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
             await _documentLock.AcquireAsync(DocumentTypeIdConst.OPENINGINVENTORY, id, ct);
             var document = await GetForEffectsAsync(id, ct);
             if (document is null)
-                return Result.Failure(OpeningInventoryErrors.NotFound(id));
+                return Result.Failure(OpeningInventoryErrors.NotFound(id, _userContext.LanguageId));
 
             var organizationId = _userContext.OrganizationId.Value;
             var validation = await ValidateHeaderAndOpeningBalanceAsync(organizationId, dto, ct);
@@ -363,7 +363,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
             await _documentLock.AcquireAsync(DocumentTypeIdConst.OPENINGINVENTORY, id, ct);
             var document = await GetForEffectsAsync(id, ct);
             if (document is null)
-                return Result.Failure(OpeningInventoryErrors.NotFound(id));
+                return Result.Failure(OpeningInventoryErrors.NotFound(id, _userContext.LanguageId));
 
             var guard = await _inventoryCountGuard.EnsureWarehouseIsNotBlockedAsync(
                 document.OrganizationId, document.WarehouseId, "OpeningInventoryDelete", ct: ct);
@@ -413,19 +413,19 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         if (!await _organizationQuery.AnyAsync(
                 x => x.Id == organizationId && x.StateId == StateIdConst.ACTIVE, ct))
             return Result.Failure(
-                OpeningInventoryErrors.ReferenceNotFound("Organization", organizationId));
+                OpeningInventoryErrors.ReferenceNotFound("Organization", organizationId, _userContext.LanguageId));
 
         if (!await _counterpartyQuery.AnyAsync(x =>
                 x.Id == dto.CounterpartyId &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Counterparty", dto.CounterpartyId));
+            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Counterparty", dto.CounterpartyId, _userContext.LanguageId));
 
         if (!await _warehouseQuery.AnyAsync(x =>
                 x.Id == dto.WarehouseId &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Warehouse", dto.WarehouseId));
+            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Warehouse", dto.WarehouseId, _userContext.LanguageId));
 
         if (dto.ContractId.HasValue &&
             !await _contractQuery.AnyAsync(x =>
@@ -433,11 +433,11 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
                 x.OrganizationId == organizationId &&
                 x.CounterpartyId == dto.CounterpartyId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Contract", dto.ContractId.Value));
+            return Result.Failure(OpeningInventoryErrors.ReferenceNotFound("Contract", dto.ContractId.Value, _userContext.LanguageId));
 
         if (!await _openingBalanceQuery.AnyAsync(x =>
                 x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(OpeningInventoryErrors.OpeningBalanceNotFound(organizationId));
+            return Result.Failure(OpeningInventoryErrors.OpeningBalanceNotFound(organizationId, _userContext.LanguageId));
 
         var config = await _organizationConfigQuery.GetAsync(
             _queryBuilder.For<OrganizationConfig>()
@@ -447,7 +447,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         if (config?.BaseCurrencyId is null ||
             !await _currencyQuery.AnyAsync(
                 x => x.Id == config.BaseCurrencyId.Value && x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(OpeningInventoryErrors.BaseCurrencyNotConfigured(organizationId));
+            return Result.Failure(OpeningInventoryErrors.BaseCurrencyNotConfigured(organizationId, _userContext.LanguageId));
 
         return Result.Success();
     }
@@ -460,12 +460,12 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
     {
         if (dtos.Count == 0)
             return Result.Failure<List<OpeningInventoryProduct>>(
-                OpeningInventoryErrors.LinesRequired());
+                OpeningInventoryErrors.LinesRequired(_userContext.LanguageId));
 
         var duplicateProduct = dtos.GroupBy(x => x.ProductId).FirstOrDefault(x => x.Count() > 1);
         if (duplicateProduct is not null)
             return Result.Failure<List<OpeningInventoryProduct>>(
-                OpeningInventoryErrors.DuplicateProduct(duplicateProduct.Key));
+                OpeningInventoryErrors.DuplicateProduct(duplicateProduct.Key, _userContext.LanguageId));
 
         var productIds = dtos.Select(x => x.ProductId).Distinct().ToList();
         var unitIds = dtos.Select(x => x.UnitId).Distinct().ToList();
@@ -506,30 +506,30 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         {
             if (!productById.TryGetValue(dto.ProductId, out var product))
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.ReferenceNotFound("Product", dto.ProductId));
+                    OpeningInventoryErrors.ReferenceNotFound("Product", dto.ProductId, _userContext.LanguageId));
             if (!foundUnitIds.Contains(dto.UnitId))
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.ReferenceNotFound("Unit", dto.UnitId));
+                    OpeningInventoryErrors.ReferenceNotFound("Unit", dto.UnitId, _userContext.LanguageId));
             if (!foundAccountIds.Contains(dto.DebitAccountId))
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.ChartAccountNotFound(dto.DebitAccountId));
+                    OpeningInventoryErrors.ChartAccountNotFound(dto.DebitAccountId, _userContext.LanguageId));
             if (dto.Quantity <= 0m)
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.InvalidQuantity(dto.ProductId, dto.Quantity));
+                    OpeningInventoryErrors.InvalidQuantity(dto.ProductId, dto.Quantity, _userContext.LanguageId));
             if (dto.UnitPrice < 0m)
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.InvalidUnitPrice(dto.ProductId, dto.UnitPrice));
+                    OpeningInventoryErrors.InvalidUnitPrice(dto.ProductId, dto.UnitPrice, _userContext.LanguageId));
 
             var calculatedAmount = dto.Quantity * dto.UnitPrice;
             if (dto.Amount != calculatedAmount)
                 return Result.Failure<List<OpeningInventoryProduct>>(
-                    OpeningInventoryErrors.InvalidAmount(dto.ProductId, calculatedAmount, dto.Amount));
+                    OpeningInventoryErrors.InvalidAmount(dto.ProductId, calculatedAmount, dto.Amount, _userContext.LanguageId));
 
             if (product.IsService || !product.IsPieceTracked)
             {
                 if (dto.Items.Count > 0)
                     return Result.Failure<List<OpeningInventoryProduct>>(
-                        OpeningInventoryErrors.ItemsNotAllowed(dto.ProductId));
+                        OpeningInventoryErrors.ItemsNotAllowed(dto.ProductId, _userContext.LanguageId));
             }
             else
             {
@@ -537,21 +537,21 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
                     dto.Quantity != dto.Items.Count)
                     return Result.Failure<List<OpeningInventoryProduct>>(
                         OpeningInventoryErrors.ItemsQuantityMismatch(
-                            dto.ProductId, dto.Quantity, dto.Items.Count));
+                            dto.ProductId, dto.Quantity, dto.Items.Count, _userContext.LanguageId));
 
                 if (dto.Items.Count == 0)
                     return Result.Failure<List<OpeningInventoryProduct>>(
-                        OpeningInventoryErrors.ItemsRequired(dto.ProductId));
+                        OpeningInventoryErrors.ItemsRequired(dto.ProductId, _userContext.LanguageId));
 
                 foreach (var item in dto.Items)
                 {
                     if (string.IsNullOrWhiteSpace(item.MarkingNumber))
                         return Result.Failure<List<OpeningInventoryProduct>>(
-                            OpeningInventoryErrors.MarkingNumberRequired(dto.ProductId));
+                            OpeningInventoryErrors.MarkingNumberRequired(dto.ProductId, _userContext.LanguageId));
                     var markingNumber = item.MarkingNumber.Trim();
                     if (!markingNumbers.Add(markingNumber))
                         return Result.Failure<List<OpeningInventoryProduct>>(
-                            OpeningInventoryErrors.DuplicateMarkingNumber(markingNumber));
+                            OpeningInventoryErrors.DuplicateMarkingNumber(markingNumber, _userContext.LanguageId));
                 }
             }
 
@@ -583,7 +583,7 @@ public partial class OpeningInventoryService : BaseService, IOpeningInventorySer
         var calculatedTotal = lines.Sum(x => x.Amount);
         return calculatedTotal != suppliedTotal
             ? Result.Failure<List<OpeningInventoryProduct>>(
-                OpeningInventoryErrors.InvalidTotal(calculatedTotal, suppliedTotal))
+                OpeningInventoryErrors.InvalidTotal(calculatedTotal, suppliedTotal, _userContext.LanguageId))
             : Result.Success(lines);
     }
 

@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Abstractions.Integration;
 using Application.Features.Cmn.CurrencyRates;
 using Domain.Entities;
@@ -21,6 +22,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
     private readonly CentralBankOptions _settings;
     private readonly ILogger<CurrencyRateImportService> _logger;
     private readonly IQueryBuilder _queryBuilder;
+    private readonly IUserContext _userContext;
     private CurrencyRateImportResultDto? _lastStatus;
 
     public CurrencyRateImportService(
@@ -31,6 +33,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         IEnumerable<ICurrencyRateProvider> providers,
         IOptions<CentralBankOptions> settings,
         IQueryBuilder queryBuilder,
+        IUserContext userContext,
         ILogger<CurrencyRateImportService> logger)
     {
         _currencyQuery = currencyQuery;
@@ -41,6 +44,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         _settings = settings.Value;
         _logger = logger;
         _queryBuilder = queryBuilder;
+        _userContext = userContext;
     }
 
     public Task<Result<IReadOnlyCollection<CurrencyRateProviderInfoDto>>> GetProvidersAsync(CancellationToken ct = default)
@@ -69,7 +73,7 @@ public sealed class CurrencyRateImportService : ICurrencyRateImportService
         {
             var provider = ResolveProvider(providerCode);
             if (provider is null)
-                return Result.Failure<CurrencyRateImportResultDto>(Error.NotFound("CurrencyRate.ProviderNotFound", "Requested currency rate provider was not found."));
+                return Result.Failure<CurrencyRateImportResultDto>(CurrencyRateErrors.ProviderNotFound(_userContext.LanguageId));
 
             var items = date is null
                 ? await provider.GetLatestAsync(ct)

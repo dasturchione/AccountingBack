@@ -9,7 +9,8 @@ public static class BankErrors
         Error.NotFound("Bank.NotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan bank topilmadi.",
-            LanguageIdConst.RU => $"Bank with id {id} was not found.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган банк топилмади.",
+            LanguageIdConst.RU => $"Банк с id {id} не найден.",
             _ => $"Bank with id {id} was not found."
         });
 
@@ -17,7 +18,8 @@ public static class BankErrors
         Error.NotFound("BankBranch.NotFound", languageId switch
         {
             LanguageIdConst.UZ => $"MFOsi '{mfo}' bo'lgan bank filiali topilmadi.",
-            LanguageIdConst.RU => $"Bank branch with MFO '{mfo}' was not found.",
+            LanguageIdConst.UZ_CYRL => $"МФОси '{mfo}' бўлган банк филиали топилмади.",
+            LanguageIdConst.RU => $"Филиал банка с МФО '{mfo}' не найден.",
             _ => $"Bank branch with MFO '{mfo}' was not found."
         });
 }

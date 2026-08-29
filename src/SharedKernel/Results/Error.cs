@@ -33,6 +33,8 @@
 
         public static Error Forbidden(string code, string description) => new(code, description, ErrorType.Forbidden);
 
+        public static Error Validation(string code, string description) => new(code, description, ErrorType.Validation);
+
         public static Error Business(string code, string description) => new(code, description, ErrorType.Business);
 
         public static Error Problem(string code, string description) => new(code, description, ErrorType.Problem);

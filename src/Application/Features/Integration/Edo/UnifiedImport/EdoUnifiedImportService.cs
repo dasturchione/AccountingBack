@@ -45,9 +45,7 @@ public sealed class EdoUnifiedImportService(
         var organizationId = CurrentOrganization();
         var provider = await providerResolver.GetActiveProviderAsync(ct);
         if (!string.Equals(provider.Code.ToString(), Edocs, StringComparison.OrdinalIgnoreCase))
-            return Result.Failure<EdoUnifiedImportPlanDto>(Error.Business(
-                "EDO_UNIFIED_ACTIVE_PROVIDER_REQUIRED",
-                "The active EDO provider for unified import must be EDOCS."));
+            return Result.Failure<EdoUnifiedImportPlanDto>(EdoUnifiedImportErrors.ActiveProviderRequired(userContext.LanguageId));
 
         var selectedIds = EdoUnifiedImportPlanRules.NormalizeSelection(providerDocumentIds);
         var documents = await ReadAllDocumentsAsync(ct);
@@ -115,14 +113,11 @@ public sealed class EdoUnifiedImportService(
     {
         var organizationId = CurrentOrganization();
         if (!request.Confirm)
-            return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Business(
-                "EDO_UNIFIED_CONFIRM_REQUIRED", "Explicit confirmation is required."));
+            return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.ConfirmationRequired(userContext.LanguageId));
         if (!IsSha256(request.ExpectedPlanHash))
-            return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Conflict(
-                "EDO_UNIFIED_PLAN_HASH_INVALID", "A valid plan hash is required."));
+            return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.InvalidPlanHash(userContext.LanguageId));
         if (request.Items.Count == 0 || request.Items.Count > 100)
-            return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Business(
-                "EDO_UNIFIED_ITEMS_INVALID", "The batch must contain between one and one hundred documents."));
+            return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.InvalidItems(userContext.LanguageId));
 
         var currentPlanResult = await GetPlanAsync(
             request.Items.Select(x => x.ProviderDocumentId).ToArray(),
@@ -132,8 +127,7 @@ public sealed class EdoUnifiedImportService(
         if (!currentPlanResult.IsSuccess)
             return Result.Failure<EdoUnifiedImportApplyResponseDto>(currentPlanResult.Error);
         if (!string.Equals(request.ExpectedPlanHash, currentPlanResult.Value.PlanHash, StringComparison.OrdinalIgnoreCase))
-            return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Conflict(
-                "EDO_UNIFIED_STALE_PLAN", "The unified EDO import plan is stale."));
+            return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.StalePlan(userContext.LanguageId));
 
         var idempotencyKey = EdoUnifiedImportIdempotency.Compute(organizationId, request);
         var existingBatch = await batchStore.FindByIdempotencyKeyAsync(organizationId, idempotencyKey, ct);
@@ -149,8 +143,7 @@ public sealed class EdoUnifiedImportService(
             if (!planById.TryGetValue(item.ProviderDocumentId, out var planItem) ||
                 !string.Equals(item.Direction, planItem.Direction, StringComparison.OrdinalIgnoreCase)
                 || EdoUnifiedImportPlanRules.NormalizeDocumentType(item.DocumentType) != planItem.DocumentType)
-                return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Business(
-                    "EDO_UNIFIED_DOCUMENT_NOT_IN_PLAN", "The document is not part of the current organization plan."));
+                return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.DocumentNotInPlan(userContext.LanguageId));
 
         }
 
@@ -216,8 +209,7 @@ public sealed class EdoUnifiedImportService(
                     racedBatch,
                     await batchStore.GetBatchDocumentsAsync(organizationId, racedBatch.Id, ct)));
             logger.LogWarning("Unified EDO batch initialization failed with a controlled error.");
-            return Result.Failure<EdoUnifiedImportApplyResponseDto>(Error.Conflict(
-                "EDO_UNIFIED_BATCH_INITIALIZATION_FAILED", "The unified EDO batch could not be initialized."));
+            return Result.Failure<EdoUnifiedImportApplyResponseDto>(EdoUnifiedImportErrors.BatchInitializationFailed(userContext.LanguageId));
         }
 
         foreach (var requestItem in request.Items.OrderBy(x => x.ProviderDocumentId, StringComparer.Ordinal))
@@ -240,8 +232,7 @@ public sealed class EdoUnifiedImportService(
         var organizationId = CurrentOrganization();
         var batch = await batchStore.GetBatchAsync(organizationId, batchId, ct);
         return batch is null
-            ? Result.Failure<EdoUnifiedImportBatchDto>(Error.NotFound(
-                "EDO_UNIFIED_BATCH_NOT_FOUND", "The unified EDO import batch was not found."))
+            ? Result.Failure<EdoUnifiedImportBatchDto>(EdoUnifiedImportErrors.BatchNotFound(languageId: userContext.LanguageId))
             : Result.Success(ToBatchDto(batch, batch.Documents));
     }
 
@@ -250,13 +241,11 @@ public sealed class EdoUnifiedImportService(
         var organizationId = CurrentOrganization();
         var provider = await providerResolver.GetActiveProviderAsync(ct);
         if (provider.Code.ToString() != Edocs)
-            return Result.Failure<EdoUnifiedImportBatchDto>(Error.Business(
-                "EDO_UNIFIED_ACTIVE_PROVIDER_REQUIRED", "The active EDO provider for unified import must be EDOCS."));
+            return Result.Failure<EdoUnifiedImportBatchDto>(EdoUnifiedImportErrors.ActiveProviderRequired(userContext.LanguageId));
 
         var batch = await batchStore.GetLatestBatchAsync(organizationId, ct);
         if (batch is null)
-            return Result.Failure<EdoUnifiedImportBatchDto>(Error.NotFound(
-                "EDO_UNIFIED_BATCH_NOT_FOUND", "No unified EDO import batch was found."));
+            return Result.Failure<EdoUnifiedImportBatchDto>(EdoUnifiedImportErrors.BatchNotFound(latest: true, languageId: userContext.LanguageId));
 
         await unitOfWork.BeginAsync(ct);
         try
@@ -274,11 +263,15 @@ public sealed class EdoUnifiedImportService(
             await unitOfWork.SaveChangesAsync(ct);
             await unitOfWork.CommitAsync(ct);
         }
+        catch (OperationCanceledException)
+        {
+            await unitOfWork.RollbackAsync(CancellationToken.None);
+            throw;
+        }
         catch
         {
             await unitOfWork.RollbackAsync(ct);
-            return Result.Failure<EdoUnifiedImportBatchDto>(Error.Problem(
-                "EDO_UNIFIED_STATUS_REFRESH_FAILED", "The unified EDO status refresh failed safely."));
+            return Result.Failure<EdoUnifiedImportBatchDto>(EdoUnifiedImportErrors.StatusRefreshFailed(userContext.LanguageId));
         }
 
         return Result.Success(ToBatchDto(batch, batch.Documents));

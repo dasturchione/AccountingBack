@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Application.Features.PurchaseDocs;
 using Application.Features.Reports.Exports;
 using Application.Features.SaleDocs;
@@ -10,6 +11,7 @@ public sealed class DocumentPdfService(
     IPurchaseDocService purchaseDocService,
     ISaleDocService saleDocService,
     IPdfExporter pdfExporter,
+    IUserContext userContext,
     ILogger<DocumentPdfService> logger) : IDocumentPdfService
 {
     private static readonly IReadOnlyCollection<ReportExportColumn> Columns =
@@ -109,9 +111,7 @@ public sealed class DocumentPdfService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Document PDF rendering failed for document {DocumentId}.", id);
-            return Result.Failure<ReportExportResult>(Error.Business(
-                "DOCUMENT_PDF_RENDER_FAILED",
-                "The document PDF could not be generated."));
+            return Result.Failure<ReportExportResult>(DocumentPdfErrors.RenderFailed(userContext.LanguageId));
         }
     }
 

@@ -1,9 +1,19 @@
+using SharedKernel.Constants;
 using SharedKernel.Results;
 
 namespace Application.Features.Cmn.CurrencyRates;
 
 public static class CurrencyRateErrors
 {
+    public static Error ProviderNotFound(short? languageId = null) =>
+        Error.NotFound("CurrencyRate.ProviderNotFound", languageId switch
+        {
+            LanguageIdConst.UZ => "So'ralgan valyuta kursi provayderi topilmadi.",
+            LanguageIdConst.UZ_CYRL => "Сўралган валюта курси провайдери топилмади.",
+            LanguageIdConst.RU => "Запрошенный провайдер валютных курсов не найден.",
+            _ => "Requested currency rate provider was not found."
+        });
+
     public static Error NotFound(long id, short languageId) =>
         Error.NotFound("CurrencyRate.NotFound", $"Currency rate with id '{id}' not found.");
 

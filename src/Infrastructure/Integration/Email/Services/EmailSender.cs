@@ -1,4 +1,6 @@
 using Application.Abstractions.Integration;
+using Application.Abstractions.Authentication;
+using Application.Features.Notifications;
 using Integration.Email.Configs;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -13,17 +15,19 @@ public sealed class EmailSender : IEmailSender
 {
     private readonly EmailOptions _settings;
     private readonly ILogger<EmailSender> _logger;
+    private readonly IUserContext _userContext;
 
-    public EmailSender(IOptions<EmailOptions> options, ILogger<EmailSender> logger)
+    public EmailSender(IOptions<EmailOptions> options, ILogger<EmailSender> logger, IUserContext userContext)
     {
         _settings = options.Value;
         _logger = logger;
+        _userContext = userContext;
     }
 
     public async Task<Result> SendAsync(EmailMessage message, CancellationToken ct = default)
     {
         if (message.To is null || message.To.Count == 0)
-            return Result.Failure(Error.Problem("Email.NoRecipient", "At least one recipient is required."));
+            return Result.Failure(EmailErrors.NoRecipient(_userContext.LanguageId));
 
         MimeMessage mime;
         try
@@ -33,7 +37,7 @@ public sealed class EmailSender : IEmailSender
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to build email message (subject: {Subject})", message.Subject);
-            return Result.Failure(Error.Problem("Email.BuildFailed", ex.Message));
+            return Result.Failure(EmailErrors.BuildFailed(_userContext.LanguageId));
         }
 
         return await SendWithRetryAsync(mime, message.Subject, ct);
@@ -72,7 +76,7 @@ public sealed class EmailSender : IEmailSender
     {
         var attempts = Math.Max(1, _settings.MaxRetries);
         var delay = TimeSpan.FromMilliseconds(300);
-        var lastError = Error.Problem("Email.SendFailed", "Email could not be sent.");
+        var lastError = EmailErrors.SendFailed(_userContext.LanguageId);
 
         for (var attempt = 1; attempt <= attempts; attempt++)
         {
@@ -106,7 +110,7 @@ public sealed class EmailSender : IEmailSender
             }
             catch (Exception ex)
             {
-                lastError = Error.Problem("Email.SendFailed", ex.Message);
+                lastError = EmailErrors.SendFailed(_userContext.LanguageId);
                 _logger.LogWarning(ex, "Email send attempt {Attempt}/{Attempts} failed", attempt, attempts);
 
                 if (attempt < attempts)

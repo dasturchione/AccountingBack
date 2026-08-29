@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -8,14 +9,17 @@ namespace Application.Features.MoneyRegisterBalances;
 
 public class SaleMoneyRegisterService : ISaleMoneyRegisterService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
 
-    public SaleMoneyRegisterService(IQueryBuilder queryBuilder,
+    public SaleMoneyRegisterService(IUserContext userContext,
+                                    IQueryBuilder queryBuilder,
                                     IQueryRepository<MoneyRegisterBalance> query,
                                     ICommandRepository<MoneyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _query = query;
         _command = command;
@@ -49,7 +53,7 @@ public class SaleMoneyRegisterService : ISaleMoneyRegisterService
     {
         var originalEntries = await GetOriginalEntriesAsync(sale.Id, ct);
         if (originalEntries.Count == 0)
-            return Result.Failure<List<MoneyRegisterBalance>>(MoneyRegisterBalanceErrors.MissingOriginalEntries(sale.Id));
+            return Result.Failure<List<MoneyRegisterBalance>>(MoneyRegisterBalanceErrors.MissingOriginalEntries(sale.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
 

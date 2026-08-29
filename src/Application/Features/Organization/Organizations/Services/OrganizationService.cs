@@ -19,6 +19,7 @@ public class OrganizationService : BaseService, IOrganizationService
     private readonly ICommandRepository<Organization> _orgCommand;
     private readonly IFakturaService _fakturaService;
     private readonly IOrganizationManagementCore _organizationManagementCore;
+    private readonly ILogger<OrganizationService> _logger;
 
     public OrganizationService(IUserContext userContext,
                                IQueryBuilder queryBuilder,
@@ -36,6 +37,7 @@ public class OrganizationService : BaseService, IOrganizationService
         _queryBuilder = queryBuilder;
         _fakturaService = fakturaService;
         _organizationManagementCore = organizationManagementCore;
+        _logger = logger;
     }
 
     public Task<Result<CompanyBasicDetailsDto>> GetByInnAsync(string companyInn, CancellationToken ct = default) =>
@@ -48,8 +50,9 @@ public class OrganizationService : BaseService, IOrganizationService
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to retrieve organization details by INN {Inn}", companyInn);
                 return Result.Failure<CompanyBasicDetailsDto>(
-                    Error.Problem("Organization.InnLookupFailed", ex.Message));
+                    OrganizationErrors.InnLookupFailed(_userContext.LanguageId));
             }
         });
 

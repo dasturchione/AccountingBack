@@ -1,4 +1,6 @@
 using Application.Abstractions.Barcode;
+using Application.Abstractions.Authentication;
+using Application.Features.Barcode;
 using Microsoft.Extensions.Logging;
 using QRCoder;
 using SharedKernel.Results;
@@ -17,16 +19,18 @@ namespace Infrastructure.Services.Barcode;
 public sealed class BarcodeGenerator : IBarcodeGenerator
 {
     private readonly ILogger<BarcodeGenerator> _logger;
+    private readonly IUserContext _userContext;
 
-    public BarcodeGenerator(ILogger<BarcodeGenerator> logger)
+    public BarcodeGenerator(ILogger<BarcodeGenerator> logger, IUserContext userContext)
     {
         _logger = logger;
+        _userContext = userContext;
     }
 
     public Result<byte[]> GenerateQr(string content, int pixelsPerModule = 20)
     {
         if (string.IsNullOrWhiteSpace(content))
-            return Result.Failure<byte[]>(new Error("Barcode.EmptyContent", "QR content bo'sh bo'lishi mumkin emas.", ErrorType.Validation));
+            return Result.Failure<byte[]>(BarcodeErrors.EmptyContent(_userContext.LanguageId));
 
         var ppm = pixelsPerModule < 1 ? 1 : pixelsPerModule;
 
@@ -40,14 +44,14 @@ public sealed class BarcodeGenerator : IBarcodeGenerator
         catch (Exception ex)
         {
             _logger.LogError(ex, "QR generatsiyasi muvaffaqiyatsiz");
-            return Result.Failure<byte[]>(Error.Problem("Barcode.GenerationFailed", ex.Message));
+            return Result.Failure<byte[]>(BarcodeErrors.GenerationFailed(_userContext.LanguageId));
         }
     }
 
     public Result<byte[]> GenerateBarcode(string content, BarcodeFormat format = BarcodeFormat.Code128)
     {
         if (string.IsNullOrWhiteSpace(content))
-            return Result.Failure<byte[]>(new Error("Barcode.EmptyContent", "Barcode content bo'sh bo'lishi mumkin emas.", ErrorType.Validation));
+            return Result.Failure<byte[]>(BarcodeErrors.EmptyContent(_userContext.LanguageId));
 
         ZXing.BarcodeFormat zxingFormat;
         switch (format)
@@ -57,13 +61,13 @@ public sealed class BarcodeGenerator : IBarcodeGenerator
                 break;
             case BarcodeFormat.Ean13:
                 if (!IsValidEan13(content))
-                    return Result.Failure<byte[]>(new Error("Barcode.InvalidEan13", "EAN13 uchun 12 yoki 13 ta raqam kerak.", ErrorType.Validation));
+                    return Result.Failure<byte[]>(BarcodeErrors.InvalidEan13(_userContext.LanguageId));
                 zxingFormat = ZXing.BarcodeFormat.EAN_13;
                 break;
             case BarcodeFormat.QrCode:
-                return Result.Failure<byte[]>(new Error("Barcode.UseQrMethod", "QR kod uchun GenerateQr() metodidan foydalaning.", ErrorType.Validation));
+                return Result.Failure<byte[]>(BarcodeErrors.UseQrMethod(_userContext.LanguageId));
             default:
-                return Result.Failure<byte[]>(new Error("Barcode.UnsupportedFormat", $"Qo'llab-quvvatlanmaydigan format: {format}.", ErrorType.Validation));
+                return Result.Failure<byte[]>(BarcodeErrors.UnsupportedFormat(format.ToString(), _userContext.LanguageId));
         }
 
         try
@@ -85,7 +89,7 @@ public sealed class BarcodeGenerator : IBarcodeGenerator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Barcode generatsiyasi muvaffaqiyatsiz (format: {Format})", format);
-            return Result.Failure<byte[]>(Error.Problem("Barcode.GenerationFailed", ex.Message));
+            return Result.Failure<byte[]>(BarcodeErrors.GenerationFailed(_userContext.LanguageId));
         }
     }
 

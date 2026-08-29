@@ -59,7 +59,7 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         {
             var dto = await GetDtoAsync(id, ct);
             return dto is null
-                ? Result.Failure<CashCollectionDto>(CashCollectionErrors.NotFound(id))
+                ? Result.Failure<CashCollectionDto>(CashCollectionErrors.NotFound(id, _userContext.LanguageId))
                 : Result.Success(dto);
         });
 
@@ -132,9 +132,9 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         {
             var entity = await GetEntityAsync(id, ct);
             if (entity is null)
-                return Result.Failure(CashCollectionErrors.NotFound(id));
+                return Result.Failure(CashCollectionErrors.NotFound(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashCollectionErrors.InvalidStatus(id, entity.StatusId));
+                return Result.Failure(CashCollectionErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
 
             var old = await GetDtoAsync(id, ct);
             if (old is not null)
@@ -158,9 +158,9 @@ public sealed class CashCollectionService : BaseService, ICashCollectionService
         {
             var entity = await GetEntityAsync(id, ct);
             if (entity is null)
-                return Result.Failure(CashCollectionErrors.NotFound(id));
+                return Result.Failure(CashCollectionErrors.NotFound(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashCollectionErrors.InvalidStatus(id, entity.StatusId));
+                return Result.Failure(CashCollectionErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
 
             entity.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(entity, ct);

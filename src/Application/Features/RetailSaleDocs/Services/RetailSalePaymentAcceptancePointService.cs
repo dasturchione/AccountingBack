@@ -54,13 +54,13 @@ public sealed class RetailSalePaymentAcceptancePointService : IRetailSalePayment
     {
         var registry = await GetRetailSaleRegistryAsync(document, ct);
         if (registry is null)
-            return Result.Failure(RetailSaleDocErrors.DocumentRegistryNotFound(document.Id));
+            return Result.Failure(RetailSaleDocErrors.DocumentRegistryNotFound(document.Id, _userContext.LanguageId));
 
         if (await _operationQuery.AnyAsync(x =>
                 x.RelatedDocumentId == registry.Id &&
                 x.StateId == StateIdConst.ACTIVE,
                 ct))
-            return Result.Failure(RetailSaleDocErrors.PaymentOperationsAlreadyExist(document.Id));
+            return Result.Failure(RetailSaleDocErrors.PaymentOperationsAlreadyExist(document.Id, _userContext.LanguageId));
 
         var methodIds = document.RetailSaleDocPayments
             .Select(x => x.PaymentMethodId)
@@ -73,14 +73,15 @@ public sealed class RetailSalePaymentAcceptancePointService : IRetailSalePayment
             ct);
         var methodCodes = methods.ToDictionary(x => x.Id, x => x.Code);
         if (methodCodes.Count != methodIds.Count)
-            return Result.Failure(RetailSaleDocErrors.InvalidPayment());
+            return Result.Failure(RetailSaleDocErrors.InvalidPayment(_userContext.LanguageId));
 
         var plannedPayments = new List<PlannedPayment>();
         foreach (var payment in document.RetailSaleDocPayments)
         {
             var plan = RetailSalePaymentAcceptancePointPolicy.Build(
                 methodCodes[payment.PaymentMethodId],
-                payment.PaymentAcceptancePointId);
+                payment.PaymentAcceptancePointId,
+                _userContext.LanguageId);
             if (!plan.IsSuccess)
                 return Result.Failure(plan.Error);
 
@@ -145,7 +146,7 @@ public sealed class RetailSalePaymentAcceptancePointService : IRetailSalePayment
     {
         var registry = await GetRetailSaleRegistryAsync(document, ct);
         if (registry is null)
-            return Result.Failure(RetailSaleDocErrors.DocumentRegistryNotFound(document.Id));
+            return Result.Failure(RetailSaleDocErrors.DocumentRegistryNotFound(document.Id, _userContext.LanguageId));
 
         var operations = await _operationQuery.GetAllAsync(
             _queryBuilder.For<PaymentAcceptancePointOperation>()
@@ -178,7 +179,7 @@ public sealed class RetailSalePaymentAcceptancePointService : IRetailSalePayment
                 ct);
             var balanceAfterReversal = balance - group.Sum(x => x.DirectionId * x.Amount);
             if (balanceAfterReversal < 0m)
-                return Result.Failure(RetailSaleDocErrors.InsufficientPaymentPointBalance(balance, balanceAfterReversal));
+                return Result.Failure(RetailSaleDocErrors.InsufficientPaymentPointBalance(balance, balanceAfterReversal, _userContext.LanguageId));
         }
 
         foreach (var operation in operations
@@ -189,7 +190,7 @@ public sealed class RetailSalePaymentAcceptancePointService : IRetailSalePayment
             {
                 var activeBatch = await GetActiveBatchAsync(operation.Id, ct);
                 if (activeBatch is null)
-                    return Result.Failure(RetailSaleDocErrors.MissingPaymentOperationBatch(operation.Id));
+                    return Result.Failure(RetailSaleDocErrors.MissingPaymentOperationBatch(operation.Id, _userContext.LanguageId));
 
                 var reversalBatch = await CreateBatchAsync(
                     operation,

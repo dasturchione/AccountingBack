@@ -5,6 +5,24 @@ namespace Application.Features.FaReceipts;
 
 public static class FaReceiptErrors
 {
+    public static Error VatAccountRequired(short? languageId = null) =>
+        Error.Business("FaReceipt.VatAccountRequired", languageId switch
+        {
+            LanguageIdConst.UZ => "Qatorda QQS mavjud bo'lsa, QQS hisobvarag'i ko'rsatilishi kerak.",
+            LanguageIdConst.UZ_CYRL => "Қаторда ҚҚС мавжуд бўлса, ҚҚС ҳисобварағи кўрсатилиши керак.",
+            LanguageIdConst.RU => "Если в строке есть НДС, необходимо указать счёт НДС.",
+            _ => "VAT account is required when the receipt line has VAT."
+        });
+
+    public static Error PostedDependenciesExist(short? languageId = null) =>
+        Error.Conflict("FaReceipt.PostedDependenciesExist", languageId switch
+        {
+            LanguageIdConst.UZ => "Qabul hujjatini bekor qilib bo'lmaydi: unga bog'liq o'tkazilgan asosiy vosita hujjatlari mavjud.",
+            LanguageIdConst.UZ_CYRL => "Қабул ҳужжатини бекор қилиб бўлмайди: унга боғлиқ ўтказилган асосий восита ҳужжатлари мавжуд.",
+            LanguageIdConst.RU => "Нельзя отменить поступление: существуют проведённые зависимые документы основных средств.",
+            _ => "The receipt cannot be cancelled because posted dependent fixed-asset documents exist."
+        });
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("FaReceipt.NotFound", languageId switch
         {

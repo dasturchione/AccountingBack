@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -9,6 +10,7 @@ namespace Application.Features.InventoryMovements;
 
 public class InventoryDispatcher : IInventoryDispatcher
 {
+    private readonly IUserContext _userContext;
     private readonly IInventoryDocumentHandler<PurchaseDoc> _purchaseHandler;
     private readonly IInventoryDocumentHandler<SaleDoc> _saleHandler;
     private readonly IInventoryDocumentHandler<RetailSaleDoc> _retailSaleHandler;
@@ -19,7 +21,8 @@ public class InventoryDispatcher : IInventoryDispatcher
     private readonly IQueryRepository<WarehouseProductMovement> _movementQuery;
     private readonly IWarehouseProductBalanceService _warehouseProductBalanceService;
 
-    public InventoryDispatcher(IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
+    public InventoryDispatcher(IUserContext userContext,
+                               IInventoryDocumentHandler<PurchaseDoc> purchaseHandler,
                                IInventoryDocumentHandler<SaleDoc> saleHandler,
                                IInventoryDocumentHandler<RetailSaleDoc> retailSaleHandler,
                                IInventoryDocumentHandler<WarehouseTransferDoc> warehouseTransferHandler,
@@ -29,6 +32,7 @@ public class InventoryDispatcher : IInventoryDispatcher
                                IQueryRepository<WarehouseProductMovement> movementQuery,
                                IWarehouseProductBalanceService warehouseProductBalanceService)
     {
+        _userContext = userContext;
         _purchaseHandler = purchaseHandler;
         _saleHandler = saleHandler;
         _retailSaleHandler = retailSaleHandler;
@@ -98,7 +102,7 @@ public class InventoryDispatcher : IInventoryDispatcher
                 originalMovement.Quantity != group.Sum(entry => entry.Quantity))
             {
                 return Result.Failure(
-                    InventoryMovementErrors.OriginalMovementsNotFound(first.DocumentTypeId, first.DocumentId));
+                    InventoryMovementErrors.OriginalMovementsNotFound(first.DocumentTypeId, first.DocumentId, _userContext.LanguageId));
             }
 
             foreach (var entry in group)
@@ -126,7 +130,7 @@ public class InventoryDispatcher : IInventoryDispatcher
             WarehouseTransferDoc transfer => _warehouseTransferHandler.HandleAsync(transfer, ct),
             InventoryAdjustmentDoc adjustment => _inventoryAdjustmentHandler.HandleAsync(adjustment, ct),
             OpeningInventory openingInventory => _openingInventoryHandler.HandleAsync(openingInventory, ct),
-            _ => Task.FromResult(Result.Failure<List<InventoryMovementEntry>>(InventoryMovementErrors.UnsupportedDocumentType()))
+            _ => Task.FromResult(Result.Failure<List<InventoryMovementEntry>>(InventoryMovementErrors.UnsupportedDocumentType(_userContext.LanguageId)))
         };
 
     private static MovementKey ToMovementKey(InventoryMovementEntry entry) =>

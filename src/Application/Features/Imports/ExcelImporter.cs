@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Application.Abstractions.Import;
 using ClosedXML.Excel;
 using Microsoft.Extensions.Logging;
@@ -15,10 +16,12 @@ namespace Application.Features.Imports;
 public sealed class ExcelImporter : IExcelImporter
 {
     private readonly ILogger<ExcelImporter> _logger;
+    private readonly IUserContext _userContext;
 
-    public ExcelImporter(ILogger<ExcelImporter> logger)
+    public ExcelImporter(ILogger<ExcelImporter> logger, IUserContext userContext)
     {
         _logger = logger;
+        _userContext = userContext;
     }
 
     public Task<Result<List<Dictionary<string, string>>>> ImportRawAsync(Stream fileStream, ExcelImportOptions options, CancellationToken ct = default)
@@ -56,7 +59,7 @@ public sealed class ExcelImporter : IExcelImporter
         if (!propertyColumns.Any(pc => headerSet.Contains(pc.Header)))
         {
             return Task.FromResult(Result.Failure<ExcelImportResult<T>>(
-                new Error("Import.NoMatchingColumns", "Faylда mos ustunlar topilmadi.", ErrorType.Validation)));
+                ImportErrors.NoMatchingColumns(_userContext.LanguageId)));
         }
 
         var result = new ExcelImportResult<T> { TotalDataRows = rows.Count };
@@ -95,22 +98,24 @@ public sealed class ExcelImporter : IExcelImporter
             buffer.Position = 0;
 
             if (buffer.Length == 0)
-                return Result.Failure<ReadData>(new Error("Import.EmptyFile", "Fayl bo'sh.", ErrorType.Validation));
+                return Result.Failure<ReadData>(ImportErrors.EmptyFile(_userContext.LanguageId));
 
             // .xlsx = ZIP ("PK" = 0x50 0x4B); aks holda CSV deb qaraladi.
             var isXlsx = buffer.Length > 2 && buffer.GetBuffer()[0] == 0x50 && buffer.GetBuffer()[1] == 0x4B;
             buffer.Position = 0;
 
-            return isXlsx ? ReadXlsx(buffer, options) : ReadCsv(buffer, options);
+            return isXlsx
+                ? ReadXlsx(buffer, options, _userContext.LanguageId)
+                : ReadCsv(buffer, options, _userContext.LanguageId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Import faylini o'qishда xato");
-            return Result.Failure<ReadData>(new Error("Import.ReadFailed", ex.Message, ErrorType.Validation));
+            return Result.Failure<ReadData>(ImportErrors.ReadFailed(_userContext.LanguageId));
         }
     }
 
-    private static Result<ReadData> ReadXlsx(Stream stream, ExcelImportOptions options)
+    private static Result<ReadData> ReadXlsx(Stream stream, ExcelImportOptions options, short? languageId)
     {
         using var workbook = new XLWorkbook(stream);
 
@@ -121,7 +126,7 @@ public sealed class ExcelImporter : IExcelImporter
         }
         else if (!workbook.Worksheets.TryGetWorksheet(options.SheetName, out worksheet!))
         {
-            return Result.Failure<ReadData>(new Error("Import.SheetNotFound", $"Varaq topilmadi: {options.SheetName}.", ErrorType.Validation));
+            return Result.Failure<ReadData>(ImportErrors.SheetNotFound(options.SheetName, languageId));
         }
 
         var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 0;
@@ -159,7 +164,7 @@ public sealed class ExcelImporter : IExcelImporter
         return Result.Success(new ReadData(headers.Where(h => !string.IsNullOrWhiteSpace(h)).ToList(), rows));
     }
 
-    private static Result<ReadData> ReadCsv(Stream stream, ExcelImportOptions options)
+    private static Result<ReadData> ReadCsv(Stream stream, ExcelImportOptions options, short? languageId)
     {
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var lines = new List<string>();
@@ -168,7 +173,7 @@ public sealed class ExcelImporter : IExcelImporter
             lines.Add(line);
 
         if (lines.Count < options.HeaderRow)
-            return Result.Failure<ReadData>(new Error("Import.NoHeader", "Sarlavha qatori topilmadi.", ErrorType.Validation));
+            return Result.Failure<ReadData>(ImportErrors.NoHeader(languageId));
 
         var headerLine = lines[options.HeaderRow - 1];
         var delimiter = DetectDelimiter(headerLine);

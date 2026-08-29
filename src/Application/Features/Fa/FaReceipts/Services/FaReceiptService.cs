@@ -387,9 +387,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             if (vatAmount > 0m && !lineDto.VatAccountId.HasValue)
             {
                 return Result.Failure<List<FaReceiptDocLine>>(
-                    Error.Business(
-                        "FaReceipt.VatAccountRequired",
-                        "VAT account is required when the receipt line has VAT."));
+                    FaReceiptErrors.VatAccountRequired(_userContext.LanguageId));
             }
 
             var assets = new List<FaReceiptDocAsset>();

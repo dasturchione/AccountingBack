@@ -112,7 +112,7 @@ public class BankOperationService : BaseService, IBankOperationService
 
                 if (entityResult.Value.Link?.CashCollection is { } cashCollection &&
                     !linkedCashCollections.Add(entityResult.Value.Link.Registry.Id))
-                    return Result.Failure<List<long>>(CashCollectionErrors.AlreadyLinked(cashCollection.Id));
+                    return Result.Failure<List<long>>(CashCollectionErrors.AlreadyLinked(cashCollection.Id, _userContext.LanguageId));
 
                 entities.Add(entityResult.Value.Entity);
             }

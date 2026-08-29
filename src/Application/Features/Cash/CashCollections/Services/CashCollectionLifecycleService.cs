@@ -77,15 +77,15 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
             await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, id, ct);
             var document = await GetDocumentAsync(id, ct);
             if (document is null)
-                return Result.Failure(CashCollectionErrors.NotFound(id));
+                return Result.Failure(CashCollectionErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
-                return Result.Failure(CashCollectionErrors.AlreadyCancelled(id));
+                return Result.Failure(CashCollectionErrors.AlreadyCancelled(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.IN_TRANSIT)
                 return await GetActiveBatchAsync(id, ct) is not null
                     ? Result.Success()
-                    : Result.Failure(CashCollectionErrors.MissingPostingBatch(id));
+                    : Result.Failure(CashCollectionErrors.MissingPostingBatch(id, _userContext.LanguageId));
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashCollectionErrors.InvalidStatus(id, document.StatusId));
+                return Result.Failure(CashCollectionErrors.InvalidStatus(id, document.StatusId, _userContext.LanguageId));
 
             var period = await _periodValidator.EnsureOpenAsync(document.OrganizationId, document.DocDate, ct);
             if (!period.IsSuccess)
@@ -103,10 +103,10 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
 
             var available = await _moneyService.GetCashBoxBalanceAsync(document.CashBoxId, document.DocDate, ct);
             if (available < document.Amount)
-                return Result.Failure(CashCollectionErrors.InsufficientBalance(available, document.Amount));
+                return Result.Failure(CashCollectionErrors.InsufficientBalance(available, document.Amount, _userContext.LanguageId));
 
             if (await GetActiveBatchAsync(id, ct) is not null || await HasEffectsAsync(id, ct))
-                return Result.Failure(CashCollectionErrors.BusinessEffectsAlreadyExist(id));
+                return Result.Failure(CashCollectionErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
 
             var batch = await CreateBatchAsync(document, PostingBatchStatusConst.POSTED, "Cash collection sent to bank", ct);
             var accounting = await _accountingDispatcher.ProcessAsync(document, ct, batch.Id);
@@ -138,7 +138,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
             await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHCOLLECTION, id, ct);
             var document = await GetDocumentAsync(id, ct);
             if (document is null)
-                return Result.Failure(CashCollectionErrors.NotFound(id));
+                return Result.Failure(CashCollectionErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
 
@@ -146,14 +146,14 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
                 document.Id,
                 excludedBankOperationId: null,
                 ct);
-            var linkValidation = CashCollectionBankLinkPolicy.ValidateCancellation(document, hasActiveBankOperation);
+            var linkValidation = CashCollectionBankLinkPolicy.ValidateCancellation(document, hasActiveBankOperation, _userContext.LanguageId);
             if (!linkValidation.IsSuccess)
                 return linkValidation;
 
             if (document.StatusId == DocumentStatusIdConst.COMPLETED)
-                return Result.Failure(CashCollectionErrors.CompletedBankOperationMustBeCancelled(id));
+                return Result.Failure(CashCollectionErrors.CompletedBankOperationMustBeCancelled(id, _userContext.LanguageId));
             if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.IN_TRANSIT))
-                return Result.Failure(CashCollectionErrors.InvalidStatus(id, document.StatusId));
+                return Result.Failure(CashCollectionErrors.InvalidStatus(id, document.StatusId, _userContext.LanguageId));
 
             var cancelledFromStatusId = document.StatusId;
             if (document.StatusId == DocumentStatusIdConst.IN_TRANSIT)
@@ -173,7 +173,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
 
                 var activeBatch = await GetActiveBatchAsync(id, ct);
                 if (activeBatch is null)
-                    return Result.Failure(CashCollectionErrors.MissingPostingBatch(id));
+                    return Result.Failure(CashCollectionErrors.MissingPostingBatch(id, _userContext.LanguageId));
 
                 var reversalBatch = await CreateBatchAsync(document, PostingBatchStatusConst.REVERSAL, "Cash collection cancelled", ct);
                 var accountingReverse = await ReverseAccountingAsync(id, reversalBatch.Id, ct);
@@ -205,25 +205,25 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
     private Result ValidateConfiguration(CashCollectionDoc document)
     {
         if (document.Amount <= 0m || document.ExchangeRate <= 0m)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Amount and exchange rate must be greater than zero."));
+            return Result.Failure(CashCollectionErrors.InvalidAmountOrRate(_userContext.LanguageId));
         if (document.CashBox.OrganizationId != document.OrganizationId || document.CashBox.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Cash box is inactive or belongs to another organization."));
+            return Result.Failure(CashCollectionErrors.CashBoxInvalid(_userContext.LanguageId));
         if (document.BankAccount.OrganizationId != document.OrganizationId || document.BankAccount.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Bank account is inactive or belongs to another organization."));
+            return Result.Failure(CashCollectionErrors.BankAccountInvalid(_userContext.LanguageId));
         if (document.CashBox.CurrencyId != document.CurrencyId || document.BankAccount.CurrencyId != document.CurrencyId)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Cash box, bank account, and document currencies must match."));
+            return Result.Failure(CashCollectionErrors.DocumentCurrenciesMismatch(_userContext.LanguageId));
         if (document.CashChartAccount is null || document.CashInTransitAccount is null || document.BankChartAccount is null ||
             document.CashChartAccountId == document.CashInTransitAccountId ||
             document.CashChartAccountId == document.BankChartAccountId ||
             document.CashInTransitAccountId == document.BankChartAccountId)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Three different accounting accounts are required."));
+            return Result.Failure(CashCollectionErrors.AccountsMustDiffer(_userContext.LanguageId));
         if (document.CashChartAccount.OrganizationId != document.OrganizationId ||
             document.CashInTransitAccount.OrganizationId != document.OrganizationId ||
             document.BankChartAccount.OrganizationId != document.OrganizationId ||
             document.CashChartAccount.StateId != StateIdConst.ACTIVE ||
             document.CashInTransitAccount.StateId != StateIdConst.ACTIVE ||
             document.BankChartAccount.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(CashCollectionErrors.InvalidConfiguration("Accounting accounts are inactive or belong to another organization."));
+            return Result.Failure(CashCollectionErrors.AccountsInvalid(_userContext.LanguageId));
 
         return Result.Success();
     }
@@ -282,7 +282,7 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         query.AddIncludes(x => x.Include(entry => entry.RegisterEntrySubkontos));
         var originals = await _accountingQuery.GetAllAsync(query, ct);
         if (originals.Count == 0)
-            return Result.Failure(CashCollectionErrors.MissingAccountingEntries(id));
+            return Result.Failure(CashCollectionErrors.MissingAccountingEntries(id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(x => new AccountingRegisterEntry

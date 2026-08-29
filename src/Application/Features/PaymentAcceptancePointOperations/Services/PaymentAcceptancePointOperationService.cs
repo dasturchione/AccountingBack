@@ -135,7 +135,7 @@ public sealed class PaymentAcceptancePointOperationService : BaseService, IPayme
             if (entity.OrganizationId != organizationId)
                 return Result.Failure(PaymentAcceptancePointOperationErrors.OrganizationMismatch(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, entity.StatusId, "updated"));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, entity.StatusId, "updated", _userContext.LanguageId));
 
             var validation = await ValidateReferencesAsync(dto, organizationId, ct);
             if (!validation.IsSuccess)
@@ -171,7 +171,7 @@ public sealed class PaymentAcceptancePointOperationService : BaseService, IPayme
             if (entity.OrganizationId != organizationId)
                 return Result.Failure(PaymentAcceptancePointOperationErrors.OrganizationMismatch(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, entity.StatusId, "deleted"));
+                return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidStatus(id, entity.StatusId, "deleted", _userContext.LanguageId));
 
             entity.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(entity, ct);
@@ -238,8 +238,8 @@ public sealed class PaymentAcceptancePointOperationService : BaseService, IPayme
         CancellationToken ct)
     {
         if (!MovementDirectionIdConst.IsValid(dto.DirectionId) || dto.Amount <= 0m || dto.ExchangeRate <= 0m)
-            return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidConfiguration(
-                "Direction must be IN or OUT; amount and exchange rate must be greater than zero."));
+            return Result.Failure(PaymentAcceptancePointOperationErrors.InvalidValues(
+                _userContext.LanguageId));
 
         if (!await _pointQuery.AnyAsync(x =>
                 x.Id == dto.PaymentAcceptancePointId &&

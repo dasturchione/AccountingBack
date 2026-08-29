@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.CashCollections;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,7 @@ public interface IBankOperationRelatedDocumentService
 
 public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedDocumentService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<DocumentRegistry> _documentRegistryQuery;
     private readonly IQueryRepository<CashCollectionDoc> _cashCollectionQuery;
@@ -57,12 +59,14 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
     private readonly IQueryRepository<BankOperationCategory> _categoryQuery;
 
     public BankOperationRelatedDocumentService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<DocumentRegistry> documentRegistryQuery,
         IQueryRepository<CashCollectionDoc> cashCollectionQuery,
         IQueryRepository<BankOperation> bankOperationQuery,
         IQueryRepository<BankOperationCategory> categoryQuery)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _documentRegistryQuery = documentRegistryQuery;
         _cashCollectionQuery = cashCollectionQuery;
@@ -87,9 +91,9 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
         var registry = await GetRegistryAsync(relatedDocumentId.Value, ct);
         if (registry is null)
             return Result.Failure<BankOperationRelatedDocumentLink?>(
-                BankOperationErrors.RelatedDocumentNotFound(relatedDocumentId.Value));
+                BankOperationErrors.RelatedDocumentNotFound(relatedDocumentId.Value, _userContext.LanguageId));
 
-        var registryValidation = BankOperationRelatedDocumentPolicy.Validate(registry, organizationId);
+        var registryValidation = BankOperationRelatedDocumentPolicy.Validate(registry, organizationId, _userContext.LanguageId);
         if (!registryValidation.IsSuccess)
             return Result.Failure<BankOperationRelatedDocumentLink?>(registryValidation.Error);
 
@@ -98,7 +102,7 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
 
         var document = await GetCashCollectionAsync(registry.DocumentId, ct);
         if (document is null)
-            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.NotFound(registry.DocumentId));
+            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.NotFound(registry.DocumentId, _userContext.LanguageId));
 
         var validation = CashCollectionBankLinkPolicy.Validate(
             document,
@@ -106,18 +110,19 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
             bankAccountId,
             directionId,
             currencyId,
-            amount);
+            amount,
+            _userContext.LanguageId);
         if (!validation.IsSuccess)
             return Result.Failure<BankOperationRelatedDocumentLink?>(validation.Error);
 
         if (await HasActiveLinkToRegistryAsync(registry.Id, currentBankOperationId, ct))
-            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.AlreadyLinked(document.Id));
+            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.AlreadyLinked(document.Id, _userContext.LanguageId));
 
         var category = await GetCategoryAsync(ct);
         if (category is null)
-            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.CategoryNotFound());
+            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.CategoryNotFound(_userContext.LanguageId));
         if (classificationCategoryId.HasValue && classificationCategoryId.Value != category.Id)
-            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.CategoryMismatch(classificationCategoryId.Value));
+            return Result.Failure<BankOperationRelatedDocumentLink?>(CashCollectionErrors.CategoryMismatch(classificationCategoryId.Value, _userContext.LanguageId));
 
         return Result.Success<BankOperationRelatedDocumentLink?>(new(registry, document, category.Id));
     }
@@ -137,13 +142,14 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
             operation.BankAccountId,
             operation.DirectionId,
             operation.CurrencyId,
-            operation.Amount);
+            operation.Amount,
+            _userContext.LanguageId);
         if (!validation.IsSuccess)
             return Result.Failure<CashCollectionDoc?>(validation.Error);
 
         var category = await GetCategoryAsync(ct);
         if (category is null)
-            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.CategoryNotFound());
+            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.CategoryNotFound(_userContext.LanguageId));
 
         if (operation.ClassificationCategoryId != category.Id ||
             operation.BankChartAccountId != document.BankChartAccountId ||
@@ -152,8 +158,8 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
             operation.CounterpartyBankAccountId.HasValue ||
             operation.ContractId.HasValue)
         {
-            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.InvalidConfiguration(
-                "Linked bank operation must use cash-collection category and the bank/cash-in-transit accounts without counterparty settlement references."));
+            return Result.Failure<CashCollectionDoc?>(
+                CashCollectionErrors.LinkedBankOperationInvalid(_userContext.LanguageId));
         }
 
         return Result.Success<CashCollectionDoc?>(document);
@@ -169,21 +175,21 @@ public sealed class BankOperationRelatedDocumentService : IBankOperationRelatedD
         var registry = await GetRegistryAsync(operation.RelatedDocumentId.Value, ct);
         if (registry is null)
             return Result.Failure<CashCollectionDoc?>(
-                BankOperationErrors.RelatedDocumentNotFound(operation.RelatedDocumentId.Value));
+                BankOperationErrors.RelatedDocumentNotFound(operation.RelatedDocumentId.Value, _userContext.LanguageId));
 
         if (registry.OrganizationId != operation.OrganizationId)
             return Result.Failure<CashCollectionDoc?>(
-                BankOperationErrors.RelatedDocumentOrganizationMismatch(registry.Id));
+                BankOperationErrors.RelatedDocumentOrganizationMismatch(registry.Id, _userContext.LanguageId));
         if (registry.DocumentTypeId != DocumentTypeIdConst.CASHCOLLECTION)
             return Result.Success<CashCollectionDoc?>(null);
         if (registry.StateId != StateIdConst.ACTIVE)
-            return Result.Failure<CashCollectionDoc?>(BankOperationErrors.RelatedDocumentInactive(registry.Id));
+            return Result.Failure<CashCollectionDoc?>(BankOperationErrors.RelatedDocumentInactive(registry.Id, _userContext.LanguageId));
 
         var document = await GetCashCollectionAsync(registry.DocumentId, ct);
         if (document is null)
-            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.NotFound(registry.DocumentId));
+            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.NotFound(registry.DocumentId, _userContext.LanguageId));
         if (document.OrganizationId != operation.OrganizationId)
-            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.OrganizationMismatch(document.Id));
+            return Result.Failure<CashCollectionDoc?>(CashCollectionErrors.OrganizationMismatch(document.Id, _userContext.LanguageId));
 
         return Result.Success<CashCollectionDoc?>(document);
     }

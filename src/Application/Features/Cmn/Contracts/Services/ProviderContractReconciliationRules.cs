@@ -14,29 +14,29 @@ public static class ProviderContractReconciliationRules
         short? languageId = null)
     {
         if (!dto.Confirm)
-            return Error.Conflict("EDO_CONTRACT_CONFIRMATION_REQUIRED", "Explicit contract reconciliation confirmation is required.");
+            return ProviderContractReconciliationErrors.ConfirmationRequired(languageId);
 
         if (dto.CounterpartyId <= 0)
-            return Error.Problem("EDO_CONTRACT_COUNTERPARTY_REQUIRED", "A valid counterparty is required.");
+            return ProviderContractReconciliationErrors.CounterpartyRequired(languageId);
 
         if (!string.Equals(dto.ProviderCode?.Trim(), EdocsProviderCode, StringComparison.OrdinalIgnoreCase))
-            return Error.Problem("EDO_CONTRACT_PROVIDER_INVALID", "Only the active EDOCS provider identity is accepted by this endpoint.");
+            return ProviderContractReconciliationErrors.ProviderInvalid(languageId);
 
         var providerNumber = NormalizeProviderNumber(dto.ProviderContractNumber);
         if (providerNumber is null)
-            return Error.Problem("EDO_CONTRACT_PROVIDER_NUMBER_INVALID", "A non-empty provider contract number is required.");
+            return ProviderContractReconciliationErrors.ProviderNumberInvalid(languageId);
 
         if (dto.ProviderContractDate == default)
-            return Error.Problem("EDO_CONTRACT_PROVIDER_DATE_REQUIRED", "A provider contract date is required.");
+            return ProviderContractReconciliationErrors.ProviderDateRequired(languageId);
 
         if (dto.ContractTypeId <= 0 || dto.ContractDate == default)
-            return Error.Problem("EDO_CONTRACT_HEADER_REQUIRED", "Contract type and contract date are required.");
+            return ProviderContractReconciliationErrors.HeaderRequired(languageId);
 
         if (dto.StartDate == default || dto.EndDate == default || dto.EndDate.Date < dto.StartDate.Date)
-            return Error.Problem("EDO_CONTRACT_DATE_INTERVAL_INVALID", "The contract date interval is invalid.");
+            return ProviderContractReconciliationErrors.DateIntervalInvalid(languageId);
 
         if (dto.Comment is not null && dto.Comment.Length > 1000)
-            return Error.Problem("EDO_CONTRACT_COMMENT_INVALID", "The contract comment is too long.");
+            return ProviderContractReconciliationErrors.CommentInvalid(languageId);
 
         return null;
     }

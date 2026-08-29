@@ -263,7 +263,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
             if (await _payrollLineQuery.AnyAsync(x =>
                     x.EmploymentId == employmentId &&
                     x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED, ct))
-                return Result.Failure(PayrollErrors.Conflict("EmploymentLocked", "Ushbu ishga qabul yozuvi tasdiqlangan oylik hujjatida ishlatilgan. Uni yoping va yangi ishga qabul yozuvini yarating."));
+                return Result.Failure(PayrollErrors.Conflict("EmploymentLocked", "Ushbu ishga qabul yozuvi tasdiqlangan oylik hujjatida ishlatilgan. Uni yoping va yangi ishga qabul yozuvini yarating.", _userContext.LanguageId));
 
             var validation = await ValidateEmploymentAsync(employeeId, dto, entity.OrganizationId, employmentId, ct);
             if (!validation.IsSuccess)
@@ -292,7 +292,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                     x.Id == dto.ComponentId &&
                     x.OrganizationId == employee.OrganizationId &&
                     x.StateId == StateIdConst.ACTIVE, ct))
-                return Result.Failure<long>(PayrollErrors.ReferencedRecordNotFound("Component", dto.ComponentId));
+                return Result.Failure<long>(PayrollErrors.ReferencedRecordNotFound("Component", dto.ComponentId, _userContext.LanguageId));
 
             if (await _assignmentQuery.AnyAsync(x =>
                     x.EmployeeId == employeeId &&
@@ -300,7 +300,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                     x.StateId == StateIdConst.ACTIVE &&
                     (!dto.EffectiveTo.HasValue || x.EffectiveFrom <= dto.EffectiveTo.Value) &&
                     (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= dto.EffectiveFrom), ct))
-                return Result.Failure<long>(PayrollErrors.Conflict("EmployeeComponentOverlap", "Tanlangan davrda xodim uchun ushbu hisoblash komponenti allaqachon mavjud."));
+                return Result.Failure<long>(PayrollErrors.Conflict("EmployeeComponentOverlap", "Tanlangan davrda xodim uchun ushbu hisoblash komponenti allaqachon mavjud.", _userContext.LanguageId));
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(employeeId, ct));
             var entity = new PayEmployeeComponent
@@ -352,7 +352,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                 x.OrganizationId == organizationId &&
                 x.Id != currentId &&
                 x.EmployeeNumber == normalizedNumber, ct))
-            return Result.Failure(PayrollErrors.DuplicateEmployeeNumber(normalizedNumber));
+            return Result.Failure(PayrollErrors.DuplicateEmployeeNumber(normalizedNumber, _userContext.LanguageId));
 
         var normalizedPinfl = string.IsNullOrWhiteSpace(pinfl) ? null : pinfl.Trim();
         if (normalizedPinfl is not null &&
@@ -360,7 +360,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                 x.OrganizationId == organizationId &&
                 x.Id != currentId &&
                 x.Pinfl == normalizedPinfl, ct))
-            return Result.Failure(PayrollErrors.DuplicatePinfl(normalizedPinfl));
+            return Result.Failure(PayrollErrors.DuplicatePinfl(normalizedPinfl, _userContext.LanguageId));
 
         return Result.Success();
     }
@@ -379,31 +379,31 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                 x.StateId == StateIdConst.ACTIVE &&
                 (!dto.EndDate.HasValue || x.StartDate <= dto.EndDate.Value) &&
                 (!x.EndDate.HasValue || x.EndDate.Value >= dto.StartDate), ct))
-            return Result.Failure(PayrollErrors.EmploymentOverlap(employeeId));
+            return Result.Failure(PayrollErrors.EmploymentOverlap(employeeId, _userContext.LanguageId));
 
         if (dto.DepartmentId.HasValue &&
             !await _departmentQuery.AnyAsync(x =>
                 x.Id == dto.DepartmentId.Value &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Department", dto.DepartmentId.Value));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Department", dto.DepartmentId.Value, _userContext.LanguageId));
 
         if (dto.PositionId.HasValue &&
             !await _positionQuery.AnyAsync(x =>
                 x.Id == dto.PositionId.Value &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Position", dto.PositionId.Value));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Position", dto.PositionId.Value, _userContext.LanguageId));
 
         if (!await _currencyQuery.AnyAsync(x => x.Id == dto.CurrencyId && x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Currency", dto.CurrencyId));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Currency", dto.CurrencyId, _userContext.LanguageId));
 
         if (dto.ExpenseAccountId.HasValue &&
             !await _accountQuery.AnyAsync(x =>
                 x.Id == dto.ExpenseAccountId.Value &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.ExpenseAccountId.Value));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.ExpenseAccountId.Value, _userContext.LanguageId));
 
         return Result.Success();
     }

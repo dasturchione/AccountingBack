@@ -4,7 +4,9 @@ using SharedKernel.Constants;
 
 namespace Application.Features.Register.PostingEngines;
 
-public sealed class PayrollDocumentContextBuilder : IPostingContextBuilder<PayPayrollDoc>
+public sealed class PayrollDocumentContextBuilder :
+    IPostingContextBuilder<PayPayrollDoc>,
+    IPostingContextValidator<PayPayrollDoc>
 {
     private static readonly string[] RequiredAccountRoles =
     [
@@ -115,6 +117,20 @@ public sealed class PayrollDocumentContextBuilder : IPostingContextBuilder<PayPa
         }
 
         return contexts;
+    }
+
+    public async Task<SharedKernel.Results.Result> ValidateAsync(
+        PayPayrollDoc document,
+        CancellationToken ct = default)
+    {
+        var accountsResult = await _accountResolver.ResolveAsync(
+            document.OrganizationId,
+            RequiredAccountRoles,
+            ct);
+
+        return accountsResult.IsSuccess
+            ? SharedKernel.Results.Result.Success()
+            : SharedKernel.Results.Result.Failure(accountsResult.Error);
     }
 
     private static void AddSignedEntry(

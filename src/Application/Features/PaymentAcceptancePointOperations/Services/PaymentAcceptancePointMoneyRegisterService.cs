@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.Register;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -9,15 +10,18 @@ namespace Application.Features.PaymentAcceptancePointOperations;
 
 public sealed class PaymentAcceptancePointMoneyRegisterService : IPaymentAcceptancePointMoneyRegisterService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
 
     public PaymentAcceptancePointMoneyRegisterService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<MoneyRegisterBalance> query,
         ICommandRepository<MoneyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _query = query;
         _command = command;
@@ -60,7 +64,7 @@ public sealed class PaymentAcceptancePointMoneyRegisterService : IPaymentAccepta
         var originals = await _query.GetAllAsync(query, ct);
         if (originals.Count == 0)
             return Result.Failure<List<MoneyRegisterBalance>>(
-                PaymentAcceptancePointOperationErrors.MissingMoneyEntries(operation.Id));
+                PaymentAcceptancePointOperationErrors.MissingMoneyEntries(operation.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(x => new MoneyRegisterBalance

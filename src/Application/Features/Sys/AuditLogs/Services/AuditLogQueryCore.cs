@@ -72,7 +72,7 @@ public sealed class AuditLogQueryCore : IAuditLogQueryCore
 
     private Result EnsureAccess(AuditLogQueryScope scope) =>
         scope == AuditLogQueryScope.Global && _userContext.UserKind != CurrentUserKind.SuperAdmin
-            ? Result.Failure(PlatformErrors.GlobalAccessRequired())
+            ? Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId))
             : Result.Success();
 
     private bool HasScopedVisibility(AuditLogQueryScope scope) =>

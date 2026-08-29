@@ -1,92 +1,43 @@
+using SharedKernel.Constants;
 using SharedKernel.Results;
 
 namespace Application.Features.InventoryAdjustments;
 
 public static class InventoryAdjustmentErrors
 {
-    public static Error NotFound(long id, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.NotFound", $"Inventory adjustment with id {id} was not found.");
+    public static Error NotFound(long id, short? languageId = null) => N("InventoryAdjustment.NotFound", languageId, $"Id-si {id} bo'lgan zaxira tuzatishi topilmadi.", $"Id-си {id} бўлган захира тузатиши топилмади.", $"Корректировка запасов с id {id} не найдена.", $"Inventory adjustment with id {id} was not found.");
+    public static Error AlreadyCancelled(long id, short? languageId = null) => C("InventoryAdjustment.AlreadyCancelled", languageId, $"Id-si {id} bo'lgan zaxira tuzatishi allaqachon bekor qilingan.", $"Id-си {id} бўлган захира тузатиши аллақачон бекор қилинган.", $"Корректировка запасов с id {id} уже отменена.", $"Inventory adjustment with id {id} is already cancelled.");
+    public static Error CannotConfirmInCurrentStatus(long id, short s, short? languageId = null) => Status("CannotConfirmInCurrentStatus", id, s, "tasdiqlash", "тасдиқлаш", "подтвердить", "confirmed", languageId);
+    public static Error CannotUpdateInCurrentStatus(long id, short s, short? languageId = null) => Status("CannotUpdateInCurrentStatus", id, s, "o'zgartirish", "ўзгартириш", "изменить", "updated", languageId);
+    public static Error CannotCancelInCurrentStatus(long id, short s, short? languageId = null) => Status("CannotCancelInCurrentStatus", id, s, "bekor qilish", "бекор қилиш", "отменить", "cancelled", languageId);
+    public static Error CannotDeleteInCurrentStatus(long id, short s, short? languageId = null) => Status("CannotDeleteInCurrentStatus", id, s, "o'chirish", "ўчириш", "удалить", "deleted", languageId);
+    public static Error LinesRequired(long id, short? languageId = null) => B("InventoryAdjustment.LinesRequired", languageId, $"Id-si {id} bo'lgan tuzatishda kamida bitta qator bo'lishi kerak.", $"Id-си {id} бўлган тузатишда камида битта қатор бўлиши керак.", $"Корректировка запасов с id {id} должна содержать хотя бы одну строку.", $"Inventory adjustment with id {id} must contain at least one line.");
+    public static Error OrganizationNotFound(int id, short? languageId = null) => Entity("OrganizationNotFound", id, "tashkilot", "ташкилот", "организация", "Organization", languageId);
+    public static Error WarehouseNotFound(int id, short? languageId = null) => Entity("WarehouseNotFound", id, "ombor", "омбор", "склад", "Warehouse", languageId);
+    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) => B("InventoryAdjustment.WarehouseOrganizationMismatch", languageId, $"{warehouseId}-ombor {organizationId}-tashkilotga tegishli emas.", $"{warehouseId}-омбор {organizationId}-ташкилотга тегишли эмас.", $"Склад {warehouseId} не относится к организации {organizationId}.", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
+    public static Error WarehouseInactive(int id, short? languageId = null) => B("InventoryAdjustment.WarehouseInactive", languageId, $"{id}-ombor faol emas.", $"{id}-омбор фаол эмас.", $"Склад {id} неактивен.", $"Warehouse {id} is not active.");
+    public static Error ProductNotFound(int id, short? languageId = null) => Entity("ProductNotFound", id, "mahsulot", "маҳсулот", "товар", "Product", languageId);
+    public static Error ProductServiceNotAllowed(int id, short? languageId = null) => B("InventoryAdjustment.ProductServiceNotAllowed", languageId, $"{id}-xizmat mahsulotini zaxira tuzatishida ishlatib bo'lmaydi.", $"{id}-хизмат маҳсулотини захира тузатишида ишлатиб бўлмайди.", $"Товар-услугу {id} нельзя использовать в корректировке запасов.", $"Service product {id} cannot be used in inventory adjustment.");
+    public static Error UnitNotFound(short id, short? languageId = null) => Entity("UnitNotFound", id, "o'lchov birligi", "ўлчов бирлиги", "единица измерения", "Unit", languageId);
+    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) => B("InventoryAdjustment.InvalidQuantity", languageId, $"{productId}-mahsulotda {quantity} miqdor noto'g'ri.", $"{productId}-маҳсулотда {quantity} миқдор нотўғри.", $"У товара {productId} недопустимое количество {quantity}.", $"Product {productId} has invalid quantity {quantity}.");
+    public static Error InvalidAdjustmentType(string type, short? languageId = null) => B("InventoryAdjustment.InvalidAdjustmentType", languageId, $"'{type}' tuzatish turi qo'llab-quvvatlanmaydi.", $"'{type}' тузатиш тури қўллаб-қувватланмайди.", $"Тип корректировки '{type}' не поддерживается.", $"Adjustment type '{type}' is not supported.");
+    public static Error InvalidDirection(string type, short directionId, short? languageId = null) => B("InventoryAdjustment.InvalidDirection", languageId, $"{directionId}-yo'nalish '{type}' tuzatish turi uchun noto'g'ri.", $"{directionId}-йўналиш '{type}' тузатиш тури учун нотўғри.", $"Направление {directionId} недопустимо для типа корректировки '{type}'.", $"Direction {directionId} is not valid for adjustment type '{type}'.");
+    public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) => C("InventoryAdjustment.BusinessEffectsAlreadyExist", languageId, $"Id-si {id} bo'lgan tuzatishda ombor harakatlari mavjud.", $"Id-си {id} бўлган тузатишда омбор ҳаракатлари мавжуд.", $"Корректировка запасов с id {id} уже имеет складские движения.", $"Inventory adjustment with id {id} already has inventory movements.");
+    public static Error MissingPostingBatch(long id, short? languageId = null) => C("InventoryAdjustment.MissingPostingBatch", languageId, $"Id-si {id} bo'lgan tuzatish uchun o'tkazmalar paketi topilmadi.", $"Id-си {id} бўлган тузатиш учун ўтказмалар пакети топилмади.", $"Для корректировки запасов с id {id} не найден пакет проводок.", $"Posting batch was not found for inventory adjustment with id {id}.");
+    public static Error ItemsRequired(int productId, short? languageId = null) => B("InventoryAdjustment.ItemsRequired", languageId, $"{productId}-mahsulotda kamida bitta partiya birligi bo'lishi kerak.", $"{productId}-маҳсулотда камида битта партия бирлиги бўлиши керак.", $"Товар {productId} должен содержать хотя бы один экземпляр партии.", $"Product {productId} must contain at least one product table item.");
+    public static Error QuantityItemsMismatch(int productId, decimal quantity, int count, short? languageId = null) => B("InventoryAdjustment.QuantityItemsMismatch", languageId, $"{productId}-mahsulot miqdori {quantity} birliklar soni {count} ga mos emas.", $"{productId}-маҳсулот миқдори {quantity} бирликлар сони {count} га мос эмас.", $"Количество товара {productId} ({quantity}) не совпадает с числом экземпляров ({count}).", $"Product {productId} quantity {quantity} does not match item count {count}.");
+    public static Error DuplicateLine(int productId, short unitId, short? languageId = null) => C("InventoryAdjustment.DuplicateLine", languageId, $"{productId}-mahsulot va {unitId}-birlik uchun tuzatish qatori takrorlangan.", $"{productId}-маҳсулот ва {unitId}-бирлик учун тузатиш қатори такрорланган.", $"Строка корректировки товара {productId} и единицы {unitId} повторяется.", $"Duplicate inventory adjustment line for product {productId} and unit {unitId}.");
+    public static Error DuplicateProductTable(int id, short? languageId = null) => C("InventoryAdjustment.DuplicateProductTable", languageId, $"{id}-partiya tuzatishda takrorlangan.", $"{id}-партия тузатишда такрорланган.", $"Партия {id} повторяется в корректировке.", $"Product table {id} is duplicated in the adjustment.");
+    public static Error ProductTableNotFound(int id, short? languageId = null) => Entity("ProductTableNotFound", id, "partiya", "партия", "партия", "Product table", languageId);
+    public static Error ProductTableProductMismatch(int tableId, int productId, short? languageId = null) => B("InventoryAdjustment.ProductTableProductMismatch", languageId, $"{tableId}-partiya {productId}-mahsulotga tegishli emas.", $"{tableId}-партия {productId}-маҳсулотга тегишли эмас.", $"Партия {tableId} не относится к товару {productId}.", $"Product table {tableId} does not belong to product {productId}.");
+    public static Error ProductTableInactive(int id, short? languageId = null) => B("InventoryAdjustment.ProductTableInactive", languageId, $"{id}-partiya faol emas.", $"{id}-партия фаол эмас.", $"Партия {id} неактивна.", $"Product table {id} is not active.");
+    public static Error ProductTableUnavailable(int id, short status, short? languageId = null) => B("InventoryAdjustment.ProductTableUnavailable", languageId, $"{id}-partiya {status} holatida tuzatish uchun mavjud emas.", $"{id}-партия {status} ҳолатида тузатиш учун мавжуд эмас.", $"Партия {id} недоступна для корректировки в статусе {status}.", $"Product table {id} is not available for adjustment in status {status}.");
+    public static Error ProductTableWarehouseMismatch(int tableId, int warehouseId, short? languageId = null) => B("InventoryAdjustment.ProductTableWarehouseMismatch", languageId, $"{tableId}-partiya {warehouseId}-omborda joylashmagan.", $"{tableId}-партия {warehouseId}-омборда жойлашмаган.", $"Партия {tableId} не находится на складе {warehouseId}.", $"Product table {tableId} is not located in warehouse {warehouseId}.");
 
-    public static Error AlreadyCancelled(long id, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.AlreadyCancelled", $"Inventory adjustment with id {id} is already cancelled.");
-
-    public static Error CannotConfirmInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.CannotConfirmInCurrentStatus", $"Inventory adjustment with id {id} cannot be confirmed in status {statusId}.");
-
-    public static Error CannotUpdateInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.CannotUpdateInCurrentStatus", $"Inventory adjustment with id {id} cannot be updated in status {statusId}.");
-
-    public static Error CannotCancelInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.CannotCancelInCurrentStatus", $"Inventory adjustment with id {id} cannot be cancelled in status {statusId}.");
-
-    public static Error CannotDeleteInCurrentStatus(long id, short statusId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.CannotDeleteInCurrentStatus", $"Inventory adjustment with id {id} cannot be deleted in status {statusId}.");
-
-    public static Error LinesRequired(long id, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.LinesRequired", $"Inventory adjustment with id {id} must contain at least one line.");
-
-    public static Error OrganizationNotFound(int organizationId, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.OrganizationNotFound", $"Organization with id {organizationId} was not found.");
-
-    public static Error WarehouseNotFound(int warehouseId, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.WarehouseNotFound", $"Warehouse with id {warehouseId} was not found.");
-
-    public static Error WarehouseOrganizationMismatch(int warehouseId, int organizationId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.WarehouseOrganizationMismatch", $"Warehouse {warehouseId} does not belong to organization {organizationId}.");
-
-    public static Error WarehouseInactive(int warehouseId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.WarehouseInactive", $"Warehouse {warehouseId} is not active.");
-
-    public static Error ProductNotFound(int productId, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.ProductNotFound", $"Product with id {productId} was not found.");
-
-    public static Error ProductServiceNotAllowed(int productId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ProductServiceNotAllowed", $"Service product {productId} cannot be used in inventory adjustment.");
-
-    public static Error UnitNotFound(short unitId, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.UnitNotFound", $"Unit with id {unitId} was not found.");
-
-    public static Error InvalidQuantity(int productId, decimal quantity, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.InvalidQuantity", $"Product {productId} has invalid quantity {quantity}.");
-
-    public static Error InvalidAdjustmentType(string adjustmentType, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.InvalidAdjustmentType", $"Adjustment type '{adjustmentType}' is not supported.");
-
-    public static Error InvalidDirection(string adjustmentType, short directionId, short? languageId = null) =>
-        Error.Business(
-            "InventoryAdjustment.InvalidDirection",
-            $"Direction {directionId} is not valid for adjustment type '{adjustmentType}'.");
-
-    public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.BusinessEffectsAlreadyExist", $"Inventory adjustment with id {id} already has inventory movements.");
-
-    public static Error MissingPostingBatch(long id, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.MissingPostingBatch", $"Posting batch was not found for inventory adjustment with id {id}.");
-
-    public static Error ItemsRequired(int productId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ItemsRequired", $"Product {productId} must contain at least one product table item.");
-
-    public static Error QuantityItemsMismatch(int productId, decimal quantity, int itemCount, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.QuantityItemsMismatch", $"Product {productId} quantity {quantity} does not match item count {itemCount}.");
-
-    public static Error DuplicateLine(int productId, short unitId, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.DuplicateLine", $"Duplicate inventory adjustment line for product {productId} and unit {unitId}.");
-
-    public static Error DuplicateProductTable(int productTableId, short? languageId = null) =>
-        Error.Conflict("InventoryAdjustment.DuplicateProductTable", $"Product table {productTableId} is duplicated in the adjustment.");
-
-    public static Error ProductTableNotFound(int productTableId, short? languageId = null) =>
-        Error.NotFound("InventoryAdjustment.ProductTableNotFound", $"Product table with id {productTableId} was not found.");
-
-    public static Error ProductTableProductMismatch(int productTableId, int productId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ProductTableProductMismatch", $"Product table {productTableId} does not belong to product {productId}.");
-
-    public static Error ProductTableInactive(int productTableId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ProductTableInactive", $"Product table {productTableId} is not active.");
-
-    public static Error ProductTableUnavailable(int productTableId, short statusId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ProductTableUnavailable", $"Product table {productTableId} is not available for adjustment in status {statusId}.");
-
-    public static Error ProductTableWarehouseMismatch(int productTableId, int warehouseId, short? languageId = null) =>
-        Error.Business("InventoryAdjustment.ProductTableWarehouseMismatch", $"Product table {productTableId} is not located in warehouse {warehouseId}.");
+    private static Error Status(string suffix, long id, short s, string uzA, string cyA, string ruA, string enA, short? languageId) => B($"InventoryAdjustment.{suffix}", languageId, $"Id-si {id} bo'lgan tuzatishni {s} holatida {uzA} mumkin emas.", $"Id-си {id} бўлган тузатишни {s} ҳолатида {cyA} мумкин эмас.", $"Корректировку запасов с id {id} нельзя {ruA} в статусе {s}.", $"Inventory adjustment with id {id} cannot be {enA} in status {s}.");
+    private static Error Entity(string suffix, int id, string uz, string cy, string ru, string en, short? languageId) => N($"InventoryAdjustment.{suffix}", languageId, $"Id-si {id} bo'lgan {uz} topilmadi.", $"Id-си {id} бўлган {cy} топилмади.", $"{ru} с id {id} не найден.", $"{en} with id {id} was not found.");
+    private static Error B(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Business(code, M(languageId, uz, cy, ru, en));
+    private static Error C(string code, short? languageId, string uz, string cy, string ru, string en) => Error.Conflict(code, M(languageId, uz, cy, ru, en));
+    private static Error N(string code, short? languageId, string uz, string cy, string ru, string en) => Error.NotFound(code, M(languageId, uz, cy, ru, en));
+    private static string M(short? languageId, string uz, string cy, string ru, string en) => languageId switch { LanguageIdConst.UZ => uz, LanguageIdConst.UZ_CYRL => cy, LanguageIdConst.RU => ru, _ => en };
 }

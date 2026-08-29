@@ -145,7 +145,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (period is null)
                 return Result.Failure<long>(PayrollErrors.NotFound("Period", dto.PeriodId, _userContext.LanguageId));
             if (period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure<long>(PayrollErrors.PeriodClosed(period.Id));
+                return Result.Failure<long>(PayrollErrors.PeriodClosed(period.Id, _userContext.LanguageId));
 
             var kind = dto.DocumentKind.Trim().ToUpperInvariant();
             if (kind == PayrollDocumentKindConst.Regular &&
@@ -154,7 +154,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     x.DocumentKind == PayrollDocumentKindConst.Regular &&
                     x.StateId == StateIdConst.ACTIVE &&
                     x.StatusId != DocumentStatusIdConst.CANCELLED, ct))
-                return Result.Failure<long>(PayrollErrors.RegularPayrollAlreadyExists(period.Id));
+                return Result.Failure<long>(PayrollErrors.RegularPayrollAlreadyExists(period.Id, _userContext.LanguageId));
 
             PayPayrollDoc? correctionSource = null;
             if (kind == PayrollDocumentKindConst.Correction)
@@ -171,9 +171,9 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 }
 
                 if (correctionSource is null)
-                    return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired());
+                    return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired(_userContext.LanguageId));
                 if (dto.Adjustments.Count == 0)
-                    return Result.Failure<long>(PayrollErrors.Business("EmptyCorrection", "Tuzatish hujjatida kamida bitta qo‘lda kiritilgan tuzatish bo‘lishi kerak."));
+                    return Result.Failure<long>(PayrollErrors.Business("EmptyCorrection", "Tuzatish hujjatida kamida bitta qo‘lda kiritilgan tuzatish bo‘lishi kerak.", _userContext.LanguageId));
             }
 
             var duplicateAdjustment = dto.Adjustments
@@ -182,23 +182,24 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (duplicateAdjustment is not null)
                 return Result.Failure<long>(PayrollErrors.DuplicateAdjustment(
                     duplicateAdjustment.Key.EmployeeId,
-                    duplicateAdjustment.Key.ComponentId));
+                    duplicateAdjustment.Key.ComponentId,
+                    _userContext.LanguageId));
             if (kind == PayrollDocumentKindConst.Regular && dto.Adjustments.Any(x => x.Amount < 0))
-                return Result.Failure<long>(PayrollErrors.Business("NegativeRegularAdjustment", "Manfiy summa faqat tuzatish hujjatida qo‘lda kiritilishi mumkin."));
+                return Result.Failure<long>(PayrollErrors.Business("NegativeRegularAdjustment", "Manfiy summa faqat tuzatish hujjatida qo‘lda kiritilishi mumkin.", _userContext.LanguageId));
 
             var timesheet = await GetPostedTimesheetAsync(period.Id, ct);
             if (timesheet is null)
-                return Result.Failure<long>(PayrollErrors.NoPostedTimesheet(period.Id));
+                return Result.Failure<long>(PayrollErrors.NoPostedTimesheet(period.Id, _userContext.LanguageId));
 
             var components = await GetActiveComponentsAsync(period, ct);
             if (components.Count == 0)
-                return Result.Failure<long>(PayrollErrors.NoCalculationComponents(period.Id));
+                return Result.Failure<long>(PayrollErrors.NoCalculationComponents(period.Id, _userContext.LanguageId));
             if (kind == PayrollDocumentKindConst.Regular &&
                 !components.Any(x =>
                     x.IsMandatory &&
                     x.ComponentType == PayrollComponentTypeConst.Earning &&
                     x.CalculationMethod == PayrollCalculationMethodConst.SalaryProrated))
-                return Result.Failure<long>(PayrollErrors.MissingBaseSalaryComponent());
+                return Result.Failure<long>(PayrollErrors.MissingBaseSalaryComponent(_userContext.LanguageId));
 
             var employeeIds = kind == PayrollDocumentKindConst.Regular
                 ? timesheet.Lines.Select(x => x.EmployeeId).Distinct().ToList()
@@ -210,7 +211,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.StartDate).First());
             var missingEmployment = employeeIds.FirstOrDefault(id => !employmentByEmployee.ContainsKey(id));
             if (missingEmployment > 0)
-                return Result.Failure<long>(PayrollErrors.NoActiveEmployment(missingEmployment));
+                return Result.Failure<long>(PayrollErrors.NoActiveEmployment(missingEmployment, _userContext.LanguageId));
 
             var assignments = await GetAssignmentsAsync(employeeIds, period, ct);
             var assignmentMap = assignments
@@ -220,7 +221,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var componentById = components.ToDictionary(x => x.Id);
             var invalidComponent = dto.Adjustments.FirstOrDefault(x => !componentById.ContainsKey(x.ComponentId));
             if (invalidComponent is not null)
-                return Result.Failure<long>(PayrollErrors.ReferencedRecordNotFound("Component", invalidComponent.ComponentId));
+                return Result.Failure<long>(PayrollErrors.ReferencedRecordNotFound("Component", invalidComponent.ComponentId, _userContext.LanguageId));
 
             var timesheetByEmployee = timesheet.Lines.ToDictionary(x => x.EmployeeId);
             var advances = kind == PayrollDocumentKindConst.Regular
@@ -231,7 +232,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             foreach (var employeeId in employeeIds)
             {
                 if (!timesheetByEmployee.TryGetValue(employeeId, out var time))
-                    return Result.Failure<long>(PayrollErrors.Business("EmployeeMissingFromTimesheet", $"Xodim tasdiqlangan tabelga kiritilmagan (xodim ID: {employeeId})."));
+                    return Result.Failure<long>(PayrollErrors.Business("EmployeeMissingFromTimesheet", $"Xodim tasdiqlangan tabelga kiritilmagan (xodim ID: {employeeId}).", _userContext.LanguageId));
 
                 var selectedComponents = kind == PayrollDocumentKindConst.Correction
                     ? components.Where(component => manualMap.ContainsKey((employeeId, component.Id))).ToList()
@@ -254,7 +255,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             }
 
             if (payrollLines.Count == 0)
-                return Result.Failure<long>(PayrollErrors.Business("NoPayrollLines", "Oylik hisoblash natijasida xodimlar bo‘yicha hech qanday qator hosil bo‘lmadi."));
+                return Result.Failure<long>(PayrollErrors.Business("NoPayrollLines", "Oylik hisoblash natijasida xodimlar bo‘yicha hech qanday qator hosil bo‘lmadi.", _userContext.LanguageId));
 
             var payrollCurrencyIds = payrollLines
                 .Select(x => x.Employment.CurrencyId)
@@ -263,11 +264,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (payrollCurrencyIds.Count != 1)
                 return Result.Failure<long>(PayrollErrors.Business(
                     "MixedPayrollCurrencies",
-                    "Bitta oylik hisoblash hujjatidagi barcha xodimlarning ish haqi valyutasi bir xil bo‘lishi kerak."));
+                    "Bitta oylik hisoblash hujjatidagi barcha xodimlarning ish haqi valyutasi bir xil bo‘lishi kerak.",
+                    _userContext.LanguageId));
             if (correctionSource is not null && correctionSource.CurrencyId != payrollCurrencyIds[0])
                 return Result.Failure<long>(PayrollErrors.Business(
                     "CorrectionCurrencyMismatch",
-                    $"Tuzatish hujjati valyutasi (ID: {payrollCurrencyIds[0]}) asosiy oylik hujjati valyutasiga (ID: {correctionSource.CurrencyId}) mos kelmaydi."));
+                    $"Tuzatish hujjati valyutasi (ID: {payrollCurrencyIds[0]}) asosiy oylik hujjati valyutasiga (ID: {correctionSource.CurrencyId}) mos kelmaydi.",
+                    _userContext.LanguageId));
 
             var documentNumberResult = await _documentNumberService.GetNextAsync(
                 organizationId,
@@ -320,11 +323,11 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (document.StatusId == DocumentStatusIdConst.POSTED)
                 return await GetActivePostingBatchAsync(id, ct) is not null
                     ? Result.Success()
-                    : Result.Failure(PayrollErrors.Conflict("MissingPostingBatch", $"Oylik hisoblash hujjati tasdiqlangan, ammo faol buxgalteriya o‘tkazmalari to‘plami topilmadi (hujjat ID: {id})."));
+                    : Result.Failure(PayrollErrors.Conflict("MissingPostingBatch", $"Oylik hisoblash hujjati tasdiqlangan, ammo faol buxgalteriya o‘tkazmalari to‘plami topilmadi (hujjat ID: {id}).", _userContext.LanguageId));
             if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.PENDING))
-                return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "confirmed"));
+                return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "confirmed", _userContext.LanguageId));
             if (document.Period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId));
+                return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId, _userContext.LanguageId));
 
             var accountingPeriod = await _accountingPeriodValidator.EnsureOpenAsync(document.OrganizationId, document.DocDate, ct);
             if (!accountingPeriod.IsSuccess)
@@ -333,13 +336,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 document.Lines.All(x =>
                     x.AdvanceAmount == 0m &&
                     x.CalcLines.All(calc => calc.Amount == 0m)))
-                return Result.Failure(PayrollErrors.Business("EmptyPayroll", "Oylik hisoblash hujjatida hisob-kitob qatorlari mavjud emas."));
+                return Result.Failure(PayrollErrors.Business("EmptyPayroll", "Oylik hisoblash hujjatida hisob-kitob qatorlari mavjud emas.", _userContext.LanguageId));
             if (await GetActivePostingBatchAsync(id, ct) is not null ||
                 await _accountingEntryQuery.AnyAsync(x =>
                     x.DocumentTypeId == DocumentTypeIdConst.SALARY &&
                     x.DocumentId == id &&
                     x.ReversalEntryId == null, ct))
-                return Result.Failure(PayrollErrors.Conflict("BusinessEffectsExist", $"Oylik hisoblash hujjati bo‘yicha buxgalteriya o‘tkazmalari allaqachon yaratilgan (hujjat ID: {id})."));
+                return Result.Failure(PayrollErrors.Conflict("BusinessEffectsExist", $"Oylik hisoblash hujjati bo‘yicha buxgalteriya o‘tkazmalari allaqachon yaratilgan (hujjat ID: {id}).", _userContext.LanguageId));
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             var now = DateTime.Now;
@@ -384,12 +387,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
             if (document.Period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId));
+                return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId, _userContext.LanguageId));
             if (await _paymentBatchQuery.AnyAsync(x =>
                     x.PayrollDocId == id &&
                     x.StateId == StateIdConst.ACTIVE &&
                     x.StatusId == DocumentStatusIdConst.POSTED, ct))
-                return Result.Failure(PayrollErrors.Conflict("PayrollHasPayments", "Oylik hisoblash hujjatini bekor qilishdan oldin unga tegishli tasdiqlangan to‘lovlarni bekor qilish kerak."));
+                return Result.Failure(PayrollErrors.Conflict("PayrollHasPayments", "Oylik hisoblash hujjatini bekor qilishdan oldin unga tegishli tasdiqlangan to‘lovlarni bekor qilish kerak.", _userContext.LanguageId));
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             var now = DateTime.Now;
@@ -397,7 +400,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             {
                 var activeBatch = await GetActivePostingBatchAsync(id, ct);
                 if (activeBatch is null)
-                    return Result.Failure(PayrollErrors.Conflict("MissingPostingBatch", $"Oylik hisoblash hujjatining faol buxgalteriya o‘tkazmalari to‘plami topilmadi (hujjat ID: {id})."));
+                    return Result.Failure(PayrollErrors.Conflict("MissingPostingBatch", $"Oylik hisoblash hujjatining faol buxgalteriya o‘tkazmalari to‘plami topilmadi (hujjat ID: {id}).", _userContext.LanguageId));
 
                 var reversalBatch = new PostingBatch
                 {
@@ -436,7 +439,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (document is null)
                 return Result.Failure(PayrollErrors.NotFound("PayrollDocument", id, _userContext.LanguageId));
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "deleted"));
+                return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "deleted", _userContext.LanguageId));
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             document.StateId = StateIdConst.PASSIVE;

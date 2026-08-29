@@ -1,11 +1,10 @@
-using Application.Common.Pagination;
 using SharedKernel.Results;
 
 namespace Application.Features.Cmn.Documents;
 
 public interface IDocumentRegistryService
 {
-    Task<Result<PagedResponse<DocumentRegistryDto>>> GetAllAsync(
+    Task<Result<List<DocumentRegistryDto>>> GetAllAsync(
         DocumentRegistryListFilter filter,
         CancellationToken ct = default);
 

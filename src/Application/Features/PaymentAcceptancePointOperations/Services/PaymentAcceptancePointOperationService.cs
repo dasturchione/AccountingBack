@@ -116,10 +116,16 @@ public sealed class PaymentAcceptancePointOperationService : BaseService, IPayme
             };
 
             await _command.CreateAsync(entity, ct);
-            await _auditLogService.CreateAsync(
-                AuditLogTableConst.PaymentAcceptancePointOperation,
-                entity.Id.ToString(),
-                AuditLogOperationTypeConst.Create);
+
+            var created = await GetDtoAsync(entity.Id, organizationId, ct);
+            if (created is not null)
+            {
+                _auditLogService.SetNewValues(created);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.PaymentAcceptancePointOperation,
+                    entity.Id.ToString(),
+                    AuditLogOperationTypeConst.Create);
+            }
             return Result.Success(entity.Id);
         }, ct);
 
@@ -228,6 +234,18 @@ public sealed class PaymentAcceptancePointOperationService : BaseService, IPayme
     {
         var query = _queryBuilder.For<PaymentAcceptancePointOperation>()
             .Where(x => x.Id == id)
+            .Build();
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<PaymentAcceptancePointOperationDto?> GetDtoAsync(
+        long id,
+        int organizationId,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PaymentAcceptancePointOperation>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .As<PaymentAcceptancePointOperationDto>()
             .Build();
         return await _query.GetAsync(query, ct);
     }

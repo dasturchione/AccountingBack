@@ -8,7 +8,7 @@ public sealed class DocumentRegistryCriteriaBuilder : ICriteriaBuilder<DocumentR
 {
     public Expression<Func<DocumentRegistry, bool>> Build(DocumentRegistryListFilter filter) =>
         document =>
-            (!filter.DocumentTypeId.HasValue || document.DocumentTypeId == filter.DocumentTypeId.Value) &&
+            (string.IsNullOrWhiteSpace(filter.DocumentTypeCode) || document.DocumentType.Code == filter.DocumentTypeCode) &&
             (!filter.CurrencyId.HasValue || document.CurrencyId == filter.CurrencyId.Value) &&
             (!filter.StatusId.HasValue || document.StatusId == filter.StatusId.Value) &&
             (!filter.StateId.HasValue || document.StateId == filter.StateId.Value) &&

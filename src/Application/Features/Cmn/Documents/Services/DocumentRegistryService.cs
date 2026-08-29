@@ -1,6 +1,5 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
-using Application.Common.Pagination;
 using Domain.Entities;
 using SharedKernel.Query;
 using SharedKernel.Results;
@@ -23,17 +22,17 @@ public sealed class DocumentRegistryService : IDocumentRegistryService
         _query = query;
     }
 
-    public async Task<Result<PagedResponse<DocumentRegistryDto>>> GetAllAsync(
+    public async Task<Result<List<DocumentRegistryDto>>> GetAllAsync(
         DocumentRegistryListFilter filter,
         CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is null)
-            return Result.Failure<PagedResponse<DocumentRegistryDto>>(
+            return Result.Failure<List<DocumentRegistryDto>>(
                 CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        var query = _queryBuilder.BuildPaged<DocumentRegistry, DocumentRegistryDto, DocumentRegistryListFilter>(filter);
-        var page = await _query.GetPagedAsync(query, ct);
-        return Result.Success(PagedResponseFactory.Create(page, filter.Page, filter.PageSize));
+        var query = _queryBuilder.Build<DocumentRegistry, DocumentRegistryDto, DocumentRegistryListFilter>(filter);
+        var documents = await _query.GetAllAsync(query, ct);
+        return Result.Success(documents);
     }
 
     public async Task<Result<DocumentRegistryDto>> GetByIdAsync(long id, CancellationToken ct = default)

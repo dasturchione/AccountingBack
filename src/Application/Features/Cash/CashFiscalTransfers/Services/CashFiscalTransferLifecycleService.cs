@@ -105,6 +105,10 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
             if (await GetActiveBatchAsync(id, ct) is not null || await HasEffectsAsync(id, ct))
                 return Result.Failure(CashFiscalTransferErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
 
+            var oldDocument = await GetDtoAsync(id, ct);
+            if (oldDocument is not null)
+                _auditLogService.SetOldValues(oldDocument);
+
             var batch = await CreateBatchAsync(document, PostingBatchStatusConst.POSTED, "Cash fiscal transfer confirmed", ct);
             var accounting = await _accountingDispatcher.ProcessAsync(document, ct, batch.Id);
             if (!accounting.IsSuccess) return Result.Failure(accounting.Error);
@@ -115,7 +119,17 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
             document.PostedAt = DateTime.Now;
             document.PostedByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
-            await _auditLogService.CreateAsync(AuditLogTableConst.CashFiscalTransfer, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
+
+            var newDocument = await GetDtoAsync(id, ct);
+            if (newDocument is not null)
+            {
+                _auditLogService.SetNewValues(newDocument);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.CashFiscalTransfer,
+                    id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    "Confirmed");
+            }
             return Result.Success();
         }, ct);
 
@@ -191,6 +205,15 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
         query.AddIncludes(x => x.Include(d => d.CashBox));
         query.AddIncludes(x => x.Include(d => d.FiscalCashAccount));
         query.AddIncludes(x => x.Include(d => d.CashBoxAccount));
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<CashFiscalTransferDto?> GetDtoAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<CashFiscalTransferDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId && x.StateId == StateIdConst.ACTIVE)
+            .As<CashFiscalTransferDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 

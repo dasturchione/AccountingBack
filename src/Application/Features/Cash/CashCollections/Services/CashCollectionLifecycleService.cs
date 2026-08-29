@@ -108,6 +108,10 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
             if (await GetActiveBatchAsync(id, ct) is not null || await HasEffectsAsync(id, ct))
                 return Result.Failure(CashCollectionErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
 
+            var oldDocument = await GetDtoAsync(id, ct);
+            if (oldDocument is not null)
+                _auditLogService.SetOldValues(oldDocument);
+
             var batch = await CreateBatchAsync(document, PostingBatchStatusConst.POSTED, "Cash collection sent to bank", ct);
             var accounting = await _accountingDispatcher.ProcessAsync(document, ct, batch.Id);
             if (!accounting.IsSuccess)
@@ -121,11 +125,17 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
             document.InTransitAt = DateTime.Now;
             document.InTransitByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
-            await _auditLogService.CreateAsync(
-                AuditLogTableConst.CashCollection,
-                id.ToString(),
-                AuditLogOperationTypeConst.Update,
-                "Sent to bank");
+
+            var newDocument = await GetDtoAsync(id, ct);
+            if (newDocument is not null)
+            {
+                _auditLogService.SetNewValues(newDocument);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.CashCollection,
+                    id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    "Sent to bank");
+            }
             return Result.Success();
         }, ct);
 
@@ -239,6 +249,16 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         query.AddIncludes(x => x.Include(document => document.CashChartAccount));
         query.AddIncludes(x => x.Include(document => document.CashInTransitAccount));
         query.AddIncludes(x => x.Include(document => document.BankChartAccount));
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<CashCollectionDto?> GetDtoAsync(long id, CancellationToken ct)
+    {
+        var organizationId = _userContext.OrganizationId!.Value;
+        var query = _queryBuilder.For<CashCollectionDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
+            .As<CashCollectionDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 

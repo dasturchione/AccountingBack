@@ -316,6 +316,7 @@ namespace Infrastructure
             services.AddScoped<IPaymentAcceptancePointOperationLifecycleService, PaymentAcceptancePointOperationLifecycleService>();
             services.AddScoped<IPaymentAcceptancePointMoneyRegisterService, PaymentAcceptancePointMoneyRegisterService>();
             services.AddScoped<IBankOperationService, BankOperationService>();
+            services.AddScoped<IBankOperationDuplicateChecker, BankOperationDuplicateChecker>();
             services.AddScoped<IBankOperationClassificationSelectionValidator, BankOperationClassificationSelectionValidator>();
             services.AddScoped<IBankLifecycleService, BankLifecycleService>();
             services.AddScoped<IBankOperationClassifier, BankOperationClassifier>();

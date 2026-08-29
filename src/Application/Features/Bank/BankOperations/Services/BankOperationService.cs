@@ -23,6 +23,7 @@ public class BankOperationService : BaseService, IBankOperationService
     private readonly IDocumentNumberService _documentNumberService;
     private readonly IBankOperationClassificationSelectionValidator _classificationValidator;
     private readonly IBankOperationRelatedDocumentService _relatedDocumentService;
+    private readonly IBankOperationDuplicateChecker _duplicateChecker;
 
     public BankOperationService(
         IUserContext userContext,
@@ -32,6 +33,7 @@ public class BankOperationService : BaseService, IBankOperationService
         IDocumentNumberService documentNumberService,
         IBankOperationClassificationSelectionValidator classificationValidator,
         IBankOperationRelatedDocumentService relatedDocumentService,
+        IBankOperationDuplicateChecker duplicateChecker,
         IQueryRepository<BankOperation> query,
         ICommandRepository<BankOperation> command,
         ILogger<BankOperationService> logger,
@@ -45,6 +47,7 @@ public class BankOperationService : BaseService, IBankOperationService
         _documentNumberService = documentNumberService;
         _classificationValidator = classificationValidator;
         _relatedDocumentService = relatedDocumentService;
+        _duplicateChecker = duplicateChecker;
         _query = query;
         _command = command;
     }
@@ -79,6 +82,13 @@ public class BankOperationService : BaseService, IBankOperationService
             if (_userContext.OrganizationId is null)
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
+            var duplicateResult = await ValidateNewOperationsAsync(
+                [dto],
+                _userContext.OrganizationId.Value,
+                ct);
+            if (!duplicateResult.IsSuccess)
+                return Result.Failure<long>(duplicateResult.Error);
+
             var entityResult = await BuildCreateEntityAsync(dto, _userContext.OrganizationId.Value, ct);
             if (!entityResult.IsSuccess)
                 return Result.Failure<long>(entityResult.Error);
@@ -101,6 +111,13 @@ public class BankOperationService : BaseService, IBankOperationService
         {
             if (_userContext.OrganizationId is null)
                 return Result.Failure<List<long>>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var duplicateResult = await ValidateNewOperationsAsync(
+                dto.Operations,
+                _userContext.OrganizationId.Value,
+                ct);
+            if (!duplicateResult.IsSuccess)
+                return Result.Failure<List<long>>(duplicateResult.Error);
 
             var entities = new List<BankOperation>(dto.Operations.Count);
             var linkedCashCollections = new HashSet<long>();
@@ -337,6 +354,46 @@ public class BankOperationService : BaseService, IBankOperationService
         }
 
         return Result.Success(new BankOperationBuildResult(entity, relatedDocumentLink.Value));
+    }
+
+    private async Task<Result> ValidateNewOperationsAsync(
+        IReadOnlyCollection<BankOperationCreateDto> operations,
+        int organizationId,
+        CancellationToken ct)
+    {
+        var identities = operations
+            .Select(x => BankOperationIdentity.Create(
+                x.BankAccountId,
+                x.BankDocumentNumber,
+                x.DocDate))
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .ToList();
+
+        var repeatedInRequest = identities
+            .GroupBy(x => x)
+            .FirstOrDefault(x => x.Count() > 1)
+            ?.Key;
+        if (repeatedInRequest.HasValue)
+        {
+            return Result.Failure(BankOperationErrors.DuplicateBankDocumentNumber(
+                repeatedInRequest.Value.BankDocumentNumber,
+                repeatedInRequest.Value.DocumentDate,
+                _userContext.LanguageId));
+        }
+
+        var existing = await _duplicateChecker.FindExistingAsync(
+            organizationId,
+            identities.Distinct().ToList(),
+            ct: ct);
+        if (existing.Count == 0)
+            return Result.Success();
+
+        var duplicate = existing.First();
+        return Result.Failure(BankOperationErrors.DuplicateBankDocumentNumber(
+            duplicate.BankDocumentNumber,
+            duplicate.DocumentDate,
+            _userContext.LanguageId));
     }
 
     private sealed record BankOperationBuildResult(

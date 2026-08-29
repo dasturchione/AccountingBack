@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.BankOperations;
 using Application.Features.BankParsers;
 using Domain.Entities;
 using Infrastructure.Query;
@@ -126,7 +127,10 @@ public sealed class BankStatementTemplateVersionTests
                 StateId = StateIdConst.ACTIVE
             }),
             new QueryBuilder(new NullQueryBuilderResolver()),
-            classifier);
+            classifier,
+            new BankOperationDuplicateChecker(
+                new InMemoryQueryRepository<BankOperation>(),
+                new QueryBuilder(new NullQueryBuilderResolver())));
         await using var stream = CreateWorkbookStream();
 
         var result = await service.ParseAsync(stream, bankId: bank.Id);
@@ -174,7 +178,10 @@ public sealed class BankStatementTemplateVersionTests
             new InMemoryQueryRepository<CounterpartyCard>(),
             new InMemoryQueryRepository<CounterpartyBankAccount>(),
             new QueryBuilder(new NullQueryBuilderResolver()),
-            classifier);
+            classifier,
+            new BankOperationDuplicateChecker(
+                new InMemoryQueryRepository<BankOperation>(),
+                new QueryBuilder(new NullQueryBuilderResolver())));
 
     private static MemoryStream CreateWorkbookStream()
     {

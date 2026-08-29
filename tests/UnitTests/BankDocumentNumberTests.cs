@@ -11,6 +11,19 @@ namespace UnitTests;
 public sealed class BankDocumentNumberTests
 {
     [Fact]
+    public void TransactionDto_ExposesNewOperationFlagDefaultedToTrue()
+    {
+        var property = typeof(TransactionDto).GetProperty("IsNewOperation");
+
+        Assert.NotNull(property);
+        Assert.Equal("isNewOperation", property.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
+            .Cast<JsonPropertyNameAttribute>()
+            .Single()
+            .Name);
+        Assert.True(Assert.IsType<bool>(property.GetValue(new TransactionDto())));
+    }
+
+    [Fact]
     public void BankOperation_MapsBankDocumentNumberToNullableVarchar150Column()
     {
         var property = typeof(BankOperation).GetProperty("BankDocumentNumber");

@@ -66,6 +66,15 @@ public static class BankOperationErrors
         $"Bank operatsiyasi {id} allaqachon bekor qilingan.", $"Банк операцияси {id} аллақачон бекор қилинган.",
         $"Банковская операция {id} уже отменена.", $"Bank operation {id} is already cancelled.");
 
+    public static Error DuplicateBankDocumentNumber(
+        string bankDocumentNumber,
+        DateOnly documentDate,
+        short? languageId = null) => C("DuplicateBankDocumentNumber", languageId,
+        $"{documentDate:yyyy-MM-dd} sanadagi {bankDocumentNumber} bank hujjat raqamli operatsiya allaqachon mavjud.",
+        $"{documentDate:yyyy-MM-dd} санадаги {bankDocumentNumber} банк ҳужжат рақамли операция аллақачон мавжуд.",
+        $"Банковская операция с номером документа {bankDocumentNumber} за {documentDate:yyyy-MM-dd} уже существует.",
+        $"Bank operation with document number {bankDocumentNumber} for {documentDate:yyyy-MM-dd} already exists.");
+
     public static Error BusinessEffectsAlreadyExist(long id, short? languageId = null) => C("BusinessEffectsAlreadyExist", languageId,
         $"Bank operatsiyasi {id} uchun o'tkazmalar yoki registr yozuvlari allaqachon yaratilgan.", $"Банк операцияси {id} учун ўтказмалар ёки регистр ёзувлари аллақачон яратилган.",
         $"По банковской операции {id} уже созданы проводки или записи регистров.", $"Bank operation {id} already has business effects.");

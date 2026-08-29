@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
+using Application.Features.BankOperations;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -19,6 +20,7 @@ public class BankStatementParserService : IBankStatementParserService
     private readonly IQueryRepository<CounterpartyBankAccount> _counterpartyBankAccountQuery;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IBankOperationClassifier _operationClassifier;
+    private readonly IBankOperationDuplicateChecker _duplicateChecker;
 
     public BankStatementParserService(
         IUserContext userContext,
@@ -29,7 +31,8 @@ public class BankStatementParserService : IBankStatementParserService
         IQueryRepository<CounterpartyCard> counterpartyQuery,
         IQueryRepository<CounterpartyBankAccount> counterpartyBankAccountQuery,
         IQueryBuilder queryBuilder,
-        IBankOperationClassifier operationClassifier)
+        IBankOperationClassifier operationClassifier,
+        IBankOperationDuplicateChecker duplicateChecker)
     {
         _userContext = userContext;
         _templateQuery = templateQuery;
@@ -40,6 +43,7 @@ public class BankStatementParserService : IBankStatementParserService
         _counterpartyBankAccountQuery = counterpartyBankAccountQuery;
         _queryBuilder = queryBuilder;
         _operationClassifier = operationClassifier;
+        _duplicateChecker = duplicateChecker;
     }
 
     public async Task<Result<BankExportDto>> ParseAsync(
@@ -62,8 +66,44 @@ public class BankStatementParserService : IBankStatementParserService
         ReplaceOrganizationWithBankForBankServices(classifiedResult.Value);
         await SetCounterpartyIdsAsync(classifiedResult.Value, ct);
         await SetCounterpartyBankAccountIdsAsync(classifiedResult.Value, ct);
+        await SetNewOperationFlagsAsync(classifiedResult.Value, ct);
 
         return classifiedResult;
+    }
+
+    private async Task SetNewOperationFlagsAsync(BankExportDto export, CancellationToken ct)
+    {
+        var candidates = export.Accounts
+            .SelectMany(account => account.Transactions.Select(transaction => new
+            {
+                Transaction = transaction,
+                Identity = account.BankAccountId.HasValue
+                    ? BankOperationIdentity.Create(
+                        account.BankAccountId.Value,
+                        transaction.BankDocumentNumber,
+                        transaction.Date)
+                    : null
+            }))
+            .ToList();
+
+        foreach (var candidate in candidates)
+            candidate.Transaction.IsNewOperation = true;
+
+        if (_userContext.OrganizationId is not { } organizationId)
+            return;
+
+        var identities = candidates
+            .Where(x => x.Identity.HasValue)
+            .Select(x => x.Identity!.Value)
+            .Distinct()
+            .ToList();
+        var existing = await _duplicateChecker.FindExistingAsync(
+            organizationId,
+            identities,
+            ct: ct);
+
+        foreach (var candidate in candidates.Where(x => x.Identity.HasValue))
+            candidate.Transaction.IsNewOperation = !existing.Contains(candidate.Identity!.Value);
     }
 
     public async Task<Result<BankExportDto>> ParseExcelAsync(

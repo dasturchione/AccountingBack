@@ -4,6 +4,40 @@
 
 Найдено **326** controller GET endpoints. Поля translation/search/order/tests заполняются при ручном аудите конкретного feature; исходный статус всех строк — `NOT_STARTED`.
 
+## Translation model inventory
+
+Контракт проверен через EF Core metadata-тест `TranslationModelContractTests`: каждая специализированная `*_translation` entity имеет составной PK из идентификатора базовой записи и `LanguageId`, FK на `cmn_language` и FK на базовую entity. Shadow properties в составном PK запрещены. Во время проверки исправлена фактическая ошибка `DocumentStatusTranslation`: атрибуты ссылались на несуществующее CLR-свойство `DocumentStatusId` вместо `StatusId`.
+
+| Table | Base entity | Translation entity | Translated fields | Composite PK | Base FK/navigation | Language FK/navigation | Status |
+|---|---|---|---|---|---|---|---|
+| acc_account_type_translation | AccountType | AccountTypeTranslation | Name | AccountTypeId, LanguageId | AccountTypeId / AccountType | LanguageId / Language | MODEL_VERIFIED |
+| acc_chart_account_preset_account_translation | ChartAccountPresetAccount | ChartAccountPresetAccountTranslation | Name | PresetAccountId, LanguageId | PresetAccountId / PresetAccount | LanguageId / Language | MODEL_VERIFIED |
+| acc_chart_account_preset_translation | ChartAccountPreset | ChartAccountPresetTranslation | Name, Description | PresetId, LanguageId | PresetId / Preset | LanguageId / Language | MODEL_VERIFIED |
+| acc_document_account_role_translation | DocumentAccountRole | DocumentAccountRoleTranslation | Name, Description | DocumentAccountRoleId, LanguageId | DocumentAccountRoleId / DocumentAccountRole | LanguageId / Language | MODEL_VERIFIED |
+| acc_document_account_type_translation | DocumentAccountType | DocumentAccountTypeTranslation | Name, Description | LanguageId, DocumentAccountTypeId | DocumentAccountTypeId / DocumentAccountType | LanguageId / Language | MODEL_VERIFIED |
+| acc_subkonto_type_translation | SubkontoType | SubkontoTypeTranslation | Name | SubkontoTypeId, LanguageId | SubkontoTypeId / SubkontoType | LanguageId / Language | MODEL_VERIFIED |
+| cmn_bank_operation_category_translation | BankOperationCategory | BankOperationCategoryTranslation | Name | CategoryId, LanguageId | CategoryId / Category | LanguageId / Language | MODEL_VERIFIED |
+| cmn_contract_type_translation | ContractType | ContractTypeTranslation | Name | ContractTypeId, LanguageId | ContractTypeId / ContractType | LanguageId / Language | MODEL_VERIFIED |
+| cmn_costing_method_translation | CostingMethod | CostingMethodTranslation | Name | CostingMethodId, LanguageId | CostingMethodId / CostingMethod | LanguageId / Language | MODEL_VERIFIED |
+| cmn_currency_translation | Currency | CurrencyTranslation | Name | CurrencyId, LanguageId | CurrencyId / Currency | LanguageId / Language | MODEL_VERIFIED |
+| cmn_document_status_translation | DocumentStatus | DocumentStatusTranslation | Name | StatusId, LanguageId | StatusId / Status | LanguageId / Language | MODEL_VERIFIED |
+| cmn_document_type_translation | DocumentType | DocumentTypeTranslation | Name | DocumentTypeId, LanguageId | DocumentTypeId / DocumentType | LanguageId / Language | MODEL_VERIFIED |
+| cmn_movement_direction_translation | MovementDirection | MovementDirectionTranslation | Name | MovementDirectionId, LanguageId | MovementDirectionId / MovementDirection | LanguageId / Language | MODEL_VERIFIED |
+| cmn_operation_type_translation | OperationType | OperationTypeTranslation | Name | OperationTypeId, LanguageId | OperationTypeId / OperationType | LanguageId / Language | MODEL_VERIFIED |
+| cmn_payment_acceptance_point_type_translation | PaymentAcceptancePointType | PaymentAcceptancePointTypeTranslation | Name | PaymentAcceptancePointTypeId, LanguageId | PaymentAcceptancePointTypeId / PaymentAcceptancePointType | LanguageId / Language | MODEL_VERIFIED |
+| cmn_payment_type_translation | PaymentType | PaymentTypeTranslation | Name | PaymentTypeId, LanguageId | PaymentTypeId / PaymentType | LanguageId / Language | MODEL_VERIFIED |
+| fa_disposal_type_translation | FaDisposalType | FaDisposalTypeTranslation | Name | DisposalTypeId, LanguageId | DisposalTypeId / DisposalType | LanguageId / Language | MODEL_VERIFIED |
+| fa_receipt_type_translation | FaReceiptType | FaReceiptTypeTranslation | Name | ReceiptTypeId, LanguageId | ReceiptTypeId / ReceiptType | LanguageId / Language | MODEL_VERIFIED |
+| fiscal_cash_register_type_translation | FiscalCashRegisterType | FiscalCashRegisterTypeTranslation | Name | CashRegisterTypeId, LanguageId | CashRegisterTypeId / CashRegisterType | LanguageId / Language | MODEL_VERIFIED |
+| inv_product_group_translation | ProductGroup | ProductGroupTranslation | Name | ProductGroupId, LanguageId | ProductGroupId / ProductGroup | LanguageId / Language | MODEL_VERIFIED |
+| rnt_rental_object_type_translation | RentalObjectType | RentalObjectTypeTranslation | Name | RentalObjectTypeId, LanguageId | RentalObjectTypeId / RentalObjectType | LanguageId / Language | MODEL_VERIFIED |
+| rtl_payment_method_translation | PaymentMethod | PaymentMethodTranslation | Name | PaymentMethodId, LanguageId | PaymentMethodId / PaymentMethod | LanguageId / Language | MODEL_VERIFIED |
+| sys_user_kind_translation | UserKind | UserKindTranslation | Name, Description | UserKindId, LanguageId | UserKindId / UserKind | LanguageId / Language | MODEL_VERIFIED |
+
+`cmn_translation` — отдельный универсальный EAV-реестр (`TableName`, `RecordId`, `ColumnName`, `LanguageId`, `Value`). Он не является специализированной navigation-таблицей и поэтому не включён в составной-key contract выше. Его фактическое использование в GET проверяется отдельно по каждому feature.
+
+## Public GET inventory
+
 | Endpoint/method | Entity | Translation | Fields | Language selection | Fallback | Projection | Search/order | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | GET /api/chart-accounts<br>ChartAccountController.GetAllAsync → _service.GetAllAsync<br>`src/Presentation/WebApi/Controllers/Acc/ChartAccountController.cs:23` | — | — | — | NOT_AUDITED | NOT_AUDITED | NOT_AUDITED | NOT_AUDITED | NOT_ADDED | NOT_STARTED |

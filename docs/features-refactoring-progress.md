@@ -2,8 +2,8 @@
 
 Current area: Cmn
 Current feature: Currencies
-Current phase: INVENTORY
-Last verified commit: f21b8dd0
+Current phase: TESTCONTAINERS_HARNESS
+Last verified commit: 647c5d98
 Last successful build: 2026-08-31 — succeeded, 0 errors, 2 baseline CS8629 warnings
 Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discovered 0 tests
 
@@ -13,10 +13,12 @@ Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discove
 - Service-layer design approved and committed.
 - Isolated worktree `codex/service-layer-refactor` created.
 - Initial catalogue: 119 feature/component rows and 326 GET endpoints.
+- EF metadata contract verified for 23 dedicated translation entities.
+- Corrected the shadow-key mapping in `DocumentStatusTranslation` (`StatusId`, `LanguageId`).
 
 # Modified but not verified
 
-- Working inventory documents.
+- PostgreSQL integration test harness.
 
 # Blocked
 
@@ -31,6 +33,6 @@ Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discove
 
 # Next exact action
 
-1. Verify dedicated translation entity composite keys and navigations through EF metadata.
-2. Populate the translation model inventory.
-3. Add PostgreSQL integration harness.
+1. Add the PostgreSQL Testcontainers package and shared fixture.
+2. Run the database smoke test against PostgreSQL 17.
+3. Add failing `Cmn/Currencies` translation behavior tests.

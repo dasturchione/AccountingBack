@@ -2,10 +2,10 @@
 
 Current area: Cmn
 Current feature: Currencies
-Current phase: TESTCONTAINERS_HARNESS
-Last verified commit: 647c5d98
+Current phase: CURRENCY_CHARACTERIZATION
+Last verified commit: 5123445e
 Last successful build: 2026-08-31 — succeeded, 0 errors, 2 baseline CS8629 warnings
-Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discovered 0 tests
+Last successful test: 2026-08-31 — TranslationModelContract 1/1; PostgreSQLSmoke 1/1 against PostgreSQL 17
 
 # Completed
 
@@ -15,14 +15,15 @@ Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discove
 - Initial catalogue: 119 feature/component rows and 326 GET endpoints.
 - EF metadata contract verified for 23 dedicated translation entities.
 - Corrected the shadow-key mapping in `DocumentStatusTranslation` (`StatusId`, `LanguageId`).
+- Reusable PostgreSQL 17 Testcontainers fixture and mutable integration user context.
 
 # Modified but not verified
 
-- PostgreSQL integration test harness.
+- `Cmn/Currencies` multilingual characterization tests.
 
 # Blocked
 
-- PostgreSQL integration execution until Docker daemon is available.
+- None.
 
 # Translation decisions
 
@@ -33,6 +34,6 @@ Last successful test: 2026-08-31 — UnitTests 134/134; IntegrationTests discove
 
 # Next exact action
 
-1. Add the PostgreSQL Testcontainers package and shared fixture.
-2. Run the database smoke test against PostgreSQL 17.
-3. Add failing `Cmn/Currencies` translation behavior tests.
+1. Add failing list/detail translation, fallback, search, order and paging tests for `Cmn/Currencies`.
+2. Refactor both currency projections to use `IUserContext.LanguageId` with base-name fallback.
+3. Verify real SQL and scoped DI resolution.

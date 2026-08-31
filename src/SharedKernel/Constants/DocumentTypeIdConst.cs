@@ -131,5 +131,10 @@ namespace SharedKernel.Constants
         /// Movement of funds at a payment acceptance point.
         /// </summary>
         public const short PAYMENT_ACCEPTANCE_POINT_OPERATION = 25;
+
+        /// <summary>
+        /// Rental accrual for an individual lessor.
+        /// </summary>
+        public const short RENTAL_ACCRUAL = 26;
     }
 }

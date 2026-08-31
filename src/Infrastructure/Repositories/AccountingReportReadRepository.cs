@@ -221,6 +221,7 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
         await AddDocumentNumbersAsync(rows, DocumentTypeIdConst.INVENTORYADJUSTMENT, _context.InventoryAdjustmentDocs.Select(x => new { x.Id, x.DocNumber }), result, ct);
         await AddDocumentNumbersAsync(rows, DocumentTypeIdConst.INVENTORYCOUNT, _context.InventoryCountDocs.Select(x => new { x.Id, x.DocNumber }), result, ct);
         await AddDocumentNumbersAsync(rows, DocumentTypeIdConst.CASHCOLLECTION, _context.CashCollectionDocs.Select(x => new { x.Id, x.DocNumber }), result, ct);
+        await AddDocumentNumbersAsync(rows, DocumentTypeIdConst.RENTAL_ACCRUAL, _context.RentalAccrualDocs.Select(x => new { x.Id, x.DocNumber }), result, ct);
 
         return result;
     }

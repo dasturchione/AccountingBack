@@ -28,6 +28,8 @@ using Application.Features.FiscalCashRegisters;
 using Application.Features.CashOperations;
 using Application.Features.CashFiscalTransfers;
 using Application.Features.CashCollections;
+using Application.Features.Rnt.RentalAccruals;
+using Application.Features.Rnt.RentalContracts;
 using Application.Features.CashDocuments;
 using Application.Features.ChartAccounts;
 using Application.Features.ChartAccountPresetAccounts;
@@ -337,6 +339,10 @@ namespace Infrastructure
             services.AddScoped<ICashCollectionService, CashCollectionService>();
             services.AddScoped<ICashCollectionLifecycleService, CashCollectionLifecycleService>();
             services.AddScoped<ICashCollectionMoneyService, CashCollectionMoneyService>();
+            services.AddScoped<IRentalContractService, RentalContractService>();
+            services.AddScoped<IRentalAccrualService, RentalAccrualService>();
+            services.AddScoped<IRentalAccrualLifecycleService, RentalAccrualLifecycleService>();
+            services.AddScoped<IRentalAccrualGenerationService, RentalAccrualGenerationService>();
             services.AddScoped<IBankOperationRelatedDocumentService, BankOperationRelatedDocumentService>();
             services.AddScoped<IDocumentRegistryService, DocumentRegistryService>();
             services.AddScoped<IPurchaseDocService, PurchaseDocService>();
@@ -406,6 +412,7 @@ namespace Infrastructure
             services.AddScoped<IPostingContextBuilder<FaRevaluationDoc>, FaRevaluationContextBuilder>();
             services.AddScoped<IPostingContextBuilder<FaReceiptDoc>, FaReceiptContextBuilder>();
             services.AddScoped<IPostingContextBuilder<PayPayrollDoc>, PayrollDocumentContextBuilder>();
+            services.AddScoped<IPostingContextBuilder<RentalAccrualDoc>, RentalAccrualContextBuilder>();
             services.AddScoped<IPostingContextValidator<PayPayrollDoc>, PayrollDocumentContextBuilder>();
 
             services.AddScoped<IInventoryDispatcher, InventoryDispatcher>();

@@ -45,6 +45,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<OperationType> _operationTypeQuery;
     private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly IQueryRepository<ContractType> _contractTypeQuery;
+    private readonly IQueryRepository<RentalObjectType> _rentalObjectTypeQuery;
     private readonly IQueryRepository<Position> _positionQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
@@ -98,6 +99,7 @@ public class ManualService : IManualService
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<ContractType> contractTypeQuery,
+        IQueryRepository<RentalObjectType> rentalObjectTypeQuery,
         IQueryRepository<Branch> branchQuery,
         IQueryRepository<Department> departmentQuery,
         IQueryRepository<Position> positionQuery,
@@ -154,6 +156,7 @@ public class ManualService : IManualService
         _taxTypeQuery = taxTypeQuery;
         _vatRateQuery = vatRateQuery;
         _contractTypeQuery = contractTypeQuery;
+        _rentalObjectTypeQuery = rentalObjectTypeQuery;
         _branchQuery = branchQuery;
         _departmentQuery = departmentQuery;
         _positionQuery = positionQuery;
@@ -615,6 +618,25 @@ public class ManualService : IManualService
                                  .Build();
 
         return await _contractTypeQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetRentalObjectTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<RentalObjectType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+        return await _rentalObjectTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetBranchesAsync(CancellationToken ct = default)

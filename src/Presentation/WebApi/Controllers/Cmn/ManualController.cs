@@ -398,6 +398,14 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetContractTypes)]
+    [HttpGet("rental-object-types")]
+    public async Task<IActionResult> GetRentalObjectTypes(CancellationToken ct)
+    {
+        var result = await _manualService.GetRentalObjectTypesAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentAcceptancePointTypes)]
     [HttpGet("payment-acceptance-point-types")]
     public async Task<IActionResult> GetPaymentAcceptancePointTypes(CancellationToken ct)

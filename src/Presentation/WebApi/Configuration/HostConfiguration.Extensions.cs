@@ -277,6 +277,14 @@ namespace WebApi.Configuration
                     .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(9, 0)
                         .InTimeZone(TashkentTime.Zone)));
 
+                var rentalAccrualJobKey = new JobKey("RentalAccrualJob");
+                q.AddJob<RentalAccrualJob>(opts => opts.WithIdentity(rentalAccrualJobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(rentalAccrualJobKey)
+                    .WithIdentity("RentalAccrualJobTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0)
+                        .InTimeZone(TashkentTime.Zone)));
+
                 var edoImportPreflightJobKey = new JobKey(EdoImportPreflightJob.JobName);
                 q.AddJob<EdoImportPreflightJob>(opts => opts
                     .WithIdentity(edoImportPreflightJobKey)

@@ -12,6 +12,8 @@ public static class AuditLogTableConst
     public const string CashCollection = "cash_collection_doc";
     public const string PaymentAcceptancePoint = "org_payment_acceptance_point";
     public const string PaymentAcceptancePointOperation = "payment_acceptance_point_operation";
+    public const string RentalContract = "rnt_contract";
+    public const string RentalAccrual = "rnt_accrual_doc";
     public const string WarehouseTransferDoc = "inv_transfer_doc";
     public const string InventoryAdjustmentDoc = "inv_inventory_adjustment_doc";
     public const string InventoryCountDoc = "inv_inventory_count_doc";

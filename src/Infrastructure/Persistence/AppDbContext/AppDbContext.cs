@@ -161,6 +161,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PayPayrollCalcLine> PayPayrollCalcLines { get; set; }
     public virtual DbSet<PayPaymentBatch> PayPaymentBatches { get; set; }
     public virtual DbSet<PayPaymentLine> PayPaymentLines { get; set; }
+    public virtual DbSet<RentalObjectType> RentalObjectTypes { get; set; }
+    public virtual DbSet<RentalObjectTypeTranslation> RentalObjectTypeTranslations { get; set; }
+    public virtual DbSet<RentalContract> RentalContracts { get; set; }
+    public virtual DbSet<RentalContractObject> RentalContractObjects { get; set; }
+    public virtual DbSet<RentalAccrualDoc> RentalAccrualDocs { get; set; }
+    public virtual DbSet<RentalAccrualDocItem> RentalAccrualDocItems { get; set; }
     public virtual DbSet<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; }
     public virtual DbSet<HrEmployeeWorkScheduleDay> HrEmployeeWorkScheduleDays { get; set; }
     public virtual DbSet<HrAbsenceType> HrAbsenceTypes { get; set; }

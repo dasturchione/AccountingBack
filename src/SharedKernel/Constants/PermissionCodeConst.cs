@@ -58,6 +58,23 @@ public static class PermissionCodeConst
     public const string PaymentAcceptancePointDelete     = "PAYMENT_ACCEPTANCE_POINT_DELETE";
     #endregion
 
+    #region Rental
+    public const string RentalContractView = "RENTAL_CONTRACT_VIEW";
+    public const string RentalContractViewDetail = "RENTAL_CONTRACT_VIEW_DETAIL";
+    public const string RentalContractCreate = "RENTAL_CONTRACT_CREATE";
+    public const string RentalContractUpdate = "RENTAL_CONTRACT_UPDATE";
+    public const string RentalContractDelete = "RENTAL_CONTRACT_DELETE";
+    public const string RentalContractActivate = "RENTAL_CONTRACT_ACTIVATE";
+    public const string RentalContractCancel = "RENTAL_CONTRACT_CANCEL";
+    public const string RentalAccrualView = "RENTAL_ACCRUAL_VIEW";
+    public const string RentalAccrualViewDetail = "RENTAL_ACCRUAL_VIEW_DETAIL";
+    public const string RentalAccrualUpdate = "RENTAL_ACCRUAL_UPDATE";
+    public const string RentalAccrualDelete = "RENTAL_ACCRUAL_DELETE";
+    public const string RentalAccrualGenerate = "RENTAL_ACCRUAL_GENERATE";
+    public const string RentalAccrualPost = "RENTAL_ACCRUAL_POST";
+    public const string RentalAccrualCancel = "RENTAL_ACCRUAL_CANCEL";
+    #endregion
+
     #region PaymentAcceptancePointOperation
     public const string PaymentAcceptancePointOperationView       = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW";
     public const string PaymentAcceptancePointOperationViewDetail = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW_DETAIL";

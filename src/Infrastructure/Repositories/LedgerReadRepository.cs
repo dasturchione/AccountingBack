@@ -211,6 +211,13 @@ public class LedgerReadRepository : ILedgerReadRepository
             result,
             ct);
 
+        await AddDocumentNumbersAsync(
+            details,
+            DocumentTypeIdConst.RENTAL_ACCRUAL,
+            _context.RentalAccrualDocs.Select(x => new { x.Id, x.DocNumber }),
+            result,
+            ct);
+
         return result;
     }
 

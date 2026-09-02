@@ -1,7 +1,7 @@
 # Current position
 
-Current area: DocumentNumbers
-Current feature: DocumentNumbers
+Current area: Inv
+Current feature: ProductGroups
 Current phase: AUDIT
 Last verified commit: 5f999da8
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
@@ -57,6 +57,6 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 
 # Next exact action
 
-1. Audit `DocumentNumbers/DocumentNumbers` service semantics, year/organization scope and concurrency behavior.
-2. Write characterization tests before production changes.
-3. Continue the full service-layer refactoring plan from that verified boundary.
+1. Audit `Inv/ProductGroups` list/detail translations, scope and public DTO layout.
+2. Write PostgreSQL characterization tests before production changes.
+3. Continue through Products and Warehouses before the higher-risk inventory document features.

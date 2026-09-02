@@ -59,9 +59,12 @@ public static class OrganizationSetupErrors
     public static Error BankAccountNotFound(int id, short? languageId = null) => ScopedNotFound(
         "OrganizationSetup.BankAccountNotFound", id, languageId, "bank hisobvarag'i", "банк ҳисобварағи", "банковский счёт", "Bank account");
 
-    public static Error ChartAccountNotFound(int id, short? languageId = null) => NotFound(
-        "OrganizationSetup.ChartAccountNotFound", id, languageId,
-        "buxgalteriya hisobvarag'i", "бухгалтерия ҳисобварағи", "бухгалтерский счёт", "Chart account");
+    public static Error ChartAccountNotFound(int id, short? languageId = null) => Error.NotFound(
+        "OrganizationSetup.ChartAccountNotFound", Message(languageId,
+            $"Joriy tashkilotda id-si {id} bo'lgan buxgalteriya hisobvarag'i topilmadi.",
+            $"Жорий ташкилотда id-си {id} бўлган бухгалтерия ҳисобварағи топилмади.",
+            $"Бухгалтерский счёт с id {id} не найден в текущей организации.",
+            $"Chart account with id {id} was not found in the current organization."));
 
     public static Error SetupNotReady(string missingStep, short? languageId = null) => Business(
         "OrganizationSetup.NotReady", languageId,

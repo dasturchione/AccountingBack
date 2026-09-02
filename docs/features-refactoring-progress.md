@@ -1,11 +1,11 @@
 # Current position
 
-Current area: Organization
-Current feature: Setup
+Current area: Counterparty
+Current feature: CounterpartyCards
 Current phase: AUDIT
-Last verified commit: 4c255557
-Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Positions
-Last successful test: 2026-09-02 — Organization unit 5/5; Organization integration 3/3
+Last verified commit: 4c8bc8ca
+Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Organizations
+Last successful test: 2026-09-02 — Setup unit 5/5; Setup integration 4/4
 
 # Completed
 
@@ -33,6 +33,7 @@ Last successful test: 2026-09-02 — Organization unit 5/5; Organization integra
 - `Org/Departments`: every operation and code uniqueness explicitly scoped to the selected organization; branch references must belong to that organization; list filter, base-name nested fields, branch filter, search, stable order, SQL paging and localized errors verified against PostgreSQL.
 - `Org/Positions`: every CRUD/query operation and code uniqueness explicitly scoped to the selected organization; list filter, base-name projection, search, stable order, SQL paging and localized errors verified against PostgreSQL.
 - `Organization/Organizations`: user-kind visibility, region/is-parent/search filters, stable SQL order/paging, base nested names and localized detail errors verified; detail now uses the existing reusable SQL projection instead of materializing an included entity; Faktura lookup remains an external contract.
+- `Organization/Setup`: seven public DTOs split into same-named files with reflection coverage; four exact request validators added; selected-organization aggregation, membership errors, lifecycle completion and rollback-on-business-failure verified; chart-account defaults can no longer reference another organization; current tax/pricing reads fetch one deterministically ordered row in SQL.
 
 # Modified but not verified
 
@@ -51,6 +52,6 @@ Last successful test: 2026-09-02 — Organization unit 5/5; Organization integra
 
 # Next exact action
 
-1. Capture all nine `OrganizationSetupDtos.cs` public contracts with reflection tests.
-2. Split each public setup DTO into its same-named file and add exact request validators.
-3. Characterize setup GET scope/aggregation and lifecycle behavior against PostgreSQL.
+1. Run the full Org/Organization build, tests and DI/API compatibility checkpoint.
+2. Audit `Counterparty/CounterpartyCards` list/detail, translations, scope and public DTO layout.
+3. Write its PostgreSQL characterization tests before production changes.

@@ -82,7 +82,7 @@
 ### Task 5: Organization/Setup public DTO split and request validation
 
 **Files:**
-- Split the nine public types currently in `OrganizationSetupDtos.cs` into same-named files.
+- Split the seven public types currently in `OrganizationSetupDtos.cs` into same-named files.
 - Create exact validators for the four public setup request DTOs.
 - Create reflection/validator tests in UnitTests.
 - Create PostgreSQL setup query/lifecycle tests in IntegrationTests.

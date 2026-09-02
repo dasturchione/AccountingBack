@@ -3,7 +3,7 @@
 Current area: Inv
 Current feature: OpeningInventories
 Current phase: AUDIT
-Last verified commit: pending InventoryMovements production commit
+Last verified commit: 014db998
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors (incremental build; clean build retains 2 accepted pre-existing nullable warnings)
 Last successful test: 2026-09-02 — full solution 286/286 (UnitTests 220/220, IntegrationTests 66/66)
 

@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Manual DTO and scope contracts
+Current feature: Barcode
 Current phase: CHARACTERIZATION
-Last verified commit: af086522
+Last verified commit: e9ac52bc
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 167/167; Manual multilanguage integration tests 2/2 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 168/168; Manual integration tests 5/5 against PostgreSQL 17
 
 # Completed
 
@@ -26,6 +26,7 @@ Last successful test: 2026-09-02 — UnitTests 167/167; Manual multilanguage int
 - `Cmn/PricingConditions`: all three GET contracts verified with intentional base names, SQL-side scoped list/paging and deterministic current-effective selection; list filter validation added and pricing-condition errors completed for Russian and Uzbek Cyrillic.
 - `Cmn/Taxes`: four public provider-integration DTOs split without JSON contract changes; VAT list state filtering fixed, SQL search/order/paging verified, organization/effective-date resolution and inclusive/exclusive formulas covered against PostgreSQL; local errors completed for Russian and Uzbek Cyrillic while external provider text remains untouched.
 - `Cmn/Manual` translations: all 19 translation-backed select lists now use requested language with base fallback inside SQL; the nine previously direct-name methods were corrected and all existing translated methods are regression-covered for ordering, active-state behavior where supported and duplicate prevention.
+- `Cmn/Manual` contracts: grouped public DTO declarations split into same-named files with reflection coverage; SuperAdmin/TenantAdmin/TenantUser organization visibility, selected-organization resources, branch/bank/counterparty/product filters and deterministic module grouping verified against PostgreSQL; all 55 manual GET paths audited.
 
 # Modified but not verified
 
@@ -44,6 +45,6 @@ Last successful test: 2026-09-02 — UnitTests 167/167; Manual multilanguage int
 
 # Next exact action
 
-1. Capture exact public properties for all five Manual DTOs.
-2. Test organization/user scope, optional filters and module grouping against PostgreSQL.
-3. Split the four secondary public DTOs into same-named files without changing controller/service contracts.
+1. Characterize the three Barcode GET routes at the real controller/generation boundary.
+2. Verify valid QR/Code128/EAN13 output content types and localized invalid-EAN13 errors.
+3. Run the complete Cmn solution verification and public DTO one-file audit.

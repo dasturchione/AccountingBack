@@ -295,15 +295,15 @@ Assert generated SQL contains the corresponding `*_translation` table and sortin
 - Consumes: all remaining `IManualService` selectors, organization/user scope and existing DTO properties.
 - Produces: unchanged manual JSON with one public DTO per file and PostgreSQL coverage of scope/filter behavior.
 
-- [ ] **Step 1: Capture DTO and scope behavior**
+- [x] **Step 1: Capture DTO and scope behavior**
 
 Reflect exact public properties for all five DTOs. Test SuperAdmin/TenantAdmin/TenantUser organization selection, organization-scoped FA groups/products/warehouses/accounts/cashes, optional branch/bank/counterparty filters, module grouping and deterministic ordering.
 
-- [ ] **Step 2: Split DTOs mechanically**
+- [x] **Step 2: Split DTOs mechanically**
 
 Move the four secondary public DTO declarations unchanged into their same-named files. Keep private `ModuleFlatDto` nested in `ManualService` because it is an internal SQL projection only.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 Run all Manual tests, full UnitTests and build; compare `ManualController` and `IManualService` signatures before/after. Mark all remaining manual GET rows `VERIFIED` and commit `refactor(cmn): split manual DTO contracts`.
 

@@ -1,11 +1,11 @@
 # Current position
 
-Current area: Cmn
-Current feature: Barcode
-Current phase: CHARACTERIZATION
-Last verified commit: e9ac52bc
+Current area: Org
+Current feature: Branches
+Current phase: AUDIT
+Last verified commit: 2882d35f
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 168/168; Manual integration tests 5/5 against PostgreSQL 17
+Last successful test: 2026-09-02 — full solution 198/198 (UnitTests 172/172, IntegrationTests 26/26)
 
 # Completed
 
@@ -27,6 +27,8 @@ Last successful test: 2026-09-02 — UnitTests 168/168; Manual integration tests
 - `Cmn/Taxes`: four public provider-integration DTOs split without JSON contract changes; VAT list state filtering fixed, SQL search/order/paging verified, organization/effective-date resolution and inclusive/exclusive formulas covered against PostgreSQL; local errors completed for Russian and Uzbek Cyrillic while external provider text remains untouched.
 - `Cmn/Manual` translations: all 19 translation-backed select lists now use requested language with base fallback inside SQL; the nine previously direct-name methods were corrected and all existing translated methods are regression-covered for ordering, active-state behavior where supported and duplicate prevention.
 - `Cmn/Manual` contracts: grouped public DTO declarations split into same-named files with reflection coverage; SuperAdmin/TenantAdmin/TenantUser organization visibility, selected-organization resources, branch/bank/counterparty/product filters and deterministic module grouping verified against PostgreSQL; all 55 manual GET paths audited.
+- `Cmn/Barcode`: all three controller/generator boundaries verified for PNG success and localized invalid-EAN13 ProblemDetails; no production change was required.
+- Complete `Cmn` checkpoint: build 0 warnings/0 errors, all 198 tests green, no controller/service-interface/SQL-script diff from the phase baseline, and zero DTO files with multiple public DTO declarations.
 
 # Modified but not verified
 
@@ -45,6 +47,6 @@ Last successful test: 2026-09-02 — UnitTests 168/168; Manual integration tests
 
 # Next exact action
 
-1. Characterize the three Barcode GET routes at the real controller/generation boundary.
-2. Verify valid QR/Code128/EAN13 output content types and localized invalid-EAN13 errors.
-3. Run the complete Cmn solution verification and public DTO one-file audit.
+1. Audit `Org/Branches` public DTO, filter, scope and translation behavior.
+2. Add characterization tests before any production refactoring.
+3. Preserve the completed `Cmn` checkpoint while proceeding through the Org area.

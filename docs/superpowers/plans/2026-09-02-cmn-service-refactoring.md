@@ -321,18 +321,18 @@ Run all Manual tests, full UnitTests and build; compare `ManualController` and `
 - Consumes: current QR, Code128 and EAN13 GET routes plus `BarcodeErrors`.
 - Produces: a complete `Cmn` verification checkpoint and exact next area `Org`.
 
-- [ ] **Step 1: Characterize barcode GETs**
+- [x] **Step 1: Characterize barcode GETs**
 
 Execute the real barcode generation boundary for valid content and invalid EAN13 input. Assert content types/status/error codes rather than image bytes or source text. Preserve the existing localized `BarcodeErrors` and do not introduce database abstractions.
 
-- [ ] **Step 2: Run the complete verification suite**
+- [x] **Step 2: Run the complete verification suite**
 
 Run `dotnet build Accounting.slnx --no-restore` and `dotnet test Accounting.slnx --no-build`. Require zero failures and no warnings beyond the two accepted baseline CS8629 warnings.
 
-- [ ] **Step 3: Review API and architecture diff**
+- [x] **Step 3: Review API and architecture diff**
 
 Diff from commit `9a7d6a46`. Confirm no controller route, HTTP verb, service interface, public property type, posting/calculation/transaction or SQL schema changed. Run the public DTO one-file audit for `src/Application/Features/Cmn` and require zero grouped public DTO files.
 
-- [ ] **Step 4: Record and commit the Cmn checkpoint**
+- [x] **Step 4: Record and commit the Cmn checkpoint**
 
 Set every Cmn row and all its GET audit rows to `VERIFIED`, except any explicit external-provider row which is marked `VERIFIED_EXTERNAL_TEXT`. Set progress to `Current area: Org`, `Current feature: Branches`, `Current phase: AUDIT`, and record exact build/test counts. Commit `docs: record completed cmn service refactoring`.

@@ -109,12 +109,12 @@ public class PricingConditionService : IPricingConditionService
                         x.StartDate <= now &&
                         (x.EndDate == null || x.EndDate >= now))
             .As<PricingConditionDto>()
-            .OrderBy(x => x.StartDate)
-            .Desc()
+            .OrderBy(items => items
+                .OrderByDescending(x => x.StartDate)
+                .ThenByDescending(x => x.Id))
             .Build();
 
-        var items = await _query.GetAllAsync(query, ct);
-        var current = items.FirstOrDefault();
+        var current = await _query.GetAsync(query, ct);
 
         if (current is null)
             return Result.Failure<PricingConditionDto>(PricingConditionErrors.CurrentNotFound(_userContext.LanguageId));

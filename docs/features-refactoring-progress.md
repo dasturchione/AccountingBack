@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: PricingConditions
-Current phase: RED_TESTS
-Last verified commit: 3d4c3bbd
+Current feature: Taxes
+Current phase: AUDIT
+Last verified commit: 717b3bf4
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 159/159; DocumentRegistry integration tests 2/2 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 166/166; PricingCondition integration tests 2/2 against PostgreSQL 17
 
 # Completed
 
@@ -23,6 +23,7 @@ Last successful test: 2026-09-02 — UnitTests 159/159; DocumentRegistry integra
 - `Cmn/CurrencyRates`: list/detail/latest/history currency names localized with per-currency fallback; filtering, dynamic ordering and pagination moved into SQL; latest-rate ordering corrected to `EffectiveDate desc, Id desc`; single-result repositories now honor specification result criteria and ordering instead of silently discarding them.
 - `Cmn/CurrencyRevaluations`: public DTOs, validators and projections split into focused files with reflection coverage; list organization filtering, stable ordering, count and paging moved into SQL; detail line amounts/rates and organization scope verified without touching lifecycle/accounting behavior.
 - `Cmn/Documents`: document type, status and currency names localized independently with base fallback and null preservation; translated search and stable no-pagination ordering verified; explicit organization scope now also protects a super-admin working in a selected organization; DTO file and filter validation normalized.
+- `Cmn/PricingConditions`: all three GET contracts verified with intentional base names, SQL-side scoped list/paging and deterministic current-effective selection; list filter validation added and pricing-condition errors completed for Russian and Uzbek Cyrillic.
 
 # Modified but not verified
 
@@ -41,6 +42,6 @@ Last successful test: 2026-09-02 — UnitTests 159/159; DocumentRegistry integra
 
 # Next exact action
 
-1. Audit `Cmn/PricingConditions` list/detail/current query behavior and actual ordering.
-2. Add RED filter validation plus PostgreSQL characterization tests.
-3. Preserve base names because no translation entity exists and fix only proven query defects.
+1. Capture `Cmn/Taxes` public DTO/validator contracts and all local/external GET paths.
+2. Add PostgreSQL tests for TaxType/VatRate lookup behavior and organization scope.
+3. Split grouped public DTOs mechanically and verify external integration responses separately.

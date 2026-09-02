@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: CurrencyRevaluations
-Current phase: BASELINE_TESTS
-Last verified commit: be891ee4
+Current feature: Documents
+Current phase: RED_TESTS
+Last verified commit: a2876666
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 146/146; IntegrationTests 12/12 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 153/153; CurrencyRevaluation integration tests 2/2 against PostgreSQL 17
 
 # Completed
 
@@ -21,6 +21,7 @@ Last successful test: 2026-09-02 — UnitTests 146/146; IntegrationTests 12/12 a
 - `Cmn/Banks`: all four GET contracts, localized errors and list-filter validation verified; base names retained because no translation model exists.
 - `Cmn/Contracts`: list/detail ContractType translation with base fallback, translated search, organization scope, date-desc paging and filter validation verified; reconciliation request/response DTOs split without contract changes.
 - `Cmn/CurrencyRates`: list/detail/latest/history currency names localized with per-currency fallback; filtering, dynamic ordering and pagination moved into SQL; latest-rate ordering corrected to `EffectiveDate desc, Id desc`; single-result repositories now honor specification result criteria and ordering instead of silently discarding them.
+- `Cmn/CurrencyRevaluations`: public DTOs, validators and projections split into focused files with reflection coverage; list organization filtering, stable ordering, count and paging moved into SQL; detail line amounts/rates and organization scope verified without touching lifecycle/accounting behavior.
 
 # Modified but not verified
 
@@ -39,6 +40,6 @@ Last successful test: 2026-09-02 — UnitTests 146/146; IntegrationTests 12/12 a
 
 # Next exact action
 
-1. Capture the public DTO/validator shape of `Cmn/CurrencyRevaluations`.
-2. Add passing PostgreSQL characterization tests for list/detail and organization scope.
-3. Split grouped DTO, validator and projection files mechanically without changing accounting logic.
+1. Add PostgreSQL RED tests for all translated `Cmn/Documents` display fields.
+2. Localize document type, status and currency with independent base fallbacks.
+3. Rename the grouped DTO file mechanically and verify the unchanged no-pagination API contract.

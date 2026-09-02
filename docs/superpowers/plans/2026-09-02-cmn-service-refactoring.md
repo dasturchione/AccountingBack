@@ -138,6 +138,9 @@ Run targeted integration tests, existing validators, full UnitTests and build. U
 - Create: `src/Application/Features/Cmn/CurrencyRevaluations/Projections/CurrencyRevaluationListDtoProjection.cs`
 - Delete: `src/Application/Features/Cmn/CurrencyRevaluations/Projections/CurrencyRevaluationProjections.cs`
 - Create: `tests/IntegrationTests/Features/Cmn/CurrencyRevaluations/CurrencyRevaluationQueryContractTests.cs`
+- Create: `tests/UnitTests/CurrencyRevaluationContractTests.cs`
+- Create: `tests/UnitTests/CurrencyRevaluationListFilterValidatorTests.cs`
+- Create: `src/Application/Features/Cmn/CurrencyRevaluations/Validation/CurrencyRevaluationListFilterValidator.cs`
 - Modify: the three working documentation files.
 
 **Interfaces:**
@@ -146,15 +149,15 @@ Run targeted integration tests, existing validators, full UnitTests and build. U
 
 - [ ] **Step 1: Capture contract before moving files**
 
-Add reflection assertions for every public DTO property and FluentValidation assertions for create/preview inputs. Add PostgreSQL assertions for list/detail line totals, target currency code, date-desc order, page count and organization query filter.
+Add reflection assertions for every public DTO property and FluentValidation assertions for create/preview inputs. Add PostgreSQL assertions for list/detail line totals, target currency code, date-desc order, page count and organization query filter. Add bounds tests for the previously missing list-filter validator.
 
 - [ ] **Step 2: Run baseline tests**
 
-The characterization tests must pass before the mechanical split. If a test exposes existing behavior, preserve the observed literal value unless it conflicts with the approved specification.
+The DTO and create/preview validator characterization must pass before the mechanical split. Query tests target the approved SQL-side paging specification; expected RED is that the current service returns all materialized rows instead of one requested page.
 
 - [ ] **Step 3: Move types without semantic edits**
 
-Move each class body verbatim to the exact same-named file. Do not alter `PreviewAsync`, posting, balance calculations, status transitions or transaction boundaries.
+Move each class body verbatim to the exact same-named file. Move explicit organization criteria, stable ordering, count and paging into the database query and add only pagination/search-length bounds to the list validator. Do not alter `PreviewAsync`, posting, balance calculations, status transitions or transaction boundaries.
 
 - [ ] **Step 4: Verify and commit**
 

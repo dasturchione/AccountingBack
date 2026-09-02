@@ -41,9 +41,9 @@
 
 ### Task 4: ProductPrices
 
-- [ ] Inventory public and internal price DTOs, query paths and costing/pricing dependencies.
-- [ ] Characterize current pricing-condition selection, cost/sale price maps and SQL materialization boundaries.
-- [ ] Preserve costing formulas and effective-date behavior while removing only proven query/service defects.
+- [x] Inventory public and internal price DTOs, query paths and costing/pricing dependencies.
+- [x] Characterize current pricing-condition selection, cost/sale price maps and SQL materialization boundaries.
+- [x] Preserve costing formulas and effective-date behavior while removing only proven query/service defects.
 
 ### Task 5: ProductStocks and WarehouseProducts
 

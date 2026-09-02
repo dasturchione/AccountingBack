@@ -1,9 +1,9 @@
 # Current position
 
 Current area: Inv
-Current feature: ProductPrices
+Current feature: ProductStocks and WarehouseProducts
 Current phase: AUDIT
-Last verified commit: 71cc7c1a
+Last verified commit: a97cdf69
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
 Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, IntegrationTests 45/45)
 
@@ -42,6 +42,7 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 - `Inv/ProductGroups`: global groups now keep their globally unique codes while nested products are selected and updated only for the current organization; translations use requested language with base fallback, optional service filtering is SQL-side, grouped public DTOs were split with reflection coverage, and query/validation behavior is covered by PostgreSQL and unit tests.
 - `Inv/Products`: every CRUD/list operation and code conflict is explicitly organization-scoped; a SuperAdmin can no longer move another organization's product by updating it; nested ProductGroupName uses requested translation with base fallback; search/filters/order/paging run in PostgreSQL; grouped create DTO/validator declarations were split without API drift.
 - `Inv/Warehouses`: every CRUD/list/detail path is explicitly scoped to the selected organization; organization-local code uniqueness, branch ownership and active responsible-user membership are enforced; base nested names, BranchId/Name search, stable order, SQL paging, localized errors and schema-aligned validators are covered by PostgreSQL and unit tests.
+- `Inv/ProductPrices`: CRUD/list/detail and product references are explicitly organization-scoped; CurrencyName uses requested translation with base fallback; current pricing/costing conditions are selected as one deterministically ordered SQL result; price formulas and effective-date semantics are PostgreSQL-covered; grouped public calculation DTOs were split without API drift.
 
 # Modified but not verified
 
@@ -60,6 +61,6 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 
 # Next exact action
 
-1. Audit all `Inv/ProductPrices` public and internal query paths, price DTO layout and effective-date rules.
-2. Add PostgreSQL characterization tests for pricing-condition selection and cost/sale price maps before production changes.
-3. Preserve costing formulas while correcting only test-confirmed query/service defects.
+1. Audit `Inv/ProductStocks` current/historical aggregation, marking lookup and organization/warehouse boundaries.
+2. Audit `Inv/WarehouseProducts` batch/table query paths and public DTO layout.
+3. Add PostgreSQL characterization tests for stock quantities, price maps and isolation before production changes.

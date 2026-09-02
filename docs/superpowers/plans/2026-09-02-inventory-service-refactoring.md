@@ -47,9 +47,9 @@
 
 ### Task 5: ProductStocks and WarehouseProducts
 
-- [ ] Characterize current/historical stock, product/group/table aggregation, marking lookup and warehouse scope.
-- [ ] Prove quantity/cost totals and organization/warehouse isolation against PostgreSQL.
-- [ ] Split only public API DTOs and avoid changing batch allocation or historical valuation semantics.
+- [x] Characterize current/historical stock, product/group/table aggregation, marking lookup and warehouse scope.
+- [x] Prove quantity/cost totals and organization/warehouse isolation against PostgreSQL.
+- [x] Split only public API DTOs and avoid changing batch allocation or historical valuation semantics.
 
 ### Task 6: InventoryMovements
 

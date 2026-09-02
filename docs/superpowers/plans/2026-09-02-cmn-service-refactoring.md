@@ -238,15 +238,15 @@ Run targeted tests, full UnitTests and build; update all three endpoint rows and
 - Consumes: `ITaxService`, `ITaxResolverService`, `ITaxCalculationService`, `ITaxIntegrationService`.
 - Produces: unchanged tax CRUD/calculation/provider JSON contracts with one public DTO per file.
 
-- [ ] **Step 1: Characterize before split**
+- [x] **Step 1: Characterize before split**
 
 Reflect exact property names/types/nullability for all four integration DTOs. On PostgreSQL assert organization scoping, effective-date resolution, rate calculation literals, list paging/order and existing multilingual errors. Provider/MXIK responses are external provider text and must not be rewritten through local translation tables.
 
-- [ ] **Step 2: Move DTOs verbatim**
+- [x] **Step 2: Move DTOs verbatim**
 
 Create the four same-named files with identical namespaces, properties and defaults, then delete the two grouped files. Do not change tax formulas, rounding, effective-date selection or provider calls.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 Run tax unit/integration tests, full UnitTests and build. Mark local GETs and external GETs separately in the audit. Commit `refactor(cmn): split tax integration contracts`.
 

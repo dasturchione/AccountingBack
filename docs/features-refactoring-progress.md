@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Taxes
-Current phase: AUDIT
-Last verified commit: 717b3bf4
+Current feature: Manual
+Current phase: RED_TEST
+Last verified commit: 0fd62fca
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 166/166; PricingCondition integration tests 2/2 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 167/167; Tax integration tests 3/3 against PostgreSQL 17
 
 # Completed
 
@@ -24,6 +24,7 @@ Last successful test: 2026-09-02 — UnitTests 166/166; PricingCondition integra
 - `Cmn/CurrencyRevaluations`: public DTOs, validators and projections split into focused files with reflection coverage; list organization filtering, stable ordering, count and paging moved into SQL; detail line amounts/rates and organization scope verified without touching lifecycle/accounting behavior.
 - `Cmn/Documents`: document type, status and currency names localized independently with base fallback and null preservation; translated search and stable no-pagination ordering verified; explicit organization scope now also protects a super-admin working in a selected organization; DTO file and filter validation normalized.
 - `Cmn/PricingConditions`: all three GET contracts verified with intentional base names, SQL-side scoped list/paging and deterministic current-effective selection; list filter validation added and pricing-condition errors completed for Russian and Uzbek Cyrillic.
+- `Cmn/Taxes`: four public provider-integration DTOs split without JSON contract changes; VAT list state filtering fixed, SQL search/order/paging verified, organization/effective-date resolution and inclusive/exclusive formulas covered against PostgreSQL; local errors completed for Russian and Uzbek Cyrillic while external provider text remains untouched.
 
 # Modified but not verified
 
@@ -42,6 +43,6 @@ Last successful test: 2026-09-02 — UnitTests 166/166; PricingCondition integra
 
 # Next exact action
 
-1. Capture `Cmn/Taxes` public DTO/validator contracts and all local/external GET paths.
-2. Add PostgreSQL tests for TaxType/VatRate lookup behavior and organization scope.
-3. Split grouped public DTOs mechanically and verify external integration responses separately.
+1. Seed requested-language and fallback rows for all translation-backed `Cmn/Manual` lookups.
+2. Run grouped RED tests to identify direct base-name projections.
+3. Replace only confirmed translation-backed direct-name projections and verify SQL ordering/fallback.

@@ -263,19 +263,19 @@ Run tax unit/integration tests, full UnitTests and build. Mark local GETs and ex
 - Consumes: the existing `IManualService` methods and 19 dedicated translation navigations used by manual entities.
 - Produces: SQL-side requested-language names with base fallback for every translation-backed manual endpoint.
 
-- [ ] **Step 1: Write grouped RED tests from literal fixtures**
+- [x] **Step 1: Write grouped RED tests from literal fixtures**
 
 Seed requested-language and fallback rows for Currency, DocumentStatus, PaymentType, CostingMethod, DocumentType, OperationType, MovementDirection, ContractType and AccountType. Existing translated methods (UserKind, BankOperationCategory, FaReceiptType, FaDisposalType, RentalObjectType, ProductGroup, PaymentAcceptancePointType, PaymentMethod, FiscalCashRegisterType, SubkontoType) are regression controls. For every method assert translated name, base fallback, name order, active-state filter and no duplicate IDs.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run `ManualMultilanguageQueryTests`. Expected: the nine methods currently projecting `.Name` directly fail; existing translated methods remain green.
 
-- [ ] **Step 3: Replace only nine direct-name projections**
+- [x] **Step 3: Replace only nine direct-name projections**
 
 Capture `var languageId = _userContext.LanguageId` and map each of the nine entities through its real translation navigation. Do not add translation logic to State, Region, District, Unit, InventoryAdjustmentType, FaGroup, FaOkof, FaDepreciationMethod, TaxType, VatRate or other entities without a dedicated translation model.
 
-- [ ] **Step 4: Verify SQL behavior and commit**
+- [x] **Step 4: Verify SQL behavior and commit**
 
 Assert generated SQL contains the corresponding `*_translation` table and sorting occurs after the translated projection. Run full UnitTests/build, update the affected manual endpoint rows, and commit `feat(i18n): localize manual select lists`.
 

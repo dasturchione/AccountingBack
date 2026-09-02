@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Manual
-Current phase: RED_TEST
-Last verified commit: 0fd62fca
+Current feature: Manual DTO and scope contracts
+Current phase: CHARACTERIZATION
+Last verified commit: af086522
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 167/167; Tax integration tests 3/3 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 167/167; Manual multilanguage integration tests 2/2 against PostgreSQL 17
 
 # Completed
 
@@ -25,6 +25,7 @@ Last successful test: 2026-09-02 — UnitTests 167/167; Tax integration tests 3/
 - `Cmn/Documents`: document type, status and currency names localized independently with base fallback and null preservation; translated search and stable no-pagination ordering verified; explicit organization scope now also protects a super-admin working in a selected organization; DTO file and filter validation normalized.
 - `Cmn/PricingConditions`: all three GET contracts verified with intentional base names, SQL-side scoped list/paging and deterministic current-effective selection; list filter validation added and pricing-condition errors completed for Russian and Uzbek Cyrillic.
 - `Cmn/Taxes`: four public provider-integration DTOs split without JSON contract changes; VAT list state filtering fixed, SQL search/order/paging verified, organization/effective-date resolution and inclusive/exclusive formulas covered against PostgreSQL; local errors completed for Russian and Uzbek Cyrillic while external provider text remains untouched.
+- `Cmn/Manual` translations: all 19 translation-backed select lists now use requested language with base fallback inside SQL; the nine previously direct-name methods were corrected and all existing translated methods are regression-covered for ordering, active-state behavior where supported and duplicate prevention.
 
 # Modified but not verified
 
@@ -43,6 +44,6 @@ Last successful test: 2026-09-02 — UnitTests 167/167; Tax integration tests 3/
 
 # Next exact action
 
-1. Seed requested-language and fallback rows for all translation-backed `Cmn/Manual` lookups.
-2. Run grouped RED tests to identify direct base-name projections.
-3. Replace only confirmed translation-backed direct-name projections and verify SQL ordering/fallback.
+1. Capture exact public properties for all five Manual DTOs.
+2. Test organization/user scope, optional filters and module grouping against PostgreSQL.
+3. Split the four secondary public DTOs into same-named files without changing controller/service contracts.

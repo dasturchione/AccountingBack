@@ -1,11 +1,11 @@
 # Current position
 
-Current area: Counterparty
-Current feature: CounterpartyContacts
+Current area: DocumentNumbers
+Current feature: DocumentNumbers
 Current phase: AUDIT
-Last verified commit: 1cced9ef
+Last verified commit: 5f999da8
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
-Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests 198/198
+Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, IntegrationTests 45/45)
 
 # Completed
 
@@ -37,6 +37,8 @@ Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests
 - Complete `Org` and `Organization` checkpoint: build succeeded, all 235 tests green, DI scope resolution passed, no controller/service-interface/SQL-script diff, and zero DTO files with multiple public DTO declarations.
 - `Counterparty/CounterpartyCards`: every CRUD/query and short-name conflict check is explicitly scoped to the selected organization; missing organization context returns localized `CommonErrors`; list search/order/SQL paging and base organization/region/district/state names are PostgreSQL-covered; request limits now match the Domain/schema contract.
 - `Counterparty/CounterpartyBankAccounts`: every CRUD/query and account-number conflict check is explicitly scoped to the selected organization; child ownership and bank-branch/bank compatibility are validated; CurrencyName is translated with base fallback in SQL; filters, stable order and paging are PostgreSQL-covered.
+- `Counterparty/CounterpartyContacts`: every CRUD/query is explicitly scoped to the selected organization; create/update reject counterparties from another organization; list filters, projected search, stable order, SQL paging and base counterparty/state names are PostgreSQL-covered; Email validation now matches the schema limit.
+- Complete `Counterparty` checkpoint: build succeeded, all 247 tests are green, DI resolution passed through the real application registrations, no controller/service-interface/SQL/public-DTO diff was introduced, and every Counterparty DTO file contains at most one public type.
 
 # Modified but not verified
 
@@ -55,6 +57,6 @@ Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests
 
 # Next exact action
 
-1. Audit `Counterparty/CounterpartyContacts` list/detail, translations, scope and public DTO layout.
-2. Write its PostgreSQL characterization tests before production changes.
-3. Complete the Counterparty full-solution checkpoint.
+1. Audit `DocumentNumbers/DocumentNumbers` service semantics, year/organization scope and concurrency behavior.
+2. Write characterization tests before production changes.
+3. Continue the full service-layer refactoring plan from that verified boundary.

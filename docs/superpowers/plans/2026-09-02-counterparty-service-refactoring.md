@@ -59,16 +59,16 @@
 - Modify filter, criteria, service, errors and validators as confirmed by RED tests.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove selected-organization leakage and acceptance of a counterparty from another organization.
-- [ ] Explicitly scope all list/detail/update/delete operations and validate counterparty ownership on create/update.
-- [ ] Align Email validation with the entity/schema length.
-- [ ] Verify counterparty filter, search, stable order, paging, base nested names and localized failures.
+- [x] RED: prove selected-organization leakage and acceptance of a counterparty from another organization.
+- [x] Explicitly scope all list/detail/update/delete operations and validate counterparty ownership on create/update.
+- [x] Align Email validation with the entity/schema length.
+- [x] Verify counterparty filter, search, stable order, paging, base nested names and localized failures.
 
 ### Task 4: Counterparty checkpoint
 
-- [ ] Run all targeted Counterparty integration and unit tests.
-- [ ] Run full UnitTests, full IntegrationTests, full solution build and full solution tests.
-- [ ] Validate DI scopes and resolution for every modified service/projection/validator.
-- [ ] Confirm no controller/service-interface/SQL-script diff and no API DTO drift.
-- [ ] Update every Counterparty feature and GET audit row to `VERIFIED`.
-- [ ] Record the exact next area in progress documentation.
+- [x] Run all targeted Counterparty integration and unit tests.
+- [x] Run full UnitTests, full IntegrationTests, full solution build and full solution tests.
+- [x] Validate DI scopes and resolution for every modified service/projection/validator.
+- [x] Confirm no controller/service-interface/SQL-script diff and no API DTO drift.
+- [x] Update every Counterparty feature and GET audit row to `VERIFIED`.
+- [x] Record the exact next area in progress documentation.

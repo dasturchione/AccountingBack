@@ -31,4 +31,13 @@ public static class CounterpartyBankAccountErrors
             LanguageIdConst.RU      => $"Филиал банка с id {bankBranchId} не относится к банку с id {bankId} или неактивен.",
             _                       => $"Bank branch {bankBranchId} does not belong to bank {bankId} or is inactive."
         });
+
+    public static Error CounterpartyNotFound(int counterpartyId, short? languageId = null) =>
+        Error.NotFound("CounterpartyBankAccount.CounterpartyNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {counterpartyId} bo'lgan kontragent joriy tashkilotda topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {counterpartyId} бўлган контрагент жорий ташкилотда топилмади.",
+            LanguageIdConst.RU      => $"Контрагент с id {counterpartyId} не найден в текущей организации.",
+            _                       => $"Counterparty with id {counterpartyId} was not found in the current organization."
+        });
 }

@@ -51,7 +51,8 @@ public sealed class BankBranchAssociationTests
             new InMemoryQueryRepository<CounterpartyBankAccount>(),
             command,
             new InMemoryQueryRepository<BankBranch>(
-                new BankBranch { Id = 15, BankId = 2, Mfo = "00440", Name = "Branch" }));
+                new BankBranch { Id = 15, BankId = 2, Mfo = "00440", Name = "Branch" }),
+            new InMemoryQueryRepository<CounterpartyCard>());
 
         var result = await service.CreateAsync(new CounterpartyBankAccountCreateDto
         {

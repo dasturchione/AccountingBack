@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Organization
-Current feature: Organizations
+Current feature: Setup
 Current phase: AUDIT
-Last verified commit: bc313087
-Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Departments
-Last successful test: 2026-09-02 — Position unit 4/4; Position integration 2/2
+Last verified commit: 4c255557
+Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Positions
+Last successful test: 2026-09-02 — Organization unit 5/5; Organization integration 3/3
 
 # Completed
 
@@ -32,6 +32,7 @@ Last successful test: 2026-09-02 — Position unit 4/4; Position integration 2/2
 - `Org/Branches`: list/detail/create/update/delete and code uniqueness explicitly scoped to the selected organization, including SuperAdmin; missing organization context now returns localized `CommonErrors`; list filters, base-name projection, search, stable order and SQL paging verified against PostgreSQL.
 - `Org/Departments`: every operation and code uniqueness explicitly scoped to the selected organization; branch references must belong to that organization; list filter, base-name nested fields, branch filter, search, stable order, SQL paging and localized errors verified against PostgreSQL.
 - `Org/Positions`: every CRUD/query operation and code uniqueness explicitly scoped to the selected organization; list filter, base-name projection, search, stable order, SQL paging and localized errors verified against PostgreSQL.
+- `Organization/Organizations`: user-kind visibility, region/is-parent/search filters, stable SQL order/paging, base nested names and localized detail errors verified; detail now uses the existing reusable SQL projection instead of materializing an included entity; Faktura lookup remains an external contract.
 
 # Modified but not verified
 
@@ -50,6 +51,6 @@ Last successful test: 2026-09-02 — Position unit 4/4; Position integration 2/2
 
 # Next exact action
 
-1. Run the complete Org checkpoint for Branches, Departments and Positions.
-2. Characterize Organization list/detail visibility for all user kinds.
-3. Add exact `OrganizationListFilter` validation and fix only confirmed defects.
+1. Capture all nine `OrganizationSetupDtos.cs` public contracts with reflection tests.
+2. Split each public setup DTO into its same-named file and add exact request validators.
+3. Characterize setup GET scope/aggregation and lifecycle behavior against PostgreSQL.

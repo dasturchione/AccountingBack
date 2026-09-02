@@ -31,11 +31,11 @@
 - Modify Branch filter, criteria builder and service.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove a selected-organization SuperAdmin currently receives another organization's branch in list/detail and that cross-organization code affects duplicate detection.
-- [ ] Add an internal `OrganizationId` query option, set it from `IUserContext`, and explicitly scope list/detail/create/update/delete and duplicate checks.
-- [ ] Return localized `CommonErrors.UserHasNoOrganization` when organization context is absent.
-- [ ] Validate optional `RegionId`, `Search`, `Page` and `PageSize` without changing the query contract.
-- [ ] Verify base names, region filter, projected search, `Name, Id` order, SQL paging and localized not-found.
+- [x] RED: prove a selected-organization SuperAdmin currently receives another organization's branch in list/detail and that cross-organization code affects duplicate detection.
+- [x] Add an internal `OrganizationId` query option, set it from `IUserContext`, and explicitly scope list/detail/create/update/delete and duplicate checks.
+- [x] Return localized `CommonErrors.UserHasNoOrganization` when organization context is absent.
+- [x] Validate optional `RegionId`, `Search`, `Page` and `PageSize` without changing the query contract.
+- [x] Verify base names, region filter, projected search, `Name, Id` order, SQL paging and localized not-found.
 
 ### Task 2: Org/Departments scoped CRUD and GET contract
 
@@ -46,10 +46,10 @@
 - Modify Department filter, criteria builder and service.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove selected-organization leakage for SuperAdmin.
-- [ ] Scope list/detail/create/update/delete and code conflict checks explicitly to current organization.
-- [ ] Keep optional branch filtering, base Branch/State names, `Name, Id` order and paging in PostgreSQL.
-- [ ] Add exact list-filter validation and localized missing-context behavior.
+- [x] RED: prove selected-organization leakage for SuperAdmin.
+- [x] Scope list/detail/create/update/delete and code conflict checks explicitly to current organization.
+- [x] Keep optional branch filtering, base Branch/State names, `Name, Id` order and paging in PostgreSQL.
+- [x] Add exact list-filter validation and localized missing-context behavior.
 
 ### Task 3: Org/Positions scoped CRUD and GET contract
 
@@ -60,9 +60,9 @@
 - Modify Position filter, criteria builder and service.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove selected-organization leakage for SuperAdmin.
-- [ ] Add explicit organization predicates to every database operation and organization-local code uniqueness.
-- [ ] Verify base names, projected search, stable order, SQL paging, detail/not-found and exact filter validation.
+- [x] RED: prove selected-organization leakage for SuperAdmin.
+- [x] Add explicit organization predicates to every database operation and organization-local code uniqueness.
+- [x] Verify base names, projected search, stable order, SQL paging, detail/not-found and exact filter validation.
 
 ### Task 4: Organization/Organizations query, access and validation contract
 
@@ -73,11 +73,11 @@
 - Modify Organization list/detail implementation only if tests expose a contract issue.
 - Modify the three progress/audit documents.
 
-- [ ] Characterize SuperAdmin, TenantAdmin and TenantUser list/detail visibility through real EF query filters.
-- [ ] Verify region/is-parent filters, projected search, `ShortName, Id` order and SQL paging.
-- [ ] Verify Region/District/State/Language fields intentionally use base names because no corresponding dedicated translation entity exists.
-- [ ] Verify localized detail errors and mark `by-inn` as external provider output.
-- [ ] Add exact list-filter bounds; preserve all public DTO properties and management-core scope rules.
+- [x] Characterize SuperAdmin, TenantAdmin and TenantUser list/detail visibility through real EF query filters.
+- [x] Verify region/is-parent filters, projected search, `ShortName, Id` order and SQL paging.
+- [x] Verify Region/District/State/Language fields intentionally use base names because no corresponding dedicated translation entity exists.
+- [x] Verify localized detail errors and mark `by-inn` as external provider output.
+- [x] Add exact list-filter bounds; preserve all public DTO properties and management-core scope rules.
 
 ### Task 5: Organization/Setup public DTO split and request validation
 
@@ -89,17 +89,17 @@
 - Modify setup service/core only for confirmed defects.
 - Modify the three progress/audit documents.
 
-- [ ] Capture every public property/type/default before moving files.
-- [ ] Split DTOs mechanically without namespace, nullability or JSON changes.
-- [ ] Validate company-profile shape, tax dates/state, accounting method/month and nullable default IDs; leave FK ownership/existence checks in the service.
-- [ ] Verify organization context/membership, setup aggregate mapping, current tax/pricing selection, defaults, localized errors and no cross-organization data.
-- [ ] Characterize update/complete transaction behavior before any lifecycle correction.
+- [x] Capture every public property/type/default before moving files.
+- [x] Split DTOs mechanically without namespace, nullability or JSON changes.
+- [x] Validate company-profile shape, tax dates/state, accounting method/month and nullable default IDs; leave FK ownership/existence checks in the service.
+- [x] Verify organization context/membership, setup aggregate mapping, current tax/pricing selection, defaults, localized errors and no cross-organization data.
+- [x] Characterize update/complete transaction behavior before any lifecycle correction.
 
 ### Task 6: Org/Organization checkpoint
 
-- [ ] Run all targeted Org/Organization integration and unit tests.
-- [ ] Run full UnitTests, full IntegrationTests, full solution build and full solution tests.
-- [ ] Validate DI scopes and resolution for every modified service/projection/validator.
-- [ ] Confirm no controller/service-interface/SQL-script diff and no API DTO drift.
-- [ ] Update all Org/Organization feature and GET audit rows to `VERIFIED`.
-- [ ] Record the exact next area (`Counterparty`) in progress documentation.
+- [x] Run all targeted Org/Organization integration and unit tests.
+- [x] Run full UnitTests, full IntegrationTests, full solution build and full solution tests.
+- [x] Validate DI scopes and resolution for every modified service/projection/validator.
+- [x] Confirm no controller/service-interface/SQL-script diff and no API DTO drift.
+- [x] Update all Org/Organization feature and GET audit rows to `VERIFIED`.
+- [x] Record the exact next area (`Counterparty`) in progress documentation.

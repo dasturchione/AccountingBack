@@ -8,6 +8,6 @@ public class ProductGroupCreateDtoValidator : AbstractValidator<ProductGroupCrea
     {
         Include(new ProductGroupBaseDtoValidator());
         RuleForEach(x => x.Products)
-            .ChildRules(product => product.RuleFor(x => x.Mxik).Length(17).When(x => x.Mxik != null));
+            .SetValidator(new ProductInGroupBaseDtoValidator());
     }
 }

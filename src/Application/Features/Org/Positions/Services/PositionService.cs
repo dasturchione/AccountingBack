@@ -28,15 +28,18 @@ public class PositionService : IPositionService
 
     public async Task<Result<int>> CreateAsync(PositionCreateDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        var exists = await _query.AnyAsync(p => p.Code == dto.Code, ct);
+        var exists = await _query.AnyAsync(
+            position => position.OrganizationId == organizationId && position.Code == dto.Code,
+            ct);
         if (exists)
             return Result.Failure<int>(PositionErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
         var entity = new Position
         {
-            OrganizationId = orgId,
+            OrganizationId = organizationId,
             Code = dto.Code, 
             Name = dto.Name, 
             StateId = StateIdConst.ACTIVE, 
@@ -49,7 +52,12 @@ public class PositionService : IPositionService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Position>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Position>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure(PositionErrors.NotFound(id, _userContext.LanguageId));
@@ -62,6 +70,11 @@ public class PositionService : IPositionService
 
     public async Task<Result<PagedResponse<PositionListDto>>> GetAllAsync(PositionListFilter filter, CancellationToken ct = default)
     {
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<PagedResponse<PositionListDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        filter.OrganizationId = organizationId;
         var query = _queryBuilder.BuildPaged<Position, PositionListDto, PositionListFilter>(filter);
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
@@ -69,7 +82,13 @@ public class PositionService : IPositionService
 
     public async Task<Result<PositionDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Position>().Where(x => x.Id == id).As<PositionDto>().Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<PositionDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Position>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .As<PositionDto>()
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure<PositionDto>(PositionErrors.NotFound(id, _userContext.LanguageId));
@@ -78,14 +97,21 @@ public class PositionService : IPositionService
 
     public async Task<Result> UpdateAsync(int id, PositionUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Position>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Position>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure(PositionErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.Code != dto.Code)
         {
-            var exists = await _query.AnyAsync(p => p.Code == dto.Code, ct);
+            var exists = await _query.AnyAsync(
+                position => position.OrganizationId == organizationId && position.Code == dto.Code,
+                ct);
             if (exists)
                 return Result.Failure(PositionErrors.CodeConflict(dto.Code, _userContext.LanguageId));
         }

@@ -151,12 +151,10 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return items.FirstOrDefault();
     }
 
     private async Task<OrganizationSetupState> GetOrCreateSetupStateAsync(int organizationId, CancellationToken ct)

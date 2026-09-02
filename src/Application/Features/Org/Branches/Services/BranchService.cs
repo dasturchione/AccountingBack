@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -28,13 +29,14 @@ public class BranchService : IBranchService
 
     public async Task<Result<int>> CreateAsync(BranchCreateDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
+        if (await _query.AnyAsync(x => x.OrganizationId == organizationId && x.Code == dto.Code, ct))
             return Result.Failure<int>(BranchErrors.CodeConflict(dto.Code, _userContext.LanguageId));
         var entity = new Branch
         {
-            OrganizationId = orgId,
+            OrganizationId = organizationId,
             Code = dto.Code,
             Name = dto.Name,
             RegionId = dto.RegionId,
@@ -50,7 +52,12 @@ public class BranchService : IBranchService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Branch>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Branch>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure(BranchErrors.NotFound(id, _userContext.LanguageId));
@@ -63,6 +70,11 @@ public class BranchService : IBranchService
 
     public async Task<Result<PagedResponse<BranchListDto>>> GetAllAsync(BranchListFilter filter, CancellationToken ct = default)
     {
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<PagedResponse<BranchListDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        filter.OrganizationId = organizationId;
         var query = _queryBuilder.BuildPaged<Branch, BranchListDto, BranchListFilter>(filter);
         var paged = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(paged, filter.Page, filter.PageSize);
@@ -70,7 +82,13 @@ public class BranchService : IBranchService
 
     public async Task<Result<BranchDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Branch>().Where(x => x.Id == id).As<BranchDto>().Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<BranchDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Branch>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .As<BranchDto>()
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure<BranchDto>(BranchErrors.NotFound(id, _userContext.LanguageId));
@@ -79,13 +97,18 @@ public class BranchService : IBranchService
 
     public async Task<Result> UpdateAsync(int id, BranchUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Branch>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<Branch>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure(BranchErrors.NotFound(id, _userContext.LanguageId));
 
         if (entity.Code != dto.Code &&
-            await _query.AnyAsync(x => x.Code == dto.Code, ct))
+            await _query.AnyAsync(x => x.OrganizationId == organizationId && x.Code == dto.Code, ct))
             return Result.Failure(BranchErrors.CodeConflict(dto.Code, _userContext.LanguageId));
         entity.Code = dto.Code;
         entity.Name = dto.Name;

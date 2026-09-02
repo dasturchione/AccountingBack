@@ -1,13 +1,17 @@
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
 namespace Application.Features.Contracts;
 
-public class ContractDtoProjection : IProjectionBuilder<Contract, ContractDto>
+public sealed class ContractDtoProjection(IUserContext userContext) : IProjectionBuilder<Contract, ContractDto>
 {
-    public Expression<Func<Contract, ContractDto>> Build() =>
-        x => new ContractDto
+    public Expression<Func<Contract, ContractDto>> Build()
+    {
+        var languageId = userContext.LanguageId;
+
+        return x => new ContractDto
         {
             Id = x.Id,
             OrganizationId = x.OrganizationId,
@@ -15,7 +19,10 @@ public class ContractDtoProjection : IProjectionBuilder<Contract, ContractDto>
             CounterpartyId = x.CounterpartyId,
             CounterpartyName = x.Counterparty.FullName == null ? x.Counterparty.ShortName : x.Counterparty.FullName,
             ContractTypeId = x.ContractTypeId,
-            ContractTypeName = x.ContractType.Name,
+            ContractTypeName = x.ContractType.ContractTypeTranslations
+                .Where(translation => translation.LanguageId == languageId)
+                .Select(translation => translation.Name)
+                .FirstOrDefault() ?? x.ContractType.Name,
             ContractNumber = x.ContractNumber,
             ContractDate = x.ContractDate,
             ProviderCode = x.ProviderCode,
@@ -28,4 +35,5 @@ public class ContractDtoProjection : IProjectionBuilder<Contract, ContractDto>
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate
         };
+    }
 }

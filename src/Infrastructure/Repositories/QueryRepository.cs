@@ -74,6 +74,9 @@ namespace Infrastructure.Repositories
             if (specification.Criteria is not null)
                 query = query.Where(specification.Criteria);
 
+            if (specification.OrderBy is not null)
+                query = specification.OrderBy(query);
+
             return await query.FirstOrDefaultAsync(ct);
         }
 
@@ -87,6 +90,12 @@ namespace Infrastructure.Repositories
                 .Where(specification.Criteria)
                 .Select(specification.Selector)
                 .AsQueryable();
+
+            if (specification.ResultCriteria is not null)
+                query = query.Where(specification.ResultCriteria);
+
+            if (specification.OrderBy is not null)
+                query = specification.OrderBy(query);
 
             return await query.FirstOrDefaultAsync(ct);
         }

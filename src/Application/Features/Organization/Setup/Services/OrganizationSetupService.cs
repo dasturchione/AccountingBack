@@ -309,12 +309,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return items.FirstOrDefault();
     }
 
     private async Task<OrganizationConfig?> GetConfigAsync(int organizationId, CancellationToken ct) =>
@@ -326,7 +324,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<OrganizationSetupPricingConditionDto?> GetCurrentPricingConditionAsync(int organizationId, CancellationToken ct)
     {
         var now = DateTime.Now;
-        var conditions = await _pricingConditionQuery.GetAllAsync(_queryBuilder.For<PricingCondition>()
+        return await _pricingConditionQuery.GetAsync(_queryBuilder.For<PricingCondition>()
             .Where(x => x.OrganizationId == organizationId &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StartDate <= now &&
@@ -345,10 +343,8 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 StartDate = x.StartDate,
                 EndDate = x.EndDate
             })
-            .OrderBy(query => query.OrderByDescending(x => x.StartDate))
+            .OrderBy(query => query.OrderByDescending(x => x.StartDate).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return conditions.FirstOrDefault();
     }
 
     private async Task<Error?> ValidateAccountingReferencesAsync(short? accountingPolicyId, short? baseCurrencyId, CancellationToken ct)
@@ -398,7 +394,11 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
         foreach (var chartAccountId in chartAccountIds)
         {
-            var exists = await _chartAccountQuery.AnyAsync(x => x.Id == chartAccountId && x.StateId == StateIdConst.ACTIVE, ct);
+            var exists = await _chartAccountQuery.AnyAsync(
+                x => x.Id == chartAccountId
+                     && x.OrganizationId == organizationId
+                     && x.StateId == StateIdConst.ACTIVE,
+                ct);
             if (!exists)
                 return OrganizationSetupErrors.ChartAccountNotFound(chartAccountId, _userContext.LanguageId);
         }

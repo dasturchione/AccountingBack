@@ -1,6 +1,5 @@
 ﻿using Application.Abstractions.Authentication;
 using Domain.Entities;
-using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -8,9 +7,12 @@ namespace Application.Features.ProductGroups;
 
 public class ProductGroupDtoProjection(IUserContext userContext) : IProjectionBuilder<ProductGroup, ProductGroupDto>
 {
-    public Expression<Func<ProductGroup, ProductGroupDto>> Build()
+    public Expression<Func<ProductGroup, ProductGroupDto>> Build() => Build(null);
+
+    public Expression<Func<ProductGroup, ProductGroupDto>> Build(bool? isService)
     {
-        var languageId = userContext.LanguageId ?? LanguageIdConst.UZ;
+        var languageId = userContext.LanguageId;
+        var organizationId = userContext.OrganizationId;
 
         return group => new ProductGroupDto
         {
@@ -26,31 +28,35 @@ public class ProductGroupDtoProjection(IUserContext userContext) : IProjectionBu
             StateId = group.StateId,
             StateName = group.State.FullName,
             CreatedDate = group.CreatedDate,
-            Products = group.Products.Select(product => new ProductGroupTableDto
-            {
-                Id = product.Id,
-                Code = product.Code,
-                Sku = product.Sku,
-                Article = product.Article,
-                Barcode = product.Barcode,
-                Mxik = product.Mxik,
-                CreatedDate = product.CreatedDate,
-                Description = product.Description,
-                Name = product.Name,
-                IsPieceTracked = product.IsPieceTracked,
-                IsService = product.IsService,
-                IsSold = product.IsSold,
-                IsPurchased = product.IsPurchased,
-                DefaultVatRateId = product.DefaultVatRateId,
-                MinStock = product.MinStock,
-                OrganizationId = product.OrganizationId,
-                OrganizationName = product.Organization.FullName,
-                StateName = product.State.FullName,
-                StateId = product.StateId,
-                UnitCode = product.Unit.Code,
-                UnitId = product.Unit.Id,
-                UnitName = product.Unit.Name
-            }).ToList()
+            Products = group.Products
+                .Where(product => organizationId.HasValue &&
+                                  product.OrganizationId == organizationId.Value &&
+                                  (!isService.HasValue || product.IsService == isService.Value))
+                .Select(product => new ProductGroupTableDto
+                {
+                    Id = product.Id,
+                    Code = product.Code,
+                    Sku = product.Sku,
+                    Article = product.Article,
+                    Barcode = product.Barcode,
+                    Mxik = product.Mxik,
+                    CreatedDate = product.CreatedDate,
+                    Description = product.Description,
+                    Name = product.Name,
+                    IsPieceTracked = product.IsPieceTracked,
+                    IsService = product.IsService,
+                    IsSold = product.IsSold,
+                    IsPurchased = product.IsPurchased,
+                    DefaultVatRateId = product.DefaultVatRateId,
+                    MinStock = product.MinStock,
+                    OrganizationId = product.OrganizationId,
+                    OrganizationName = product.Organization.FullName,
+                    StateName = product.State.FullName,
+                    StateId = product.StateId,
+                    UnitCode = product.Unit.Code,
+                    UnitId = product.Unit.Id,
+                    UnitName = product.Unit.Name
+                }).ToList()
         };
     }
 }

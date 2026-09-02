@@ -4,6 +4,7 @@ namespace Application.Features.CounterpartyContacts;
 
 public class CounterpartyContactListFilter : ISearchFilter, IPaginationFilter
 {
+    internal int? OrganizationId { get; set; }
     public int? CounterpartyId { get; set; }
     public string? Search { get; set; }
     public int Page { get; set; } = 1;

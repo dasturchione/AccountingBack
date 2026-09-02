@@ -13,10 +13,14 @@ namespace Application.Features.Inv.ProductStocks;
 
 public class ProductStockService : IProductStockService
 {
+    private const string ProductTableName = "inv_product";
+    private const string WarehouseTableName = "inv_warehouse";
+    private const string NameColumn = "name";
+
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<ProductTable> _productTableQuery;
-    private readonly IQueryRepository<Product> _productQuery;
+    private readonly IQueryRepository<Translation> _translationQuery;
     private readonly IProductPriceCalculateService _priceCalculateService;
     private readonly IWarehouseInventoryService _warehouseInventoryService;
 
@@ -24,27 +28,29 @@ public class ProductStockService : IProductStockService
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<ProductTable> productTableQuery,
-        IQueryRepository<Product> productQuery,
+        IQueryRepository<Translation> translationQuery,
         IProductPriceCalculateService priceCalculateService,
         IWarehouseInventoryService warehouseInventoryService)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _productTableQuery = productTableQuery;
-        _productQuery = productQuery;
+        _translationQuery = translationQuery;
         _priceCalculateService = priceCalculateService;
         _warehouseInventoryService = warehouseInventoryService;
     }
 
     public async Task<Result<ProductTableByMarkingDto>> GetByMarkingNumberAsync(string markingNumber, CancellationToken ct = default)
     {
-        if (_userContext.OrganizationId is null)
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
             return Result.Failure<ProductTableByMarkingDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.Product.OrganizationId == _userContext.OrganizationId.Value
+            .Where(x => x.Product.OrganizationId == organizationId
                         && x.MarkingNumber == markingNumber
-                        && x.Product.StateId == StateIdConst.ACTIVE)
+                        && x.Product.StateId == StateIdConst.ACTIVE
+                        && (x.WarehouseProductTable == null ||
+                            x.WarehouseProductTable.Warehouse.OrganizationId == organizationId))
             .As(x => new ProductTableByMarkingDto
             {
                 ProductTableId = x.Id,
@@ -62,6 +68,8 @@ public class ProductStockService : IProductStockService
 
         if (entity is null)
             return Result.Failure<ProductTableByMarkingDto>(ProductStockErrors.NotFoundByMarkingNumber(markingNumber, _userContext.LanguageId));
+
+        await LocalizeProductTablesAsync([entity], ct);
 
         return Result.Success(entity);
     }
@@ -176,12 +184,16 @@ public class ProductStockService : IProductStockService
     }
     public async Task<Result<PagedResponse<ProductTableStockDto>>> GetProductTablesStockAsync(ProductTableStockFilter filter, CancellationToken ct = default)
     {
-        if (_userContext.OrganizationId is null)
-            return Result.Success(PagedResponseFactory.Create(new PagedList<ProductTableStockDto>([], 0), filter.Page, filter.PageSize));
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<PagedResponse<ProductTableStockDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
+        var pageSize = filter.PageSize;
+        var skip = pageSize.HasValue ? (filter.Page - 1) * pageSize.Value : 0;
         var query = _queryBuilder.For<ProductTable>()
-            .Where(x => x.Product.OrganizationId == _userContext.OrganizationId.Value
+            .Where(x => x.Product.OrganizationId == organizationId
                         && x.WarehouseProductTable != null
+                        && x.WarehouseProductTable.Warehouse.OrganizationId == organizationId
                         && x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK
                         && x.Product.StateId == StateIdConst.ACTIVE
                         && (!filter.WarehouseId.HasValue || x.WarehouseProductTable.WarehouseId == filter.WarehouseId.Value)
@@ -198,19 +210,86 @@ public class ProductStockService : IProductStockService
                 CurrentWarehouseId = x.WarehouseProductTable != null ? x.WarehouseProductTable.WarehouseId : null,
                 CurrentWarehouseName = x.WarehouseProductTable != null ? x.WarehouseProductTable.Warehouse.Name : null
             })
+            .OrderBy(items => items
+                .OrderBy(x => x.ProductName)
+                .ThenBy(x => x.SerialNumber)
+                .ThenBy(x => x.Id))
+            .Skip(skip)
+            .Take(pageSize)
+            .BuildPaged();
+
+        var rows = await _productTableQuery.GetPagedAsync(query, ct);
+        await LocalizeProductTablesAsync(rows.Items, ct);
+        return Result.Success(PagedResponseFactory.Create(rows, filter.Page, filter.PageSize));
+    }
+
+    private async Task LocalizeProductTablesAsync(
+        IReadOnlyCollection<ProductTableByMarkingDto> rows,
+        CancellationToken ct)
+    {
+        if (!_userContext.LanguageId.HasValue || rows.Count == 0)
+            return;
+
+        var productIds = rows.Select(row => (long)row.ProductId).Distinct().ToList();
+        var warehouseIds = rows
+            .Where(row => row.CurrentWarehouseId.HasValue)
+            .Select(row => (long)row.CurrentWarehouseId!.Value)
+            .Distinct()
+            .ToList();
+        var translations = await GetTranslationsAsync(productIds, warehouseIds, ct);
+
+        foreach (var row in rows)
+        {
+            row.ProductName = translations.GetValueOrDefault((ProductTableName, row.ProductId)) ?? row.ProductName;
+            if (row.CurrentWarehouseId.HasValue)
+                row.CurrentWarehouseName = translations.GetValueOrDefault((WarehouseTableName, row.CurrentWarehouseId.Value)) ?? row.CurrentWarehouseName;
+        }
+    }
+
+    private async Task LocalizeProductTablesAsync(
+        IReadOnlyCollection<ProductTableStockDto> rows,
+        CancellationToken ct)
+    {
+        if (!_userContext.LanguageId.HasValue || rows.Count == 0)
+            return;
+
+        var productIds = rows.Select(row => (long)row.ProductId).Distinct().ToList();
+        var warehouseIds = rows
+            .Where(row => row.CurrentWarehouseId.HasValue)
+            .Select(row => (long)row.CurrentWarehouseId!.Value)
+            .Distinct()
+            .ToList();
+        var translations = await GetTranslationsAsync(productIds, warehouseIds, ct);
+
+        foreach (var row in rows)
+        {
+            row.ProductName = translations.GetValueOrDefault((ProductTableName, row.ProductId)) ?? row.ProductName;
+            if (row.CurrentWarehouseId.HasValue)
+                row.CurrentWarehouseName = translations.GetValueOrDefault((WarehouseTableName, row.CurrentWarehouseId.Value)) ?? row.CurrentWarehouseName;
+        }
+    }
+
+    private async Task<Dictionary<(string TableName, long RecordId), string>> GetTranslationsAsync(
+        IReadOnlyCollection<long> productIds,
+        IReadOnlyCollection<long> warehouseIds,
+        CancellationToken ct)
+    {
+        var languageId = _userContext.LanguageId!.Value;
+        var query = _queryBuilder.For<Translation>()
+            .Where(translation => translation.LanguageId == languageId &&
+                                  translation.ColumnName == NameColumn &&
+                                  ((translation.TableName == ProductTableName && productIds.Contains(translation.RecordId)) ||
+                                   (translation.TableName == WarehouseTableName && warehouseIds.Contains(translation.RecordId))))
+            .As(translation => new ProductStockTranslationRow
+            {
+                TableName = translation.TableName,
+                RecordId = translation.RecordId,
+                Value = translation.Value
+            })
             .Build();
 
-        var rows = (await _productTableQuery.GetAllAsync(query, ct))
-            .OrderBy(x => x.ProductName)
-            .ThenBy(x => x.SerialNumber)
-            .ToList();
-
-        var totalCount = rows.Count;
-        var pageSize = filter.PageSize ?? totalCount;
-        var skip = Math.Max(filter.Page - 1, 0) * pageSize;
-        var items = rows.Skip(skip).Take(pageSize).ToList();
-
-        return Result.Success(PagedResponseFactory.Create(new PagedList<ProductTableStockDto>(items, totalCount), filter.Page, filter.PageSize));
+        return (await _translationQuery.GetAllAsync(query, ct))
+            .ToDictionary(row => (row.TableName, row.RecordId), row => row.Value);
     }
 
     private sealed class ProductGroupAggregateRow
@@ -227,32 +306,10 @@ public class ProductStockService : IProductStockService
         public decimal Quantity { get; set; }
     }
 
-    private sealed class ProductStockAggregateRow
+    private sealed class ProductStockTranslationRow
     {
-        public int ProductId { get; set; }
-        public string Name { get; set; } = null!;
-        public string? Barcode { get; set; }
-        public string? Mxik { get; set; }
-        public bool IsPieceTracked { get; set; }
-        public string? ProductGroupName { get; set; }
-        public short UnitId { get; set; }
-        public string UnitCode { get; set; } = null!;
-        public string UnitName { get; set; } = null!;
-        public bool IsService { get; set; }
-        public int Quantity { get; set; }
-    }
-
-    private sealed class ProductStockSourceRow
-    {
-        public int ProductId { get; set; }
-        public string Name { get; set; } = null!;
-        public string? Barcode { get; set; }
-        public string? Mxik { get; set; }
-        public string? ProductGroupName { get; set; }
-        public short UnitId { get; set; }
-        public string UnitCode { get; set; } = null!;
-        public string UnitName { get; set; } = null!;
-        public bool IsService { get; set; }
-        public bool IsPieceTracked { get; set; }
+        public string TableName { get; set; } = null!;
+        public long RecordId { get; set; }
+        public string Value { get; set; } = null!;
     }
 }

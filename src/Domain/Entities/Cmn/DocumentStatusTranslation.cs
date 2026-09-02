@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
-[PrimaryKey("DocumentStatusId", "LanguageId")]
+[PrimaryKey(nameof(StatusId), nameof(LanguageId))]
 [Table("cmn_document_status_translation")]
 public partial class DocumentStatusTranslation
 {
@@ -20,7 +20,7 @@ public partial class DocumentStatusTranslation
     [StringLength(100)]
     public string Name { get; set; } = null!;
 
-    [ForeignKey("DocumentStatusId")]
+    [ForeignKey(nameof(StatusId))]
     [InverseProperty(nameof(DocumentStatus.DocumentStatusTranslations))]
     public virtual DocumentStatus Status { get; set; } = null!;
 

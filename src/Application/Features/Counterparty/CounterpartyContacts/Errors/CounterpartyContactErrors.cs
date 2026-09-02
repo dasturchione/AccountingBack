@@ -13,4 +13,13 @@ public static class CounterpartyContactErrors
             LanguageIdConst.RU      => $"Контакт контрагента с id {id} не найден.",
             _                       => $"Counterparty contact with id {id} was not found."
         });
+
+    public static Error CounterpartyNotFound(int counterpartyId, short? languageId = null) =>
+        Error.NotFound("CounterpartyContact.CounterpartyNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {counterpartyId} bo'lgan kontragent joriy tashkilotda topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {counterpartyId} бўлган контрагент жорий ташкилотда топилмади.",
+            LanguageIdConst.RU      => $"Контрагент с id {counterpartyId} не найден в текущей организации.",
+            _                       => $"Counterparty with id {counterpartyId} was not found in the current organization."
+        });
 }

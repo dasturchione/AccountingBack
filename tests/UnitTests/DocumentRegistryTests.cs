@@ -1,6 +1,7 @@
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Application.Abstractions.Authentication;
 using Application.Features.BankOperations;
 using Application.Features.Cmn.Documents;
 using SharedKernel.Constants;
@@ -90,7 +91,7 @@ public sealed class DocumentRegistryTests
             State = new State { FullName = "Active" }
         };
 
-        var dto = new DocumentRegistryDtoProjection().Build().Compile()(entity);
+        var dto = new DocumentRegistryDtoProjection(new TestUserContext()).Build().Compile()(entity);
 
         Assert.Equal(81, dto.Id);
         Assert.Equal(DocumentTypeIdConst.SALARY, dto.DocumentTypeId);
@@ -99,5 +100,17 @@ public sealed class DocumentRegistryTests
         Assert.Equal(4_200_000m, dto.Amount);
         Assert.Equal("UZS", dto.CurrencyCode);
         Assert.Equal("posted", dto.StatusCode);
+    }
+
+    private sealed class TestUserContext : IUserContext
+    {
+        public int? Id => 1;
+        public int? RoleId => null;
+        public CurrentUserKind UserKind => CurrentUserKind.TenantUser;
+        public short? LanguageId => null;
+        public int? TenantId => 1;
+        public int? OrganizationId => 1;
+        public List<int> AllowedOrganizationIds => [1];
+        public int? BranchId => null;
     }
 }

@@ -47,7 +47,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IEnumerable<int>? productIds = null,
         CancellationToken ct = default)
     {
-        if (organizationId is null)
+        if (organizationId is null or <= 0)
             return EmptyAsync();
 
         var productIdList = NormalizeProductIds(productIds);
@@ -67,12 +67,11 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IEnumerable<int>? productIds = null,
         CancellationToken ct = default)
     {
-        if (organizationId is null)
+        if (organizationId is null or <= 0)
             return EmptyAsync();
 
         var productIdList = NormalizeProductIds(productIds);
-        if (productIds is not null && productIdList.Count == 0 ||
-            productGroupId is null)
+        if (productIds is not null && productIdList.Count == 0)
             return EmptyAsync();
 
         return IsCurrentOrFuture(choosedDate)
@@ -88,7 +87,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         IEnumerable<int>? productIds = null,
         CancellationToken ct = default)
     {
-        if (organizationId is null)
+        if (organizationId is null or <= 0)
             return EmptyAsync();
 
         var productIdList = NormalizeProductIds(productIds);
@@ -108,6 +107,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var query = _queryBuilder.For<WarehouseProduct>()
             .Where(x => x.Product.OrganizationId == organizationId &&
+                        x.Warehouse.OrganizationId == organizationId &&
                         x.Product.ProductGroupId.HasValue &&
                         (!warehouseId.HasValue || x.WarehouseId == warehouseId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)))
@@ -134,6 +134,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var query = _queryBuilder.For<WarehouseProduct>()
             .Where(x => x.Product.OrganizationId == organizationId &&
+                        x.Warehouse.OrganizationId == organizationId &&
                         (warehouseId == null || x.WarehouseId == warehouseId.Value) &&
                         (productGroupId == null || x.Product.ProductGroupId == productGroupId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)))
@@ -161,6 +162,7 @@ public class ProductStockCalculateService : IProductStockCalculateService
         var query = _queryBuilder.For<ProductTable>()
             .Where(x => x.Product.OrganizationId == organizationId &&
                         x.WarehouseProductTable != null &&
+                        x.WarehouseProductTable.Warehouse.OrganizationId == organizationId &&
                         x.Product.StateId == StateIdConst.ACTIVE &&
                         (x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK ||
                          x.WarehouseProductTable.StatusId == ProductTableStatusIdConst.RESERVED ||
@@ -240,7 +242,9 @@ public class ProductStockCalculateService : IProductStockCalculateService
     {
         var endDate = choosedDate.ToDateTime(TimeOnly.MaxValue);
         var query = _queryBuilder.For<WarehouseProductMovement>()
-            .Where(x => x.Product.OrganizationId == organizationId &&
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.Product.OrganizationId == organizationId &&
+                        x.Warehouse.OrganizationId == organizationId &&
                         x.MovementDate <= endDate &&
                         (!warehouseId.HasValue || x.WarehouseId == warehouseId.Value) &&
                         (productIds.Count == 0 || productIds.Contains(x.ProductId)) &&

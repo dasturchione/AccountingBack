@@ -119,14 +119,15 @@ public class OrganizationService : BaseService, IOrganizationService
     public Task<Result<OrganizationDto>> GetByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var result = await _organizationManagementCore.GetOrganizationAsync(
-                id,
-                OrganizationManagementOptions.ForOrganization(includeDetails: true),
-                ct);
+            var query = _queryBuilder.For<Organization>()
+                .Where(organization => organization.Id == id)
+                .As<OrganizationDto>()
+                .Build();
+            var organization = await _orgQuery.GetAsync(query, ct);
 
-            return result.IsSuccess
-                ? MapOrganizationDto(result.Value)
-                : Result.Failure<OrganizationDto>(result.Error);
+            return organization is null
+                ? Result.Failure<OrganizationDto>(OrganizationErrors.NotFound(id, _userContext.LanguageId))
+                : Result.Success(organization);
         });
 
     public Task<Result> UpdateAsync(int id, OrganizationUpdateDto dto, CancellationToken ct = default) =>
@@ -135,34 +136,6 @@ public class OrganizationService : BaseService, IOrganizationService
                 MapUpdateRequest(id, dto),
                 OrganizationManagementOptions.ForOrganization(),
                 ct));
-
-    private static OrganizationDto MapOrganizationDto(Organization entity) =>
-        new()
-        {
-            Id = entity.Id,
-            ShortName = entity.ShortName,
-            FullName = entity.FullName,
-            Inn = entity.Inn,
-            PhoneNumber = entity.PhoneNumber,
-            RegionId = entity.RegionId,
-            RegionName = entity.Region.FullName,
-            DistrictId = entity.DistrictId,
-            DistrictName = entity.District?.FullName,
-            Address = entity.Address,
-            Director = entity.Director,
-            IsParent = entity.IsParent,
-            StateId = entity.StateId,
-            StateName = entity.State.FullName,
-            DefaultLanguageId = entity.DefaultLanguageId,
-            DefaultLanguageName = entity.DefaultLanguage?.Name,
-            TenantId = entity.TenantId,
-            SetupStatus = entity.SetupStatus,
-            SetupCompletedAt = entity.SetupCompletedAt,
-            Email = entity.Email,
-            Website = entity.Website,
-            Oked = entity.Oked,
-            CreatedDate = entity.CreatedDate
-        };
 
     private static OrganizationManagementUpdateRequest MapUpdateRequest(int id, OrganizationUpdateDto dto) =>
         new()

@@ -229,12 +229,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<Currency>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.CurrencyTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -261,12 +265,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<DocumentStatus>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.DocumentStatusTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -277,9 +285,18 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<PaymentType>()
             .Where(p => p.StateId == StateIdConst.ACTIVE)
-            .As(p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code })
+            .As(p => new SelectListDto
+            {
+                Id = p.Id,
+                Name = p.PaymentTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? p.Name,
+                Code = p.Code
+            })
             .OrderBy(q => q.OrderBy(p => p.Name))
             .Build();
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
@@ -433,8 +450,17 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<CostingMethod>()
-            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.CostingMethodTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
+                Code = x.Code
+            })
             .OrderBy(q => q.OrderBy(x => x.Name))
             .Build();
         return await _costingMethodQuery.GetAllAsync(spec, ct);
@@ -533,9 +559,18 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<DocumentType>()
             .Where(d => d.StateId == StateIdConst.ACTIVE)
-            .As(d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code })
+            .As(d => new SelectListDto
+            {
+                Id = d.Id,
+                Name = d.DocumentTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? d.Name,
+                Code = d.Code
+            })
             .OrderBy(q => q.OrderBy(d => d.Name))
             .Build();
         return (await _documentTypeQuery.GetAllAsync(spec, ct)).ToList();
@@ -543,12 +578,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<OperationType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.OperationTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -559,14 +598,18 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<MovementDirection>()
             .As(x => new SelectListDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = x.MovementDirectionTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
                 Code = x.Code
             })
-            .OrderBy(x => x.Id)
+            .OrderBy(x => x.Name)
             .Build();
 
         return await _movementDirectionQuery.GetAllAsync(query, ct);
@@ -606,12 +649,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<ContractType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.ContractTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -1136,14 +1183,17 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetAccountTypesAsync(CancellationToken ct = default)
     {
-
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<AccountType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(x => new SelectListDto
                                  {
                                      Id = x.Id,
                                      Code = x.Code,
-                                     Name = x.Name
+                                     Name = x.AccountTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? x.Name
                                  })
                                  .OrderBy(x => x.Name).Build();
 

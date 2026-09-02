@@ -29,6 +29,7 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingRegisterQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingRegisterCommand;
+    private readonly ICriteriaBuilder<CurrencyRevaluationListDto, CurrencyRevaluationListFilter> _listCriteriaBuilder;
 
     public CurrencyRevaluationService(
         IUserContext userContext,
@@ -44,6 +45,7 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
         ICommandRepository<PostingBatch> postingBatchCommand,
         IQueryRepository<AccountingRegisterEntry> accountingRegisterQuery,
         ICommandRepository<AccountingRegisterEntry> accountingRegisterCommand,
+        ICriteriaBuilder<CurrencyRevaluationListDto, CurrencyRevaluationListFilter> listCriteriaBuilder,
         ILogger<CurrencyRevaluationService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -62,6 +64,7 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
         _postingBatchCommand = postingBatchCommand;
         _accountingRegisterQuery = accountingRegisterQuery;
         _accountingRegisterCommand = accountingRegisterCommand;
+        _listCriteriaBuilder = listCriteriaBuilder;
     }
 
     public async Task<Result<PagedResponse<CurrencyRevaluationListDto>>> GetAllAsync(CurrencyRevaluationListFilter filter, CancellationToken ct = default)
@@ -69,10 +72,21 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
         if (_userContext.OrganizationId is null)
             return Result.Failure<PagedResponse<CurrencyRevaluationListDto>>(CurrencyRevaluationErrors.NoOrganization(_userContext.LanguageId ?? 0));
 
-        var query = _queryBuilder.Build<CurrencyRevaluation, CurrencyRevaluationListDto, CurrencyRevaluationListFilter>(filter);
-        var items = await _query.GetAllAsync(query, ct);
-        var filtered = items.Where(x => x.OrganizationId == _userContext.OrganizationId.Value).ToList();
-        return Result.Success(PagedResponseFactory.Create(new SharedKernel.QueryResults.PagedList<CurrencyRevaluationListDto>(filtered, filtered.Count), filter.Page, filter.PageSize));
+        var organizationId = _userContext.OrganizationId.Value;
+        var page = Math.Max(filter.Page, 1);
+        var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
+        var query = _queryBuilder.For<CurrencyRevaluation>()
+            .Where(x => x.OrganizationId == organizationId)
+            .As<CurrencyRevaluationListDto>()
+            .Where(_listCriteriaBuilder.Build(filter))
+            .OrderBy(items => items
+                .OrderByDescending(x => x.RevaluationDate)
+                .ThenByDescending(x => x.Id))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .BuildPaged();
+        var pagedList = await _query.GetPagedAsync(query, ct);
+        return Result.Success(PagedResponseFactory.Create(pagedList, page, pageSize));
     }
 
     public async Task<Result<CurrencyRevaluationDto>> GetByIdAsync(long id, CancellationToken ct = default)

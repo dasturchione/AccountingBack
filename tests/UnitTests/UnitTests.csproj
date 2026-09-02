@@ -39,6 +39,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Application\Application.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Presentation\WebApi\WebApi.csproj" />
     <ProjectReference Include="..\..\src\SharedKernel\SharedKernel.csproj" />
   </ItemGroup>
 

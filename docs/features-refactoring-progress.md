@@ -1,9 +1,9 @@
 # Current position
 
 Current area: Counterparty
-Current feature: CounterpartyBankAccounts
+Current feature: CounterpartyContacts
 Current phase: AUDIT
-Last verified commit: acdb2bb5
+Last verified commit: 1cced9ef
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
 Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests 198/198
 
@@ -36,6 +36,7 @@ Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests
 - `Organization/Setup`: seven public DTOs split into same-named files with reflection coverage; four exact request validators added; selected-organization aggregation, membership errors, lifecycle completion and rollback-on-business-failure verified; chart-account defaults can no longer reference another organization; current tax/pricing reads fetch one deterministically ordered row in SQL.
 - Complete `Org` and `Organization` checkpoint: build succeeded, all 235 tests green, DI scope resolution passed, no controller/service-interface/SQL-script diff, and zero DTO files with multiple public DTO declarations.
 - `Counterparty/CounterpartyCards`: every CRUD/query and short-name conflict check is explicitly scoped to the selected organization; missing organization context returns localized `CommonErrors`; list search/order/SQL paging and base organization/region/district/state names are PostgreSQL-covered; request limits now match the Domain/schema contract.
+- `Counterparty/CounterpartyBankAccounts`: every CRUD/query and account-number conflict check is explicitly scoped to the selected organization; child ownership and bank-branch/bank compatibility are validated; CurrencyName is translated with base fallback in SQL; filters, stable order and paging are PostgreSQL-covered.
 
 # Modified but not verified
 
@@ -54,6 +55,6 @@ Last successful test: 2026-09-02 — CounterpartyCards PostgreSQL 2/2; UnitTests
 
 # Next exact action
 
-1. Audit `Counterparty/CounterpartyBankAccounts` list/detail, translations, scope and public DTO layout.
+1. Audit `Counterparty/CounterpartyContacts` list/detail, translations, scope and public DTO layout.
 2. Write its PostgreSQL characterization tests before production changes.
-3. Continue through Counterparty contacts as the next small verified batch.
+3. Complete the Counterparty full-solution checkpoint.

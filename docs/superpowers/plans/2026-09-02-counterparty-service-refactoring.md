@@ -45,11 +45,11 @@
 - Modify filter, criteria, projections, service, errors and validators as confirmed by RED tests.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove selected-organization leakage and acceptance of a counterparty from another organization.
-- [ ] Explicitly scope all operations and account-number uniqueness to the selected organization.
-- [ ] Validate Counterparty ownership and preserve existing bank-branch/bank compatibility validation.
-- [ ] Localize `CurrencyName` by requested language with independent base fallback in detail/list SQL projections.
-- [ ] Verify counterparty filter, search, `IsMain desc, CounterpartyName, Id` order, paging and localized failures.
+- [x] RED: prove selected-organization leakage and acceptance of a counterparty from another organization.
+- [x] Explicitly scope all operations and account-number uniqueness to the selected organization.
+- [x] Validate Counterparty ownership and preserve existing bank-branch/bank compatibility validation.
+- [x] Localize `CurrencyName` by requested language with independent base fallback in detail/list SQL projections.
+- [x] Verify counterparty filter, search, `IsMain desc, CounterpartyName, Id` order, paging and localized failures.
 
 ### Task 3: CounterpartyContacts scope and ownership contract
 

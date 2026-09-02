@@ -30,9 +30,9 @@
 
 ### Task 2: Products
 
-- [ ] Characterize list/detail organization isolation, nested display fields, search/order/paging and errors.
-- [ ] Split grouped public DTO declarations and add exact filter/request validation.
-- [ ] Verify product-group/unit/reference ownership without changing product semantics.
+- [x] Characterize list/detail organization isolation, nested display fields, search/order/paging and errors.
+- [x] Split grouped public DTO declarations and add exact filter/request validation.
+- [x] Verify global product-group translation and organization-local code/update ownership without changing product semantics.
 
 ### Task 3: Warehouses
 

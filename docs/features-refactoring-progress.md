@@ -1,9 +1,9 @@
 # Current position
 
 Current area: Inv
-Current feature: Products
+Current feature: Warehouses
 Current phase: AUDIT
-Last verified commit: e0fab2ae
+Last verified commit: 6a0ee634
 Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
 Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, IntegrationTests 45/45)
 
@@ -40,6 +40,7 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 - `Counterparty/CounterpartyContacts`: every CRUD/query is explicitly scoped to the selected organization; create/update reject counterparties from another organization; list filters, projected search, stable order, SQL paging and base counterparty/state names are PostgreSQL-covered; Email validation now matches the schema limit.
 - Complete `Counterparty` checkpoint: build succeeded, all 247 tests are green, DI resolution passed through the real application registrations, no controller/service-interface/SQL/public-DTO diff was introduced, and every Counterparty DTO file contains at most one public type.
 - `Inv/ProductGroups`: global groups now keep their globally unique codes while nested products are selected and updated only for the current organization; translations use requested language with base fallback, optional service filtering is SQL-side, grouped public DTOs were split with reflection coverage, and query/validation behavior is covered by PostgreSQL and unit tests.
+- `Inv/Products`: every CRUD/list operation and code conflict is explicitly organization-scoped; a SuperAdmin can no longer move another organization's product by updating it; nested ProductGroupName uses requested translation with base fallback; search/filters/order/paging run in PostgreSQL; grouped create DTO/validator declarations were split without API drift.
 
 # Modified but not verified
 
@@ -58,6 +59,6 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 
 # Next exact action
 
-1. Audit `Inv/Products` list/detail scope, nested display fields and public DTO layout.
+1. Audit `Inv/Warehouses` list/detail scope, display fields and public DTO layout.
 2. Write PostgreSQL characterization tests before production changes.
-3. Continue to Warehouses before the higher-risk inventory document features.
+3. Continue to price/stock query features after the low-risk inventory CRUD batch.

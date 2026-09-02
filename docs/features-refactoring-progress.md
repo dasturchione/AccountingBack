@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Org
-Current feature: Departments
+Current feature: Positions
 Current phase: AUDIT
-Last verified commit: 2882d35f
+Last verified commit: 22a6d8f6
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Branches
-Last successful test: 2026-09-02 — UnitTests 177/177; Branch integration 2/2
+Last successful test: 2026-09-02 — Department unit 5/5; Department integration 2/2
 
 # Completed
 
@@ -30,6 +30,7 @@ Last successful test: 2026-09-02 — UnitTests 177/177; Branch integration 2/2
 - `Cmn/Barcode`: all three controller/generator boundaries verified for PNG success and localized invalid-EAN13 ProblemDetails; no production change was required.
 - Complete `Cmn` checkpoint: build 0 warnings/0 errors, all 198 tests green, no controller/service-interface/SQL-script diff from the phase baseline, and zero DTO files with multiple public DTO declarations.
 - `Org/Branches`: list/detail/create/update/delete and code uniqueness explicitly scoped to the selected organization, including SuperAdmin; missing organization context now returns localized `CommonErrors`; list filters, base-name projection, search, stable order and SQL paging verified against PostgreSQL.
+- `Org/Departments`: every operation and code uniqueness explicitly scoped to the selected organization; branch references must belong to that organization; list filter, base-name nested fields, branch filter, search, stable order, SQL paging and localized errors verified against PostgreSQL.
 
 # Modified but not verified
 
@@ -48,6 +49,6 @@ Last successful test: 2026-09-02 — UnitTests 177/177; Branch integration 2/2
 
 # Next exact action
 
-1. Write PostgreSQL characterization tests for `Org/Departments` selected-organization isolation.
-2. Add exact `DepartmentListFilter` validation and fix confirmed scope defects.
-3. Verify and continue with `Org/Positions`.
+1. Write PostgreSQL characterization tests for `Org/Positions` selected-organization isolation.
+2. Add exact `PositionListFilter` validation and fix confirmed scope defects.
+3. Verify all three Org features together before moving to Organization.

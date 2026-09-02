@@ -14,17 +14,20 @@ public class DepartmentService : BaseService, IDepartmentService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Department> _query;
+    private readonly IQueryRepository<Branch> _branchQuery;
     private readonly ICommandRepository<Department> _command;
 
     public DepartmentService(IUserContext userContext,
                              IQueryBuilder queryBuilder,
                              IQueryRepository<Department> query,
+                             IQueryRepository<Branch> branchQuery,
                              ICommandRepository<Department> command,
                              ILogger<DepartmentService> logger, 
                              IUnitOfWork unitOfWork) 
             : base(logger, unitOfWork)
     {
         _query = query;
+        _branchQuery = branchQuery;
         _command = command;
         _userContext  = userContext;
         _queryBuilder = queryBuilder;
@@ -33,15 +36,21 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result<int>> CreateAsync(DepartmentCreateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(CreateAsync), async () =>
         {
-            var orgId = _userContext.OrganizationId!.Value;
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-            var exists = await _query.AnyAsync(d => d.Code == dto.Code, ct);
+            if (dto.BranchId.HasValue && !await BranchExistsAsync(dto.BranchId.Value, organizationId, ct))
+                return Result.Failure<int>(DepartmentErrors.BranchNotFound(dto.BranchId.Value, _userContext.LanguageId));
+
+            var exists = await _query.AnyAsync(
+                d => d.OrganizationId == organizationId && d.Code == dto.Code,
+                ct);
             if (exists)
                 return Result.Failure<int>(DepartmentErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
             var entity = new Department
             {
-                OrganizationId = orgId,
+                OrganizationId = organizationId,
                 BranchId       = dto.BranchId,
                 Code           = dto.Code,
                 Name           = dto.Name,
@@ -56,7 +65,12 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result> DeleteAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(DeleteAsync), async () =>
         {
-            var query = _queryBuilder.For<Department>().Where(d => d.Id == id).Build();
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<Department>()
+                .Where(d => d.Id == id && d.OrganizationId == organizationId)
+                .Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity == null)
@@ -71,6 +85,11 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result<PagedResponse<DepartmentListDto>>> GetAllAsync(DepartmentListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure<PagedResponse<DepartmentListDto>>(
+                    CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            filter.OrganizationId = organizationId;
             var query = _queryBuilder.BuildPaged<Department, DepartmentListDto, DepartmentListFilter>(filter);
             var pagedList = await _query.GetPagedAsync(query, ct);
             return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
@@ -79,7 +98,13 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result<DepartmentDto>> GetByIdAsync(int id, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
-            var query = _queryBuilder.For<Department>().Where(d => d.Id == id).As<DepartmentDto>().Build();
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure<DepartmentDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<Department>()
+                .Where(d => d.Id == id && d.OrganizationId == organizationId)
+                .As<DepartmentDto>()
+                .Build();
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure<DepartmentDto>(DepartmentErrors.NotFound(id, _userContext.LanguageId));
@@ -89,14 +114,24 @@ public class DepartmentService : BaseService, IDepartmentService
     public Task<Result> UpdateAsync(int id, DepartmentUpdateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(UpdateAsync), async () =>
         {
-            var query = _queryBuilder.For<Department>().Where(d => d.Id == id).Build();
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<Department>()
+                .Where(d => d.Id == id && d.OrganizationId == organizationId)
+                .Build();
             var entity = await _query.GetAsync(query, ct);
             if (entity == null)
                 return Result.Failure(DepartmentErrors.NotFound(id, _userContext.LanguageId));
 
+            if (dto.BranchId.HasValue && !await BranchExistsAsync(dto.BranchId.Value, organizationId, ct))
+                return Result.Failure(DepartmentErrors.BranchNotFound(dto.BranchId.Value, _userContext.LanguageId));
+
             if (entity.Code != dto.Code)
             {
-                var exists = await _query.AnyAsync(d => d.Code == dto.Code, ct);
+                var exists = await _query.AnyAsync(
+                    d => d.OrganizationId == organizationId && d.Code == dto.Code,
+                    ct);
                 if (exists)
                     return Result.Failure(DepartmentErrors.CodeConflict(dto.Code, _userContext.LanguageId));
             }
@@ -108,4 +143,9 @@ public class DepartmentService : BaseService, IDepartmentService
             await _command.UpdateAsync(entity, ct);
             return Result.Success();
         });
+
+    private Task<bool> BranchExistsAsync(int branchId, int organizationId, CancellationToken ct) =>
+        _branchQuery.AnyAsync(
+            branch => branch.Id == branchId && branch.OrganizationId == organizationId,
+            ct);
 }

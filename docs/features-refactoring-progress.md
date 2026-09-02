@@ -3,9 +3,9 @@
 Current area: Cmn
 Current feature: Banks
 Current phase: AUDIT
-Last verified commit: d529e93b
-Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 135/135; CurrencyMultilanguageQueryTests 3/3 against PostgreSQL 17
+Last verified commit: 1fb04129
+Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 baseline CS8629 warnings
+Last successful test: 2026-09-02 — UnitTests 135/135; IntegrationTests 4/4 against PostgreSQL 17
 
 # Completed
 
@@ -17,6 +17,7 @@ Last successful test: 2026-09-02 — UnitTests 135/135; CurrencyMultilanguageQue
 - Corrected the shadow-key mapping in `DocumentStatusTranslation` (`StatusId`, `LanguageId`).
 - Reusable PostgreSQL 17 Testcontainers fixture and mutable integration user context.
 - `Cmn/Currencies`: list/detail translation, base fallback, translated search, `Code, Id` order and paging verified against PostgreSQL.
+- Phase 0 full diff/API review and full-solution verification.
 
 # Modified but not verified
 
@@ -35,6 +36,6 @@ Last successful test: 2026-09-02 — UnitTests 135/135; CurrencyMultilanguageQue
 
 # Next exact action
 
-1. Complete the Phase 0 diff and full-solution verification.
-2. Create the remaining-Cmn implementation plan from the inventory.
-3. Audit `Cmn/Banks` before changing production code.
+1. Create and review the remaining-`Cmn` implementation plan from the inventory.
+2. Audit `Cmn/Banks` before changing production code.
+3. Add failing PostgreSQL characterization tests for the first incorrect `Cmn/Banks` GET behavior.

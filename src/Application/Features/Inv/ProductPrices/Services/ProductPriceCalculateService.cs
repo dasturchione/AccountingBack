@@ -39,7 +39,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
     public async Task<Dictionary<int, ProductSalePriceDto>> GetSalePriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
     {
         var ids = productIds.Distinct().ToList();
-        if (ids.Count == 0 || _userContext.OrganizationId is null)
+        if (ids.Count == 0 || _userContext.OrganizationId is not int organizationId || organizationId <= 0)
             return new Dictionary<int, ProductSalePriceDto>();
 
         var now = DateTime.Now;
@@ -89,7 +89,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
     public async Task<Dictionary<int, ProductCostPriceDto>> GetCostPriceMapAsync(IEnumerable<int> productIds, CancellationToken ct = default)
     {
         var ids = productIds.Distinct().ToList();
-        if (ids.Count == 0 || _userContext.OrganizationId is null)
+        if (ids.Count == 0 || _userContext.OrganizationId is not int organizationId || organizationId <= 0)
             return new Dictionary<int, ProductCostPriceDto>();
 
         var costingMethodId = await GetCurrentCostingMethodIdAsync(ct);
@@ -178,13 +178,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                         x.StartDate <= now &&
                         (x.EndDate == null || x.EndDate >= now))
             .As<PricingConditionDto>()
+            .OrderBy(items => items
+                .OrderByDescending(x => x.StartDate)
+                .ThenByDescending(x => x.Id))
             .Build();
 
-        var items = await _pricingConditionQuery.GetAllAsync(query, ct);
-        return items
-            .OrderByDescending(x => x.StartDate)
-            .ThenByDescending(x => x.Id)
-            .FirstOrDefault();
+        return await _pricingConditionQuery.GetAsync(query, ct);
     }
 
     private async Task<short> GetCurrentCostingMethodIdAsync(CancellationToken ct)
@@ -209,15 +208,12 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
                 StartDate = x.StartDate,
                 CostingMethodId = x.CostingMethodId
             })
-            .OrderBy(x => x.StartDate)
-            .Desc()
+            .OrderBy(items => items
+                .OrderByDescending(x => x.StartDate)
+                .ThenByDescending(x => x.Id))
             .Build();
 
-        var items = await _saleConditionQuery.GetAllAsync(query, ct);
-        var current = items
-            .OrderByDescending(x => x.StartDate)
-            .ThenByDescending(x => x.Id)
-            .FirstOrDefault();
+        var current = await _saleConditionQuery.GetAsync(query, ct);
 
         return NormalizeCostingMethodId(current?.CostingMethodId);
     }
@@ -242,6 +238,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var query = _queryBuilder.For<ProductPrice>()
                 .Where(x => x.OrganizationId == _userContext.OrganizationId.Value &&
+                        x.Product.OrganizationId == _userContext.OrganizationId.Value &&
                         productIds.Contains(x.ProductId) &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StartDate <= now &&
@@ -405,7 +402,8 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var query = _queryBuilder.For<PurchaseDocTable>()
             .Where(x => productIds.Contains(x.Owner.ProductId) &&
-                        x.Owner.Owner.OrganizationId == _userContext.OrganizationId.Value)
+                        x.Owner.Owner.OrganizationId == _userContext.OrganizationId.Value &&
+                        x.Owner.Product.OrganizationId == _userContext.OrganizationId.Value)
             .As(x => new PurchaseCostSnapshot
             {
                 Id = x.Id,
@@ -433,6 +431,7 @@ public class ProductPriceCalculateService : IProductPriceCalculateService
 
         var query = _queryBuilder.For<PurchaseDocTable>()
             .Where(x => productIds.Contains(x.Owner.ProductId) &&
+                        x.Owner.Owner.OrganizationId == _userContext.OrganizationId.Value &&
                         x.ProductTable.Product.OrganizationId == _userContext.OrganizationId.Value &&
                         x.ProductTable.WarehouseProductTable != null &&
                         x.ProductTable.WarehouseProductTable.StatusId == ProductTableStatusIdConst.IN_STOCK &&

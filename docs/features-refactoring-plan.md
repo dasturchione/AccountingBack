@@ -28,7 +28,7 @@
 | Cash | FiscalCashRegisters | FiscalCashRegister, FiscalCashRegisterType, Warehouse | GetAllAsync, GetAsync, GetByIdAsync, GetEntityAsync, GetPagedAsync | FiscalCashRegisterTypeTranslation | USED | NONE | OK_OR_NONE | LOW (247) | NOT_STARTED |
 | Cmn | Banks | Bank, BankBranch | GetAllAsync, GetAsync, GetBranchByMfoAsync, GetBranchesAsync, GetByIdAsync, GetPagedAsync | — | USED | 3 builders; base names intentional | OK_OR_NONE | LOW (75) | VERIFIED |
 | Cmn | Barcode | — | — | — | NOT_FOUND | NONE | OK_OR_NONE | LOW (0) | NOT_STARTED |
-| Cmn | Contracts | Contract, CounterpartyCard | GetAllAsync, GetAsync, GetByIdAsync, GetPagedAsync | — | USED | 2 builder refs | ProviderContractReconciliationDtos.cs:2 | LOW (153) | NOT_STARTED |
+| Cmn | Contracts | Contract, CounterpartyCard | GetAllAsync, GetAsync, GetByIdAsync, GetPagedAsync | ContractTypeTranslation | USED | 2 builder refs | OK_OR_NONE | LOW (153) | VERIFIED |
 | Cmn | Currencies | Currency | GetAllAsync, GetAsync, GetByIdAsync, GetPagedAsync | CurrencyTranslation | USED | 2 translation-aware builders | OK_OR_NONE | LOW (100) | VERIFIED |
 | Cmn | CurrencyRates | Currency, CurrencyRate | GetAllAsync, GetAsync, GetByIdAsync, GetHistoryAsync, GetLatestAsync, GetProvidersAsync, GetStatusAsync | CurrencyTranslation | USED | 2 builder refs | OK_OR_NONE | MEDIUM (253) | NOT_STARTED |
 | Cmn | CurrencyRevaluations | AccountingRegisterEntry, CurrencyRate, CurrencyRevaluation, MoneyRegisterBalance, PostingBatch | GetActivePostingBatchAsync, GetAllAsync, GetAsync, GetByIdAsync, GetForLifecycleAsync, GetRateAsync, PreviewAsync | — | USED | 2 builder refs | CurrencyRevaluationDtos.cs:6 | MEDIUM (466) | NOT_STARTED |

@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Contracts
+Current feature: CurrencyRates
 Current phase: AUDIT
-Last verified commit: 0f21a1f2
+Last verified commit: 95f5ecc1
 Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — UnitTests 140/140; Bank + Currency integration tests 5/5 against PostgreSQL 17
+Last successful test: 2026-09-02 — UnitTests 146/146; Contract integration tests 3/3 against PostgreSQL 17
 
 # Completed
 
@@ -19,6 +19,7 @@ Last successful test: 2026-09-02 — UnitTests 140/140; Bank + Currency integrat
 - `Cmn/Currencies`: list/detail translation, base fallback, translated search, `Code, Id` order and paging verified against PostgreSQL.
 - Phase 0 full diff/API review and full-solution verification.
 - `Cmn/Banks`: all four GET contracts, localized errors and list-filter validation verified; base names retained because no translation model exists.
+- `Cmn/Contracts`: list/detail ContractType translation with base fallback, translated search, organization scope, date-desc paging and filter validation verified; reconciliation request/response DTOs split without contract changes.
 
 # Modified but not verified
 
@@ -37,6 +38,6 @@ Last successful test: 2026-09-02 — UnitTests 140/140; Bank + Currency integrat
 
 # Next exact action
 
-1. Audit `Cmn/Contracts` list/detail projections, filter and public DTO layout.
-2. Add failing Contract filter and translated ContractType tests.
-3. Apply only the translation, validation and mechanical DTO split required by those tests.
+1. Audit all `Cmn/CurrencyRates` GET paths and their shared projections.
+2. Add failing PostgreSQL tests for translated base/target currency names.
+3. Apply only the projection changes required by those tests.

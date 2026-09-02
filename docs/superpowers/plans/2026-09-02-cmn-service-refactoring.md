@@ -81,7 +81,7 @@ Run targeted Bank tests, `dotnet test tests/UnitTests/UnitTests.csproj --no-rest
 
 - [ ] **Step 1: Write RED tests**
 
-Seed one organization, counterparty, contract type, translations for languages 1 and 3, and two contracts. Assert list/detail return the requested `ContractTypeTranslation.Name`, fallback to `ContractType.Name`, translated search still follows the current projected criteria, and order remains current `ContractNumber, Id`. Add filter tests derived from `ContractListFilter` properties.
+Seed organizations, counterparties, contract types, translations for two languages, and contracts. Assert list/detail return the requested `ContractTypeTranslation.Name`, fallback to `ContractType.Name`, translated search still follows the current projected criteria, and order remains current `ContractDate desc, Id desc`. Add filter tests derived from `ContractListFilter` properties.
 
 - [ ] **Step 2: Verify RED**
 

@@ -1,11 +1,7 @@
-using Application;
-using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Features.Cmn.Currencies;
 using Domain.Entities;
 using Infrastructure.Persistence;
-using Infrastructure.Query;
-using Infrastructure.Repositories;
 using IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +19,7 @@ public sealed class CurrencyMultilanguageQueryTests(PostgreSqlIntegrationFixture
     {
         await SeedCurrenciesAsync();
         var user = new IntegrationTestUserContext { LanguageId = 3 };
-        await using var provider = CreateProvider(user);
+        await using var provider = ApplicationQueryTestServiceProvider.Create(fixture, user);
         await using var scope = provider.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -53,7 +49,7 @@ public sealed class CurrencyMultilanguageQueryTests(PostgreSqlIntegrationFixture
     {
         await SeedCurrenciesAsync();
         var user = new IntegrationTestUserContext { LanguageId = 1 };
-        await using var provider = CreateProvider(user);
+        await using var provider = ApplicationQueryTestServiceProvider.Create(fixture, user);
         await using var scope = provider.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
 
@@ -68,7 +64,7 @@ public sealed class CurrencyMultilanguageQueryTests(PostgreSqlIntegrationFixture
     {
         await SeedCurrenciesAsync();
         var user = new IntegrationTestUserContext { LanguageId = 3 };
-        await using var provider = CreateProvider(user);
+        await using var provider = ApplicationQueryTestServiceProvider.Create(fixture, user);
         await using var scope = provider.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<ICurrencyService>();
 
@@ -195,21 +191,4 @@ public sealed class CurrencyMultilanguageQueryTests(PostgreSqlIntegrationFixture
         return currency;
     }
 
-    private ServiceProvider CreateProvider(IUserContext userContext)
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton(userContext);
-        services.AddSingleton<IUserContext>(userContext);
-        services.AddApplication();
-        services.AddScoped(_ => fixture.CreateDbContext(userContext));
-        services.AddScoped<IQueryBuilderResolver, QueryBuilderResolver>();
-        services.AddScoped<IQueryBuilder, QueryBuilder>();
-        services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-        services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
-
-        return services.BuildServiceProvider(new ServiceProviderOptions
-        {
-            ValidateScopes = true
-        });
-    }
 }

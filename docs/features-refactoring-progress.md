@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Banks
+Current feature: Contracts
 Current phase: AUDIT
-Last verified commit: 1fb04129
-Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 baseline CS8629 warnings
-Last successful test: 2026-09-02 — UnitTests 135/135; IntegrationTests 4/4 against PostgreSQL 17
+Last verified commit: 0f21a1f2
+Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
+Last successful test: 2026-09-02 — UnitTests 140/140; Bank + Currency integration tests 5/5 against PostgreSQL 17
 
 # Completed
 
@@ -18,6 +18,7 @@ Last successful test: 2026-09-02 — UnitTests 135/135; IntegrationTests 4/4 aga
 - Reusable PostgreSQL 17 Testcontainers fixture and mutable integration user context.
 - `Cmn/Currencies`: list/detail translation, base fallback, translated search, `Code, Id` order and paging verified against PostgreSQL.
 - Phase 0 full diff/API review and full-solution verification.
+- `Cmn/Banks`: all four GET contracts, localized errors and list-filter validation verified; base names retained because no translation model exists.
 
 # Modified but not verified
 
@@ -36,6 +37,6 @@ Last successful test: 2026-09-02 — UnitTests 135/135; IntegrationTests 4/4 aga
 
 # Next exact action
 
-1. Create and review the remaining-`Cmn` implementation plan from the inventory.
-2. Audit `Cmn/Banks` before changing production code.
-3. Add failing PostgreSQL characterization tests for the first incorrect `Cmn/Banks` GET behavior.
+1. Audit `Cmn/Contracts` list/detail projections, filter and public DTO layout.
+2. Add failing Contract filter and translated ContractType tests.
+3. Apply only the translation, validation and mechanical DTO split required by those tests.

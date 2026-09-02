@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Org
-Current feature: Branches
+Current feature: Departments
 Current phase: AUDIT
 Last verified commit: 2882d35f
-Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
-Last successful test: 2026-09-02 — full solution 198/198 (UnitTests 172/172, IntegrationTests 26/26)
+Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings after Branches
+Last successful test: 2026-09-02 — UnitTests 177/177; Branch integration 2/2
 
 # Completed
 
@@ -29,6 +29,7 @@ Last successful test: 2026-09-02 — full solution 198/198 (UnitTests 172/172, I
 - `Cmn/Manual` contracts: grouped public DTO declarations split into same-named files with reflection coverage; SuperAdmin/TenantAdmin/TenantUser organization visibility, selected-organization resources, branch/bank/counterparty/product filters and deterministic module grouping verified against PostgreSQL; all 55 manual GET paths audited.
 - `Cmn/Barcode`: all three controller/generator boundaries verified for PNG success and localized invalid-EAN13 ProblemDetails; no production change was required.
 - Complete `Cmn` checkpoint: build 0 warnings/0 errors, all 198 tests green, no controller/service-interface/SQL-script diff from the phase baseline, and zero DTO files with multiple public DTO declarations.
+- `Org/Branches`: list/detail/create/update/delete and code uniqueness explicitly scoped to the selected organization, including SuperAdmin; missing organization context now returns localized `CommonErrors`; list filters, base-name projection, search, stable order and SQL paging verified against PostgreSQL.
 
 # Modified but not verified
 
@@ -47,6 +48,6 @@ Last successful test: 2026-09-02 — full solution 198/198 (UnitTests 172/172, I
 
 # Next exact action
 
-1. Audit `Org/Branches` public DTO, filter, scope and translation behavior.
-2. Add characterization tests before any production refactoring.
-3. Preserve the completed `Cmn` checkpoint while proceeding through the Org area.
+1. Write PostgreSQL characterization tests for `Org/Departments` selected-organization isolation.
+2. Add exact `DepartmentListFilter` validation and fix confirmed scope defects.
+3. Verify and continue with `Org/Positions`.

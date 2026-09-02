@@ -31,11 +31,11 @@
 - Create the entity list-filter criteria builder and modify filter/service/base validator.
 - Modify the three progress/audit documents.
 
-- [ ] RED: prove selected-organization SuperAdmin leakage in list/detail and cross-organization short-name conflict.
-- [ ] Add explicit organization scope to every list/detail/create/update/delete query and conflict check.
-- [ ] Return localized `CommonErrors.UserHasNoOrganization` when organization context is absent.
-- [ ] Align Code, Email, Address, Oked and ExternalId validation with entity limits; validate optional IDs.
-- [ ] Verify search, `ShortName, Id` order, SQL paging, base nested names and localized errors.
+- [x] RED: prove selected-organization SuperAdmin leakage in list/detail and cross-organization short-name conflict.
+- [x] Add explicit organization scope to every list/detail/create/update/delete query and conflict check.
+- [x] Return localized `CommonErrors.UserHasNoOrganization` when organization context is absent.
+- [x] Align Code, Email, Address, Oked and ExternalId validation with entity limits; validate optional IDs.
+- [x] Verify search, `ShortName, Id` order, SQL paging, base nested names and localized errors.
 
 ### Task 2: CounterpartyBankAccounts scope, ownership and translation contract
 

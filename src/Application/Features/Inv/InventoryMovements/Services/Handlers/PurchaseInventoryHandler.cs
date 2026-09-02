@@ -4,7 +4,7 @@ using SharedKernel.Results;
 
 namespace Application.Features.InventoryMovements;
 
-public class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
+public sealed class PurchaseInventoryHandler : IInventoryDocumentHandler<PurchaseDoc>
 {
     public Task<Result<List<InventoryMovementEntry>>> HandleAsync(PurchaseDoc purchase, CancellationToken ct = default)
     {

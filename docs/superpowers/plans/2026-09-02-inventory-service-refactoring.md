@@ -53,8 +53,9 @@
 
 ### Task 6: InventoryMovements
 
-- [ ] Audit the movement query endpoint and its direction/document/source fields.
-- [ ] Characterize scope, filtering, ordering and output contract; add exact validation where applicable.
+- [x] Audit all three movement query endpoints and their direction/document/source fields.
+- [x] Characterize selected-organization scope, stable date/id ordering and output contract; no request validator is applicable.
+- [x] Preserve aggregate batch behavior while fixing reversal matching for multiple piece-tracked product tables.
 
 ### Task 7: OpeningInventories
 

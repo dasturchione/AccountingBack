@@ -285,7 +285,9 @@ public class InventoryCountService : BaseService, IInventoryCountService
                 return Result.Success(new List<InventoryMovementListDto>());
 
             var query = _queryBuilder.For<WarehouseProductMovement>()
-                .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT && adjustmentIds.Contains(x.DocumentId))
+                .Where(x => x.OrganizationId == doc.OrganizationId &&
+                            x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
+                            adjustmentIds.Contains(x.DocumentId))
                 .As<InventoryMovementListDto>()
                 .Build();
             return Result.Success(await _warehouseMovementQuery.GetAllAsync(query, ct));

@@ -21,9 +21,9 @@ public sealed class ProductPriceQueryContractTests(PostgreSqlIntegrationFixture 
     private const int ProductId = 53001;
     private const int SecondProductId = 53002;
     private const int OtherProductId = 53003;
-    private const short CurrencyId = 30001;
-    private const short UnitId = 30001;
-    private const short VatRateId = 30001;
+    private const short CurrencyId = 32501;
+    private const short UnitId = 32502;
+    private const short VatRateId = 32503;
 
     [Fact]
     public async Task ListAndDetailUseSelectedOrganizationTranslationAndSqlPaging()

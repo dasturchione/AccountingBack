@@ -4,7 +4,7 @@ using SharedKernel.Results;
 
 namespace Application.Features.InventoryMovements;
 
-public class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<WarehouseTransferDoc>
+public sealed class WarehouseTransferInventoryHandler : IInventoryDocumentHandler<WarehouseTransferDoc>
 {
     public Task<Result<List<InventoryMovementEntry>>> HandleAsync(WarehouseTransferDoc document, CancellationToken ct = default)
     {

@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Inv
-Current feature: InventoryMovements
+Current feature: OpeningInventories
 Current phase: AUDIT
-Last verified commit: 10de9434
-Last successful build: 2026-09-02 — full solution succeeded, 0 errors, 2 accepted pre-existing nullable warnings
-Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, IntegrationTests 45/45)
+Last verified commit: pending InventoryMovements production commit
+Last successful build: 2026-09-02 — full solution succeeded, 0 errors (incremental build; clean build retains 2 accepted pre-existing nullable warnings)
+Last successful test: 2026-09-02 — full solution 286/286 (UnitTests 220/220, IntegrationTests 66/66)
 
 # Completed
 
@@ -44,6 +44,7 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 - `Inv/Warehouses`: every CRUD/list/detail path is explicitly scoped to the selected organization; organization-local code uniqueness, branch ownership and active responsible-user membership are enforced; base nested names, BranchId/Name search, stable order, SQL paging, localized errors and schema-aligned validators are covered by PostgreSQL and unit tests.
 - `Inv/ProductPrices`: CRUD/list/detail and product references are explicitly organization-scoped; CurrencyName uses requested translation with base fallback; current pricing/costing conditions are selected as one deterministically ordered SQL result; price formulas and effective-date semantics are PostgreSQL-covered; grouped public calculation DTOs were split without API drift.
 - `Inv/ProductStocks` and `Inv/WarehouseProducts`: one product is now aggregated across selected warehouses instead of duplicated; organization and warehouse ownership is enforced through product, warehouse, table, batch and movement paths; generic requested-language names fall back to base fields; product-table count/paging runs in SQL; current/historical quantities, reserves, blocks, markings and batch availability are PostgreSQL-covered without changing valuation formulas.
+- `Inv/InventoryMovements`: public DTO/projection files now match their public type names; all three movement GET queries explicitly enforce selected-organization scope and keep stable `DocDate desc, Id desc` SQL ordering; aggregate receipt/batch behavior is preserved; reversal now correctly matches one persisted aggregate movement to multiple piece-tracked entries; handler and PostgreSQL lifecycle tests cover quantities, costs, source lines and marking restoration.
 
 # Modified but not verified
 
@@ -62,6 +63,6 @@ Last successful test: 2026-09-02 — full solution 247/247 (UnitTests 202/202, I
 
 # Next exact action
 
-1. Audit the `Inv/InventoryMovements` query endpoint, filters and direction/document fields.
-2. Add PostgreSQL characterization tests for selected-organization scope and movement ordering.
-3. Add exact request validation and correct only confirmed query defects.
+1. Inventory every `Inv/OpeningInventories` public DTO, GET/query path and lifecycle responsibility.
+2. Add characterization tests for organization scope, numbering, quantities/costs and confirm/cancel rollback.
+3. Split grouped public DTO declarations and correct only test-confirmed defects.

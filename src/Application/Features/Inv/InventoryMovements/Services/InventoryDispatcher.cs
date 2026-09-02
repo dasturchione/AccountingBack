@@ -8,7 +8,7 @@ using SharedKernel.Results;
 
 namespace Application.Features.InventoryMovements;
 
-public class InventoryDispatcher : IInventoryDispatcher
+public sealed class InventoryDispatcher : IInventoryDispatcher
 {
     private readonly IUserContext _userContext;
     private readonly IInventoryDocumentHandler<PurchaseDoc> _purchaseHandler;
@@ -86,24 +86,38 @@ public class InventoryDispatcher : IInventoryDispatcher
             ct);
 
         var movementsByKey = movements
-            .GroupBy(x => new MovementKey(
-                x.OrganizationId,
-                x.WarehouseId,
-                x.ProductId,
-                x.DocumentTypeId,
-                x.DocumentId,
-                x.DirectionId,
-                x.DocumentLineId))
-            .ToDictionary(x => x.Key, x => x.OrderBy(movement => movement.Id).First());
+            .GroupBy(ToMovementMatchKey)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderBy(movement => movement.Id).ToList());
 
-        foreach (var group in entries.GroupBy(ToMovementKey))
+        foreach (var group in entries.GroupBy(ToExpectedMovementKey))
         {
-            if (!movementsByKey.TryGetValue(group.Key, out var originalMovement) ||
-                originalMovement.Quantity != group.Sum(entry => entry.Quantity))
+            if (!movementsByKey.TryGetValue(group.Key.MatchKey, out var candidates))
             {
                 return Result.Failure(
                     InventoryMovementErrors.OriginalMovementsNotFound(first.DocumentTypeId, first.DocumentId, _userContext.LanguageId));
             }
+
+            var quantity = group.Sum(entry => entry.Quantity);
+            var sourceLineIds = group
+                .Where(entry => entry.SourceLineId.HasValue)
+                .Select(entry => entry.SourceLineId!.Value)
+                .ToHashSet();
+            var matches = candidates
+                .Where(movement => movement.Quantity == quantity &&
+                    (group.Key.AggregatesProductTables
+                        ? movement.DocumentLineId.HasValue && sourceLineIds.Contains(movement.DocumentLineId.Value)
+                        : movement.DocumentLineId == group.Key.SourceLineId))
+                .ToList();
+            if (matches.Count != 1)
+            {
+                return Result.Failure(
+                    InventoryMovementErrors.OriginalMovementsNotFound(first.DocumentTypeId, first.DocumentId, _userContext.LanguageId));
+            }
+
+            var originalMovement = matches[0];
+            candidates.Remove(originalMovement);
 
             foreach (var entry in group)
             {
@@ -133,22 +147,45 @@ public class InventoryDispatcher : IInventoryDispatcher
             _ => Task.FromResult(Result.Failure<List<InventoryMovementEntry>>(InventoryMovementErrors.UnsupportedDocumentType(_userContext.LanguageId)))
         };
 
-    private static MovementKey ToMovementKey(InventoryMovementEntry entry) =>
+    private static ExpectedMovementKey ToExpectedMovementKey(InventoryMovementEntry entry)
+    {
+        var aggregatesProductTables = entry.ProductTableId.HasValue &&
+            entry.DocumentTypeId is not (DocumentTypeIdConst.FARECEIPT or DocumentTypeIdConst.PURCHASE);
+
+        return new ExpectedMovementKey(
+            ToMovementMatchKey(entry),
+            aggregatesProductTables ? null : entry.SourceLineId,
+            aggregatesProductTables);
+    }
+
+    private static MovementMatchKey ToMovementMatchKey(InventoryMovementEntry entry) =>
         new(
             entry.OrganizationId,
             entry.WarehouseId,
             entry.ProductId,
             entry.DocumentTypeId,
             entry.DocumentId,
-            entry.DirectionId,
-            entry.SourceLineId);
+            entry.DirectionId);
 
-    private sealed record MovementKey(
+    private static MovementMatchKey ToMovementMatchKey(WarehouseProductMovement movement) =>
+        new(
+            movement.OrganizationId,
+            movement.WarehouseId,
+            movement.ProductId,
+            movement.DocumentTypeId,
+            movement.DocumentId,
+            movement.DirectionId);
+
+    private sealed record ExpectedMovementKey(
+        MovementMatchKey MatchKey,
+        long? SourceLineId,
+        bool AggregatesProductTables);
+
+    private sealed record MovementMatchKey(
         int OrganizationId,
         int WarehouseId,
         int ProductId,
         short DocumentTypeId,
         long DocumentId,
-        short DirectionId,
-        long? DocumentLineId);
+        short DirectionId);
 }

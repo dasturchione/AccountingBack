@@ -30,6 +30,7 @@ public sealed class DocumentRegistryService : IDocumentRegistryService
             return Result.Failure<List<DocumentRegistryDto>>(
                 CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
+        filter.OrganizationId = _userContext.OrganizationId.Value;
         var query = _queryBuilder.Build<DocumentRegistry, DocumentRegistryDto, DocumentRegistryListFilter>(filter);
         var documents = await _query.GetAllAsync(query, ct);
         return Result.Success(documents);
@@ -41,7 +42,7 @@ public sealed class DocumentRegistryService : IDocumentRegistryService
             return Result.Failure<DocumentRegistryDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
         var query = _queryBuilder.For<DocumentRegistry>()
-            .Where(document => document.Id == id)
+            .Where(document => document.Id == id && document.OrganizationId == _userContext.OrganizationId.Value)
             .As<DocumentRegistryDto>()
             .Build();
         var document = await _query.GetAsync(query, ct);

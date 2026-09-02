@@ -5,6 +5,7 @@ namespace Application.Features.Cmn.Documents;
 
 public sealed class DocumentRegistryListFilter : ISearchFilter
 {
+    internal int? OrganizationId { get; set; }
     public string? DocumentTypeCode { get; set; }
     public short? CurrencyId { get; set; }
     public short? StatusId { get; set; }

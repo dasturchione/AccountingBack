@@ -169,7 +169,10 @@ Run targeted revaluation tests, full UnitTests and build; ensure the diff contai
 
 **Files:**
 - Rename: `src/Application/Features/Cmn/Documents/DTOs/DocumentRegistryDtos.cs` to `DocumentRegistryDto.cs`
+- Rename: `src/Application/Features/Cmn/Documents/Projections/DocumentRegistryProjections.cs` to `DocumentRegistryDtoProjection.cs`
 - Create: `tests/IntegrationTests/Features/Cmn/Documents/DocumentRegistryMultilanguageQueryTests.cs`
+- Create: `tests/UnitTests/DocumentRegistryListFilterValidatorTests.cs`
+- Create: `src/Application/Features/Cmn/Documents/Validation/DocumentRegistryListFilterValidator.cs`
 - Modify: `src/Application/Features/Cmn/Documents/Projections/DocumentRegistryProjections.cs`
 - Modify: the three working documentation files.
 
@@ -179,11 +182,11 @@ Run targeted revaluation tests, full UnitTests and build; ensure the diff contai
 
 - [ ] **Step 1: Write and run RED tests**
 
-Seed two registry rows and translations for requested language. Call list by `DocumentTypeCode` and detail by registry ID; assert all three display names, nullable navigation handling, date filtering, date-desc order, no paging wrapper, and SQL translation. Expected RED: base names are returned.
+Seed registry rows in two organizations and translations for requested language. Call list by `DocumentTypeCode` and detail by registry ID; assert all three display names, nullable navigation handling, date filtering, date-desc order, no paging wrapper, explicit organization scope (including selected-organization super-admin), and SQL translation. Add RED bounds tests for the previously missing list-filter validator. Expected RED: base names are returned and translated search is empty.
 
 - [ ] **Step 2: Implement minimal projection change**
 
-Inject `IUserContext` and map the three names with language-filtered subqueries. Retain current code fields, IDs, amount, dates, status nullability and `State.FullName` because State has no dedicated translation entity.
+Inject `IUserContext` and map the three names with language-filtered subqueries. Retain current code fields, IDs, amount, dates, status nullability and `State.FullName` because State has no dedicated translation entity. Add internal organization criteria and only field-length/positive-ID filter rules.
 
 - [ ] **Step 3: Rename DTO file mechanically**
 

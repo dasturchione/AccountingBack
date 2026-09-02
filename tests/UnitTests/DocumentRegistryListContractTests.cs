@@ -100,7 +100,7 @@ public sealed class DocumentRegistryListContractTests
         public IProjectionBuilder<TEntity, TResult> GetProjectionBuilder<TEntity, TResult>()
         {
             if (typeof(TEntity) == typeof(DocumentRegistry) && typeof(TResult) == typeof(DocumentRegistryDto))
-                return (IProjectionBuilder<TEntity, TResult>)(object)new DocumentRegistryDtoProjection();
+                return (IProjectionBuilder<TEntity, TResult>)(object)new DocumentRegistryDtoProjection(new TestUserContext());
             throw new InvalidOperationException($"Projection {typeof(TEntity).Name} -> {typeof(TResult).Name} is not configured.");
         }
 

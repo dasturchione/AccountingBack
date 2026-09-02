@@ -203,7 +203,8 @@ public class ManualService : IManualService
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName
+                                     Name = s.FullName,
+                                     Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
@@ -219,7 +220,8 @@ public class ManualService : IManualService
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName
+                                     Name = s.FullName,
+                                     Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();

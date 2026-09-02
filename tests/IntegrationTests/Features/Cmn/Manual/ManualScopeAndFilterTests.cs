@@ -113,6 +113,50 @@ public sealed class ManualScopeAndFilterTests(PostgreSqlIntegrationFixture fixtu
         Assert.DoesNotContain(owned.SelectMany(group => group.Modules), module => module.Id == 39404);
     }
 
+    [Fact]
+    public async Task RegionsAndDistrictsExposeTheirCodes()
+    {
+        await using (var context = fixture.CreateDbContext())
+        {
+            await SeedCoreAsync(context);
+            await context.SaveChangesAsync();
+
+            var seededRegion = await context.Regions.SingleAsync(entity => entity.Id == 39001);
+            seededRegion.Code = "26";
+
+            var seededDistrict = await context.Districts.SingleOrDefaultAsync(entity => entity.Id == 39001);
+            if (seededDistrict is null)
+            {
+                context.Districts.Add(new District
+                {
+                    Id = 39001,
+                    Code = "7",
+                    ShortName = "Manual district",
+                    FullName = "Manual district",
+                    RegionId = 39001,
+                    StateId = StateIdConst.ACTIVE,
+                    CreatedDate = SeedDate
+                });
+            }
+            else
+            {
+                seededDistrict.Code = "7";
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        await using var provider = CreateProvider(User(CurrentUserKind.SuperAdmin, null, null, []));
+        await using var scope = provider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IManualService>();
+
+        var region = Assert.Single(await service.GetRegionsAsync(), value => value.Id == 39001);
+        var district = Assert.Single(await service.GetDistrictsAsync(39001), value => value.Id == 39001);
+
+        Assert.Equal("26", region.Code);
+        Assert.Equal("7", district.Code);
+    }
+
     private async Task<List<SelectListDto>> GetOrganizationsAsync(IntegrationTestUserContext user)
     {
         await using var provider = CreateProvider(user);

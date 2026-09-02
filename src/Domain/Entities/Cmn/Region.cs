@@ -19,6 +19,10 @@ public partial class Region
     [StringLength(250)]
     public string FullName { get; set; } = null!;
 
+    [Column("code")]
+    [StringLength(10)]
+    public string Code { get; set; } = string.Empty;
+
     [Column("state_id")]
     public short StateId { get; set; }
 

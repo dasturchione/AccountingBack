@@ -18,6 +18,10 @@ public partial class District
     [StringLength(250)]
     public string FullName { get; set; } = null!;
 
+    [Column("code")]
+    [StringLength(10)]
+    public string? Code { get; set; }
+
     [Column("region_id")]
     public int RegionId { get; set; }
 

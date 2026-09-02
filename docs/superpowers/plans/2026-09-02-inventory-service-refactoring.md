@@ -36,8 +36,8 @@
 
 ### Task 3: Warehouses
 
-- [ ] Characterize list/detail organization scope, base display fields, search/order/paging and errors.
-- [ ] Add exact list/request validation and fix only confirmed scope/contract defects.
+- [x] Characterize list/detail organization scope, base display fields, search/order/paging and errors.
+- [x] Add exact list/request validation and fix only confirmed scope/contract defects.
 
 ### Task 4: ProductPrices
 

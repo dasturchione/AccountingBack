@@ -1,11 +1,11 @@
 # Current position
 
 Current area: Cmn
-Current feature: Currencies
-Current phase: CURRENCY_CHARACTERIZATION
-Last verified commit: 5123445e
-Last successful build: 2026-08-31 — succeeded, 0 errors, 2 baseline CS8629 warnings
-Last successful test: 2026-08-31 — TranslationModelContract 1/1; PostgreSQLSmoke 1/1 against PostgreSQL 17
+Current feature: Banks
+Current phase: AUDIT
+Last verified commit: d529e93b
+Last successful build: 2026-09-02 — succeeded, 0 errors, 0 warnings in incremental build
+Last successful test: 2026-09-02 — UnitTests 135/135; CurrencyMultilanguageQueryTests 3/3 against PostgreSQL 17
 
 # Completed
 
@@ -16,10 +16,11 @@ Last successful test: 2026-08-31 — TranslationModelContract 1/1; PostgreSQLSmo
 - EF metadata contract verified for 23 dedicated translation entities.
 - Corrected the shadow-key mapping in `DocumentStatusTranslation` (`StatusId`, `LanguageId`).
 - Reusable PostgreSQL 17 Testcontainers fixture and mutable integration user context.
+- `Cmn/Currencies`: list/detail translation, base fallback, translated search, `Code, Id` order and paging verified against PostgreSQL.
 
 # Modified but not verified
 
-- `Cmn/Currencies` multilingual characterization tests.
+- None.
 
 # Blocked
 
@@ -34,6 +35,6 @@ Last successful test: 2026-08-31 — TranslationModelContract 1/1; PostgreSQLSmo
 
 # Next exact action
 
-1. Add failing list/detail translation, fallback, search, order and paging tests for `Cmn/Currencies`.
-2. Refactor both currency projections to use `IUserContext.LanguageId` with base-name fallback.
-3. Verify real SQL and scoped DI resolution.
+1. Complete the Phase 0 diff and full-solution verification.
+2. Create the remaining-Cmn implementation plan from the inventory.
+3. Audit `Cmn/Banks` before changing production code.

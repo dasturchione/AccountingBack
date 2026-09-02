@@ -34,8 +34,11 @@ public class ProductGroupService : BaseService, IProductGroupService
         ExecuteAsync(nameof(CreateAsync), async () =>
         {
             var organizationId = _userContext.OrganizationId;
-            if (dto.Products.Count > 0 && !organizationId.HasValue)
+            if (dto.Products.Count > 0 && (!organizationId.HasValue || organizationId.Value <= 0))
                 return Result.Failure<int>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            if (await _query.AnyAsync(group => group.Code == dto.Code, ct))
+                return Result.Failure<int>(ProductGroupErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
             var entity = new ProductGroup
             {
@@ -93,6 +96,12 @@ public class ProductGroupService : BaseService, IProductGroupService
     public Task<Result<PagedResponse<ProductGroupListDto>>> GetAllAsync(ProductGroupListFilter filter, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
+            if (filter.IsService.HasValue &&
+                (_userContext.OrganizationId is not int organizationId || organizationId <= 0))
+                return Result.Failure<PagedResponse<ProductGroupListDto>>(
+                    CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            filter.OrganizationId = _userContext.OrganizationId;
             var query = _queryBuilder.BuildPaged<ProductGroup, ProductGroupListDto, ProductGroupListFilter>(filter);
             var pagedList = await _query.GetPagedAsync(query, ct);
             return Result.Success(PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize));
@@ -101,17 +110,18 @@ public class ProductGroupService : BaseService, IProductGroupService
     public Task<Result<ProductGroupDto>> GetByIdAsync(int id, bool? isService, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GetByIdAsync), async () =>
         {
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+                return Result.Failure<ProductGroupDto>(
+                    CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
             var query = _queryBuilder.For<ProductGroup>()
                 .Where(group => group.Id == id && group.IsAssignable)
-                .As<ProductGroupDto>()
+                .As(new ProductGroupDtoProjection(_userContext).Build(isService))
                 .Build();
             var entity = await _query.GetAsync(query, ct);
 
             if (entity is null)
                 return Result.Failure<ProductGroupDto>(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
-
-            if (isService.HasValue)
-                entity.Products = entity.Products.Where(product => product.IsService == isService).ToList();
 
             return entity;
         });
@@ -119,17 +129,19 @@ public class ProductGroupService : BaseService, IProductGroupService
     public Task<Result> UpdateAsync(int id, ProductGroupUpdateDto dto, CancellationToken ct = default) =>
         ExecuteAsync(nameof(UpdateAsync), async () =>
         {
-            var organizationId = _userContext.OrganizationId;
-            var hasNewProducts = dto.Products.Any(product => !product.Id.HasValue);
-            if (hasNewProducts && !organizationId.HasValue)
+            if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
                 return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var query = _queryBuilder.For<ProductGroup>().Where(group => group.Id == id).Build();
-            query.AddIncludes(builder => builder.Include(group => group.Products));
+            query.AddIncludes(builder => builder.Include(group =>
+                group.Products.Where(product => product.OrganizationId == organizationId)));
 
             var entity = await _query.GetAsync(query, ct);
             if (entity is null)
                 return Result.Failure(ProductGroupErrors.NotFound(id, _userContext.LanguageId));
+
+            if (entity.Code != dto.Code && await _query.AnyAsync(group => group.Code == dto.Code, ct))
+                return Result.Failure(ProductGroupErrors.CodeConflict(dto.Code, _userContext.LanguageId));
 
             entity.Code = dto.Code;
             entity.ParentId = dto.ParentId;
@@ -151,7 +163,7 @@ public class ProductGroupService : BaseService, IProductGroupService
                 {
                     product = new Product
                     {
-                        OrganizationId = organizationId!.Value,
+                        OrganizationId = organizationId,
                         CreatedDate = DateTime.Now,
                         StateId = StateIdConst.ACTIVE
                     };

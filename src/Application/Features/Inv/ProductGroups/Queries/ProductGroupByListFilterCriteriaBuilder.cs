@@ -8,5 +8,7 @@ public class ProductGroupByListFilterCriteriaBuilder : ICriteriaBuilder<ProductG
 {
     public Expression<Func<ProductGroup, bool>> Build(ProductGroupListFilter options) =>
         group => group.IsAssignable &&
-                 (options.IsService == null || group.Products.Any(product => product.IsService == options.IsService));
+                 (options.IsService == null || group.Products.Any(product =>
+                     (!options.OrganizationId.HasValue || product.OrganizationId == options.OrganizationId.Value) &&
+                     product.IsService == options.IsService));
 }

@@ -23,10 +23,10 @@
 
 ### Task 1: ProductGroups
 
-- [ ] Characterize organization scope, requested translation/base fallback, translated search/order/paging and detail errors in PostgreSQL.
-- [ ] Split grouped public DTO declarations without changing their reflection/JSON contract.
-- [ ] Add exact list/request validation and correct only test-confirmed query/service defects.
-- [ ] Verify CRUD organization isolation and parent-group ownership if the model supports hierarchy.
+- [x] Characterize organization scope, requested translation/base fallback, translated search/order/paging and detail errors in PostgreSQL.
+- [x] Split grouped public DTO declarations without changing their reflection/JSON contract.
+- [x] Add exact list/request validation and correct only test-confirmed query/service defects.
+- [x] Verify global group code uniqueness and selected-organization ownership of nested products (the group itself is intentionally global).
 
 ### Task 2: Products
 

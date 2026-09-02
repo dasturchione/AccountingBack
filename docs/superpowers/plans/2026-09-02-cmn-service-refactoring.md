@@ -119,7 +119,7 @@ Seed base/target currencies with language 1 and 3 translations and dated rates. 
 
 - [ ] **Step 2: Implement minimal projection changes**
 
-Inject `IUserContext` into both projections. Map both display names with the same language-filtered scalar subquery and `?? currency.Name`. Keep codes, numeric rates, `EffectiveDate`, `RateSource`, `StateName` and order builder unchanged.
+Inject `IUserContext` into both projections. Map both display names with the same language-filtered scalar subquery and `?? currency.Name`. Keep codes, numeric rates, `EffectiveDate`, `RateSource` and `StateName` unchanged. Preserve every existing dynamic sort option while moving sorting/paging from post-materialization LINQ into `GetPagedAsync`; verify that `GetLatestAsync` actually orders the projected query by `EffectiveDate desc, Id desc`.
 
 - [ ] **Step 3: Verify and commit**
 

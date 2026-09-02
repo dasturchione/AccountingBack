@@ -16,22 +16,37 @@ public sealed class CurrencyRateService : ICurrencyRateService
     private readonly IQueryRepository<CurrencyRate> _query;
     private readonly ICommandRepository<CurrencyRate> _command;
     private readonly IQueryRepository<Currency> _currencyQuery;
+    private readonly ICriteriaBuilder<CurrencyRateListDto, CurrencyRateListFilter> _listCriteriaBuilder;
 
-    public CurrencyRateService(IUserContext userContext, IQueryBuilder queryBuilder, IQueryRepository<CurrencyRate> query, ICommandRepository<CurrencyRate> command, IQueryRepository<Currency> currencyQuery)
+    public CurrencyRateService(
+        IUserContext userContext,
+        IQueryBuilder queryBuilder,
+        IQueryRepository<CurrencyRate> query,
+        ICommandRepository<CurrencyRate> command,
+        IQueryRepository<Currency> currencyQuery,
+        ICriteriaBuilder<CurrencyRateListDto, CurrencyRateListFilter> listCriteriaBuilder)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _query = query;
         _command = command;
         _currencyQuery = currencyQuery;
+        _listCriteriaBuilder = listCriteriaBuilder;
     }
 
     public async Task<Result<PagedResponse<CurrencyRateListDto>>> GetAllAsync(CurrencyRateListFilter filter, CancellationToken ct = default)
     {
-        var query = _queryBuilder.Build<CurrencyRate, CurrencyRateListDto, CurrencyRateListFilter>(filter);
-        var items = await _query.GetAllAsync(query, ct);
-        var sorted = ApplySort(items, filter);
-        return Result.Success(BuildPagedResponse(sorted, filter));
+        var page = filter.Page > 0 ? filter.Page : 1;
+        var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
+        var query = _queryBuilder.For<CurrencyRate>()
+            .As<CurrencyRateListDto>()
+            .Where(_listCriteriaBuilder.Build(filter))
+            .OrderBy(BuildOrder(filter))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .BuildPaged();
+        var pagedList = await _query.GetPagedAsync(query, ct);
+        return Result.Success(PagedResponseFactory.Create(pagedList, page, pageSize));
     }
 
     public async Task<Result<CurrencyRateDto>> GetByIdAsync(long id, CancellationToken ct = default)
@@ -49,14 +64,15 @@ public sealed class CurrencyRateService : ICurrencyRateService
     {
         var query = _queryBuilder.For<CurrencyRate>()
             .Where(x => x.BaseCurrencyId == baseCurrencyId && x.TargetCurrencyId == targetCurrencyId && x.StateId == StateIdConst.ACTIVE && x.IsActive)
-            .OrderBy(x => x.EffectiveDate)
-            .Desc()
             .As<CurrencyRateDto>()
+            .OrderBy(items => items
+                .OrderByDescending(x => x.EffectiveDate)
+                .ThenByDescending(x => x.Id))
             .Build();
 
-        var entity = await _query.GetAllAsync(query, ct);
-        return entity.FirstOrDefault() is { } current
-            ? Result.Success(current)
+        var entity = await _query.GetAsync(query, ct);
+        return entity is not null
+            ? Result.Success(entity)
             : Result.Failure<CurrencyRateDto>(CurrencyRateErrors.LatestNotFound(baseCurrencyId, targetCurrencyId, _userContext.LanguageId ?? 0));
     }
 
@@ -64,10 +80,7 @@ public sealed class CurrencyRateService : ICurrencyRateService
     {
         filter.BaseCurrencyId = baseCurrencyId;
         filter.TargetCurrencyId = targetCurrencyId;
-        var query = _queryBuilder.Build<CurrencyRate, CurrencyRateListDto, CurrencyRateListFilter>(filter);
-        var items = await _query.GetAllAsync(query, ct);
-        var sorted = ApplySort(items, filter);
-        return Result.Success(BuildPagedResponse(sorted, filter));
+        return await GetAllAsync(filter, ct);
     }
 
     public async Task<Result<long>> CreateAsync(CurrencyRateCreateDto dto, CancellationToken ct = default)
@@ -207,47 +220,25 @@ public sealed class CurrencyRateService : ICurrencyRateService
         return Result.Success();
     }
 
-    private static IReadOnlyCollection<CurrencyRateListDto> ApplySort(IReadOnlyCollection<CurrencyRateListDto> items, CurrencyRateListFilter filter)
+    private static Func<IQueryable<CurrencyRateListDto>, IOrderedQueryable<CurrencyRateListDto>> BuildOrder(
+        CurrencyRateListFilter filter)
     {
-        var ordered = (filter.SortBy?.Trim().ToLowerInvariant(), filter.SortDirection)
-        switch
+        return (filter.SortBy?.Trim().ToLowerInvariant(), filter.SortDirection) switch
         {
-            ("basecurrencycode", SortDirection.Asc) => items.OrderBy(x => x.BaseCurrencyCode),
-            ("basecurrencycode", SortDirection.Desc) => items.OrderByDescending(x => x.BaseCurrencyCode),
-            ("targetcurrencycode", SortDirection.Asc) => items.OrderBy(x => x.TargetCurrencyCode),
-            ("targetcurrencycode", SortDirection.Desc) => items.OrderByDescending(x => x.TargetCurrencyCode),
-            ("effectivedate", SortDirection.Asc) => items.OrderBy(x => x.EffectiveDate),
-            ("effectivedate", SortDirection.Desc) => items.OrderByDescending(x => x.EffectiveDate),
-            ("buyrate", SortDirection.Asc) => items.OrderBy(x => x.BuyRate),
-            ("buyrate", SortDirection.Desc) => items.OrderByDescending(x => x.BuyRate),
-            ("sellrate", SortDirection.Asc) => items.OrderBy(x => x.SellRate),
-            ("sellrate", SortDirection.Desc) => items.OrderByDescending(x => x.SellRate),
-            ("officialrate", SortDirection.Asc) => items.OrderBy(x => x.OfficialRate),
-            ("officialrate", SortDirection.Desc) => items.OrderByDescending(x => x.OfficialRate),
-            _ when filter.SortDirection == SortDirection.Desc => items.OrderByDescending(x => x.EffectiveDate),
-            _ => items.OrderBy(x => x.EffectiveDate)
-        };
-
-        return ordered.ToList();
-    }
-
-    private static PagedResponse<CurrencyRateListDto> BuildPagedResponse(IReadOnlyCollection<CurrencyRateListDto> items, CurrencyRateListFilter filter)
-    {
-        var page = filter.Page > 0 ? filter.Page : 1;
-        var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
-        var totalCount = items.Count;
-        var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
-        var pageItems = items.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-        return new PagedResponse<CurrencyRateListDto>
-        {
-            Items = pageItems,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = totalPages,
-            HasPreviousPage = page > 1,
-            HasNextPage = page < totalPages
+            ("basecurrencycode", SortDirection.Asc) => query => query.OrderBy(x => x.BaseCurrencyCode).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("basecurrencycode", SortDirection.Desc) => query => query.OrderByDescending(x => x.BaseCurrencyCode).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("targetcurrencycode", SortDirection.Asc) => query => query.OrderBy(x => x.TargetCurrencyCode).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("targetcurrencycode", SortDirection.Desc) => query => query.OrderByDescending(x => x.TargetCurrencyCode).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("effectivedate", SortDirection.Asc) => query => query.OrderBy(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("effectivedate", SortDirection.Desc) => query => query.OrderByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("buyrate", SortDirection.Asc) => query => query.OrderBy(x => x.BuyRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("buyrate", SortDirection.Desc) => query => query.OrderByDescending(x => x.BuyRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("sellrate", SortDirection.Asc) => query => query.OrderBy(x => x.SellRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("sellrate", SortDirection.Desc) => query => query.OrderByDescending(x => x.SellRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("officialrate", SortDirection.Asc) => query => query.OrderBy(x => x.OfficialRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            ("officialrate", SortDirection.Desc) => query => query.OrderByDescending(x => x.OfficialRate).ThenByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            _ when filter.SortDirection == SortDirection.Asc => query => query.OrderBy(x => x.EffectiveDate).ThenByDescending(x => x.Id),
+            _ => query => query.OrderByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id)
         };
     }
 }

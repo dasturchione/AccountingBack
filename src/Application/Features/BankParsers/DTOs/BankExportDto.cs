@@ -26,6 +26,9 @@ public class AccountStatementDto
     [JsonPropertyName("bankId")]
     public int? BankId { get; set; }
 
+    [JsonPropertyName("bankBranchId")]
+    public int? BankBranchId { get; set; }
+
     [JsonPropertyName("bankInn")]
     public string? BankInn { get; set; }
 
@@ -68,6 +71,12 @@ public class TransactionDto
     [JsonPropertyName("docNumber")]
     public string DocNumber { get; set; } = "";
 
+    [JsonPropertyName("bankDocumentNumber")]
+    public string BankDocumentNumber { get; set; } = "";
+
+    [JsonPropertyName("isNewOperation")]
+    public bool IsNewOperation { get; set; } = true;
+
     [JsonPropertyName("directionId")]
     public short DirectionId => Debit > Credit ? MovementDirectionIdConst.IN : MovementDirectionIdConst.OUT;
 
@@ -106,6 +115,24 @@ public class TransactionDto
 
     [JsonPropertyName("amount")]
     public decimal Amount { get; set; }
+
+    [JsonPropertyName("classificationCategoryId")]
+    public short? ClassificationCategoryId { get; set; }
+
+    [JsonPropertyName("classificationCode")]
+    public string? ClassificationCode { get; set; }
+
+    [JsonPropertyName("classificationName")]
+    public string? ClassificationName { get; set; }
+
+    [JsonPropertyName("classificationRuleId")]
+    public int? ClassificationRuleId { get; set; }
+
+    [JsonPropertyName("classificationRuleCode")]
+    public string? ClassificationRuleCode { get; set; }
+
+    [JsonPropertyName("requiresReview")]
+    public bool RequiresReview { get; set; }
 
     //[JsonPropertyName("paymentPurposeHints")]
 }

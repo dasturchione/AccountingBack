@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # Standart va tahlil hujjatlari (jamoa/server uchun emas)
 standarts/
+
+# Local isolated Codex worktrees
+.worktrees/

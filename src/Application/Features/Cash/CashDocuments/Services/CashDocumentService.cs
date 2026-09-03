@@ -1,3 +1,4 @@
+using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.CashOperations;
 using SharedKernel.Constants;
@@ -7,10 +8,12 @@ namespace Application.Features.CashDocuments;
 
 public class CashDocumentService : ICashDocumentService
 {
+    private readonly IUserContext _userContext;
     private readonly ICashOperationService _cashOperationService;
 
-    public CashDocumentService(ICashOperationService cashOperationService)
+    public CashDocumentService(IUserContext userContext, ICashOperationService cashOperationService)
     {
+        _userContext = userContext;
         _cashOperationService = cashOperationService;
     }
 
@@ -85,7 +88,7 @@ public class CashDocumentService : ICashDocumentService
 
         return result.Value.OperationTypeId == operationTypeId
             ? result
-            : Result.Failure<CashOperationDto>(CashOperationErrors.NotFound(id));
+            : Result.Failure<CashOperationDto>(CashOperationErrors.NotFound(id, _userContext.LanguageId));
     }
 
     private async Task<Result> UpdateAsync(long id, CashDocumentUpdateDto dto, short operationTypeId, CancellationToken ct)

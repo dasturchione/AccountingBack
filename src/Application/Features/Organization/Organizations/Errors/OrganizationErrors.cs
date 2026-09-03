@@ -5,6 +5,15 @@ namespace Application.Features.Organizations;
 
 public static class OrganizationErrors
 {
+    public static Error InnLookupFailed(short? languageId = null) =>
+        Error.Problem("Organization.InnLookupFailed", languageId switch
+        {
+            LanguageIdConst.UZ => "STIR bo'yicha tashkilot ma'lumotlarini olishda xatolik yuz berdi.",
+            LanguageIdConst.UZ_CYRL => "СТИР бўйича ташкилот маълумотларини олишда хатолик юз берди.",
+            LanguageIdConst.RU => "Не удалось получить данные организации по ИНН.",
+            _ => "Organization details could not be retrieved by INN."
+        });
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("Organization.NotFound", GetNotFoundDescription(id, languageId));
 

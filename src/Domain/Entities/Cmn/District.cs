@@ -18,6 +18,10 @@ public partial class District
     [StringLength(250)]
     public string FullName { get; set; } = null!;
 
+    [Column("code")]
+    [StringLength(10)]
+    public string? Code { get; set; }
+
     [Column("region_id")]
     public int RegionId { get; set; }
 
@@ -32,6 +36,9 @@ public partial class District
 
     [InverseProperty("District")]
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
+
+    [InverseProperty(nameof(BankBranch.District))]
+    public virtual ICollection<BankBranch> BankBranches { get; set; } = new List<BankBranch>();
 
     [InverseProperty("District")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();

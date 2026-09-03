@@ -22,4 +22,13 @@ public static class DepartmentErrors
             LanguageIdConst.RU      => $"Отдел с кодом '{code}' уже существует.",
             _                       => $"Department with code '{code}' already exists."
         });
+
+    public static Error BranchNotFound(int id, short? languageId = null) =>
+        Error.NotFound("Department.BranchNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Joriy tashkilotda id-si {id} bo'lgan filial topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Жорий ташкилотда id-си {id} бўлган филиал топилмади.",
+            LanguageIdConst.RU      => $"Филиал с id {id} не найден в текущей организации.",
+            _                       => $"Branch with id {id} was not found in the current organization."
+        });
 }

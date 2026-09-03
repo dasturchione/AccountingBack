@@ -32,9 +32,6 @@ public partial class CmnMovementDirection
     public virtual ICollection<InvInventoryAdjustmentDoc> InvInventoryAdjustmentDocs { get; set; } = new List<InvInventoryAdjustmentDoc>();
 
     [InverseProperty("Direction")]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
-    [InverseProperty("Direction")]
     public virtual ICollection<InvWarehouseProductMovement> InvWarehouseProductMovements { get; set; } = new List<InvWarehouseProductMovement>();
 
     [InverseProperty("Direction")]

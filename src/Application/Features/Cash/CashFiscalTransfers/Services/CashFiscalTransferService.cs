@@ -54,7 +54,7 @@ public sealed class CashFiscalTransferService : BaseService, ICashFiscalTransfer
         {
             var dto = await GetDtoAsync(id, ct);
             return dto is null
-                ? Result.Failure<CashFiscalTransferDto>(CashFiscalTransferErrors.NotFound(id))
+                ? Result.Failure<CashFiscalTransferDto>(CashFiscalTransferErrors.NotFound(id, _userContext.LanguageId))
                 : Result.Success(dto);
         });
 
@@ -98,9 +98,9 @@ public sealed class CashFiscalTransferService : BaseService, ICashFiscalTransfer
         {
             var entity = await GetEntityAsync(id, ct);
             if (entity is null)
-                return Result.Failure(CashFiscalTransferErrors.NotFound(id));
+                return Result.Failure(CashFiscalTransferErrors.NotFound(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, entity.StatusId));
+                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
 
             var old = await GetDtoAsync(id, ct);
             if (old is not null) _auditLogService.SetOldValues(old);
@@ -122,9 +122,9 @@ public sealed class CashFiscalTransferService : BaseService, ICashFiscalTransfer
         {
             var entity = await GetEntityAsync(id, ct);
             if (entity is null)
-                return Result.Failure(CashFiscalTransferErrors.NotFound(id));
+                return Result.Failure(CashFiscalTransferErrors.NotFound(id, _userContext.LanguageId));
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, entity.StatusId));
+                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
 
             entity.StateId = StateIdConst.PASSIVE;
             await _command.UpdateAsync(entity, ct);

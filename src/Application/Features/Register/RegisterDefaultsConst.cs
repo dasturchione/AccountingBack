@@ -19,6 +19,8 @@ public static class RegisterDefaultsConst
     public const string CashFiscalTransferCashBox = "CASH_BOX_TRANSFER";
     public const string FiscalCashRegister = "FISCAL_CASH_REGISTER";
     public const string CashBoxBalance = "CASH_BOX";
+    public const string CashCollection = "CASH_COLLECTION";
+    public const string PaymentAcceptancePoint = "PAYMENT_ACCEPTANCE_POINT";
     public const string SourceCashBoxDisplayPrefix = "SourceCashBox";
     public const string DestinationCashBoxDisplayPrefix = "DestinationCashBox";
 }

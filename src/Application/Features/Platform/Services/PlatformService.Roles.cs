@@ -20,13 +20,13 @@ public sealed partial class PlatformService
         ExecuteAsync(nameof(GetOrganizationRolesAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await GetTenantOrganizationAsync(tenantId, organizationId, ct) is null)
-                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure<PagedResponse<RoleListDto>>(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
@@ -72,13 +72,13 @@ public sealed partial class PlatformService
         ExecuteAsync(nameof(GetOrganizationRoleByIdAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<RoleDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<RoleDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<RoleDto>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<RoleDto>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await GetTenantOrganizationAsync(tenantId, organizationId, ct) is null)
-                return Result.Failure<RoleDto>(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure<RoleDto>(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var query = _queryBuilder.For<Role>()
                 .Where(role => role.Id == roleId && role.OrganizationId == organizationId)
@@ -124,13 +124,13 @@ public sealed partial class PlatformService
         ExecuteInTransactionAsync(nameof(CreateOrganizationRoleAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await GetTenantOrganizationAsync(tenantId, organizationId, ct) is null)
-                return Result.Failure<int>(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure<int>(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var shortName = dto.ShortName.Trim();
             if (await _roleQuery.AnyAsync(
@@ -180,13 +180,13 @@ public sealed partial class PlatformService
         ExecuteInTransactionAsync(nameof(UpdateOrganizationRoleAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await GetTenantOrganizationAsync(tenantId, organizationId, ct) is null)
-                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var query = _queryBuilder.For<Role>()
                 .Where(role => role.Id == roleId && role.OrganizationId == organizationId)
@@ -239,13 +239,13 @@ public sealed partial class PlatformService
         ExecuteInTransactionAsync(nameof(DeleteOrganizationRoleAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await GetTenantOrganizationAsync(tenantId, organizationId, ct) is null)
-                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var query = _queryBuilder.For<Role>()
                 .Where(role => role.Id == roleId && role.OrganizationId == organizationId)

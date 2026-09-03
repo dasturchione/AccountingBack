@@ -91,7 +91,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             var organization = await GetOrganizationAsync(orgIdResult.Value, ct);
             if (organization is null)
-                return Result.Failure<OrganizationSetupDto>(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value));
+                return Result.Failure<OrganizationSetupDto>(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value, _userContext.LanguageId));
 
             var setup = await GetSetupStateAsync(organization.Id, ct);
             var tax = await GetCurrentTaxSettingAsync(organization.Id, ct);
@@ -128,13 +128,13 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             var organization = await GetOrganizationAsync(orgIdResult.Value, ct);
             if (organization is null)
-                return Result.Failure(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value));
+                return Result.Failure(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value, _userContext.LanguageId));
 
             if (!string.Equals(organization.Inn, dto.Inn, StringComparison.OrdinalIgnoreCase))
             {
                 var innExists = await _organizationQuery.AnyAsync(x => x.Id != organization.Id && x.Inn == dto.Inn, ct);
                 if (innExists)
-                    return Result.Failure(OrganizationSetupErrors.InnConflict(dto.Inn));
+                    return Result.Failure(OrganizationSetupErrors.InnConflict(dto.Inn, _userContext.LanguageId));
             }
 
             organization.ShortName = dto.ShortName.Trim();
@@ -165,7 +165,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             var taxTypeExists = await _taxTypeQuery.AnyAsync(x => x.Id == dto.TaxTypeId && x.StateId == StateIdConst.ACTIVE, ct);
             if (!taxTypeExists)
-                return Result.Failure(OrganizationSetupErrors.TaxTypeNotFound(dto.TaxTypeId));
+                return Result.Failure(OrganizationSetupErrors.TaxTypeNotFound(dto.TaxTypeId, _userContext.LanguageId));
 
             var now = DateTime.Now;
             await _organizationSetupCore.UpsertTaxSettingsAsync(
@@ -198,7 +198,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             var method = dto.InventoryValuationMethod.Trim().ToLowerInvariant();
             if (!InventoryValuationMethods.Contains(method))
-                return Result.Failure(OrganizationSetupErrors.InvalidInventoryValuationMethod(method));
+                return Result.Failure(OrganizationSetupErrors.InvalidInventoryValuationMethod(method, _userContext.LanguageId));
 
             var referenceError = await ValidateAccountingReferencesAsync(dto.AccountingPolicyId, dto.BaseCurrencyId, ct);
             if (referenceError is not null)
@@ -270,7 +270,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             var organization = await GetOrganizationAsync(orgIdResult.Value, ct);
             if (organization is null)
-                return Result.Failure(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value));
+                return Result.Failure(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value, _userContext.LanguageId));
 
             return await _organizationSetupCore.CompleteSetupAsync(organization, ct);
         }, ct);
@@ -278,17 +278,17 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<Result<int>> ResolveOrganizationIdAsync(CancellationToken ct)
     {
         if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
-            return Result.Failure<int>(OrganizationSetupErrors.OrganizationContextRequired());
+            return Result.Failure<int>(OrganizationSetupErrors.OrganizationContextRequired(_userContext.LanguageId));
 
         var organizationExists = await _organizationQuery.AnyAsync(x => x.Id == organizationId, ct);
         if (!organizationExists)
-            return Result.Failure<int>(OrganizationSetupErrors.OrganizationNotFound(organizationId));
+            return Result.Failure<int>(OrganizationSetupErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
         if (_userContext.UserKind == CurrentUserKind.SuperAdmin)
             return organizationId;
 
         if (_userContext.Id is null)
-            return Result.Failure<int>(OrganizationSetupErrors.Forbidden());
+            return Result.Failure<int>(OrganizationSetupErrors.Forbidden(_userContext.LanguageId));
 
         var membershipExists = await _userOrganizationQuery.AnyAsync(x =>
             x.UserId == _userContext.Id.Value
@@ -298,7 +298,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
         return membershipExists
             ? organizationId
-            : Result.Failure<int>(OrganizationSetupErrors.Forbidden());
+            : Result.Failure<int>(OrganizationSetupErrors.Forbidden(_userContext.LanguageId));
     }
 
     private async Task<Organization?> GetOrganizationAsync(int organizationId, CancellationToken ct) =>
@@ -309,12 +309,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return items.FirstOrDefault();
     }
 
     private async Task<OrganizationConfig?> GetConfigAsync(int organizationId, CancellationToken ct) =>
@@ -326,7 +324,7 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<OrganizationSetupPricingConditionDto?> GetCurrentPricingConditionAsync(int organizationId, CancellationToken ct)
     {
         var now = DateTime.Now;
-        var conditions = await _pricingConditionQuery.GetAllAsync(_queryBuilder.For<PricingCondition>()
+        return await _pricingConditionQuery.GetAsync(_queryBuilder.For<PricingCondition>()
             .Where(x => x.OrganizationId == organizationId &&
                         x.StateId == StateIdConst.ACTIVE &&
                         x.StartDate <= now &&
@@ -345,10 +343,8 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 StartDate = x.StartDate,
                 EndDate = x.EndDate
             })
-            .OrderBy(query => query.OrderByDescending(x => x.StartDate))
+            .OrderBy(query => query.OrderByDescending(x => x.StartDate).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return conditions.FirstOrDefault();
     }
 
     private async Task<Error?> ValidateAccountingReferencesAsync(short? accountingPolicyId, short? baseCurrencyId, CancellationToken ct)
@@ -357,14 +353,14 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         {
             var exists = await _accountingPolicyQuery.AnyAsync(x => x.Id == accountingPolicyId.Value && x.StateId == StateIdConst.ACTIVE, ct);
             if (!exists)
-                return OrganizationSetupErrors.AccountingPolicyNotFound(accountingPolicyId.Value);
+                return OrganizationSetupErrors.AccountingPolicyNotFound(accountingPolicyId.Value, _userContext.LanguageId);
         }
 
         if (baseCurrencyId.HasValue)
         {
             var exists = await _currencyQuery.AnyAsync(x => x.Id == baseCurrencyId.Value && x.StateId == StateIdConst.ACTIVE, ct);
             if (!exists)
-                return OrganizationSetupErrors.CurrencyNotFound(baseCurrencyId.Value);
+                return OrganizationSetupErrors.CurrencyNotFound(baseCurrencyId.Value, _userContext.LanguageId);
         }
 
         return null;
@@ -373,16 +369,16 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<Error?> ValidateDefaultsAsync(int organizationId, OrganizationSetupDefaultsDto dto, CancellationToken ct)
     {
         if (dto.BranchId.HasValue && !await _branchQuery.AnyAsync(x => x.Id == dto.BranchId.Value && x.OrganizationId == organizationId, ct))
-            return OrganizationSetupErrors.BranchNotFound(dto.BranchId.Value);
+            return OrganizationSetupErrors.BranchNotFound(dto.BranchId.Value, _userContext.LanguageId);
 
         if (dto.WarehouseId.HasValue && !await _warehouseQuery.AnyAsync(x => x.Id == dto.WarehouseId.Value && x.OrganizationId == organizationId, ct))
-            return OrganizationSetupErrors.WarehouseNotFound(dto.WarehouseId.Value);
+            return OrganizationSetupErrors.WarehouseNotFound(dto.WarehouseId.Value, _userContext.LanguageId);
 
         if (dto.CashBoxId.HasValue && !await _cashBoxQuery.AnyAsync(x => x.Id == dto.CashBoxId.Value && x.OrganizationId == organizationId, ct))
-            return OrganizationSetupErrors.CashBoxNotFound(dto.CashBoxId.Value);
+            return OrganizationSetupErrors.CashBoxNotFound(dto.CashBoxId.Value, _userContext.LanguageId);
 
         if (dto.BankAccountId.HasValue && !await _bankAccountQuery.AnyAsync(x => x.Id == dto.BankAccountId.Value && x.OrganizationId == organizationId, ct))
-            return OrganizationSetupErrors.BankAccountNotFound(dto.BankAccountId.Value);
+            return OrganizationSetupErrors.BankAccountNotFound(dto.BankAccountId.Value, _userContext.LanguageId);
 
         var chartAccountIds = new[]
         {
@@ -398,9 +394,13 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
         foreach (var chartAccountId in chartAccountIds)
         {
-            var exists = await _chartAccountQuery.AnyAsync(x => x.Id == chartAccountId && x.StateId == StateIdConst.ACTIVE, ct);
+            var exists = await _chartAccountQuery.AnyAsync(
+                x => x.Id == chartAccountId
+                     && x.OrganizationId == organizationId
+                     && x.StateId == StateIdConst.ACTIVE,
+                ct);
             if (!exists)
-                return OrganizationSetupErrors.ChartAccountNotFound(chartAccountId);
+                return OrganizationSetupErrors.ChartAccountNotFound(chartAccountId, _userContext.LanguageId);
         }
 
         return null;

@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
+using Application.Features;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -28,19 +29,26 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result<CounterpartyCardCreateResultDto>> CreateAsync(CounterpartyCardCreateDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<CounterpartyCardCreateResultDto>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
-        if (await _query.AnyAsync(x => x.ShortName == dto.ShortName, ct))
+        if (await _query.AnyAsync(
+                x => x.OrganizationId == organizationId && x.ShortName == dto.ShortName,
+                ct))
             return Result.Failure<CounterpartyCardCreateResultDto>(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
 
-        var entity = BuildCreateEntity(dto, orgId);
+        var entity = BuildCreateEntity(dto, organizationId);
         await _command.CreateAsync(entity, ct);
         return ToCreateResult(entity);
     }
 
     public async Task<Result<List<CounterpartyCardCreateResultDto>>> CreateManyAsync(CounterpartyCardCreateManyDto dto, CancellationToken ct = default)
     {
-        var orgId = _userContext.OrganizationId!.Value;
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<List<CounterpartyCardCreateResultDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
         var duplicateShortName = dto.Counterparties
             .GroupBy(x => x.ShortName)
             .FirstOrDefault(x => x.Count() > 1)
@@ -51,11 +59,15 @@ public class CounterpartyCardService : ICounterpartyCardService
 
         foreach (var counterparty in dto.Counterparties)
         {
-            if (await _query.AnyAsync(x => x.ShortName == counterparty.ShortName, ct))
+            if (await _query.AnyAsync(
+                    x => x.OrganizationId == organizationId && x.ShortName == counterparty.ShortName,
+                    ct))
                 return Result.Failure<List<CounterpartyCardCreateResultDto>>(CounterpartyCardErrors.ShortNameConflict(counterparty.ShortName, _userContext.LanguageId));
         }
 
-        var entities = dto.Counterparties.Select(counterparty => BuildCreateEntity(counterparty, orgId)).ToList();
+        var entities = dto.Counterparties
+            .Select(counterparty => BuildCreateEntity(counterparty, organizationId))
+            .ToList();
 
         await _command.CreateAsync(entities, ct);
 
@@ -64,7 +76,12 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
 
         if (entity == null) 
@@ -78,6 +95,11 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result<PagedResponse<CounterpartyCardListDto>>> GetAllAsync(CounterpartyCardListFilter filter, CancellationToken ct = default)
     {
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<PagedResponse<CounterpartyCardListDto>>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        filter.OrganizationId = organizationId;
         var query = _queryBuilder.BuildPaged<CounterpartyCard, CounterpartyCardListDto, CounterpartyCardListFilter>(filter);
         var pagedList = await _query.GetPagedAsync(query, ct);
         return PagedResponseFactory.Create(pagedList, filter.Page, filter.PageSize);
@@ -85,7 +107,14 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result<CounterpartyCardDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).As<CounterpartyCardDto>().Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure<CounterpartyCardDto>(
+                CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .As<CounterpartyCardDto>()
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) 
             return Result.Failure<CounterpartyCardDto>(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
@@ -94,16 +123,21 @@ public class CounterpartyCardService : ICounterpartyCardService
 
     public async Task<Result> UpdateAsync(int id, CounterpartyCardUpdateDto dto, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<CounterpartyCard>().Where(x => x.Id == id).Build();
+        if (_userContext.OrganizationId is not int organizationId || organizationId <= 0)
+            return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.Id == id && x.OrganizationId == organizationId)
+            .Build();
         var entity = await _query.GetAsync(query, ct);
         if (entity == null) return Result.Failure(CounterpartyCardErrors.NotFound(id, _userContext.LanguageId));
 
-        if (entity.ShortName != dto.ShortName && await _query.AnyAsync(x => x.ShortName == dto.ShortName, ct))
+        if (entity.ShortName != dto.ShortName &&
+            await _query.AnyAsync(
+                x => x.OrganizationId == organizationId && x.ShortName == dto.ShortName,
+                ct))
             return Result.Failure(CounterpartyCardErrors.ShortNameConflict(dto.ShortName, _userContext.LanguageId));
-        entity.CounterpartyTypeId = dto.CounterpartyTypeId;
         entity.Code = dto.Code;
-        entity.IsCustomer = dto.IsCustomer;
-        entity.IsSupplier = dto.IsSupplier;
         entity.IsVatPayer = dto.IsVatPayer;
         entity.ShortName = dto.ShortName;
         entity.FullName = dto.FullName;
@@ -125,10 +159,7 @@ public class CounterpartyCardService : ICounterpartyCardService
         new()
         {
             OrganizationId = orgId,
-            CounterpartyTypeId = dto.CounterpartyTypeId,
             Code = dto.Code,
-            IsCustomer = dto.IsCustomer,
-            IsSupplier = dto.IsSupplier,
             IsVatPayer = dto.IsVatPayer,
             ShortName = dto.ShortName,
             FullName = dto.FullName,

@@ -27,6 +27,18 @@ public class BankOperationListDto
     public int? CounterpartyBankAccountId { get; set; }
     public string? CounterpartyBankAccountNumber { get; set; }
     public string DocNumber { get; set; } = null!;
+    public string? BankDocumentNumber { get; set; }
+    public short? ClassificationCategoryId { get; set; }
+    public string? ClassificationCode { get; set; }
+    public string? ClassificationName { get; set; }
+    public int? ClassificationRuleId { get; set; }
+    public string? ClassificationRuleCode { get; set; }
+    public long? RelatedDocumentId { get; set; }
+    public short? RelatedDocumentTypeId { get; set; }
+    public string? RelatedDocumentTypeName { get; set; }
+    public long? RelatedDocumentEntityId { get; set; }
+    public string? RelatedDocumentNumber { get; set; }
+    public DateTime? RelatedDocumentDate { get; set; }
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyName { get; set; } = null!;

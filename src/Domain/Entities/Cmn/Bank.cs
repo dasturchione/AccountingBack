@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
 [Table("cmn_bank")]
-[Index("Code", Name = "idx_cmn_bank_code", IsUnique = true)]
 public partial class Bank
 {
     [Key]
@@ -20,6 +18,27 @@ public partial class Bank
     [StringLength(250)]
     public string Name { get; set; } = null!;
 
+    [Column("legal_name")]
+    [StringLength(500)]
+    public string? LegalName { get; set; }
+
+    [Column("license_number")]
+    [StringLength(50)]
+    public string? LicenseNumber { get; set; }
+
+    [Column("license_date")]
+    public DateOnly? LicenseDate { get; set; }
+
+    [Column("address")]
+    [StringLength(500)]
+    public string? Address { get; set; }
+
+    [Column("opened_date")]
+    public DateOnly? OpenedDate { get; set; }
+
+    [Column("source_updated_date")]
+    public DateOnly? SourceUpdatedDate { get; set; }
+
     [Column("inn")]
     [StringLength(20)]
     public string? Inn { get; set; } 
@@ -27,6 +46,16 @@ public partial class Bank
     [Column("mfo")]
     [StringLength(20)]
     public string? Mfo { get; set; }
+
+    [Column("website")]
+    [StringLength(250)]
+    public string? Website { get; set; }
+
+    [Column("latitude", TypeName = "numeric(9,6)")]
+    public decimal? Latitude { get; set; }
+
+    [Column("longitude", TypeName = "numeric(9,6)")]
+    public decimal? Longitude { get; set; }
 
     [Column("state_id")]
     public short StateId { get; set; }
@@ -39,6 +68,15 @@ public partial class Bank
 
     [InverseProperty("Bank")]
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+
+    [InverseProperty(nameof(BankBranch.Bank))]
+    public virtual ICollection<BankBranch> BankBranches { get; set; } = new List<BankBranch>();
+
+    [InverseProperty(nameof(BankStatementTemplate.Bank))]
+    public virtual ICollection<BankStatementTemplate> BankStatementTemplates { get; set; } = new List<BankStatementTemplate>();
+
+    [InverseProperty(nameof(BankOperationClassificationRuleSet.Bank))]
+    public virtual ICollection<BankOperationClassificationRuleSet> BankOperationClassificationRuleSets { get; set; } = [];
 
     [ForeignKey("StateId")]
     [InverseProperty("Banks")]

@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Constants;
 using SharedKernel.Query;
@@ -8,6 +9,7 @@ namespace Application.Features.OrganizationSetup;
 
 public sealed class OrganizationSetupCore : IOrganizationSetupCore
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryRepository<OrganizationSetupState> _setupStateQuery;
     private readonly ICommandRepository<OrganizationSetupState> _setupStateCommand;
     private readonly IQueryRepository<OrganizationTaxSetting> _taxSettingQuery;
@@ -20,6 +22,7 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
     private readonly IQueryBuilder _queryBuilder;
 
     public OrganizationSetupCore(
+        IUserContext userContext,
         IQueryRepository<OrganizationSetupState> setupStateQuery,
         ICommandRepository<OrganizationSetupState> setupStateCommand,
         IQueryRepository<OrganizationTaxSetting> taxSettingQuery,
@@ -31,6 +34,7 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         ICommandRepository<Organization> organizationCommand,
         IQueryBuilder queryBuilder)
     {
+        _userContext = userContext;
         _setupStateQuery = setupStateQuery;
         _setupStateCommand = setupStateCommand;
         _taxSettingQuery = taxSettingQuery;
@@ -130,7 +134,7 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         var setup = await GetOrCreateSetupStateAsync(organization.Id, ct);
         var missingStep = GetMissingStep(setup);
         if (missingStep is not null)
-            return Result.Failure(OrganizationSetupErrors.SetupNotReady(missingStep));
+            return Result.Failure(OrganizationSetupErrors.SetupNotReady(missingStep, _userContext.LanguageId));
 
         var now = DateTime.Now;
         setup.IsCompleted = true;
@@ -147,12 +151,10 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
     private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
     {
-        var items = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom))
+            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
             .Build(), ct);
-
-        return items.FirstOrDefault();
     }
 
     private async Task<OrganizationSetupState> GetOrCreateSetupStateAsync(int organizationId, CancellationToken ct)

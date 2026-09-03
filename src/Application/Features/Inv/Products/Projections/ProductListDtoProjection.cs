@@ -1,6 +1,5 @@
 ﻿using Application.Abstractions.Authentication;
 using Domain.Entities;
-using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -10,7 +9,7 @@ public class ProductListDtoProjection(IUserContext userContext) : IProjectionBui
 {
     public Expression<Func<Product, ProductListDto>> Build()
     {
-        var languageId = userContext.LanguageId ?? LanguageIdConst.UZ;
+        var languageId = userContext.LanguageId;
 
         return product => new ProductListDto
         {

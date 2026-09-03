@@ -15,7 +15,6 @@ namespace Infrastructure.Persistence.Generated.Entities;
 [Index("RegionId", Name = "idx_counterparty_card_region_id")]
 [Index("ShortName", Name = "idx_counterparty_card_short_name")]
 [Index("StateId", Name = "idx_counterparty_card_state_id")]
-[Index("CounterpartyTypeId", Name = "idx_counterparty_card_type_id")]
 public partial class CounterpartyCard
 {
     [Key]
@@ -24,9 +23,6 @@ public partial class CounterpartyCard
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }
-
-    [Column("counterparty_type_id")]
-    public short CounterpartyTypeId { get; set; }
 
     [Column("short_name")]
     [StringLength(250)]
@@ -68,12 +64,6 @@ public partial class CounterpartyCard
     [StringLength(100)]
     public string? Code { get; set; }
 
-    [Column("is_customer")]
-    public bool IsCustomer { get; set; }
-
-    [Column("is_supplier")]
-    public bool IsSupplier { get; set; }
-
     [Column("is_vat_payer")]
     public bool IsVatPayer { get; set; }
 
@@ -105,10 +95,6 @@ public partial class CounterpartyCard
 
     [InverseProperty("Counterparty")]
     public virtual ICollection<CounterpartyRegBalance> CounterpartyRegBalances { get; set; } = new List<CounterpartyRegBalance>();
-
-    [ForeignKey("CounterpartyTypeId")]
-    [InverseProperty("CounterpartyCards")]
-    public virtual CmnCounterpartyType CounterpartyType { get; set; } = null!;
 
     [ForeignKey("DistrictId")]
     [InverseProperty("CounterpartyCards")]

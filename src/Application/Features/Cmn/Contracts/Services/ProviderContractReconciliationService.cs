@@ -52,7 +52,7 @@ public sealed class ProviderContractReconciliationService(
             var counterparty = await counterpartyQuery.GetAsync(counterpartySpec, ct);
             if (counterparty is null)
                 return Result.Failure<ProviderContractReconciliationResultDto>(
-                    Error.NotFound("EDO_CONTRACT_COUNTERPARTY_NOT_FOUND", "The counterparty is not available in the current organization."));
+                    ProviderContractReconciliationErrors.CounterpartyNotFound(userContext.LanguageId));
 
             var identitySpec = queryBuilder.For<Contract>()
                 .Where(x => x.OrganizationId == organizationId
@@ -72,7 +72,7 @@ public sealed class ProviderContractReconciliationService(
 
             if (identityState == "INACTIVE")
                 return Result.Failure<ProviderContractReconciliationResultDto>(
-                    Error.Conflict("EDO_CONTRACT_PROVIDER_IDENTITY_INACTIVE", "An inactive contract already owns this provider identity; reactivate it explicitly before reconciliation."));
+                    ProviderContractReconciliationErrors.ProviderIdentityInactive(userContext.LanguageId));
 
             var entity = new Contract
             {
@@ -98,7 +98,7 @@ public sealed class ProviderContractReconciliationService(
             catch (UniqueConstraintViolationException)
             {
                 return Result.Failure<ProviderContractReconciliationResultDto>(
-                    Error.Conflict("EDO_CONTRACT_PROVIDER_IDENTITY_EXISTS", "The provider contract identity is already owned by another contract. Retry the same request to read its safe existing result."));
+                    ProviderContractReconciliationErrors.ProviderIdentityExists(userContext.LanguageId));
             }
 
             await WriteAuditAsync(entity.Id, organizationId, dto, providerNumber, idempotencyKey, "CREATED");

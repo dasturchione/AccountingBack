@@ -35,7 +35,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OpeningBalanceAccountDetail> OpeningBalanceAccountDetails { get; set; }
     public virtual DbSet<OpeningBalanceAccountDetailSubkonto> OpeningBalanceAccountDetailSubkontos { get; set; }
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
-    public virtual DbSet<BankTerminal> BankTerminals { get; set; }
+    public virtual DbSet<PaymentAcceptancePointType> PaymentAcceptancePointTypes { get; set; }
+    public virtual DbSet<PaymentAcceptancePointTypeTranslation> PaymentAcceptancePointTypeTranslations { get; set; }
+    public virtual DbSet<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; }
+    public virtual DbSet<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; }
     public virtual DbSet<BankOperation> BankOperations { get; set; }
     public virtual DbSet<CashBox> CashBoxes { get; set; }
     public virtual DbSet<FiscalCashRegister> FiscalCashRegisters { get; set; }
@@ -43,8 +46,19 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<FiscalCashRegisterTypeTranslation> FiscalCashRegisterTypeTranslations { get; set; }
     public virtual DbSet<CashOperation> CashOperations { get; set; }
     public virtual DbSet<CashFiscalTransferDoc> CashFiscalTransferDocs { get; set; }
+    public virtual DbSet<CashCollectionDoc> CashCollectionDocs { get; set; }
     public virtual DbSet<Bank> Banks { get; set; }
-    public virtual DbSet<CounterpartyType> CounterpartyTypes { get; set; }
+    public virtual DbSet<BankBranch> BankBranches { get; set; }
+    public virtual DbSet<BankStatementTemplate> BankStatementTemplates { get; set; }
+    public virtual DbSet<BankStatementTemplateHeaderRule> BankStatementTemplateHeaderRules { get; set; }
+    public virtual DbSet<BankStatementTemplateRowRule> BankStatementTemplateRowRules { get; set; }
+    public virtual DbSet<BankStatementTemplateField> BankStatementTemplateFields { get; set; }
+    public virtual DbSet<BankOperationCategory> BankOperationCategories { get; set; }
+    public virtual DbSet<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; }
+    public virtual DbSet<BankOperationClassificationRuleSet> BankOperationClassificationRuleSets { get; set; }
+    public virtual DbSet<BankOperationClassificationRule> BankOperationClassificationRules { get; set; }
+    public virtual DbSet<BankOperationClassificationCondition> BankOperationClassificationConditions { get; set; }
+    public virtual DbSet<BankOperationClassificationConditionValue> BankOperationClassificationConditionValues { get; set; }
     public virtual DbSet<CostingMethod> CostingMethods { get; set; }
     public virtual DbSet<Currency> Currencies { get; set; }
     public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
@@ -72,6 +86,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<District> Districts { get; set; }
     public virtual DbSet<DocumentStatus> DocumentStatuses { get; set; }
     public virtual DbSet<DocumentType> DocumentTypes { get; set; }
+    public virtual DbSet<DocumentRegistry> DocumentRegistries { get; set; }
     public virtual DbSet<DocumentAccountType> DocumentAccountTypes { get; set; }
     public virtual DbSet<DocumentAccountTypeTranslation> DocumentAccountTypeTranslations { get; set; }
     public virtual DbSet<DocumentAccountRole> DocumentAccountRoles { get; set; }
@@ -95,7 +110,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Translation> Translations { get; set; }
     public virtual DbSet<ContractTypeTranslation> ContractTypeTranslations { get; set; }
     public virtual DbSet<CostingMethodTranslation> CostingMethodTranslations { get; set; }
-    public virtual DbSet<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; }
     public virtual DbSet<CurrencyTranslation> CurrencyTranslations { get; set; }
     public virtual DbSet<DocumentStatusTranslation> DocumentStatusTranslations { get; set; }
     public virtual DbSet<DocumentTypeTranslation> DocumentTypeTranslations { get; set; }
@@ -147,6 +161,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PayPayrollCalcLine> PayPayrollCalcLines { get; set; }
     public virtual DbSet<PayPaymentBatch> PayPaymentBatches { get; set; }
     public virtual DbSet<PayPaymentLine> PayPaymentLines { get; set; }
+    public virtual DbSet<RentalObjectType> RentalObjectTypes { get; set; }
+    public virtual DbSet<RentalObjectTypeTranslation> RentalObjectTypeTranslations { get; set; }
+    public virtual DbSet<RentalContract> RentalContracts { get; set; }
+    public virtual DbSet<RentalContractObject> RentalContractObjects { get; set; }
+    public virtual DbSet<RentalAccrualDoc> RentalAccrualDocs { get; set; }
+    public virtual DbSet<RentalAccrualDocItem> RentalAccrualDocItems { get; set; }
     public virtual DbSet<HrEmployeeWorkSchedule> HrEmployeeWorkSchedules { get; set; }
     public virtual DbSet<HrEmployeeWorkScheduleDay> HrEmployeeWorkScheduleDays { get; set; }
     public virtual DbSet<HrAbsenceType> HrAbsenceTypes { get; set; }
@@ -166,7 +186,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AccountingRegisterEntry> AccountingRegisterEntries { get; set; }
     public virtual DbSet<CounterpartyRegisterBalance> CounterpartyRegisterBalances { get; set; }
     public virtual DbSet<MoneyRegisterBalance> MoneyRegisterBalances { get; set; }
-    public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
     public virtual DbSet<RegisterEntrySubkonto> RegisterEntrySubkontos { get; set; }
     public virtual DbSet<SaleCondition> SaleConditions { get; set; }
     public virtual DbSet<SaleDoc> SaleDocs { get; set; }
@@ -831,37 +850,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WarehouseProduct>()
             .Property(x => x.AvailableQuantity)
             .HasComputedColumnSql("quantity - reserved_quantity - blocked_quantity", stored: true);
-
-        modelBuilder.Entity<InvRegBalance>(entity =>
-        {
-            entity.ToTable("inv_reg_balance");
-            entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(e => e.DocumentType)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-            entity.HasOne(e => e.Direction)
-                .WithMany(e => e.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_direction_id_fkey");
-            entity.HasOne(e => e.Organization)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_organization_id_fkey");
-            entity.HasOne(e => e.Product)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_product_id_fkey");
-            entity.HasOne(e => e.ProductTable)
-                .WithMany()
-                .HasConstraintName("inv_reg_balance_product_table_id_fkey");
-            entity.HasOne(e => e.Warehouse)
-                .WithMany()
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
-        });
 
         modelBuilder.Entity<WarehouseProduct>()
             .Property<uint>("xmin")

@@ -92,9 +92,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         var result = await ExecuteInTransactionAsync(nameof(StartAsync), async () =>
         {
             if (!_userContext.OrganizationId.HasValue || !_userContext.Id.HasValue)
-                return Result.Failure<EdoImportJobDto>(Error.Forbidden(
-                    "EdoImport.OrganizationContextRequired",
-                    "An authenticated organization and user context are required."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.OrganizationContextRequired(
+                        userRequired: true, _userContext.LanguageId));
 
             var organizationId = _userContext.OrganizationId.Value;
             var dateFrom = request.DateFrom;
@@ -107,23 +107,19 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             }
 
             if (!dateFrom.HasValue)
-                return Result.Failure<EdoImportJobDto>(Error.Business(
-                    "EdoImport.AccountingStartDateRequired",
-                    "OrganizationConfig.AccountingStartDate must be configured when dateFrom is omitted."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.AccountingStartDateRequired(_userContext.LanguageId));
             if (dateFrom.Value > request.DateTo)
-                return Result.Failure<EdoImportJobDto>(Error.Business(
-                    "EdoImport.InvalidDateRange",
-                    "DateFrom must not be later than DateTo."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.InvalidDateRange(_userContext.LanguageId));
             if (await _store.FindActiveJobAsync(organizationId, ct) is not null)
-                return Result.Failure<EdoImportJobDto>(Error.Conflict(
-                    "EdoImport.ActiveJobExists",
-                    "An active EDO import job already exists for this organization."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.ActiveJobExists(_userContext.LanguageId));
 
             var activeProvider = await _activeProviderResolver.GetActiveProviderCodeAsync(ct);
             if (activeProvider is not EdoProviderCode.EDOCS and not EdoProviderCode.DIDOX)
-                return Result.Failure<EdoImportJobDto>(Error.Business(
-                    "EdoImport.ActiveProviderUnsupported",
-                    "Historical Purchase preflight is not supported for the active EDO provider."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.ActiveProviderUnsupported(_userContext.LanguageId));
 
             var now = UtcNow();
             var job = new EdoImportJob(
@@ -222,9 +218,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
 
         var candidate = await _store.GetCandidateAsync(organizationId.Value, candidateId, ct);
         return candidate is null || candidate.JobId != jobId
-            ? Result.Failure<EdoImportCandidateDetailDto>(Error.NotFound(
-                "EdoImport.CandidateNotFound",
-                "The EDO import candidate was not found in this organization job."))
+            ? Result.Failure<EdoImportCandidateDetailDto>(
+                EdoImportPreflightErrors.CandidateNotFound(_userContext.LanguageId))
             : Result.Success(candidate.ToDetailDto());
     }
 
@@ -313,25 +308,22 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         if (!organizationId.HasValue)
             return Result.Failure<EdoImportDraftBatchResponseDto>(OrganizationRequired());
         if (!request.Confirm)
-            return Result.Failure<EdoImportDraftBatchResponseDto>(Error.Business(
-                "DRAFT_IMPORT_CONFIRMATION_REQUIRED",
-                "Explicit Draft Purchase import confirmation is required."));
+            return Result.Failure<EdoImportDraftBatchResponseDto>(
+                EdoImportPreflightErrors.DraftConfirmationRequired(_userContext.LanguageId));
         if (request.BatchSize is < 1 or > 50 || request.ExpectedImportPlanHash.Length != 64)
-            return Result.Failure<EdoImportDraftBatchResponseDto>(Error.Business(
-                "DRAFT_IMPORT_REQUEST_INVALID",
-                "Batch size must be between 1 and 50 and the import plan hash is required."));
+            return Result.Failure<EdoImportDraftBatchResponseDto>(
+                EdoImportPreflightErrors.DraftRequestInvalid(_userContext.LanguageId));
         if (_draftFactory is null)
-            return Result.Failure<EdoImportDraftBatchResponseDto>(Error.Conflict(
-                "DRAFT_IMPORT_FACTORY_UNAVAILABLE",
-                "The historical Draft Purchase factory is unavailable."));
+            return Result.Failure<EdoImportDraftBatchResponseDto>(
+                EdoImportPreflightErrors.DraftFactoryUnavailable(_userContext.LanguageId));
 
         var job = await _store.GetJobAsync(organizationId.Value, jobId, ct);
         if (job is null)
             return Result.Failure<EdoImportDraftBatchResponseDto>(NotFound(jobId));
         if (!IsDraftImportAllowed(job.Status))
-            return Result.Failure<EdoImportDraftBatchResponseDto>(Error.Conflict(
-                "EdoImport.JobNotImportable",
-                "Draft import is allowed only for PREFLIGHT_READY or PARTIAL jobs."));
+            return Result.Failure<EdoImportDraftBatchResponseDto>(
+                EdoImportPreflightErrors.JobNotImportable(
+                    "Draft import", _userContext.LanguageId));
         var readyCandidates = await _store.GetReadyImportCandidatesAsync(
             organizationId.Value, jobId, ct);
         var plan = BuildImportPlan(job, readyCandidates);
@@ -440,13 +432,11 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             || request.LineValuesInvalidPolicy != "SKIP"
             || request.MarkingAlreadyUsedPolicy
                 != "MARK_DUPLICATE_IF_ALL_SAME_PURCHASE_ELSE_SKIP")
-            return Result.Failure<EdoImportBulkDraftStatusDto>(Error.Business(
-                "BULK_DRAFT_IMPORT_REQUEST_INVALID",
-                "Bulk Draft import requires explicit confirmation, current plan hash and supported policies."));
+            return Result.Failure<EdoImportBulkDraftStatusDto>(
+                EdoImportPreflightErrors.BulkRequestInvalid(_userContext.LanguageId));
         if (_draftFactory is null)
-            return Result.Failure<EdoImportBulkDraftStatusDto>(Error.Conflict(
-                "DRAFT_IMPORT_FACTORY_UNAVAILABLE",
-                "The historical Draft Purchase factory is unavailable."));
+            return Result.Failure<EdoImportBulkDraftStatusDto>(
+                EdoImportPreflightErrors.DraftFactoryUnavailable(_userContext.LanguageId));
 
         var result = await ExecuteInTransactionAsync(nameof(StartBulkImportAsync), async () =>
         {
@@ -454,18 +444,17 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (job is null)
                 return Result.Failure<EdoImportBulkDraftStatusDto>(NotFound(jobId));
             if (!IsDraftImportAllowed(job.Status))
-                return Result.Failure<EdoImportBulkDraftStatusDto>(Error.Conflict(
-                    "EdoImport.JobNotImportable",
-                    "Bulk Draft import is allowed only for PREFLIGHT_READY or PARTIAL jobs."));
+                return Result.Failure<EdoImportBulkDraftStatusDto>(
+                    EdoImportPreflightErrors.JobNotImportable(
+                        "Bulk Draft import", _userContext.LanguageId));
             var plan = BuildImportPlan(job, await _store.GetReadyImportCandidatesAsync(
                 organizationId.Value, jobId, ct));
             if (!string.Equals(request.ExpectedImportPlanHash, plan.ImportPlanHash, StringComparison.Ordinal))
                 return Result.Failure<EdoImportBulkDraftStatusDto>(StaleImportPlan());
             if (EdoImportBulkImportStatus.IsActive(job.BulkImportStatus)
                 && job.BulkImportStatus != EdoImportBulkImportStatus.Paused)
-                return Result.Failure<EdoImportBulkDraftStatusDto>(Error.Conflict(
-                    "BULK_DRAFT_IMPORT_ACTIVE",
-                    "A bulk Draft import is already active for this organization."));
+                return Result.Failure<EdoImportBulkDraftStatusDto>(
+                    EdoImportPreflightErrors.BulkAlreadyActive(_userContext.LanguageId));
 
             var wasPaused = job.BulkImportStatus == EdoImportBulkImportStatus.Paused;
             var now = UtcNow();
@@ -512,8 +501,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 return Result.Failure<EdoImportBulkDraftStatusDto>(NotFound(jobId));
             if (!EdoImportBulkImportStatus.IsActive(job.BulkImportStatus)
                 && job.BulkImportStatus != EdoImportBulkImportStatus.Cancelled)
-                return Result.Failure<EdoImportBulkDraftStatusDto>(Error.Conflict(
-                    "BULK_DRAFT_IMPORT_NOT_ACTIVE", "No active bulk Draft import exists."));
+                return Result.Failure<EdoImportBulkDraftStatusDto>(
+                    EdoImportPreflightErrors.BulkNotActive(_userContext.LanguageId));
             if (job.BulkImportStatus != EdoImportBulkImportStatus.Cancelled)
             {
                 job.BulkImportStatus = EdoImportBulkImportStatus.Cancelled;
@@ -698,9 +687,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!organizationId.HasValue)
                 return Result.Failure<EdoImportDraftFailureApplyResponseDto>(OrganizationRequired());
             if (!request.Confirm)
-                return Result.Failure<EdoImportDraftFailureApplyResponseDto>(Error.Business(
-                    "DRAFT_IMPORT_FAILURE_CONFIRMATION_REQUIRED",
-                    "Explicit Draft import failure confirmation is required."));
+                return Result.Failure<EdoImportDraftFailureApplyResponseDto>(
+                    EdoImportPreflightErrors.DraftFailureConfirmationRequired(
+                        _userContext.LanguageId));
             if (request.ExpectedFailureHash.Length != 64
                 || request.Items.Count == 0
                 || request.Items.Any(item => item.CandidateId <= 0
@@ -714,9 +703,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (job is null)
                 return Result.Failure<EdoImportDraftFailureApplyResponseDto>(NotFound(jobId));
             if (!IsDraftImportAllowed(job.Status))
-                return Result.Failure<EdoImportDraftFailureApplyResponseDto>(Error.Conflict(
-                    "EdoImport.JobNotImportable",
-                    "Draft failure resolution is allowed only for PREFLIGHT_READY or PARTIAL jobs."));
+                return Result.Failure<EdoImportDraftFailureApplyResponseDto>(
+                    EdoImportPreflightErrors.JobNotImportable(
+                        "Draft failure resolution", _userContext.LanguageId));
 
             var source = await _store.GetDraftImportFailuresAsync(
                 organizationId.Value, jobId, ct);
@@ -867,21 +856,20 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!organizationId.HasValue)
                 return Result.Failure<EdoImportDraftRequeueResponseDto>(OrganizationRequired());
             if (!request.Confirm)
-                return Result.Failure<EdoImportDraftRequeueResponseDto>(Error.Business(
-                    "DRAFT_IMPORT_REQUEUE_CONFIRMATION_REQUIRED",
-                    "Explicit Draft import requeue confirmation is required."));
+                return Result.Failure<EdoImportDraftRequeueResponseDto>(
+                    EdoImportPreflightErrors.DraftRequeueConfirmationRequired(
+                        _userContext.LanguageId));
 
             var job = await _store.GetJobForImportAsync(organizationId.Value, jobId, ct);
             var candidate = await _store.GetCandidateForImportAsync(
                 organizationId.Value, jobId, candidateId, ct);
             if (job is null || candidate is null)
-                return Result.Failure<EdoImportDraftRequeueResponseDto>(Error.NotFound(
-                    "DRAFT_IMPORT_CANDIDATE_NOT_FOUND",
-                    "The Draft import candidate was not found in this organization job."));
+                return Result.Failure<EdoImportDraftRequeueResponseDto>(
+                    EdoImportPreflightErrors.DraftCandidateNotFound(_userContext.LanguageId));
             if (!IsDraftImportAllowed(job.Status))
-                return Result.Failure<EdoImportDraftRequeueResponseDto>(Error.Conflict(
-                    "EdoImport.JobNotImportable",
-                    "Draft import requeue is allowed only for PREFLIGHT_READY or PARTIAL jobs."));
+                return Result.Failure<EdoImportDraftRequeueResponseDto>(
+                    EdoImportPreflightErrors.JobNotImportable(
+                        "Draft import requeue", _userContext.LanguageId));
             if (candidate.Status == EdoImportCandidateStatus.Imported
                 || candidate.ImportedPurchaseId.HasValue
                 || candidate.ExistingPurchaseId.HasValue)
@@ -910,9 +898,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 });
             if (candidate.Status != EdoImportCandidateStatus.Failed
                 || !CanRequeueDraftFailure(candidate.SafeErrorCode))
-                return Result.Failure<EdoImportDraftRequeueResponseDto>(Error.Conflict(
-                    "DRAFT_IMPORT_REQUEUE_NOT_ALLOWED",
-                    "Only an unlinked candidate failed by a corrected Draft validation can be requeued."));
+                return Result.Failure<EdoImportDraftRequeueResponseDto>(
+                    EdoImportPreflightErrors.DraftRequeueNotAllowed(_userContext.LanguageId));
             if (string.IsNullOrWhiteSpace(candidate.SellerTin)
                 || !candidate.DocumentDate.HasValue)
                 return Result.Failure<EdoImportDraftRequeueResponseDto>(DraftImportSourceInvalid());
@@ -927,9 +914,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 ct);
             ApplyMapping(candidate, mapping, preserveAccounts: true, now);
             if (candidate.Status != EdoImportCandidateStatus.Ready)
-                return Result.Failure<EdoImportDraftRequeueResponseDto>(Error.Conflict(
-                    "DRAFT_IMPORT_REQUEUE_MAPPING_INVALID",
-                    "The candidate mappings or marking state are no longer valid for Draft import."));
+                return Result.Failure<EdoImportDraftRequeueResponseDto>(
+                    EdoImportPreflightErrors.DraftRequeueMappingInvalid(
+                        _userContext.LanguageId));
             var source = BuildHistoricalDraftSource(candidate);
             if (!source.IsSuccess)
                 return Result.Failure<EdoImportDraftRequeueResponseDto>(source.Error);
@@ -982,15 +969,15 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!organizationId.HasValue)
                 return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(OrganizationRequired());
             if (!request.Confirm)
-                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(Error.Business(
-                    "PIECE_TRACKING_CONFIRMATION_REQUIRED",
-                    "Explicit piece-tracking confirmation is required."));
+                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(
+                    EdoImportPreflightErrors.PieceTrackingConfirmationRequired(
+                        _userContext.LanguageId));
             if (request.ProductIds.Count == 0
                 || request.ProductIds.Any(id => id <= 0)
                 || request.ProductIds.Distinct().Count() != request.ProductIds.Count)
-                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(Error.Business(
-                    "PIECE_TRACKING_SELECTION_INVALID",
-                    "Product IDs must be positive and unique."));
+                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(
+                    EdoImportPreflightErrors.PieceTrackingSelectionInvalid(
+                        _userContext.LanguageId));
 
             var job = await _store.GetJobForImportAsync(organizationId.Value, jobId, ct);
             if (job is null)
@@ -1015,13 +1002,11 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                     && !product.IsService
                     && product.IsPieceTracked));
             if (!currentSelectionsValid && !idempotentReplay)
-                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(Error.Conflict(
-                    string.Equals(request.ExpectedPlanHash, plan.PlanHash, StringComparison.Ordinal)
-                        ? "PIECE_TRACKING_SELECTION_INVALID"
-                        : "STALE_PIECE_TRACKING_PLAN",
-                    string.Equals(request.ExpectedPlanHash, plan.PlanHash, StringComparison.Ordinal)
-                        ? "Only products explicitly offered for piece-tracking can be selected."
-                        : "The piece-tracking plan has changed; refresh it before applying changes."));
+                return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(
+                    EdoImportPreflightErrors.PieceTrackingPlanInvalid(
+                        !string.Equals(request.ExpectedPlanHash, plan.PlanHash,
+                            StringComparison.Ordinal),
+                        _userContext.LanguageId));
 
             var applied = idempotentReplay
                 ? new EdoImportPieceTrackingApplyStoreResultDto
@@ -1032,8 +1017,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                     organizationId.Value, selectedIds, ct);
             if (applied.SafeErrorCode is not null)
                 return Result.Failure<EdoImportPieceTrackingApplyResponseDto>(
-                    Error.Conflict(applied.SafeErrorCode,
-                        "The selected product cannot be safely enabled for piece tracking."));
+                    EdoImportPreflightErrors.PieceTrackingCannotBeEnabled(
+                        applied.SafeErrorCode, _userContext.LanguageId));
 
             var candidates = await _store.GetPieceTrackingCandidatesAsync(
                 organizationId.Value, jobId, selectedIds, ct);
@@ -1093,9 +1078,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!IsMappingAllowed(job.Status))
                 return Result.Failure<EdoImportMasterDataApplyResponseDto>(JobNotMappable());
             if (!request.Confirm)
-                return Result.Failure<EdoImportMasterDataApplyResponseDto>(Error.Business(
-                    "MASTER_DATA_CONFIRMATION_REQUIRED",
-                    "Explicit master-data apply confirmation is required."));
+                return Result.Failure<EdoImportMasterDataApplyResponseDto>(
+                    EdoImportPreflightErrors.MasterDataConfirmationRequired(
+                        languageId: _userContext.LanguageId));
 
             await _store.AcquireMasterDataApplyLockAsync(organizationId.Value, ct);
             var source = await _store.GetMasterDataPlanSourceAsync(organizationId.Value, jobId, ct);
@@ -1112,9 +1097,10 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 organizationId.Value, commandResult.Value, UtcNow(), ct);
             if (applied.SafeErrorCode is not null)
                 return Result.Failure<EdoImportMasterDataApplyResponseDto>(
-                    stalePlan ? StaleMasterDataPlan() : Error.Conflict(
-                        applied.SafeErrorCode,
-                        "The selected master-data item cannot be applied safely."));
+                    stalePlan
+                        ? StaleMasterDataPlan()
+                        : EdoImportPreflightErrors.MasterDataCannotBeApplied(
+                            applied.SafeErrorCode, _userContext.LanguageId));
 
             var candidates = await _store.GetMappingRequiredCandidatesAsync(
                 organizationId.Value, jobId, ct);
@@ -1279,26 +1265,25 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         if (!IsMappingAllowed(job.Status))
             return Result.Failure<EdoImportMasterDataApplyResponseDto>(JobNotMappable());
         if (!request.Confirm)
-            return Result.Failure<EdoImportMasterDataApplyResponseDto>(Error.Business(
-                "MASTER_DATA_CONFIRMATION_REQUIRED",
-                "Explicit product defaults confirmation is required."));
+            return Result.Failure<EdoImportMasterDataApplyResponseDto>(
+                EdoImportPreflightErrors.MasterDataConfirmationRequired(
+                    productDefaults: true, languageId: _userContext.LanguageId));
         if (!string.Equals(request.MarkingPolicy, "PIECE_TRACKED_WHEN_REQUIRED", StringComparison.Ordinal))
-            return Result.Failure<EdoImportMasterDataApplyResponseDto>(Error.Business(
-                "MARKING_POLICY_INVALID",
-                "The marking policy must explicitly preserve piece tracking when provider markings are required."));
+            return Result.Failure<EdoImportMasterDataApplyResponseDto>(
+                EdoImportPreflightErrors.MarkingPolicyInvalid(_userContext.LanguageId));
         if (request.PackageUnitMappings.Count == 0
             || request.PackageUnitMappings.GroupBy(item => item.PackageName, StringComparer.Ordinal)
                 .Any(group => string.IsNullOrWhiteSpace(group.Key) || group.Count() != 1))
-            return Result.Failure<EdoImportMasterDataApplyResponseDto>(Error.Business(
-                "PACKAGE_UNIT_MAPPING_INVALID",
-                "Package to unit mappings must be non-empty, exact and unique."));
+            return Result.Failure<EdoImportMasterDataApplyResponseDto>(
+                EdoImportPreflightErrors.PackageUnitMappingInvalid(
+                    languageId: _userContext.LanguageId));
 
         var packageUnits = request.PackageUnitMappings.ToDictionary(
             item => item.PackageName, item => item.UnitId, StringComparer.Ordinal);
         if (packageUnits.Values.Any(unitId => unitId <= 0))
-            return Result.Failure<EdoImportMasterDataApplyResponseDto>(Error.Business(
-                "PACKAGE_UNIT_MAPPING_INVALID",
-                "Every package mapping must reference a positive unit ID."));
+            return Result.Failure<EdoImportMasterDataApplyResponseDto>(
+                EdoImportPreflightErrors.PackageUnitMappingInvalid(
+                    invalidUnit: true, languageId: _userContext.LanguageId));
 
         var source = await _store.GetMasterDataPlanSourceAsync(organizationId.Value, jobId, ct);
         var plan = BuildMasterDataPlanWithHash(jobId, source);
@@ -1376,16 +1361,16 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!IsMappingAllowed(job.Status))
                 return Result.Failure<EdoImportProductConflictApplyResponseDto>(JobNotMappable());
             if (!request.Confirm)
-                return Result.Failure<EdoImportProductConflictApplyResponseDto>(Error.Business(
-                    "PRODUCT_CONFLICT_CONFIRMATION_REQUIRED",
-                    "Explicit provider product mapping confirmation is required."));
+                return Result.Failure<EdoImportProductConflictApplyResponseDto>(
+                    EdoImportPreflightErrors.ProductConflictConfirmationRequired(
+                        _userContext.LanguageId));
             var requestedIdentityKeys = request.Items.SelectMany(item => item.IdentityKeys).ToArray();
             if (request.Items.Count == 0 || request.Items.Any(item => item.IdentityKeys.Count == 0)
                 || requestedIdentityKeys.Any(key => key.Length != 64)
                 || requestedIdentityKeys.Distinct(StringComparer.Ordinal).Count() != requestedIdentityKeys.Length)
-                return Result.Failure<EdoImportProductConflictApplyResponseDto>(Error.Business(
-                    "PRODUCT_CONFLICT_SELECTION_INVALID",
-                    "Provider product conflict selections must be non-empty and unique."));
+                return Result.Failure<EdoImportProductConflictApplyResponseDto>(
+                    EdoImportPreflightErrors.ProductConflictSelectionInvalid(
+                        _userContext.LanguageId));
 
             await _store.AcquireMasterDataApplyLockAsync(organizationId.Value, ct);
             var source = await _store.GetProductConflictSourceAsync(organizationId.Value, jobId, ct);
@@ -1404,8 +1389,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 return Result.Failure<EdoImportProductConflictApplyResponseDto>(
                     applied.SafeErrorCode == "STALE_PRODUCT_CONFLICT_PLAN"
                         ? StaleProductConflictPlan()
-                        : Error.Conflict(applied.SafeErrorCode,
-                            "The provider product mapping cannot be applied safely."));
+                        : EdoImportPreflightErrors.ProductConflictCannotBeApplied(
+                            applied.SafeErrorCode, _userContext.LanguageId));
 
             var candidates = await _store.GetMappingRequiredCandidatesAsync(
                 organizationId.Value, jobId, ct);
@@ -1467,16 +1452,16 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (!IsMappingAllowed(job.Status))
                 return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(JobNotMappable());
             if (!request.Confirm)
-                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(Error.Business(
-                    "MARKING_CONFLICT_CONFIRMATION_REQUIRED",
-                    "Explicit marking conflict confirmation is required."));
+                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(
+                    EdoImportPreflightErrors.MarkingConflictConfirmationRequired(
+                        _userContext.LanguageId));
             if (request.ExpectedConflictHash.Length != 64
                 || request.Items.Count == 0
                 || request.Items.Any(item => item.CandidateId <= 0 || item.Action != "SKIP")
                 || request.Items.Select(item => item.CandidateId).Distinct().Count() != request.Items.Count)
-                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(Error.Business(
-                    "MARKING_CONFLICT_SELECTION_INVALID",
-                    "Marking conflict selections must be non-empty, unique and use the SKIP action."));
+                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(
+                    EdoImportPreflightErrors.MarkingConflictSelectionInvalid(
+                        languageId: _userContext.LanguageId));
 
             await _store.AcquireMasterDataApplyLockAsync(organizationId.Value, ct);
             var source = await _store.GetMarkingConflictSourceAsync(organizationId.Value, jobId, ct);
@@ -1498,9 +1483,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             }
 
             if (requestedIds.Any(candidateId => plan.Items.All(item => item.CandidateId != candidateId)))
-                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(Error.Conflict(
-                    "MARKING_CONFLICT_SELECTION_INVALID",
-                    "Only current supported marking conflict candidates can be skipped."));
+                return Result.Failure<EdoImportMarkingConflictApplyResponseDto>(
+                    EdoImportPreflightErrors.MarkingConflictSelectionInvalid(
+                        currentOnly: true, languageId: _userContext.LanguageId));
 
             var now = UtcNow();
             var skippedCandidateCount = 0;
@@ -1697,9 +1682,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             if (job is null)
                 return Result.Failure<EdoImportJobDto>(NotFound(jobId));
             if (!EdoImportJobStatus.IsActive(job.Status))
-                return Result.Failure<EdoImportJobDto>(Error.Conflict(
-                    "EdoImport.JobNotActive",
-                    "Only an active EDO import job can be cancelled."));
+                return Result.Failure<EdoImportJobDto>(
+                    EdoImportPreflightErrors.JobNotActive(_userContext.LanguageId));
             var previousStatus = job.Status;
             if (job.Status != EdoImportJobStatus.CancelRequested)
                 job.TransitionTo(EdoImportJobStatus.CancelRequested, UtcNow());
@@ -2376,9 +2360,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             ApplyMapping(candidate, mapping, preserveAccounts: true, now);
             var source = BuildHistoricalDraftSource(candidate);
             if (candidate.Status != EdoImportCandidateStatus.Ready || !source.IsSuccess)
-                return Result.Failure<BackgroundOrganizationRecoveryOutcome>(Error.Business(
-                    "BACKGROUND_EDO_SCOPE_RECOVERY_MAPPING_INVALID",
-                    "The candidate is not valid for background Draft import recovery."));
+                return Result.Failure<BackgroundOrganizationRecoveryOutcome>(
+                    EdoImportPreflightErrors.BackgroundRecoveryMappingInvalid(
+                        _userContext.LanguageId));
 
             job.FailedCount = Math.Max(0, job.FailedCount - 1);
             job.ReadyCount++;
@@ -2840,9 +2824,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             var candidate = await _store.GetCandidateForImportAsync(
                 organizationId, jobId, candidateId, ct);
             if (job is null || candidate is null)
-                return Result.Failure<DraftImportOutcome>(Error.NotFound(
-                    "DRAFT_IMPORT_CANDIDATE_NOT_FOUND",
-                    "The Draft import candidate was not found in this organization job."));
+                return Result.Failure<DraftImportOutcome>(
+                    EdoImportPreflightErrors.DraftCandidateNotFound(_userContext.LanguageId));
             if (candidate.Status == EdoImportCandidateStatus.Imported
                 && (candidate.ImportedPurchaseId ?? candidate.ExistingPurchaseId) is { } importedId)
                 return Result.Success(new DraftImportOutcome(importedId, Created: false));
@@ -2866,9 +2849,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 return Result.Success(new DraftImportOutcome(existingPurchaseId.Value, Created: false));
             }
             if (await _store.AnyUsedMarkingsAsync(organizationId, markings, ct))
-                return Result.Failure<DraftImportOutcome>(Error.Conflict(
-                    "DRAFT_IMPORT_MARKING_ALREADY_USED",
-                    "A provider marking is already linked to an existing organization inventory item."));
+                return Result.Failure<DraftImportOutcome>(
+                    EdoImportPreflightErrors.DraftMarkingAlreadyUsed(
+                        _userContext.LanguageId));
             if (string.IsNullOrWhiteSpace(candidate.SellerTin)
                 || !candidate.DocumentDate.HasValue)
                 return Result.Failure<DraftImportOutcome>(DraftImportSourceInvalid());
@@ -2886,9 +2869,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 && !resolved.IsService
                 && !resolved.IsPieceTracked);
             if (markedNonPieceGoods)
-                return Result.Failure<DraftImportOutcome>(Error.Business(
-                    ProductPieceTrackingDraftFailure,
-                    "Marked goods require an active piece-tracked local product before Draft import."));
+                return Result.Failure<DraftImportOutcome>(
+                    EdoImportPreflightErrors.ProductPieceTrackingRequired(
+                        ProductPieceTrackingDraftFailure, _userContext.LanguageId));
 
             var source = BuildHistoricalDraftSource(candidate);
             if (!source.IsSuccess)
@@ -2928,9 +2911,8 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             var candidate = await _store.GetCandidateForImportAsync(
                 organizationId, jobId, candidateId, ct);
             if (job is null || candidate is null)
-                return Result.Failure(Error.NotFound(
-                    "DRAFT_IMPORT_CANDIDATE_NOT_FOUND",
-                    "The Draft import candidate was not found in this organization job."));
+                return Result.Failure(
+                    EdoImportPreflightErrors.DraftCandidateNotFound(_userContext.LanguageId));
             if (candidate.Status is EdoImportCandidateStatus.Imported or EdoImportCandidateStatus.Failed)
                 return Result.Success();
             if (candidate.Status != EdoImportCandidateStatus.Ready)
@@ -3011,7 +2993,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             now);
     }
 
-    private static Result<HistoricalDraftSource> BuildHistoricalDraftSource(
+    private Result<HistoricalDraftSource> BuildHistoricalDraftSource(
         EdoImportCandidate candidate)
     {
         if (!Enum.TryParse<EdoProviderCode>(candidate.ProviderCode, true, out var providerCode)
@@ -3150,7 +3132,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
 
     private sealed record DraftImportOutcome(long PurchaseId, bool Created);
 
-    private static Result<EdoImportProductConflictApplyCommandDto> BuildProductConflictApplyCommand(
+    private Result<EdoImportProductConflictApplyCommandDto> BuildProductConflictApplyCommand(
         EdoImportProductConflictPlanDto plan,
         EdoImportProductConflictApplyRequestDto request,
         bool reuseOnly)
@@ -3218,17 +3200,17 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         });
     }
 
-    private static Result<EdoImportProductConflictApplyCommandDto> InvalidProductConflictSelection() =>
-        Result.Failure<EdoImportProductConflictApplyCommandDto>(Error.Business(
-            "PRODUCT_CONFLICT_SELECTION_INVALID",
-            "Every selection must match one current unresolved provider product identity exactly."));
+    private Result<EdoImportProductConflictApplyCommandDto> InvalidProductConflictSelection() =>
+        Result.Failure<EdoImportProductConflictApplyCommandDto>(
+            EdoImportPreflightErrors.ProductConflictSelectionDoesNotMatch(
+                _userContext.LanguageId));
 
-    private static Result<EdoImportProductConflictApplyCommandDto> InvalidProductMarkingSelection() =>
-        Result.Failure<EdoImportProductConflictApplyCommandDto>(Error.Conflict(
-            "PRODUCT_MARKING_SELECTION_INVALID",
-            "Piece tracking must preserve provider marking requirements and cannot be enabled for services."));
+    private Result<EdoImportProductConflictApplyCommandDto> InvalidProductMarkingSelection() =>
+        Result.Failure<EdoImportProductConflictApplyCommandDto>(
+            EdoImportPreflightErrors.ProductMarkingSelectionInvalid(
+                _userContext.LanguageId));
 
-    private static Result<EdoImportProductConflictApplyCommandDto> BuildProductConflictReplayCommand(
+    private Result<EdoImportProductConflictApplyCommandDto> BuildProductConflictReplayCommand(
         EdoImportProductConflictApplyRequestDto request,
         EdoImportProductConflictSourceDto source)
     {
@@ -3326,7 +3308,7 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             identityHash,
             StringComparison.Ordinal)));
 
-    private static Result<EdoImportMasterDataApplyCommandDto> BuildApplyCommand(
+    private Result<EdoImportMasterDataApplyCommandDto> BuildApplyCommand(
         EdoImportMasterDataPlanDto plan,
         EdoImportMasterDataApplyRequestDto request)
     {
@@ -3468,9 +3450,9 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
                 || planned.ResolvedUnitId.HasValue && requested.UnitId != planned.ResolvedUnitId
                 || planned.MarkingRequired && requested.IsPieceTracked != true)
             {
-                return Result.Failure<EdoImportMasterDataApplyCommandDto>(Error.Business(
-                    "PRODUCT_MASTER_DATA_RESOLUTION_REQUIRED",
-                    "Product creation requires an explicit non-conflicting item type, unit, VAT and marking choice."));
+                return Result.Failure<EdoImportMasterDataApplyCommandDto>(
+                    EdoImportPreflightErrors.ProductMasterDataResolutionRequired(
+                        _userContext.LanguageId));
             }
             products.Add(new EdoImportProductApplyCommandItemDto
             {
@@ -3493,12 +3475,11 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
         return Result.Success(command);
     }
 
-    private static Result<EdoImportMasterDataApplyCommandDto> InvalidApplySelection() =>
-        Result.Failure<EdoImportMasterDataApplyCommandDto>(Error.Business(
-            "MASTER_DATA_SELECTION_INVALID",
-            "Every selected item must match one current master-data plan item exactly."));
+    private Result<EdoImportMasterDataApplyCommandDto> InvalidApplySelection() =>
+        Result.Failure<EdoImportMasterDataApplyCommandDto>(
+            EdoImportPreflightErrors.MasterDataSelectionInvalid(_userContext.LanguageId));
 
-    private static Result<EdoImportMasterDataApplyCommandDto> BuildIdempotentReplayCommand(
+    private Result<EdoImportMasterDataApplyCommandDto> BuildIdempotentReplayCommand(
         EdoImportMasterDataApplyRequestDto request,
         EdoImportMasterDataPlanSourceDto source)
     {
@@ -3606,33 +3587,26 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
             : InvalidApplySelection();
     }
 
-    private static Error StaleMasterDataPlan() => Error.Conflict(
-        "STALE_MASTER_DATA_PLAN",
-        "The master-data plan changed and must be reviewed again.");
+    private Error StaleMasterDataPlan() =>
+        EdoImportPreflightErrors.StaleMasterDataPlan(_userContext.LanguageId);
 
-    private static Error StaleProductConflictPlan() => Error.Conflict(
-        "STALE_PRODUCT_CONFLICT_PLAN",
-        "The provider product conflict plan changed and must be reviewed again.");
+    private Error StaleProductConflictPlan() =>
+        EdoImportPreflightErrors.StaleProductConflictPlan(_userContext.LanguageId);
 
-    private static Error StaleMarkingConflictPlan() => Error.Conflict(
-        "STALE_MARKING_CONFLICT_PLAN",
-        "The marking conflict plan changed and must be reviewed again.");
+    private Error StaleMarkingConflictPlan() =>
+        EdoImportPreflightErrors.StaleMarkingConflictPlan(_userContext.LanguageId);
 
-    private static Error StaleImportPlan() => Error.Conflict(
-        "STALE_IMPORT_PLAN",
-        "The Draft Purchase import plan changed and must be reviewed again.");
+    private Error StaleImportPlan() =>
+        EdoImportPreflightErrors.StaleImportPlan(_userContext.LanguageId);
 
-    private static Error StaleDraftFailurePlan() => Error.Conflict(
-        "STALE_DRAFT_IMPORT_FAILURE_PLAN",
-        "The Draft import failure plan changed and must be reviewed again.");
+    private Error StaleDraftFailurePlan() =>
+        EdoImportPreflightErrors.StaleDraftFailurePlan(_userContext.LanguageId);
 
-    private static Error InvalidDraftFailureSelection() => Error.Conflict(
-        "DRAFT_IMPORT_FAILURE_SELECTION_INVALID",
-        "Only current unlinked non-retryable historical validation failures can be skipped.");
+    private Error InvalidDraftFailureSelection() =>
+        EdoImportPreflightErrors.InvalidDraftFailureSelection(_userContext.LanguageId);
 
-    private static Error DraftImportSourceInvalid() => Error.Business(
-        "DRAFT_IMPORT_SOURCE_INVALID",
-        "The historical candidate source or persisted mappings are incomplete.");
+    private Error DraftImportSourceInvalid() =>
+        EdoImportPreflightErrors.DraftImportSourceInvalid(_userContext.LanguageId);
 
     private static string ContractKey(
         string providerCode,
@@ -3890,28 +3864,21 @@ public sealed class EdoImportPreflightService : BaseService, IEdoImportPreflight
     private static bool IsCandidateMappable(string status) => status is
         EdoImportCandidateStatus.MappingRequired or EdoImportCandidateStatus.Ready;
 
-    private static Error OrganizationRequired() => Error.Forbidden(
-        "EdoImport.OrganizationContextRequired",
-        "An authenticated organization context is required.");
-    private static Error NotFound(long jobId) => Error.NotFound(
-        "EdoImport.JobNotFound",
-        $"EDO import job {jobId} was not found in this organization.");
-    private static Error CandidateNotFound() => Error.NotFound(
-        "EdoImport.CandidateNotFound",
-        "The EDO import candidate was not found in this organization job.");
-    private static Error JobNotMappable() => Error.Conflict(
-        "EdoImport.JobNotMappable",
-        "Mappings can be changed only for PREFLIGHT_READY or PARTIAL jobs.");
-    private static Error CandidateNotMappable() => Error.Conflict(
-        "EdoImport.CandidateNotMappable",
-        "Only MAPPING_REQUIRED or READY candidates can be mapped.");
-    private static Error InvalidLineCoverage() => Error.Business(
-        "EdoImport.MappingLineCoverageInvalid",
-        "The mapping request must contain every candidate line exactly once.");
-    private static Error CandidateSourceInvalid() => Error.Business(
-        "EdoImport.CandidateSourceInvalid",
-        "The candidate does not contain the source values required for mapping.");
-    private static Error DraftRequeuePurchaseLinked() => Error.Conflict(
-        "DRAFT_IMPORT_REQUEUE_PURCHASE_LINKED",
-        "A candidate linked to a Purchase cannot be requeued.");
+    private Error OrganizationRequired() =>
+        EdoImportPreflightErrors.OrganizationContextRequired(
+            languageId: _userContext.LanguageId);
+    private Error NotFound(long jobId) =>
+        EdoImportPreflightErrors.JobNotFound(jobId, _userContext.LanguageId);
+    private Error CandidateNotFound() =>
+        EdoImportPreflightErrors.CandidateNotFound(_userContext.LanguageId);
+    private Error JobNotMappable() =>
+        EdoImportPreflightErrors.JobNotMappable(_userContext.LanguageId);
+    private Error CandidateNotMappable() =>
+        EdoImportPreflightErrors.CandidateNotMappable(_userContext.LanguageId);
+    private Error InvalidLineCoverage() =>
+        EdoImportPreflightErrors.InvalidLineCoverage(_userContext.LanguageId);
+    private Error CandidateSourceInvalid() =>
+        EdoImportPreflightErrors.CandidateSourceInvalid(_userContext.LanguageId);
+    private Error DraftRequeuePurchaseLinked() =>
+        EdoImportPreflightErrors.DraftRequeuePurchaseLinked(_userContext.LanguageId);
 }

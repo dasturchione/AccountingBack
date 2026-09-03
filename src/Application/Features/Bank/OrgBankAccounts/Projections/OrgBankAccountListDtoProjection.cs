@@ -14,6 +14,7 @@ public class OrgBankAccountListDtoProjection : IProjectionBuilder<BankAccount, O
             OrganizationName = x.Organization.ShortName,
             OrganizationInn = x.Organization.Inn,
             BankId = x.BankId,
+            BankBranchId = x.BankBranchId,
             Code = x.Code,
             Name = x.Name,
             BankName = x.Bank.Name,

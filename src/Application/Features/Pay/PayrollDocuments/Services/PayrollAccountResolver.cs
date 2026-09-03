@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.Pay;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -9,13 +10,16 @@ namespace Application.Features.Pay.PayrollDocuments;
 
 public sealed class PayrollAccountResolver : IPayrollAccountResolver
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<DocumentAccountSetting> _settingQuery;
 
     public PayrollAccountResolver(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<DocumentAccountSetting> settingQuery)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _settingQuery = settingQuery;
     }
@@ -55,6 +59,6 @@ public sealed class PayrollAccountResolver : IPayrollAccountResolver
         var missingRole = requestedCodes.FirstOrDefault(code => !result.ContainsKey(code));
         return missingRole is null
             ? Result.Success<IReadOnlyDictionary<string, int>>(result)
-            : Result.Failure<IReadOnlyDictionary<string, int>>(PayrollErrors.AccountRoleNotConfigured(missingRole));
+            : Result.Failure<IReadOnlyDictionary<string, int>>(PayrollErrors.AccountRoleNotConfigured(missingRole, _userContext.LanguageId));
     }
 }

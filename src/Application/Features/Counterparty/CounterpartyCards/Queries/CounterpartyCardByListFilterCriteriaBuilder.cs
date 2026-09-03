@@ -4,8 +4,10 @@ using System.Linq.Expressions;
 
 namespace Application.Features.CounterpartyCards;
 
-public class CounterpartyCardByListFilterCriteriaBuilder : ICriteriaBuilder<CounterpartyCard, CounterpartyCardListFilter>
+public sealed class CounterpartyCardByListFilterCriteriaBuilder
+    : ICriteriaBuilder<CounterpartyCard, CounterpartyCardListFilter>
 {
     public Expression<Func<CounterpartyCard, bool>> Build(CounterpartyCardListFilter options) =>
-        x => (!options.CounterpartyTypeId.HasValue || x.CounterpartyTypeId == options.CounterpartyTypeId.Value);
+        counterparty => !options.OrganizationId.HasValue ||
+                        counterparty.OrganizationId == options.OrganizationId.Value;
 }

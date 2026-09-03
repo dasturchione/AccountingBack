@@ -10,7 +10,7 @@ values
     ('COUNTERPARTY', 'Kontragent', 'Kontragentlar', now()),
     ('INVENTORY', 'Inventar', 'Tovar va ombor', now()),
     ('BANK', 'Bank', 'Bank operatsiyalari', now()),
-    ('BANK_TERMINAL', 'Bank terminal', 'Bank terminallari boshqaruvi', now()),
+    ('PAYMENT_ACCEPTANCE_POINT', 'To''lov qabul qilish nuqtasi', 'To''lov qabul qilish nuqtalarini boshqarish', now()),
     ('CASH', 'Kassa', 'Kassa operatsiyalari', now()),
     ('FISCAL_CASH_REGISTER', 'Fiskal kassa', 'Fiskal kassa registrlari boshqaruvi', now()),
     ('PURCHASE', 'Xarid', 'Xarid hujjatlari', now()),

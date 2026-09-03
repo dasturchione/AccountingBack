@@ -5,6 +5,60 @@ namespace Application.Features.PurchaseDocs;
 
 public static class PurchaseDocErrors
 {
+    public static Error PreviewSignedDocumentRequired(short? languageId = null) => Business("PurchasePreview.SignedDocumentRequired", languageId,
+        "Xaridni oldindan ko'rish uchun faqat imzolangan EDO hujjatlaridan foydalanish mumkin.",
+        "Харидни олдиндан кўриш учун фақат имзоланган EDO ҳужжатларидан фойдаланиш мумкин.",
+        "Для предварительного просмотра закупки можно использовать только подписанные документы EDO.",
+        "Only SIGNED EDO documents can be used for Purchase preview.");
+
+    public static Error PreviewUnsupportedDocumentType(short? languageId = null) => Business("PurchasePreview.UnsupportedDocumentType", languageId,
+        "Xaridni oldindan ko'rish uchun faqat FACTURA turidagi EDO hujjatlaridan foydalanish mumkin.",
+        "Харидни олдиндан кўриш учун фақат FACTURA туридаги EDO ҳужжатларидан фойдаланиш мумкин.",
+        "Для предварительного просмотра закупки можно использовать только EDO-документы типа FACTURA.",
+        "Only FACTURA EDO documents can be used for Purchase preview.");
+
+    public static Error InboxDocumentNotFound(short? languageId = null) =>
+        Error.NotFound("PurchaseFromEdo.InboxDocumentRequired", Message(languageId,
+            "EDO hujjati avval tashkilotning kiruvchi hujjatlarida mavjud bo'lishi kerak.",
+            "EDO ҳужжати аввал ташкилотнинг кирувчи ҳужжатларида мавжуд бўлиши керак.",
+            "Документ EDO сначала должен быть доступен во входящих документах организации.",
+            "The EDO document must first be available in the organization inbox scope."));
+
+    public static Error InboxDocumentRequired(short? languageId = null) => Business("PurchaseFromEdo.InboxDocumentRequired", languageId,
+        "Faqat kiruvchi EDO hujjatlarini xarid sifatida import qilish mumkin.",
+        "Фақат кирувчи EDO ҳужжатларини харид сифатида импорт қилиш мумкин.",
+        "В качестве закупки можно импортировать только входящие документы EDO.",
+        "Only EDO inbox documents can be imported as a Purchase.");
+
+    public static Error SignedDocumentRequired(short? languageId = null) => Business("PurchaseFromEdo.SignedDocumentRequired", languageId,
+        "Xarid sifatida faqat imzolangan EDO hujjatlarini import qilish mumkin.",
+        "Харид сифатида фақат имзоланган EDO ҳужжатларини импорт қилиш мумкин.",
+        "В качестве закупки можно импортировать только подписанные документы EDO.",
+        "Only SIGNED EDO documents can be imported as a Purchase.");
+
+    public static Error UnsupportedDocumentType(short? languageId = null) => Business("PurchaseFromEdo.UnsupportedDocumentType", languageId,
+        "Xarid sifatida faqat FACTURA turidagi EDO hujjatlarini import qilish mumkin.",
+        "Харид сифатида фақат FACTURA туридаги EDO ҳужжатларини импорт қилиш мумкин.",
+        "В качестве закупки можно импортировать только EDO-документы типа FACTURA.",
+        "Only FACTURA EDO documents can be imported as a Purchase.");
+
+    public static Error DocumentDateRequired(short? languageId = null) => Business("PurchaseFromEdo.DocumentDateRequired", languageId,
+        "Provayder hujjatining sanasi ko'rsatilishi kerak.", "Провайдер ҳужжатининг санаси кўрсатилиши керак.",
+        "Необходимо указать дату документа провайдера.", "The provider document date is required.");
+
+    public static Error EdoValidationFailed(short? languageId = null) => Business("PurchaseFromEdo.ValidationFailed", languageId,
+        "EDO hujjatidagi moslashtirishlar yoki provayder qiymatlari xarid yaratish uchun noto'g'ri.",
+        "EDO ҳужжатидаги мослаштиришлар ёки провайдер қийматлари харид яратиш учун нотўғри.",
+        "Сопоставления или значения провайдера в документе EDO некорректны для создания закупки.",
+        "The EDO document mappings or provider values are not valid for Purchase creation.");
+
+    public static Error HistoricalValidationFailed(string normalizedCode, short? languageId = null) =>
+        Business($"PurchaseFromEdo.HistoricalValidation.{normalizedCode}", languageId,
+            "Tarixiy EDO nusxasi xarid qoralamasini yaratish uchun noto'g'ri.",
+            "Тарихий EDO нусхаси харид қораламасини яратиш учун нотўғри.",
+            "Исторический снимок EDO некорректен для создания черновика закупки.",
+            "The historical EDO snapshot is not valid for Draft Purchase creation.");
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("PurchaseDoc.NotFound", languageId switch
         {
@@ -159,4 +213,15 @@ public static class PurchaseDocErrors
             LanguageIdConst.RU      => $"Документ закупки с id {id} содержит строки, сначала удалите их.",
             _                       => $"Purchase document with id {id} has lines. Delete them first."
         });
+
+    private static Error Business(string code, short? languageId, string uz, string uzCyrl, string ru, string en) =>
+        Error.Business(code, Message(languageId, uz, uzCyrl, ru, en));
+
+    private static string Message(short? languageId, string uz, string uzCyrl, string ru, string en) => languageId switch
+    {
+        LanguageIdConst.UZ => uz,
+        LanguageIdConst.UZ_CYRL => uzCyrl,
+        LanguageIdConst.RU => ru,
+        _ => en
+    };
 }

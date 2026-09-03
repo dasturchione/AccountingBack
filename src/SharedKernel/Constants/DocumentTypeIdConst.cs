@@ -121,5 +121,20 @@ namespace SharedKernel.Constants
         /// Money transfer between a fiscal cash register and the main cash box.
         /// </summary>
         public const short CASHFISCALTRANSFER = 23;
+
+        /// <summary>
+        /// Cash collection from a cash box through cash in transit to a bank account.
+        /// </summary>
+        public const short CASHCOLLECTION = 24;
+
+        /// <summary>
+        /// Movement of funds at a payment acceptance point.
+        /// </summary>
+        public const short PAYMENT_ACCEPTANCE_POINT_OPERATION = 25;
+
+        /// <summary>
+        /// Rental accrual for an individual lessor.
+        /// </summary>
+        public const short RENTAL_ACCRUAL = 26;
     }
 }

@@ -29,7 +29,7 @@ public partial class MoneyRegisterBalance
     public long DocumentId { get; set; }
 
     [Column("source_type")]
-    [StringLength(20)]
+    [StringLength(50)]
     public string SourceType { get; set; } = null!;
 
     [Column("source_id")]
@@ -42,7 +42,7 @@ public partial class MoneyRegisterBalance
     public short CurrencyId { get; set; }
 
     [Column("amount")]
-    [Precision(18, 2)]
+    [Precision(24, 8)]
     public decimal Amount { get; set; }
 
     [Column("doc_date", TypeName = "timestamp without time zone")]

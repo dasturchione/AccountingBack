@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("hr_absence")]
-[Index(nameof(OrganizationId), nameof(DocNumber), Name = "ux_hr_absence_org_doc_number", IsUnique = true)]
 [Index(nameof(OrganizationId), nameof(EmployeeId), Name = "idx_hr_absence_employee")]
 [Index(nameof(StartDate), nameof(EndDate), Name = "idx_hr_absence_dates")]
 public sealed class HrAbsence

@@ -4,6 +4,7 @@ namespace Application.Features.Inv.ProductPrices;
 
 public class ProductPriceListFilter : ISearchFilter, IPaginationFilter
 {
+    internal int? OrganizationId { get; set; }
     public int? ProductId { get; set; }
     public short? PriceTypeId { get; set; }
     public short? UnitId { get; set; }

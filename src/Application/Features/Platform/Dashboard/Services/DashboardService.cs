@@ -55,7 +55,7 @@ public sealed class DashboardService : BaseService, IDashboardService
         ExecuteAsync(nameof(GetStatsAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<DashboardStatsDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<DashboardStatsDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var now = DateTime.Now;
             var recentUserThreshold = now.AddDays(-30);

@@ -14,7 +14,7 @@ public sealed class AccountingPolicySelectListDtoOrderByBuilder : NameSelectList
 public sealed class AccountTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<AccountType, SelectListDto>;
 public sealed class BankSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Bank, SelectListDto>;
 public sealed class BankAccountSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<BankAccount, SelectListDto>;
-public sealed class BankTerminalSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<BankTerminal, SelectListDto>;
+public sealed class PaymentAcceptancePointSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<PaymentAcceptancePoint, SelectListDto>;
 public sealed class BranchSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Branch, SelectListDto>;
 public sealed class CashBoxSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CashBox, SelectListDto>;
 public sealed class CashOperationSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CashOperation, SelectListDto>;
@@ -23,7 +23,6 @@ public sealed class ContractTypeSelectListDtoOrderByBuilder : NameSelectListDtoO
 public sealed class CostingMethodSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CostingMethod, SelectListDto>;
 public sealed class CounterpartyBankAccountSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyBankAccount, SelectListDto>;
 public sealed class CounterpartyCardSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyCard, SelectListDto>;
-public sealed class CounterpartyTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyType, SelectListDto>;
 public sealed class CurrencySelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Currency, SelectListDto>;
 public sealed class DepartmentSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Department, SelectListDto>;
 public sealed class DistrictSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<District, SelectListDto>;
@@ -58,7 +57,6 @@ public sealed class VatRateSelectListDtoOrderByBuilder : NameSelectListDtoOrderB
 public sealed class WarehouseSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Warehouse, SelectListDto>;
 
 public sealed class ProductSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Product, ProductSelectListDto>;
-public sealed class CounterpartySelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<CounterpartyCard, CounterpartySelectListDto>;
 
 public sealed class ChartAccountSelectListDtoOrderByBuilder : IOrderByBuilder<ChartAccount, ChartAccountSelectListDto>
 {

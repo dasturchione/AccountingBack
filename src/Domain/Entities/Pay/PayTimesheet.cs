@@ -5,7 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("pay_timesheet")]
-[Index(nameof(OrganizationId), nameof(DocNumber), Name = "ux_pay_timesheet_org_doc_number", IsUnique = true)]
 [Index(nameof(PeriodId), Name = "idx_pay_timesheet_period_id")]
 [Index(nameof(StatusId), Name = "idx_pay_timesheet_status_id")]
 public partial class PayTimesheet

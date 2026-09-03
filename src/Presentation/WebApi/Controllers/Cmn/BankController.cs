@@ -36,27 +36,19 @@ public class BankController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPost]
-    [ModuleAuthorize(PermissionCodeConst.BankCreate)]
-    public async Task<IResult> Create([FromBody] BankCreateDto dto, CancellationToken ct = default)
+    [HttpGet("{id:int}/branches")]
+    [ModuleAuthorize(PermissionCodeConst.BankViewDetail)]
+    public async Task<IResult> GetBranches([FromRoute] int id, CancellationToken ct = default)
     {
-        var result = await _service.CreateAsync(dto, ct);
+        var result = await _service.GetBranchesAsync(id, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPut("{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.BankUpdate)]
-    public async Task<IResult> Update([FromRoute] int id, [FromBody] BankUpdateDto dto, CancellationToken ct = default)
+    [HttpGet("branches")]
+    [ModuleAuthorize(PermissionCodeConst.BankViewDetail)]
+    public async Task<IResult> GetBranchByMfo([FromQuery] string mfo, CancellationToken ct = default)
     {
-        var result = await _service.UpdateAsync(id, dto, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpDelete("{id:int}")]
-    [ModuleAuthorize(PermissionCodeConst.BankDelete)]
-    public async Task<IResult> Delete([FromRoute] int id, CancellationToken ct = default)
-    {
-        var result = await _service.DeleteAsync(id, ct);
-        return result.Match(Results.NoContent, CustomResults.Problem);
+        var result = await _service.GetBranchByMfoAsync(mfo, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 }

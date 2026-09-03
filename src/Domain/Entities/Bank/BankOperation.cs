@@ -5,15 +5,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Domain.Entities;
 
 [Table("bank_operation")]
-[Index("BankAccountId", Name = "idx_bank_operation_bank_account_id")]
-[Index("CounterpartyId", Name = "idx_bank_operation_counterparty_id")]
-[Index("DocDate", Name = "idx_bank_operation_doc_date")]
-[Index("DirectionId", Name = "idx_bank_operation_direction_id")]
-[Index("OrganizationId", Name = "idx_bank_operation_organization_id")]
-[Index("StateId", Name = "idx_bank_operation_state_id")]
-[Index("StatusId", Name = "idx_bank_operation_status_id")]
-[Index("CancelledByUserId", Name = "idx_bank_operation_cancelled_by_user_id")]
-[Index("PostedByUserId", Name = "idx_bank_operation_posted_by_user_id")]
 public partial class BankOperation
 {
     [Key]
@@ -44,6 +35,19 @@ public partial class BankOperation
     [Column("doc_number")]
     [StringLength(100)]
     public string DocNumber { get; set; } = null!;
+
+    [Column("bank_document_number")]
+    [StringLength(150)]
+    public string? BankDocumentNumber { get; set; }
+
+    [Column("classification_category_id")]
+    public short? ClassificationCategoryId { get; set; }
+
+    [Column("classification_rule_id")]
+    public int? ClassificationRuleId { get; set; }
+
+    [Column("related_document_id")]
+    public long? RelatedDocumentId { get; set; }
 
     [Column("doc_date", TypeName = "timestamp without time zone")]
     public DateTime DocDate { get; set; }
@@ -85,6 +89,18 @@ public partial class BankOperation
     [ForeignKey("ContractId")]
     [InverseProperty("BankOperations")]
     public virtual Contract? Contract { get; set; }
+
+    [ForeignKey(nameof(ClassificationCategoryId))]
+    [InverseProperty(nameof(BankOperationCategory.BankOperations))]
+    public virtual BankOperationCategory? ClassificationCategory { get; set; }
+
+    [ForeignKey(nameof(ClassificationRuleId))]
+    [InverseProperty(nameof(BankOperationClassificationRule.BankOperations))]
+    public virtual BankOperationClassificationRule? ClassificationRule { get; set; }
+
+    [ForeignKey(nameof(RelatedDocumentId))]
+    [InverseProperty(nameof(DocumentRegistry.BankOperations))]
+    public virtual DocumentRegistry? RelatedDocument { get; set; }
 
     [Column("exchange_rate")]
     [Precision(18, 6)]

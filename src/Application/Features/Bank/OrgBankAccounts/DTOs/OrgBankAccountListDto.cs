@@ -7,6 +7,7 @@ public class OrgBankAccountListDto
     public string OrganizationName { get; set; } = null!;
     public string OrganizationInn { get; set; } = null!;
     public int BankId { get; set; }
+    public int? BankBranchId { get; set; }
     public string? Code { get; set; }
     public string? Name { get; set; }
     public string BankName { get; set; } = null!;

@@ -7,7 +7,6 @@ namespace Domain.Entities;
 [Table("fa_commissioning_doc")]
 [Index(nameof(OrganizationId), nameof(DocDate), Name = "ix_fa_commissioning_doc_org_date")]
 [Index(nameof(StatusId), Name = "ix_fa_commissioning_doc_status_id")]
-[Index(nameof(OrganizationId), nameof(DocNumber), Name = "uq_fa_commissioning_doc_org_number", IsUnique = true)]
 public partial class FaCommissioningDoc
 {
     [Key]

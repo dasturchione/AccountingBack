@@ -5,6 +5,15 @@ namespace Application.Features.Acc.AccountingPeriods;
 
 public static class AccountingPeriodErrors
 {
+    public static Error Closed(DateTime date, short? languageId = null) =>
+        Error.Business("AccountingPeriod.Closed", languageId switch
+        {
+            LanguageIdConst.UZ => $"{date:yyyy-MM} hisob davri yopilgan.",
+            LanguageIdConst.UZ_CYRL => $"{date:yyyy-MM} ҳисоб даври ёпилган.",
+            LanguageIdConst.RU => $"Учётный период {date:yyyy-MM} закрыт.",
+            _ => $"Accounting period {date:yyyy-MM} is closed."
+        });
+
     public static Error NotFound(int id, short? languageId = null) =>
         Error.NotFound("AccountingPeriod.NotFound", languageId switch
         {

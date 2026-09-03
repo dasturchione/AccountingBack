@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.BankOperations;
 using Domain.Entities;
 using SharedKernel.Constants;
@@ -9,17 +10,20 @@ namespace Application.Features.MoneyRegisterBalances;
 
 public class BankMoneyRegisterService : IBankMoneyRegisterService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<BankAccount> _bankAccountQuery;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
 
     public BankMoneyRegisterService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<BankAccount> bankAccountQuery,
         IQueryRepository<MoneyRegisterBalance> query,
         ICommandRepository<MoneyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _bankAccountQuery = bankAccountQuery;
         _query = query;
@@ -52,7 +56,7 @@ public class BankMoneyRegisterService : IBankMoneyRegisterService
     {
         var originals = await GetOriginalEntriesAsync(bankOperation.Id, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<MoneyRegisterBalance>>(BankOperationErrors.MissingMoneyRegisterEntries(bankOperation.Id, null));
+            return Result.Failure<List<MoneyRegisterBalance>>(BankOperationErrors.MissingMoneyRegisterEntries(bankOperation.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(entry => new MoneyRegisterBalance

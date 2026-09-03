@@ -445,14 +445,7 @@ public class FaReceiptLifecycleService : BaseService, IFaReceiptLifecycleService
         if (!hasCommissioning && !hasMovement && !hasDepreciation && !hasRevaluation && !hasDisposal)
             return Result.Success();
 
-        return Result.Failure(Error.Conflict(
-            "FaReceipt.PostedDependenciesExist",
-            _userContext.LanguageId switch
-            {
-                LanguageIdConst.UZ => "Qabul hujjatini bekor qilib bo'lmaydi: unga bog'liq o'tkazilgan FA hujjatlari mavjud.",
-                LanguageIdConst.RU => "Нельзя отменить поступление: существуют проведённые зависимые документы ОС.",
-                _ => "The receipt cannot be cancelled because posted dependent fixed-asset documents exist."
-            }));
+        return Result.Failure(FaReceiptErrors.PostedDependenciesExist(_userContext.LanguageId));
     }
 
     private async Task<FaReceiptDoc?> GetAggregateAsync(long id, CancellationToken ct)

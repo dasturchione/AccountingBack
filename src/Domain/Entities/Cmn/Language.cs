@@ -73,6 +73,12 @@ public partial class Language
     [InverseProperty(nameof(MovementDirectionTranslation.Language))]
     public virtual ICollection<MovementDirectionTranslation> MovementDirectionTranslations { get; set; } = new List<MovementDirectionTranslation>();
 
+    [InverseProperty(nameof(PaymentAcceptancePointTypeTranslation.Language))]
+    public virtual ICollection<PaymentAcceptancePointTypeTranslation> PaymentAcceptancePointTypeTranslations { get; set; } = [];
+
+    [InverseProperty(nameof(BankOperationCategoryTranslation.Language))]
+    public virtual ICollection<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; } = [];
+
     [InverseProperty(nameof(CostingMethodTranslation.Language))]
     public virtual ICollection<CostingMethodTranslation> CostingMethodTranslations { get; set; } = new List<CostingMethodTranslation>();
 
@@ -96,9 +102,6 @@ public partial class Language
 
     [InverseProperty(nameof(ChartAccountPresetAccountTranslation.Language))]
     public virtual ICollection<ChartAccountPresetAccountTranslation> ChartAccountPresetAccountTranslations { get; set; } = new List<ChartAccountPresetAccountTranslation>();
-
-    [InverseProperty(nameof(CounterpartyTypeTranslation.Language))]
-    public virtual ICollection<CounterpartyTypeTranslation> CounterpartyTypeTranslations { get; set; } = new List<CounterpartyTypeTranslation>();
 
     [InverseProperty(nameof(PaymentTypeTranslation.Language))]
     public virtual ICollection<PaymentTypeTranslation> PaymentTypeTranslations { get; set; } = new List<PaymentTypeTranslation>();

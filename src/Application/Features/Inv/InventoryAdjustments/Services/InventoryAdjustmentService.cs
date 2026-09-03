@@ -301,7 +301,9 @@ public class InventoryAdjustmentService : BaseService, IInventoryAdjustmentServi
                 return Result.Failure<List<InventoryMovementListDto>>(InventoryAdjustmentErrors.NotFound(id, _userContext.LanguageId));
 
             var query = _queryBuilder.For<WarehouseProductMovement>()
-                .Where(x => x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT && x.DocumentId == id)
+                .Where(x => x.OrganizationId == _userContext.OrganizationId.Value &&
+                            x.DocumentTypeId == DocumentTypeIdConst.INVENTORYADJUSTMENT &&
+                            x.DocumentId == id)
                 .As<InventoryMovementListDto>()
                 .Build();
 

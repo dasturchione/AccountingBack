@@ -36,8 +36,14 @@ public partial class State
     [InverseProperty(nameof(DocumentAccountRole.State))]
     public virtual ICollection<DocumentAccountRole> DocumentAccountRoles { get; set; } = new List<DocumentAccountRole>();
 
-    [InverseProperty(nameof(BankTerminal.State))]
-    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+    [InverseProperty(nameof(PaymentAcceptancePoint.State))]
+    public virtual ICollection<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; } = [];
+
+    [InverseProperty(nameof(PaymentAcceptancePointType.State))]
+    public virtual ICollection<PaymentAcceptancePointType> PaymentAcceptancePointTypes { get; set; } = [];
+
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.State))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 
     [InverseProperty(nameof(DocumentAccountSetting.State))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
@@ -78,8 +84,20 @@ public partial class State
     [InverseProperty("State")]
     public virtual ICollection<Bank> Banks { get; set; } = new List<Bank>();
 
-    [InverseProperty("State")]
-    public virtual ICollection<CounterpartyType> CounterpartyTypes { get; set; } = new List<CounterpartyType>();
+    [InverseProperty(nameof(BankBranch.State))]
+    public virtual ICollection<BankBranch> BankBranches { get; set; } = new List<BankBranch>();
+
+    [InverseProperty(nameof(BankStatementTemplate.State))]
+    public virtual ICollection<BankStatementTemplate> BankStatementTemplates { get; set; } = new List<BankStatementTemplate>();
+
+    [InverseProperty(nameof(BankOperationCategory.State))]
+    public virtual ICollection<BankOperationCategory> BankOperationCategories { get; set; } = [];
+
+    [InverseProperty(nameof(BankOperationClassificationRuleSet.State))]
+    public virtual ICollection<BankOperationClassificationRuleSet> BankOperationClassificationRuleSets { get; set; } = [];
+
+    [InverseProperty(nameof(BankOperationClassificationRule.State))]
+    public virtual ICollection<BankOperationClassificationRule> BankOperationClassificationRules { get; set; } = [];
 
     [InverseProperty("State")]
     public virtual ICollection<ProductTableStatus> ProductTableStatuses { get; set; } = new List<ProductTableStatus>();
@@ -92,6 +110,9 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<DocumentType> DocumentTypes { get; set; } = new List<DocumentType>();
+
+    [InverseProperty(nameof(DocumentRegistry.State))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
 
     [InverseProperty("State")]
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();

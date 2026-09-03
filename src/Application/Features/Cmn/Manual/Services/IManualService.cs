@@ -12,7 +12,6 @@ public interface IManualService
     Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetUnitsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetInventoryAdjustmentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetFaGroupsAsync(CancellationToken ct = default);
@@ -25,12 +24,15 @@ public interface IManualService
     Task<List<SelectListDto>> GetPricingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetBanksAsync(CancellationToken ct = default);
+    Task<List<BankBranchSelectListDto>> GetBankBranchesAsync(int? bankId = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetBankOperationCategoriesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetRentalObjectTypesAsync(CancellationToken ct = default);
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);
@@ -49,8 +51,6 @@ public interface IManualService
 
     // counterparty
     Task<List<SelectListDto>> GetCounterpartiesAsync(CancellationToken ct = default);
-    Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default);
-    Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default);
 
     // inv
     Task<List<SelectListDto>> GetProductGroupsAsync(CancellationToken ct = default);
@@ -71,7 +71,8 @@ public interface IManualService
 
     // bank
     Task<List<SelectListDto>> GetOrgBankAccountsAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPaymentAcceptancePointsAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetPaymentAcceptancePointTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetCounterpartyBankAccountsAsync(int? counterpartyId = null, int? bankId = null, CancellationToken ct = default);
 
     // payment

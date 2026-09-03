@@ -147,7 +147,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (period is null)
                 return Result.Failure<long>(PayrollErrors.NotFound("Period", dto.PeriodId, _userContext.LanguageId));
             if (period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure<long>(PayrollErrors.PeriodClosed(period.Id));
+                return Result.Failure<long>(PayrollErrors.PeriodClosed(period.Id, _userContext.LanguageId));
 
             var sourceValidation = await ValidateSourceAsync(dto, organizationId, ct);
             if (!sourceValidation.IsSuccess)
@@ -155,7 +155,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
 
             var duplicateEmployee = dto.Lines.GroupBy(x => x.EmployeeId).FirstOrDefault(x => x.Count() > 1);
             if (duplicateEmployee is not null)
-                return Result.Failure<long>(PayrollErrors.Conflict("DuplicatePaymentEmployee", $"Xodim to‘lov hujjatida takroran kiritilgan (xodim ID: {duplicateEmployee.Key})."));
+                return Result.Failure<long>(PayrollErrors.Conflict("DuplicatePaymentEmployee", $"Xodim to‘lov hujjatida takroran kiritilgan (xodim ID: {duplicateEmployee.Key}).", _userContext.LanguageId));
 
             var employeeIds = dto.Lines.Select(x => x.EmployeeId).Distinct().ToList();
             var employeeQuery = _queryBuilder.For<PayEmployee>()
@@ -173,7 +173,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (dto.PaymentKind == PayrollPaymentKindConst.Final)
             {
                 if (!dto.PayrollDocId.HasValue)
-                    return Result.Failure<long>(PayrollErrors.Business("PayrollDocumentRequired", "Yakuniy to‘lov uchun tasdiqlangan oylik hisoblash hujjati kerak."));
+                    return Result.Failure<long>(PayrollErrors.Business("PayrollDocumentRequired", "Yakuniy to‘lov uchun tasdiqlangan oylik hisoblash hujjati kerak.", _userContext.LanguageId));
 
                 var docQuery = _queryBuilder.For<PayPayrollDoc>()
                     .Where(x =>
@@ -183,11 +183,12 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                     .Build();
                 var payrollDoc = await _payrollDocQuery.GetAsync(docQuery, ct);
                 if (payrollDoc is null)
-                    return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired());
+                    return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired(_userContext.LanguageId));
                 if (payrollDoc.CurrencyId != dto.CurrencyId)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "PaymentCurrencyMismatch",
-                        $"To‘lov valyutasi (ID: {dto.CurrencyId}) oylik hisoblash valyutasiga (ID: {payrollDoc.CurrencyId}) mos kelmaydi."));
+                        $"To‘lov valyutasi (ID: {dto.CurrencyId}) oylik hisoblash valyutasiga (ID: {payrollDoc.CurrencyId}) mos kelmaydi.",
+                        _userContext.LanguageId));
 
                 payrollLineIdByEmployee = await GetPayrollLineIdsAsync(payrollDoc.Id, employeeIds, ct);
                 var missingPayrollLine = employeeIds
@@ -195,14 +196,15 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 if (missingPayrollLine > 0)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "EmployeeMissingFromPayroll",
-                        $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {missingPayrollLine}, hujjat ID: {payrollDoc.Id})."));
+                        $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {missingPayrollLine}, hujjat ID: {payrollDoc.Id}).",
+                        _userContext.LanguageId));
 
                 var outstanding = await GetOutstandingByEmployeeAsync(period.Id, employeeIds, ct);
                 foreach (var line in dto.Lines)
                 {
                     var available = outstanding.GetValueOrDefault(line.EmployeeId);
                     if (line.Amount > available)
-                        return Result.Failure<long>(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available));
+                        return Result.Failure<long>(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available, _userContext.LanguageId));
                 }
             }
             else
@@ -222,7 +224,8 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 if (currencyMismatchEmployee > 0)
                     return Result.Failure<long>(PayrollErrors.Business(
                         "AdvanceCurrencyMismatch",
-                        $"Xodimda to‘lov valyutasiga mos amaldagi ishga qabul yozuvi mavjud emas (xodim ID: {currencyMismatchEmployee}, valyuta ID: {dto.CurrencyId})."));
+                        $"Xodimda to‘lov valyutasiga mos amaldagi ishga qabul yozuvi mavjud emas (xodim ID: {currencyMismatchEmployee}, valyuta ID: {dto.CurrencyId}).",
+                        _userContext.LanguageId));
             }
 
             var documentNumberResult = await _documentNumberService.GetNextAsync(
@@ -284,9 +287,9 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (batch.StatusId == DocumentStatusIdConst.POSTED)
                 return Result.Success();
             if (batch.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.PENDING))
-                return Result.Failure(PayrollErrors.InvalidStatus("PaymentBatch", id, batch.StatusId, "confirmed"));
+                return Result.Failure(PayrollErrors.InvalidStatus("PaymentBatch", id, batch.StatusId, "confirmed", _userContext.LanguageId));
             if (batch.Period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure(PayrollErrors.PeriodClosed(batch.PeriodId));
+                return Result.Failure(PayrollErrors.PeriodClosed(batch.PeriodId, _userContext.LanguageId));
 
             if (batch.PaymentKind == PayrollPaymentKindConst.Final)
             {
@@ -296,7 +299,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 {
                     var available = outstanding.GetValueOrDefault(line.EmployeeId);
                     if (line.Amount > available)
-                        return Result.Failure(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available));
+                        return Result.Failure(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available, _userContext.LanguageId));
                 }
             }
 
@@ -390,7 +393,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (batch.StatusId == DocumentStatusIdConst.CANCELLED)
                 return Result.Success();
             if (batch.Period.Status != PayrollPeriodStatusConst.Open)
-                return Result.Failure(PayrollErrors.PeriodClosed(batch.PeriodId));
+                return Result.Failure(PayrollErrors.PeriodClosed(batch.PeriodId, _userContext.LanguageId));
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             Result operationResult = Result.Success();
@@ -419,7 +422,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             _ => false
         };
         if (!validSource)
-            return Result.Failure(PayrollErrors.PaymentSourceInvalid());
+            return Result.Failure(PayrollErrors.PaymentSourceInvalid(_userContext.LanguageId));
 
         if (dto.SourceType == PayrollPaymentSourceConst.Bank &&
             !await _bankAccountQuery.AnyAsync(x =>
@@ -427,7 +430,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 x.OrganizationId == organizationId &&
                 x.CurrencyId == dto.CurrencyId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("BankAccount", dto.BankAccountId!.Value));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("BankAccount", dto.BankAccountId!.Value, _userContext.LanguageId));
 
         if (dto.SourceType == PayrollPaymentSourceConst.Cash &&
             !await _cashBoxQuery.AnyAsync(x =>
@@ -435,18 +438,18 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 x.OrganizationId == organizationId &&
                 x.CurrencyId == dto.CurrencyId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("CashBox", dto.CashBoxId!.Value));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("CashBox", dto.CashBoxId!.Value, _userContext.LanguageId));
 
         if (!await _accountQuery.AnyAsync(x =>
                 x.Id == dto.SourceChartAccountId &&
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.SourceChartAccountId));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.SourceChartAccountId, _userContext.LanguageId));
 
         if (!await _currencyQuery.AnyAsync(x =>
                 x.Id == dto.CurrencyId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Currency", dto.CurrencyId));
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("Currency", dto.CurrencyId, _userContext.LanguageId));
 
         return Result.Success();
     }

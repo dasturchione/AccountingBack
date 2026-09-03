@@ -54,7 +54,7 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
 
             var sources = sourcesResult.Value;
             if (!sources.Employees.TryGetValue(employeeId, out var employee))
-                return Result.Failure<HrEmployeeCalendarDto>(HrErrors.NotFound("Employee", employeeId));
+                return Result.Failure<HrEmployeeCalendarDto>(HrErrors.NotFound("Employee", employeeId, _userContext.LanguageId));
 
             return Result.Success(Build(employee, sources, dateFrom, dateTo));
         });
@@ -81,7 +81,7 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
             var sources = sourcesResult.Value;
             var missingId = ids.FirstOrDefault(id => !sources.Employees.ContainsKey(id));
             if (missingId > 0)
-                return Result.Failure<Dictionary<long, HrEmployeeCalendarSummaryDto>>(HrErrors.NotFound("Employee", missingId));
+                return Result.Failure<Dictionary<long, HrEmployeeCalendarSummaryDto>>(HrErrors.NotFound("Employee", missingId, _userContext.LanguageId));
 
             var result = ids.ToDictionary(
                 id => id,
@@ -111,7 +111,7 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
             var sources = sourcesResult.Value;
             var missingId = ids.FirstOrDefault(id => !sources.Employees.ContainsKey(id));
             if (missingId > 0)
-                return Result.Failure<List<HrEmployeeCalendarDto>>(HrErrors.NotFound("Employee", missingId));
+                return Result.Failure<List<HrEmployeeCalendarDto>>(HrErrors.NotFound("Employee", missingId, _userContext.LanguageId));
 
             var result = ids
                 .Select(id => Build(sources.Employees[id], sources, dateFrom, dateTo))
@@ -199,12 +199,12 @@ public sealed class HrEmployeeCalendarService : BaseService, IHrEmployeeCalendar
             absences ?? []);
     }
 
-    private static Result ValidateRange(DateOnly dateFrom, DateOnly dateTo)
+    private Result ValidateRange(DateOnly dateFrom, DateOnly dateTo)
     {
         if (dateTo < dateFrom)
-            return Result.Failure(HrErrors.Business("InvalidCalendarRange", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas."));
+            return Result.Failure(HrErrors.Business("InvalidCalendarRange", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas.", _userContext.LanguageId));
         if (dateTo.DayNumber - dateFrom.DayNumber > 731)
-            return Result.Failure(HrErrors.Business("CalendarRangeTooLarge", "Kalendar davri ikki yildan oshmasligi kerak."));
+            return Result.Failure(HrErrors.Business("CalendarRangeTooLarge", "Kalendar davri ikki yildan oshmasligi kerak.", _userContext.LanguageId));
         return Result.Success();
     }
 

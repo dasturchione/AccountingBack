@@ -7,5 +7,6 @@ namespace Application.Features.Positions;
 public class PositionByListFilterCriteriaBuilder : ICriteriaBuilder<Position, PositionListFilter>
 {
     public Expression<Func<Position, bool>> Build(PositionListFilter options)
-        => p => true;
+        => position => !options.OrganizationId.HasValue ||
+                       position.OrganizationId == options.OrganizationId.Value;
 }

@@ -9,7 +9,6 @@ namespace Domain.Entities;
 [Index("DocDate", Name = "idx_inv_inventory_adjustment_doc_doc_date")]
 [Index("WarehouseId", Name = "idx_inv_inventory_adjustment_doc_warehouse_id")]
 [Index("AdjustmentType", Name = "idx_inv_inventory_adjustment_doc_adjustment_type")]
-[Index("OrganizationId", "DocNumber", Name = "ux_inv_inventory_adjustment_doc_org_doc_number", IsUnique = true)]
 [Index("StatusId", Name = "idx_inv_inventory_adjustment_doc_status_id")]
 [Index("StateId", Name = "idx_inv_inventory_adjustment_doc_state_id")]
 [Index("PostedByUserId", Name = "idx_inv_inventory_adjustment_doc_posted_by_user_id")]

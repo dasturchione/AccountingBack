@@ -22,4 +22,22 @@ public static class WarehouseErrors
             LanguageIdConst.RU      => $"Склад с кодом '{code}' уже существует.",
             _                       => $"Warehouse with code '{code}' already exists."
         });
+
+    public static Error BranchNotFound(int id, short? languageId = null) =>
+        Error.NotFound("Warehouse.BranchNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan filial joriy tashkilotda topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган филиал жорий ташкилотда топилмади.",
+            LanguageIdConst.RU      => $"Филиал с id {id} не найден в текущей организации.",
+            _                       => $"Branch with id {id} was not found in the current organization."
+        });
+
+    public static Error ResponsibleUserNotFound(int id, short? languageId = null) =>
+        Error.NotFound("Warehouse.ResponsibleUserNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {id} bo'lgan mas'ul foydalanuvchi joriy tashkilotda topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган масъул фойдаланувчи жорий ташкилотда топилмади.",
+            LanguageIdConst.RU      => $"Ответственный пользователь с id {id} не найден в текущей организации.",
+            _                       => $"Responsible user with id {id} was not found in the current organization."
+        });
 }

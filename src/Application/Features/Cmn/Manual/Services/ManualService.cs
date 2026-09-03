@@ -12,7 +12,10 @@ public class ManualService : IManualService
 {
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<Bank> _bankQuery;
-    private readonly IQueryRepository<BankTerminal> _bankTerminalQuery;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
+    private readonly IQueryRepository<BankOperationCategory> _bankOperationCategoryQuery;
+    private readonly IQueryRepository<PaymentAcceptancePoint> _paymentAcceptancePointQuery;
+    private readonly IQueryRepository<PaymentAcceptancePointType> _paymentAcceptancePointTypeQuery;
     private readonly IQueryRepository<PaymentMethod> _paymentMethodQuery;
     private readonly IQueryRepository<Role> _roleQuery;
     private readonly IQueryRepository<UserKind> _userKindQuery;
@@ -30,7 +33,6 @@ public class ManualService : IManualService
     private readonly IQueryRepository<District> _districtQuery;
     private readonly IQueryRepository<PaymentType> _paymentTypeQuery;
     private readonly IQueryRepository<DocumentStatus> _documentStatusQuery;
-    private readonly IQueryRepository<CounterpartyType> _counterpartyTypeQuery;
     private readonly IQueryRepository<InventoryAdjustmentType> _inventoryAdjustmentTypeQuery;
     private readonly IQueryRepository<FaDepreciationMethod> _faDepreciationMethodQuery;
     private readonly IQueryRepository<FaReceiptType> _faReceiptTypeQuery;
@@ -43,6 +45,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<OperationType> _operationTypeQuery;
     private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly IQueryRepository<ContractType> _contractTypeQuery;
+    private readonly IQueryRepository<RentalObjectType> _rentalObjectTypeQuery;
     private readonly IQueryRepository<Position> _positionQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
@@ -73,7 +76,6 @@ public class ManualService : IManualService
         IQueryRepository<Currency> currencyQuery,
         IQueryRepository<Unit> unitQuery,
         IQueryRepository<DocumentStatus> documentStatusQuery,
-        IQueryRepository<CounterpartyType> counterpartyTypeQuery,
         IQueryRepository<PaymentType> paymentTypeQuery,
         IQueryRepository<InventoryAdjustmentType> inventoryAdjustmentTypeQuery,
         IQueryRepository<FaGroup> faGroupQuery,
@@ -86,7 +88,10 @@ public class ManualService : IManualService
         IQueryRepository<PricingMethod> pricingMethodQuery,
         IQueryRepository<CostingMethod> costingMethodQuery,
         IQueryRepository<Bank> bankQuery,
-        IQueryRepository<BankTerminal> bankTerminalQuery,
+        IQueryRepository<BankBranch> bankBranchQuery,
+        IQueryRepository<BankOperationCategory> bankOperationCategoryQuery,
+        IQueryRepository<PaymentAcceptancePoint> paymentAcceptancePointQuery,
+        IQueryRepository<PaymentAcceptancePointType> paymentAcceptancePointTypeQuery,
         IQueryRepository<PaymentMethod> paymentMethodQuery,
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
@@ -94,6 +99,7 @@ public class ManualService : IManualService
         IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<ContractType> contractTypeQuery,
+        IQueryRepository<RentalObjectType> rentalObjectTypeQuery,
         IQueryRepository<Branch> branchQuery,
         IQueryRepository<Department> departmentQuery,
         IQueryRepository<Position> positionQuery,
@@ -127,7 +133,6 @@ public class ManualService : IManualService
         _currencyQuery = currencyQuery;
         _unitQuery = unitQuery;
         _documentStatusQuery = documentStatusQuery;
-        _counterpartyTypeQuery = counterpartyTypeQuery;
         _paymentTypeQuery = paymentTypeQuery;
         _inventoryAdjustmentTypeQuery = inventoryAdjustmentTypeQuery;
         _faGroupQuery = faGroupQuery;
@@ -140,7 +145,10 @@ public class ManualService : IManualService
         _pricingMethodQuery = pricingMethodQuery;
         _costingMethodQuery = costingMethodQuery;
         _bankQuery = bankQuery;
-        _bankTerminalQuery = bankTerminalQuery;
+        _bankBranchQuery = bankBranchQuery;
+        _bankOperationCategoryQuery = bankOperationCategoryQuery;
+        _paymentAcceptancePointQuery = paymentAcceptancePointQuery;
+        _paymentAcceptancePointTypeQuery = paymentAcceptancePointTypeQuery;
         _paymentMethodQuery = paymentMethodQuery;
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
@@ -148,6 +156,7 @@ public class ManualService : IManualService
         _taxTypeQuery = taxTypeQuery;
         _vatRateQuery = vatRateQuery;
         _contractTypeQuery = contractTypeQuery;
+        _rentalObjectTypeQuery = rentalObjectTypeQuery;
         _branchQuery = branchQuery;
         _departmentQuery = departmentQuery;
         _positionQuery = positionQuery;
@@ -194,7 +203,8 @@ public class ManualService : IManualService
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName
+                                     Name = s.FullName,
+                                     Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
@@ -210,7 +220,8 @@ public class ManualService : IManualService
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.FullName
+                                     Name = s.FullName,
+                                     Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
@@ -220,12 +231,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetCurrenciesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<Currency>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.CurrencyTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -252,12 +267,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetDocumentStatusesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<DocumentStatus>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.DocumentStatusTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -266,21 +285,20 @@ public class ManualService : IManualService
         return await _documentStatusQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetCounterpartyTypesAsync(CancellationToken ct = default)
-    {
-        var spec = _queryBuilder.For<CounterpartyType>()
-            .Where(c => c.StateId == StateIdConst.ACTIVE)
-            .As(c => new SelectListDto { Id = c.Id, Name = c.Name, Code = c.Code })
-            .OrderBy(q => q.OrderBy(c => c.Name))
-            .Build();
-        return (await _counterpartyTypeQuery.GetAllAsync(spec, ct)).ToList();
-    }
-
     public async Task<List<SelectListDto>> GetPaymentTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<PaymentType>()
             .Where(p => p.StateId == StateIdConst.ACTIVE)
-            .As(p => new SelectListDto { Id = p.Id, Name = p.Name, Code = p.Code })
+            .As(p => new SelectListDto
+            {
+                Id = p.Id,
+                Name = p.PaymentTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? p.Name,
+                Code = p.Code
+            })
             .OrderBy(q => q.OrderBy(p => p.Name))
             .Build();
         return (await _paymentTypeQuery.GetAllAsync(spec, ct)).ToList();
@@ -434,8 +452,17 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetCostingMethodsAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<CostingMethod>()
-            .As(x => new SelectListDto { Id = x.Id, Name = x.Name, Code = x.Code })
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.CostingMethodTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
+                Code = x.Code
+            })
             .OrderBy(q => q.OrderBy(x => x.Name))
             .Build();
         return await _costingMethodQuery.GetAllAsync(spec, ct);
@@ -491,11 +518,61 @@ public class ManualService : IManualService
         return (await _bankQuery.GetAllAsync(spec, ct)).ToList();
     }
 
+    public async Task<List<BankBranchSelectListDto>> GetBankBranchesAsync(
+        int? bankId = null,
+        CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<BankBranch>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE &&
+                        (!bankId.HasValue || x.BankId == bankId.Value))
+            .As(x => new BankBranchSelectListDto
+            {
+                Id = x.Id,
+                BankId = x.BankId,
+                Name = x.Name,
+                Code = x.Mfo,
+                Mfo = x.Mfo
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankBranchQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetBankOperationCategoriesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<BankOperationCategory>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _bankOperationCategoryQuery.GetAllAsync(query, ct);
+    }
+
     public async Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var spec = _queryBuilder.For<DocumentType>()
             .Where(d => d.StateId == StateIdConst.ACTIVE)
-            .As(d => new SelectListDto { Id = d.Id, Name = d.Name, Code = d.Code })
+            .As(d => new SelectListDto
+            {
+                Id = d.Id,
+                Name = d.DocumentTypeTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? d.Name,
+                Code = d.Code
+            })
             .OrderBy(q => q.OrderBy(d => d.Name))
             .Build();
         return (await _documentTypeQuery.GetAllAsync(spec, ct)).ToList();
@@ -503,12 +580,16 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<OperationType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.OperationTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
@@ -519,14 +600,18 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<MovementDirection>()
             .As(x => new SelectListDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = x.MovementDirectionTranslations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
                 Code = x.Code
             })
-            .OrderBy(x => x.Id)
+            .OrderBy(x => x.Name)
             .Build();
 
         return await _movementDirectionQuery.GetAllAsync(query, ct);
@@ -566,18 +651,41 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default)
     {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<ContractType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(s => new SelectListDto
                                  {
                                      Id = s.Id,
-                                     Name = s.Name,
+                                     Name = s.ContractTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? s.Name,
                                      Code = s.Code
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
 
         return await _contractTypeQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetRentalObjectTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<RentalObjectType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+        return await _rentalObjectTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetBranchesAsync(CancellationToken ct = default)
@@ -637,10 +745,7 @@ public class ManualService : IManualService
         if (choosedDate is { } requestedDate && requestedDate == default)
         {
             return Result.Failure<List<SelectListDto>>(
-                new Error(
-                    "Manual.InvalidContractDate",
-                    "Contract selection date is invalid.",
-                    ErrorType.Validation));
+                ManualErrors.InvalidContractDate(_userContext.LanguageId));
         }
 
         var organizationId = _userContext.OrganizationId.Value;
@@ -681,42 +786,6 @@ public class ManualService : IManualService
                                  {
                                      Id = s.Id,
                                      Name = s.ShortName!
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
-
-        return await _counterpartyQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<CounterpartySelectListDto>> GetSuppliersAsync(CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<CounterpartyCard>()
-                                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                             (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
-                                              x.CounterpartyTypeId == CounterPartyTypeIdConst.SUPPLIER))
-                                 .As(s => new CounterpartySelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Name = s.FullName!,
-                                     Inn = s.Inn
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
-
-        return await _counterpartyQuery.GetAllAsync(query, ct);
-    }
-
-    public async Task<List<CounterpartySelectListDto>> GetClientsAsync(CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<CounterpartyCard>()
-                                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                                             (x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT_SUPPLIER ||
-                                              x.CounterpartyTypeId == CounterPartyTypeIdConst.CLIENT))
-                                 .As(s => new CounterpartySelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Name = s.FullName!,
-                                     Inn = s.Inn
                                  })
                                  .OrderBy(o => o.Name)
                                  .Build();
@@ -895,20 +964,40 @@ public class ManualService : IManualService
         return await _orgBankAccountQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetBankTerminalsAsync(CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetPaymentAcceptancePointsAsync(CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<BankTerminal>()
+        var query = _queryBuilder.For<PaymentAcceptancePoint>()
             .Where(x => x.StateId == StateIdConst.ACTIVE)
             .As(x => new SelectListDto
             {
                 Id = x.Id,
                 Name = x.Name,
-                Code = x.ExternalTerminalId ?? x.SerialNumber
+                Code = x.Code
             })
             .OrderBy(x => x.Name)
             .Build();
 
-        return await _bankTerminalQuery.GetAllAsync(query, ct);
+        return await _paymentAcceptancePointQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetPaymentAcceptancePointTypesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<PaymentAcceptancePointType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _paymentAcceptancePointTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetPaymentMethodsAsync(CancellationToken ct = default)
@@ -1096,14 +1185,17 @@ public class ManualService : IManualService
 
     public async Task<List<SelectListDto>> GetAccountTypesAsync(CancellationToken ct = default)
     {
-
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
         var query = _queryBuilder.For<AccountType>()
                                  .Where(x => x.StateId == StateIdConst.ACTIVE)
                                  .As(x => new SelectListDto
                                  {
                                      Id = x.Id,
                                      Code = x.Code,
-                                     Name = x.Name
+                                     Name = x.AccountTypeTranslations
+                                         .Where(t => t.LanguageId == languageId)
+                                         .Select(t => t.Name)
+                                         .FirstOrDefault() ?? x.Name
                                  })
                                  .OrderBy(x => x.Name).Build();
 

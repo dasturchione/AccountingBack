@@ -1,0 +1,3 @@
+namespace Application.Features.PaymentAcceptancePointOperations;
+
+public sealed class PaymentAcceptancePointOperationCreateDto : PaymentAcceptancePointOperationBaseDto;

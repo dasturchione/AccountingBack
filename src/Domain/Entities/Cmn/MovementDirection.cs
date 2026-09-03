@@ -23,18 +23,21 @@ public partial class MovementDirection
     [InverseProperty(nameof(BankOperation.Direction))]
     public virtual ICollection<BankOperation> BankOperations { get; set; } = new List<BankOperation>();
 
+    [InverseProperty(nameof(BankOperationClassificationRule.Direction))]
+    public virtual ICollection<BankOperationClassificationRule> BankOperationClassificationRules { get; set; } = [];
+
     [InverseProperty(nameof(MovementDirectionTranslation.MovementDirection))]
     public virtual ICollection<MovementDirectionTranslation> MovementDirectionTranslations { get; set; } = new List<MovementDirectionTranslation>();
 
     [InverseProperty(nameof(InventoryAdjustmentDoc.Direction))]
     public virtual ICollection<InventoryAdjustmentDoc> InventoryAdjustmentDocs { get; set; } = new List<InventoryAdjustmentDoc>();
 
-    [InverseProperty(nameof(InvRegBalance.Direction))]
-    public virtual ICollection<InvRegBalance> InvRegBalances { get; set; } = new List<InvRegBalance>();
-
     [InverseProperty(nameof(WarehouseProductMovement.Direction))]
     public virtual ICollection<WarehouseProductMovement> WarehouseProductMovements { get; set; } = new List<WarehouseProductMovement>();
 
     [InverseProperty(nameof(MoneyRegisterBalance.Direction))]
     public virtual ICollection<MoneyRegisterBalance> MoneyRegisterBalances { get; set; } = new List<MoneyRegisterBalance>();
+
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.Direction))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 }

@@ -84,10 +84,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnCostingMethodTranslation> CmnCostingMethodTranslations { get; set; }
 
-    public virtual DbSet<CmnCounterpartyType> CmnCounterpartyTypes { get; set; }
-
-    public virtual DbSet<CmnCounterpartyTypeTranslation> CmnCounterpartyTypeTranslations { get; set; }
-
     public virtual DbSet<CmnCurrency> CmnCurrencies { get; set; }
 
     public virtual DbSet<CmnCurrencyRate> CmnCurrencyRates { get; set; }
@@ -275,8 +271,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<InvProductPrice> InvProductPrices { get; set; }
 
     public virtual DbSet<InvProductTable> InvProductTables { get; set; }
-
-    public virtual DbSet<InvRegBalance> InvRegBalances { get; set; }
 
     public virtual DbSet<InvTransferDoc> InvTransferDocs { get; set; }
 
@@ -1033,30 +1027,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("cmn_costing_method_translation_language_id_fkey");
         });
 
-        modelBuilder.Entity<CmnCounterpartyType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_counterparty_type_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
-            entity.HasOne(d => d.State).WithMany(p => p.CmnCounterpartyTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_counterparty_type_state_id_fkey");
-        });
-
-        modelBuilder.Entity<CmnCounterpartyTypeTranslation>(entity =>
-        {
-            entity.HasKey(e => new { e.CounterpartyTypeId, e.LanguageId }).HasName("cmn_counterparty_type_translation_pkey");
-
-            entity.HasOne(d => d.CounterpartyType).WithMany(p => p.CmnCounterpartyTypeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_counterparty_type_translation_counterparty_type_id_fkey");
-
-            entity.HasOne(d => d.Language).WithMany(p => p.CmnCounterpartyTypeTranslations)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_counterparty_type_translation_language_id_fkey");
-        });
-
         modelBuilder.Entity<CmnCurrency>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("cmn_currency_pkey");
@@ -1532,13 +1502,6 @@ public partial class AppDbContext : DbContext
                 .HasFilter("(code IS NOT NULL)");
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.IsCustomer).HasDefaultValue(true);
-            entity.Property(e => e.IsSupplier).HasDefaultValue(true);
-
-            entity.HasOne(d => d.CounterpartyType).WithMany(p => p.CounterpartyCards)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("counterparty_card_counterparty_type_id_fkey");
-
             entity.HasOne(d => d.District).WithMany(p => p.CounterpartyCards).HasConstraintName("counterparty_card_district_id_fkey");
 
             entity.HasOne(d => d.Organization).WithMany(p => p.CounterpartyCards)
@@ -2755,35 +2718,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.InvProductTables)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inv_product_table_product_id_fkey");
-        });
-
-        modelBuilder.Entity<InvRegBalance>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("inv_reg_balance_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.Direction).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_direction_id_fkey");
-
-            entity.HasOne(d => d.DocumentType).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_document_type_id_fkey");
-
-            entity.HasOne(d => d.Organization).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_organization_id_fkey");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_product_id_fkey");
-
-            entity.HasOne(d => d.ProductTable).WithMany(p => p.InvRegBalances).HasConstraintName("inv_reg_balance_product_table_id_fkey");
-
-            entity.HasOne(d => d.Warehouse).WithMany(p => p.InvRegBalances)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("inv_reg_balance_warehouse_id_fkey");
         });
 
         modelBuilder.Entity<InvTransferDoc>(entity =>

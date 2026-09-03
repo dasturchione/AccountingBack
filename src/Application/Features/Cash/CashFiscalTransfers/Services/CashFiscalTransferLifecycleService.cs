@@ -72,15 +72,15 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
 
             await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHFISCALTRANSFER, id, ct);
             var document = await GetDocumentAsync(id, ct);
-            if (document is null) return Result.Failure(CashFiscalTransferErrors.NotFound(id));
+            if (document is null) return Result.Failure(CashFiscalTransferErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.CANCELLED)
-                return Result.Failure(CashFiscalTransferErrors.AlreadyCancelled(id));
+                return Result.Failure(CashFiscalTransferErrors.AlreadyCancelled(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.POSTED)
                 return await GetActiveBatchAsync(id, ct) is not null
                     ? Result.Success()
-                    : Result.Failure(CashFiscalTransferErrors.MissingPostingBatch(id));
+                    : Result.Failure(CashFiscalTransferErrors.MissingPostingBatch(id, _userContext.LanguageId));
             if (document.StatusId != DocumentStatusIdConst.DRAFT)
-                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, document.StatusId));
+                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, document.StatusId, _userContext.LanguageId));
 
             var period = await _periodValidator.EnsureOpenAsync(document.OrganizationId, document.DocDate, ct);
             if (!period.IsSuccess) return period;
@@ -100,10 +100,14 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
                 ? await _moneyService.GetFiscalBalanceAsync(document.FiscalCashRegisterId, document.CurrencyId, document.DocDate, ct)
                 : await _moneyService.GetCashBoxBalanceAsync(document.CashBoxId, document.DocDate, ct);
             if (available < document.Amount)
-                return Result.Failure(CashFiscalTransferErrors.InsufficientBalance(sourceType, available, document.Amount));
+                return Result.Failure(CashFiscalTransferErrors.InsufficientBalance(sourceType, available, document.Amount, _userContext.LanguageId));
 
             if (await GetActiveBatchAsync(id, ct) is not null || await HasEffectsAsync(id, ct))
-                return Result.Failure(CashFiscalTransferErrors.BusinessEffectsAlreadyExist(id));
+                return Result.Failure(CashFiscalTransferErrors.BusinessEffectsAlreadyExist(id, _userContext.LanguageId));
+
+            var oldDocument = await GetDtoAsync(id, ct);
+            if (oldDocument is not null)
+                _auditLogService.SetOldValues(oldDocument);
 
             var batch = await CreateBatchAsync(document, PostingBatchStatusConst.POSTED, "Cash fiscal transfer confirmed", ct);
             var accounting = await _accountingDispatcher.ProcessAsync(document, ct, batch.Id);
@@ -115,7 +119,17 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
             document.PostedAt = DateTime.Now;
             document.PostedByUserId = _userContext.Id;
             await _command.UpdateAsync(document, ct);
-            await _auditLogService.CreateAsync(AuditLogTableConst.CashFiscalTransfer, id.ToString(), AuditLogOperationTypeConst.Update, "Confirmed");
+
+            var newDocument = await GetDtoAsync(id, ct);
+            if (newDocument is not null)
+            {
+                _auditLogService.SetNewValues(newDocument);
+                await _auditLogService.CreateAsync(
+                    AuditLogTableConst.CashFiscalTransfer,
+                    id.ToString(),
+                    AuditLogOperationTypeConst.Update,
+                    "Confirmed");
+            }
             return Result.Success();
         }, ct);
 
@@ -127,10 +141,10 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
 
             await _postingLock.AcquireAsync(DocumentTypeIdConst.CASHFISCALTRANSFER, id, ct);
             var document = await GetDocumentAsync(id, ct);
-            if (document is null) return Result.Failure(CashFiscalTransferErrors.NotFound(id));
+            if (document is null) return Result.Failure(CashFiscalTransferErrors.NotFound(id, _userContext.LanguageId));
             if (document.StatusId == DocumentStatusIdConst.CANCELLED) return Result.Success();
             if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.POSTED))
-                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, document.StatusId));
+                return Result.Failure(CashFiscalTransferErrors.InvalidStatus(id, document.StatusId, _userContext.LanguageId));
 
             if (document.StatusId == DocumentStatusIdConst.POSTED)
             {
@@ -141,7 +155,7 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
 
                 await AcquireBothMoneyLocksAsync(document, ct);
                 var activeBatch = await GetActiveBatchAsync(id, ct);
-                if (activeBatch is null) return Result.Failure(CashFiscalTransferErrors.MissingPostingBatch(id));
+                if (activeBatch is null) return Result.Failure(CashFiscalTransferErrors.MissingPostingBatch(id, _userContext.LanguageId));
                 var reversalBatch = await CreateBatchAsync(document, PostingBatchStatusConst.REVERSAL, "Cash fiscal transfer cancelled", ct);
                 var accountingReverse = await ReverseAccountingAsync(document.Id, reversalBatch.Id, ct);
                 if (!accountingReverse.IsSuccess) return accountingReverse;
@@ -165,20 +179,20 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
     private Result ValidateConfiguration(CashFiscalTransferDoc document)
     {
         if (!MovementDirectionIdConst.IsValid(document.DirectionId))
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Direction must be -1 or 1."));
+            return Result.Failure(CashFiscalTransferErrors.InvalidDirection(_userContext.LanguageId));
         if (document.Amount <= 0m || document.ExchangeRate <= 0m)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Amount and exchange rate must be greater than zero."));
+            return Result.Failure(CashFiscalTransferErrors.InvalidAmountOrRate(_userContext.LanguageId));
         if (document.FiscalCashRegister.OrganizationId != document.OrganizationId || document.FiscalCashRegister.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Fiscal cash register is inactive or belongs to another organization."));
+            return Result.Failure(CashFiscalTransferErrors.FiscalRegisterInvalid(_userContext.LanguageId));
         if (document.CashBox.OrganizationId != document.OrganizationId || document.CashBox.StateId != StateIdConst.ACTIVE || !document.CashBox.IsMain)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Cash box must be the active main cash box of the organization."));
+            return Result.Failure(CashFiscalTransferErrors.MainCashBoxInvalid(_userContext.LanguageId));
         if (document.CashBox.CurrencyId != document.CurrencyId)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Cash box currency does not match the document currency."));
+            return Result.Failure(CashFiscalTransferErrors.CurrencyMismatch(_userContext.LanguageId));
         if (document.FiscalCashAccount is null || document.CashBoxAccount is null || document.FiscalCashAccountId == document.CashBoxAccountId)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Two different accounting accounts are required."));
+            return Result.Failure(CashFiscalTransferErrors.AccountsMustDiffer(_userContext.LanguageId));
         if (document.FiscalCashAccount.OrganizationId != document.OrganizationId || document.CashBoxAccount.OrganizationId != document.OrganizationId ||
             document.FiscalCashAccount.StateId != StateIdConst.ACTIVE || document.CashBoxAccount.StateId != StateIdConst.ACTIVE)
-            return Result.Failure(CashFiscalTransferErrors.InvalidConfiguration("Accounting accounts are inactive or belong to another organization."));
+            return Result.Failure(CashFiscalTransferErrors.AccountsInvalid(_userContext.LanguageId));
         return Result.Success();
     }
 
@@ -191,6 +205,15 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
         query.AddIncludes(x => x.Include(d => d.CashBox));
         query.AddIncludes(x => x.Include(d => d.FiscalCashAccount));
         query.AddIncludes(x => x.Include(d => d.CashBoxAccount));
+        return await _query.GetAsync(query, ct);
+    }
+
+    private async Task<CashFiscalTransferDto?> GetDtoAsync(long id, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<CashFiscalTransferDoc>()
+            .Where(x => x.Id == id && x.OrganizationId == _userContext.OrganizationId && x.StateId == StateIdConst.ACTIVE)
+            .As<CashFiscalTransferDto>()
+            .Build();
         return await _query.GetAsync(query, ct);
     }
 
@@ -229,7 +252,7 @@ public sealed class CashFiscalTransferLifecycleService : BaseService, ICashFisca
             .Build();
         query.AddIncludes(x => x.Include(e => e.RegisterEntrySubkontos));
         var originals = await _accountingQuery.GetAllAsync(query, ct);
-        if (originals.Count == 0) return Result.Failure(CashFiscalTransferErrors.MissingAccountingEntries(id));
+        if (originals.Count == 0) return Result.Failure(CashFiscalTransferErrors.MissingAccountingEntries(id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(x => new AccountingRegisterEntry

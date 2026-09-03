@@ -1,13 +1,17 @@
+using Application.Abstractions.Authentication;
 using Domain.Entities;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
 namespace Application.Features.Inv.ProductPrices;
 
-public class ProductPriceListDtoProjection : IProjectionBuilder<ProductPrice, ProductPriceListDto>
+public class ProductPriceListDtoProjection(IUserContext userContext) : IProjectionBuilder<ProductPrice, ProductPriceListDto>
 {
-    public Expression<Func<ProductPrice, ProductPriceListDto>> Build() =>
-        x => new ProductPriceListDto
+    public Expression<Func<ProductPrice, ProductPriceListDto>> Build()
+    {
+        var languageId = userContext.LanguageId;
+
+        return x => new ProductPriceListDto
         {
             Id = x.Id,
             OrganizationId = x.OrganizationId,
@@ -15,7 +19,10 @@ public class ProductPriceListDtoProjection : IProjectionBuilder<ProductPrice, Pr
             ProductId = x.ProductId,
             ProductName = x.Product.Name,
             CurrencyId = x.CurrencyId,
-            CurrencyName = x.Currency.Name,
+            CurrencyName = x.Currency.CurrencyTranslations
+                .Where(translation => translation.LanguageId == languageId)
+                .Select(translation => translation.Name)
+                .FirstOrDefault() ?? x.Currency.Name,
             PriceTypeId = x.PriceTypeId,
             PriceTypeCode = x.PriceType.Code,
             PriceTypeName = x.PriceType.Name,
@@ -29,4 +36,5 @@ public class ProductPriceListDtoProjection : IProjectionBuilder<ProductPrice, Pr
             StateName = x.State.FullName,
             CreatedDate = x.CreatedDate
         };
+    }
 }

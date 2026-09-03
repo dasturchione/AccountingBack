@@ -2,7 +2,6 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Domain.Entities;
-using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -13,51 +12,18 @@ public class BankService : IBankService
     private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<Bank> _query;
-    private readonly ICommandRepository<Bank> _command;
+    private readonly IQueryRepository<BankBranch> _bankBranchQuery;
 
     public BankService(
         IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<Bank> query,
-        ICommandRepository<Bank> command)
+        IQueryRepository<BankBranch> bankBranchQuery)
     {
         _userContext = userContext;
         _queryBuilder = queryBuilder;
         _query = query;
-        _command = command;
-    }
-
-    public async Task<Result<int>> CreateAsync(BankCreateDto dto, CancellationToken ct = default)
-    {
-        if (await _query.AnyAsync(x => x.Code == dto.Code, ct))
-            return Result.Failure<int>(BankErrors.CodeConflict(dto.Code, _userContext.LanguageId));
-
-        var entity = new Bank
-        {
-            Code = dto.Code,
-            Name = dto.Name,
-            Mfo = dto.Mfo,
-            Inn = dto.Inn,
-            StateId = StateIdConst.ACTIVE,
-            CreatedDate = DateTime.Now
-        };
-
-        await _command.CreateAsync(entity, ct);
-        return entity.Id;
-    }
-
-    public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
-    {
-        var query = _queryBuilder.For<Bank>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
-
-        if (entity == null)
-            return Result.Failure(BankErrors.NotFound(id, _userContext.LanguageId));
-
-        entity.StateId = StateIdConst.PASSIVE;
-
-        await _command.UpdateAsync(entity, ct);
-        return Result.Success();
+        _bankBranchQuery = bankBranchQuery;
     }
 
     public async Task<Result<PagedResponse<BankListDto>>> GetAllAsync(BankListFilter filter, CancellationToken ct = default)
@@ -78,24 +44,32 @@ public class BankService : IBankService
         return entity;
     }
 
-    public async Task<Result> UpdateAsync(int id, BankUpdateDto dto, CancellationToken ct = default)
+    public async Task<Result<List<BankBranchDto>>> GetBranchesAsync(int bankId, CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<Bank>().Where(x => x.Id == id).Build();
-        var entity = await _query.GetAsync(query, ct);
+        if (!await _query.AnyAsync(x => x.Id == bankId, ct))
+            return Result.Failure<List<BankBranchDto>>(BankErrors.NotFound(bankId, _userContext.LanguageId));
 
-        if (entity == null)
-            return Result.Failure(BankErrors.NotFound(id, _userContext.LanguageId));
+        var query = _queryBuilder.For<BankBranch>()
+            .Where(x => x.BankId == bankId)
+            .As<BankBranchDto>()
+            .OrderBy(x => x.Name)
+            .Build();
 
-        if (entity.Code != dto.Code && await _query.AnyAsync(x => x.Code == dto.Code, ct))
-            return Result.Failure(BankErrors.CodeConflict(dto.Code, _userContext.LanguageId));
+        return await _bankBranchQuery.GetAllAsync(query, ct);
+    }
 
-        entity.Code = dto.Code;
-        entity.Name = dto.Name;
-        entity.Mfo = dto.Mfo;
-        entity.Inn = dto.Inn;
-        entity.StateId = dto.StateId;
+    public async Task<Result<BankBranchDto>> GetBranchByMfoAsync(string mfo, CancellationToken ct = default)
+    {
+        var normalizedMfo = mfo.Trim();
+        var query = _queryBuilder.For<BankBranch>()
+            .Where(x => x.Mfo == normalizedMfo)
+            .As<BankBranchDto>()
+            .Build();
+        var branch = await _bankBranchQuery.GetAsync(query, ct);
 
-        await _command.UpdateAsync(entity, ct);
-        return Result.Success();
+        if (branch == null)
+            return Result.Failure<BankBranchDto>(BankErrors.BranchNotFound(normalizedMfo, _userContext.LanguageId));
+
+        return branch;
     }
 }

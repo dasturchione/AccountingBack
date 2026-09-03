@@ -1,4 +1,5 @@
 using Application.Abstractions;
+using Application.Abstractions.Authentication;
 using Application.Features.CashOperations;
 using Application.Features.Register;
 using Domain.Entities;
@@ -10,17 +11,20 @@ namespace Application.Features.MoneyRegisterBalances;
 
 public class CashMoneyRegisterService : ICashMoneyRegisterService
 {
+    private readonly IUserContext _userContext;
     private readonly IQueryBuilder _queryBuilder;
     private readonly IQueryRepository<CashBox> _cashBoxQuery;
     private readonly IQueryRepository<MoneyRegisterBalance> _query;
     private readonly ICommandRepository<MoneyRegisterBalance> _command;
 
     public CashMoneyRegisterService(
+        IUserContext userContext,
         IQueryBuilder queryBuilder,
         IQueryRepository<CashBox> cashBoxQuery,
         IQueryRepository<MoneyRegisterBalance> query,
         ICommandRepository<MoneyRegisterBalance> command)
     {
+        _userContext = userContext;
         _queryBuilder = queryBuilder;
         _cashBoxQuery = cashBoxQuery;
         _query = query;
@@ -51,7 +55,7 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
     {
         var originals = await GetOriginalEntriesAsync(cashOperation.Id, ct);
         if (originals.Count == 0)
-            return Result.Failure<List<MoneyRegisterBalance>>(CashOperationErrors.MissingMoneyRegisterEntries(cashOperation.Id, null));
+            return Result.Failure<List<MoneyRegisterBalance>>(CashOperationErrors.MissingMoneyRegisterEntries(cashOperation.Id, _userContext.LanguageId));
 
         var now = DateTime.Now;
         var reversals = originals.Select(entry => new MoneyRegisterBalance
@@ -187,7 +191,8 @@ public class CashMoneyRegisterService : ICashMoneyRegisterService
     {
         var query = _queryBuilder.For<MoneyRegisterBalance>()
             .Where(x => (x.SourceType.StartsWith(RegisterDefaultsConst.CashOperation) ||
-                         x.SourceType == RegisterDefaultsConst.CashFiscalTransferCashBox) &&
+                         x.SourceType == RegisterDefaultsConst.CashFiscalTransferCashBox ||
+                         x.SourceType == RegisterDefaultsConst.CashCollection) &&
                         x.SourceId == cashBoxId &&
                         x.DocDate <= asOfDate)
             .Build();

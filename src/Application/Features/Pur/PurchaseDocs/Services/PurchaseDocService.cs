@@ -158,15 +158,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
 
             if (document.Status.Code != EdoDocumentStatusCode.SIGNED)
                 return Result.Failure<PurchaseDocPreviewDto>(
-                    Error.Business(
-                        "PurchasePreview.SignedDocumentRequired",
-                        "Only SIGNED EDO documents can be used for Purchase preview."));
+                    PurchaseDocErrors.PreviewSignedDocumentRequired(_userContext.LanguageId));
 
             if (!string.Equals(document.DocumentType, "FACTURA", StringComparison.OrdinalIgnoreCase))
                 return Result.Failure<PurchaseDocPreviewDto>(
-                    Error.Business(
-                        "PurchasePreview.UnsupportedDocumentType",
-                        "Only FACTURA EDO documents can be used for Purchase preview."));
+                    PurchaseDocErrors.PreviewUnsupportedDocumentType(_userContext.LanguageId));
 
             var duplicate = await _edoDocumentStore.FindByProviderDocumentIdAsync(
                 organizationId,
@@ -276,15 +272,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
 
             if (localDocument is null)
                 return Result.Failure<PurchaseDocDto>(
-                    Error.NotFound(
-                        "PurchaseFromEdo.InboxDocumentRequired",
-                        "The EDO document must first be available in the organization inbox scope."));
+                    PurchaseDocErrors.InboxDocumentNotFound(_userContext.LanguageId));
 
             if (!string.Equals(localDocument.Direction, EdoDirection.INBOX.ToString(), StringComparison.OrdinalIgnoreCase))
                 return Result.Failure<PurchaseDocDto>(
-                    Error.Business(
-                        "PurchaseFromEdo.InboxDocumentRequired",
-                        "Only EDO inbox documents can be imported as a Purchase."));
+                    PurchaseDocErrors.InboxDocumentRequired(_userContext.LanguageId));
 
             var existingPurchase = await GetLinkedPurchaseAsync(
                 organizationId,
@@ -352,21 +344,13 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         CancellationToken ct)
     {
         if (document.Direction != EdoDirection.INBOX)
-            return Result.Failure<PurchaseDocDto>(Error.Business(
-                "PurchaseFromEdo.InboxDocumentRequired",
-                "Only EDO inbox documents can be imported as a Purchase."));
+            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.InboxDocumentRequired(_userContext.LanguageId));
         if (document.Status.Code != EdoDocumentStatusCode.SIGNED)
-            return Result.Failure<PurchaseDocDto>(Error.Business(
-                "PurchaseFromEdo.SignedDocumentRequired",
-                "Only SIGNED EDO documents can be imported as a Purchase."));
+            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.SignedDocumentRequired(_userContext.LanguageId));
         if (!string.Equals(document.DocumentType, "FACTURA", StringComparison.OrdinalIgnoreCase))
-            return Result.Failure<PurchaseDocDto>(Error.Business(
-                "PurchaseFromEdo.UnsupportedDocumentType",
-                "Only FACTURA EDO documents can be imported as a Purchase."));
+            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.UnsupportedDocumentType(_userContext.LanguageId));
         if (!document.DocumentDate.HasValue)
-            return Result.Failure<PurchaseDocDto>(Error.Business(
-                "PurchaseFromEdo.DocumentDateRequired",
-                "The provider document date is required."));
+            return Result.Failure<PurchaseDocDto>(PurchaseDocErrors.DocumentDateRequired(_userContext.LanguageId));
 
         var errors = new List<PurchaseDocPreviewValidationErrorDto>();
         var counterparty = await ResolveCounterpartyAsync(
@@ -758,12 +742,10 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         return await _purchaseDocTableQuery.GetAllAsync(query, ct);
     }
 
-    private static Error CreateFromEdoValidationError() =>
-        Error.Business(
-            "PurchaseFromEdo.ValidationFailed",
-            "The EDO document mappings or provider values are not valid for Purchase creation.");
+    private Error CreateFromEdoValidationError() =>
+        PurchaseDocErrors.EdoValidationFailed(_userContext.LanguageId);
 
-    private static Error CreateFromHistoricalEdoValidationError(
+    private Error CreateFromHistoricalEdoValidationError(
         IReadOnlyCollection<PurchaseDocPreviewValidationErrorDto> errors)
     {
         var reason = errors.Select(error => error.Code)
@@ -776,9 +758,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         if (normalized.Length > 40)
             normalized = normalized[..40];
 
-        return Error.Business(
-            $"PurchaseFromEdo.HistoricalValidation.{normalized}",
-            "The historical EDO snapshot is not valid for Draft Purchase creation.");
+        return PurchaseDocErrors.HistoricalValidationFailed(normalized, _userContext.LanguageId);
     }
 
     private static void ValidateLineCoverage(

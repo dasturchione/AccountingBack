@@ -79,9 +79,6 @@ public partial class CmnState
     public virtual ICollection<CmnContract> CmnContracts { get; set; } = new List<CmnContract>();
 
     [InverseProperty("State")]
-    public virtual ICollection<CmnCounterpartyType> CmnCounterpartyTypes { get; set; } = new List<CmnCounterpartyType>();
-
-    [InverseProperty("State")]
     public virtual ICollection<CmnCurrency> CmnCurrencies { get; set; } = new List<CmnCurrency>();
 
     [InverseProperty("State")]

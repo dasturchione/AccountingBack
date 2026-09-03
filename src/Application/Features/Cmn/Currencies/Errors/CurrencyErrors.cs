@@ -9,7 +9,8 @@ public static class CurrencyErrors
         Error.NotFound("Currency.NotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan valyuta topilmadi.",
-            LanguageIdConst.RU => $"Currency with id {id} was not found.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган валюта топилмади.",
+            LanguageIdConst.RU => $"Валюта с id {id} не найдена.",
             _ => $"Currency with id {id} was not found."
         });
 
@@ -17,7 +18,8 @@ public static class CurrencyErrors
         Error.Conflict("Currency.CodeConflict", languageId switch
         {
             LanguageIdConst.UZ => $"Kodi '{code}' bo'lgan valyuta allaqachon mavjud.",
-            LanguageIdConst.RU => $"Currency with code '{code}' already exists.",
+            LanguageIdConst.UZ_CYRL => $"Коди '{code}' бўлган валюта аллақачон мавжуд.",
+            LanguageIdConst.RU => $"Валюта с кодом '{code}' уже существует.",
             _ => $"Currency with code '{code}' already exists."
         });
 }

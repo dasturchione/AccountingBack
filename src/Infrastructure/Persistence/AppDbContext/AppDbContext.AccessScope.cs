@@ -69,11 +69,13 @@ public partial class AppDbContext
 
 // To'g'ridan-to'g'ri OrganizationId mavjud entitylar
         ApplyScopedFilter<BankAccount>(modelBuilder);
-        ApplyScopedFilter<BankTerminal>(modelBuilder);
+        ApplyScopedFilter<PaymentAcceptancePoint>(modelBuilder);
+        ApplyScopedFilter<PaymentAcceptancePointOperation>(modelBuilder);
         ApplyScopedFilter<AccountingPeriod>(modelBuilder);
         ApplyScopedFilter<ChartAccount>(modelBuilder);
         ApplyScopedFilter<PostingBatch>(modelBuilder);
         ApplyScopedFilter<DocumentNumberSequence>(modelBuilder);
+        ApplyScopedFilter<DocumentRegistry>(modelBuilder);
         ApplyScopedFilter<OrganizationSetupState>(modelBuilder);
         ApplyScopedFilter<OrganizationEdoProvider>(modelBuilder);
         ApplyScopedFilter<EdoDocument>(modelBuilder);
@@ -111,10 +113,10 @@ public partial class AppDbContext
         ApplyScopedFilter<DocumentAccountSetting>(modelBuilder);
         ApplyScopedFilter<CounterpartyRegisterBalance>(modelBuilder);
         ApplyScopedFilter<MoneyRegisterBalance>(modelBuilder);
-        ApplyScopedFilter<InvRegBalance>(modelBuilder);
         ApplyScopedFilter<CurrencyRevaluation>(modelBuilder);
         ApplyScopedFilter<CashOperation>(modelBuilder);
         ApplyScopedFilter<CashFiscalTransferDoc>(modelBuilder);
+        ApplyScopedFilter<CashCollectionDoc>(modelBuilder);
         ApplyScopedFilter<Position>(modelBuilder);
         ApplyScopedFilter<CashBox>(modelBuilder);
         ApplyScopedFilter<FiscalCashRegister>(modelBuilder);
@@ -144,6 +146,8 @@ public partial class AppDbContext
         ApplyScopedFilter<PayPayrollCalcLine>(modelBuilder);
         ApplyScopedFilter<PayPaymentBatch>(modelBuilder);
         ApplyScopedFilter<PayPaymentLine>(modelBuilder);
+        ApplyScopedFilter<RentalContract>(modelBuilder);
+        ApplyScopedFilter<RentalAccrualDoc>(modelBuilder);
         ApplyScopedFilter<HrEmployeeWorkSchedule>(modelBuilder);
         ApplyScopedFilter<HrEmployeeWorkScheduleDay>(modelBuilder);
         ApplyScopedFilter<HrAbsence>(modelBuilder);

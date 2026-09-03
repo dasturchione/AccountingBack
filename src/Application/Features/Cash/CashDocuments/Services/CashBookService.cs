@@ -31,13 +31,13 @@ public class CashBookService : ICashBookService
     public async Task<Result<CashBookDto>> GetAsync(CashBookFilter filter, CancellationToken ct = default)
     {
         if (filter.CashBoxId <= 0)
-            return Result.Failure<CashBookDto>(Error.Business("CashBook.CashBoxRequired", "Cash box is required."));
+            return Result.Failure<CashBookDto>(CashBookErrors.CashBoxRequired(_userContext.LanguageId));
 
         if (filter.Page <= 0 || filter.PageSize <= 0)
-            return Result.Failure<CashBookDto>(Error.Business("CashBook.InvalidPagination", "Invalid pagination parameters."));
+            return Result.Failure<CashBookDto>(CashBookErrors.InvalidPagination(_userContext.LanguageId));
 
         if (filter.DateFrom.HasValue && filter.DateTo.HasValue && filter.DateFrom.Value.Date > filter.DateTo.Value.Date)
-            return Result.Failure<CashBookDto>(Error.Business("CashBook.InvalidDateRange", "DateFrom must be earlier than or equal to DateTo."));
+            return Result.Failure<CashBookDto>(CashBookErrors.InvalidDateRange(_userContext.LanguageId));
 
         var cashBoxQuery = _queryBuilder.For<CashBox>()
             .Where(x => x.Id == filter.CashBoxId && x.StateId == StateIdConst.ACTIVE)
@@ -45,7 +45,7 @@ public class CashBookService : ICashBookService
         var cashBox = await _cashBoxQuery.GetAsync(cashBoxQuery, ct);
 
         if (cashBox is null)
-            return Result.Failure<CashBookDto>(Error.NotFound("CashBook.CashBoxNotFound", $"Cash box {filter.CashBoxId} was not found."));
+            return Result.Failure<CashBookDto>(CashBookErrors.CashBoxNotFound(filter.CashBoxId, _userContext.LanguageId));
 
         var pageSize = filter.PageSize ?? DefaultPageSize;
         var dateFrom = filter.DateFrom?.Date;

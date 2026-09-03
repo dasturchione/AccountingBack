@@ -20,16 +20,3 @@ public sealed class WarehouseProductDto
     public IReadOnlyList<int> AvailableProductTableIds { get; init; } = Array.Empty<int>();
     public IReadOnlyList<WarehouseProductBatchDto> Batches { get; init; } = Array.Empty<WarehouseProductBatchDto>();
 }
-
-public sealed class WarehouseProductBatchDto
-{
-    public long BatchId { get; init; }
-    public string BatchNumber { get; init; } = null!;
-    public DateTime ReceivedDate { get; init; }
-    public long DocumentId { get; init; }
-    public decimal Quantity { get; init; }
-    public decimal ReservedQuantity { get; init; }
-    public decimal BlockedQuantity { get; init; }
-    public decimal AvailableQuantity { get; init; }
-    public decimal UnitCost { get; init; }
-}

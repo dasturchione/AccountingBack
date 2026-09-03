@@ -50,12 +50,40 @@ public static class PermissionCodeConst
     public const string OrgBankAccountDelete     = "ORG_BANK_ACCOUNT_DELETE";
     #endregion
 
-    #region BankTerminal
-    public const string BankTerminalView       = "BANK_TERMINAL_VIEW";
-    public const string BankTerminalViewDetail = "BANK_TERMINAL_VIEW_DETAIL";
-    public const string BankTerminalCreate     = "BANK_TERMINAL_CREATE";
-    public const string BankTerminalUpdate     = "BANK_TERMINAL_UPDATE";
-    public const string BankTerminalDelete     = "BANK_TERMINAL_DELETE";
+    #region PaymentAcceptancePoint
+    public const string PaymentAcceptancePointView       = "PAYMENT_ACCEPTANCE_POINT_VIEW";
+    public const string PaymentAcceptancePointViewDetail = "PAYMENT_ACCEPTANCE_POINT_VIEW_DETAIL";
+    public const string PaymentAcceptancePointCreate     = "PAYMENT_ACCEPTANCE_POINT_CREATE";
+    public const string PaymentAcceptancePointUpdate     = "PAYMENT_ACCEPTANCE_POINT_UPDATE";
+    public const string PaymentAcceptancePointDelete     = "PAYMENT_ACCEPTANCE_POINT_DELETE";
+    #endregion
+
+    #region Rental
+    public const string RentalContractView = "RENTAL_CONTRACT_VIEW";
+    public const string RentalContractViewDetail = "RENTAL_CONTRACT_VIEW_DETAIL";
+    public const string RentalContractCreate = "RENTAL_CONTRACT_CREATE";
+    public const string RentalContractUpdate = "RENTAL_CONTRACT_UPDATE";
+    public const string RentalContractDelete = "RENTAL_CONTRACT_DELETE";
+    public const string RentalContractActivate = "RENTAL_CONTRACT_ACTIVATE";
+    public const string RentalContractCancel = "RENTAL_CONTRACT_CANCEL";
+    public const string RentalAccrualView = "RENTAL_ACCRUAL_VIEW";
+    public const string RentalAccrualViewDetail = "RENTAL_ACCRUAL_VIEW_DETAIL";
+    public const string RentalAccrualUpdate = "RENTAL_ACCRUAL_UPDATE";
+    public const string RentalAccrualDelete = "RENTAL_ACCRUAL_DELETE";
+    public const string RentalAccrualGenerate = "RENTAL_ACCRUAL_GENERATE";
+    public const string RentalAccrualPost = "RENTAL_ACCRUAL_POST";
+    public const string RentalAccrualCancel = "RENTAL_ACCRUAL_CANCEL";
+    #endregion
+
+    #region PaymentAcceptancePointOperation
+    public const string PaymentAcceptancePointOperationView       = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW";
+    public const string PaymentAcceptancePointOperationViewDetail = "PAYMENT_ACCEPTANCE_POINT_OPERATION_VIEW_DETAIL";
+    public const string PaymentAcceptancePointOperationCreate     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CREATE";
+    public const string PaymentAcceptancePointOperationUpdate     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_UPDATE";
+    public const string PaymentAcceptancePointOperationDelete     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_DELETE";
+    public const string PaymentAcceptancePointOperationConfirm    = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CONFIRM";
+    public const string PaymentAcceptancePointOperationCancel     = "PAYMENT_ACCEPTANCE_POINT_OPERATION_CANCEL";
+    public const string PaymentAcceptancePointOperationBalance    = "PAYMENT_ACCEPTANCE_POINT_OPERATION_BALANCE";
     #endregion
 
     #region CashBox
@@ -109,6 +137,16 @@ public static class PermissionCodeConst
     public const string CashFiscalTransferDelete = "CASH_FISCAL_TRANSFER_DELETE";
     public const string ConfirmCashFiscalTransfer = "CONFIRM_CASH_FISCAL_TRANSFER";
     public const string CancelCashFiscalTransfer = "CANCEL_CASH_FISCAL_TRANSFER";
+    #endregion
+
+    #region CashCollection
+    public const string CashCollectionView = "CASH_COLLECTION_VIEW";
+    public const string CashCollectionViewDetail = "CASH_COLLECTION_VIEW_DETAIL";
+    public const string CashCollectionCreate = "CASH_COLLECTION_CREATE";
+    public const string CashCollectionUpdate = "CASH_COLLECTION_UPDATE";
+    public const string CashCollectionDelete = "CASH_COLLECTION_DELETE";
+    public const string CashCollectionSendToBank = "CASH_COLLECTION_SEND_TO_BANK";
+    public const string CashCollectionCancel = "CASH_COLLECTION_CANCEL";
     #endregion
 
     #region DocumentAccountSetting
@@ -177,7 +215,6 @@ public static class PermissionCodeConst
     public const string ManualGetCurrencies               = "MANUAL_GET_CURRENCIES";
     public const string ManualGetUnits                    = "MANUAL_GET_UNITS";
     public const string ManualGetDocumentStatuses         = "MANUAL_GET_DOCUMENT_STATUSES";
-    public const string ManualGetCounterpartyTypes        = "MANUAL_GET_COUNTERPARTY_TYPES";
     public const string ManualGetPaymentTypes             = "MANUAL_GET_PAYMENT_TYPES";
     public const string ManualGetInventoryAdjustmentTypes = "MANUAL_GET_INVENTORY_ADJUSTMENT_TYPES";
     public const string ManualGetFaGroups                 = "MANUAL_GET_FA_GROUPS";
@@ -201,8 +238,6 @@ public static class PermissionCodeConst
     public const string ManualGetPositions                = "MANUAL_GET_POSITIONS";
     public const string ManualGetContracts                = "MANUAL_GET_CONTRACTS";
     public const string ManualGetCounterparties           = "MANUAL_GET_COUNTERPARTIES";
-    public const string ManualGetSuppliers                = "MANUAL_GET_SUPPLIERS";
-    public const string ManualGetClients                  = "MANUAL_GET_CLIENTS";
     public const string ManualGetProductGroups            = "MANUAL_GET_PRODUCT_GROUPS";
     public const string ManualGetProducts                 = "MANUAL_GET_PRODUCTS";
     public const string ManualGetWarehouses               = "MANUAL_GET_WAREHOUSES";
@@ -214,7 +249,8 @@ public static class PermissionCodeConst
     public const string ManualGetCashOperations           = "MANUAL_GET_CASH_OPERATIONS";
     public const string ManualGetLanguages                = "MANUAL_GET_LANGUAGES";
     public const string ManualGetModuleSubGroups          = "MANUAL_GET_MODULE_SUB_GROUPS";
-    public const string ManualGetBankTerminals            = "MANUAL_GET_BANK_TERMINALS";
+    public const string ManualGetPaymentAcceptancePoints      = "MANUAL_GET_PAYMENT_ACCEPTANCE_POINTS";
+    public const string ManualGetPaymentAcceptancePointTypes  = "MANUAL_GET_PAYMENT_ACCEPTANCE_POINT_TYPES";
     public const string ManualGetPaymentMethods           = "MANUAL_GET_PAYMENT_METHODS";
     public const string ManualGetFiscalCashRegisters      = "MANUAL_GET_FISCAL_CASH_REGISTERS";
     public const string ManualGetFiscalCashRegisterTypes  = "MANUAL_GET_FISCAL_CASH_REGISTER_TYPES";

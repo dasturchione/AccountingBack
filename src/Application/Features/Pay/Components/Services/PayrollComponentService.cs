@@ -121,7 +121,7 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
                 return Result.Failure(PayrollErrors.NotFound("Component", id, _userContext.LanguageId));
 
             if (await IsUsedByPostedPayrollAsync(id, ct))
-                return Result.Failure(PayrollErrors.ComponentAlreadyUsed(id));
+                return Result.Failure(PayrollErrors.ComponentAlreadyUsed(id, _userContext.LanguageId));
 
             var validation = await ValidateAsync(dto, entity.OrganizationId, id, ct);
             if (!validation.IsSuccess)
@@ -161,7 +161,7 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
                 x.Id != currentId &&
                 x.Code == code &&
                 x.EffectiveFrom == dto.EffectiveFrom, ct))
-            return Result.Failure(PayrollErrors.Conflict("ComponentConflict", $"'{code}' hisoblash komponenti {dto.EffectiveFrom} sanasi uchun allaqachon mavjud."));
+            return Result.Failure(PayrollErrors.Conflict("ComponentConflict", $"'{code}' hisoblash komponenti {dto.EffectiveFrom} sanasi uchun allaqachon mavjud.", _userContext.LanguageId));
 
         var accountIds = new[] { dto.ExpenseAccountId, dto.LiabilityAccountId }
             .Where(x => x.HasValue)
@@ -179,7 +179,7 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             var existing = await _accountQuery.GetAllAsync(accountQuery, ct);
             var missing = accountIds.Except(existing).FirstOrDefault();
             if (missing > 0)
-                return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", missing));
+                return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", missing, _userContext.LanguageId));
         }
 
         return Result.Success();

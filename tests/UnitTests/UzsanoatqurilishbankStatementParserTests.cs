@@ -6,17 +6,16 @@ namespace UnitTests;
 public sealed class UzsanoatqurilishbankStatementParserTests
 {
     [Fact]
-    public async Task ParseExcelAsync_ParsesNineColumnUzsanoatqurilishbankTemplate()
+    public void ParseExcel_ParsesNineColumnUzsanoatqurilishbankTemplate()
     {
         using var stream = CreateWorkbook();
-        var service = new BankStatementParserService(null!, null!, null!, null!, null!, null!);
+        using var workbook = new XLWorkbook(stream);
 
-        var result = await service.ParseExcelAsync(
-            stream,
-            BankStatementBankType.Uzsanoatqurilishbank);
+        var export = BankStatementTemplateParser.Parse(
+            workbook,
+            BankStatementTemplateTestData.CreateUzsanoatqurilishbank());
 
-        Assert.True(result.IsSuccess);
-        var statement = Assert.Single(result.Value.Accounts);
+        var statement = Assert.Single(export.Accounts);
         Assert.Equal("ТОШКЕНТ Ш., \"УЗСАНОАТКУРИЛИШБАНКИ\" АТБ БОШ ОФИСИ", statement.BankName);
         Assert.Equal("20208000607099548001", statement.AccountNumber);
         Assert.Equal("DANIEFF TEAM TRADERS MCHJ", statement.CompanyName);

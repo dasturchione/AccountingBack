@@ -81,7 +81,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetDashboardAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PlatformDashboardDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PlatformDashboardDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var statsResult = await _dashboardService.GetStatsAsync(ct);
             if (!statsResult.IsSuccess)
@@ -111,7 +111,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantsAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PagedResponse<PlatformTenantDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PagedResponse<PlatformTenantDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
@@ -139,11 +139,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantByIdAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PlatformTenantDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PlatformTenantDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var tenant = await GetTenantEntityAsync(id, ct);
             return tenant is null
-                ? Result.Failure<PlatformTenantDto>(PlatformErrors.TenantNotFound(id))
+                ? Result.Failure<PlatformTenantDto>(PlatformErrors.TenantNotFound(id, _userContext.LanguageId))
                 : Result.Success(await MapTenantAsync(tenant, ct));
         });
 
@@ -151,11 +151,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteInTransactionAsync(nameof(CreateTenantAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var slug = NormalizeSlug(dto.Slug ?? dto.Name);
             if (await _tenantQuery.AnyAsync(x => x.Slug == slug, ct))
-                return Result.Failure<int>(PlatformErrors.TenantSlugConflict(slug));
+                return Result.Failure<int>(PlatformErrors.TenantSlugConflict(slug, _userContext.LanguageId));
 
             var now = DateTime.Now;
             var tenant = new PlatformTenant
@@ -188,19 +188,19 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(UpdateTenantAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var tenant = await GetTenantEntityAsync(id, ct);
             if (tenant is null)
-                return Result.Failure(PlatformErrors.TenantNotFound(id));
+                return Result.Failure(PlatformErrors.TenantNotFound(id, _userContext.LanguageId));
 
             var slug = NormalizeSlug(dto.Slug ?? dto.Name);
             if (await _tenantQuery.AnyAsync(x => x.Id != id && x.Slug == slug, ct))
-                return Result.Failure(PlatformErrors.TenantSlugConflict(slug));
+                return Result.Failure(PlatformErrors.TenantSlugConflict(slug, _userContext.LanguageId));
 
             if (dto.OwnerUserId.HasValue &&
                 !await _userQuery.AnyAsync(x => x.Id == dto.OwnerUserId.Value && x.TenantId == id, ct))
-                return Result.Failure(PlatformErrors.UserNotFound(dto.OwnerUserId.Value));
+                return Result.Failure(PlatformErrors.UserNotFound(dto.OwnerUserId.Value, _userContext.LanguageId));
 
             tenant.Name = dto.Name.Trim();
             tenant.Slug = slug;
@@ -221,10 +221,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteInTransactionAsync(nameof(CreateTenantUserAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             var organizationValidation = await ValidateTenantOrganizationsAsync(tenantId, dto.Organizations, ct);
             if (organizationValidation is not null)
@@ -243,10 +243,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteInTransactionAsync(nameof(UpdateTenantUserAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantUserAsync(tenantId, userId, ct) is null)
-                return Result.Failure(PlatformErrors.UserNotFound(userId));
+                return Result.Failure(PlatformErrors.UserNotFound(userId, _userContext.LanguageId));
 
             var organizationValidation = await ValidateTenantOrganizationsAsync(tenantId, dto.Organizations, ct);
             if (organizationValidation is not null)
@@ -268,11 +268,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(SetTenantUserPasswordAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var user = await GetTenantUserAsync(tenantId, userId, ct);
             if (user is null)
-                return Result.Failure(PlatformErrors.UserNotFound(userId));
+                return Result.Failure(PlatformErrors.UserNotFound(userId, _userContext.LanguageId));
 
             var salt = _passwordHasher.GenerateSalt();
             user.PasswordSalt = salt;
@@ -284,10 +284,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantUsersAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PagedResponse<PlatformUserDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PagedResponse<PlatformUserDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<PagedResponse<PlatformUserDto>>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<PagedResponse<PlatformUserDto>>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
@@ -321,10 +321,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantUserByIdAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             var userQuery = _queryBuilder.For<User>()
                 .Where(x => x.Id == userId && x.TenantId == tenantId)
@@ -332,7 +332,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
                 .Build();
             var user = await _userQuery.GetAsync(userQuery, ct);
             if (user is null)
-                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.UserNotFound(userId));
+                return Result.Failure<PlatformUserDetailDto>(PlatformErrors.UserNotFound(userId, _userContext.LanguageId));
 
             var result = MapPlatformUserDetail(user);
             result.Organizations = await GetTenantUserOrganizationsAsync(tenantId, userId, null, ct);
@@ -343,13 +343,13 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(CreateTenantOrganizationAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<int>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<int>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             if (await _organizationQuery.AnyAsync(x => x.Inn == dto.Inn, ct))
-                return Result.Failure<int>(PlatformErrors.OrganizationInnConflict(dto.Inn));
+                return Result.Failure<int>(PlatformErrors.OrganizationInnConflict(dto.Inn, _userContext.LanguageId));
 
             var organization = new Organization
             {
@@ -385,10 +385,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantOrganizationsAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PagedResponse<PlatformOrganizationDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PagedResponse<PlatformOrganizationDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<PagedResponse<PlatformOrganizationDto>>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<PagedResponse<PlatformOrganizationDto>>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
@@ -429,10 +429,10 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetTenantOrganizationByIdAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             if (await GetTenantEntityAsync(tenantId, ct) is null)
-                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             var query = _queryBuilder.For<Organization>()
                 .Where(x => x.Id == organizationId && x.TenantId == tenantId)
@@ -446,7 +446,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
             });
             var organization = await _organizationQuery.GetAsync(query, ct);
             if (organization is null)
-                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure<PlatformOrganizationDetailDto>(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             var result = MapPlatformOrganizationDetail(await MapOrganizationAsync(organization, ct));
             result.Users = await GetTenantUserOrganizationsAsync(tenantId, null, organizationId, ct);
@@ -457,7 +457,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(nameof(GetAuditLogsAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<PagedResponse<PlatformAuditLogDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<PagedResponse<PlatformAuditLogDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var page = Math.Max(filter.Page, 1);
             var pageSize = filter.PageSize is > 0 ? filter.PageSize.Value : 50;
@@ -495,11 +495,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(operationName, async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var tenant = await GetTenantEntityAsync(tenantId, ct);
             if (tenant is null)
-                return Result.Failure(PlatformErrors.TenantNotFound(tenantId));
+                return Result.Failure(PlatformErrors.TenantNotFound(tenantId, _userContext.LanguageId));
 
             tenant.StateId = stateId;
             tenant.UpdatedDate = DateTime.Now;
@@ -511,11 +511,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(operationName, async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var user = await GetTenantUserAsync(tenantId, userId, ct);
             if (user is null)
-                return Result.Failure(PlatformErrors.UserNotFound(userId));
+                return Result.Failure(PlatformErrors.UserNotFound(userId, _userContext.LanguageId));
 
             user.StateId = stateId;
             await _userCommand.UpdateAsync(user, ct);
@@ -526,11 +526,11 @@ public sealed partial class PlatformService : BaseService, IPlatformService
         ExecuteAsync(operationName, async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var organization = await GetTenantOrganizationAsync(tenantId, organizationId, ct);
             if (organization is null)
-                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId));
+                return Result.Failure(PlatformErrors.OrganizationNotFound(organizationId, _userContext.LanguageId));
 
             organization.StateId = stateId;
             await _organizationCommand.UpdateAsync(organization, ct);
@@ -565,7 +565,7 @@ public sealed partial class PlatformService : BaseService, IPlatformService
 
         return invalidOrganizationId == default
             ? null
-            : PlatformErrors.OrganizationNotFound(invalidOrganizationId);
+            : PlatformErrors.OrganizationNotFound(invalidOrganizationId, _userContext.LanguageId);
     }
 
     private Task<List<PlatformUserOrganizationDto>> GetTenantUserOrganizationsAsync(

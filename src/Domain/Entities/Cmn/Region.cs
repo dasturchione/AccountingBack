@@ -19,6 +19,10 @@ public partial class Region
     [StringLength(250)]
     public string FullName { get; set; } = null!;
 
+    [Column("code")]
+    [StringLength(10)]
+    public string Code { get; set; } = string.Empty;
+
     [Column("state_id")]
     public short StateId { get; set; }
 
@@ -30,6 +34,9 @@ public partial class Region
 
     [InverseProperty("Region")]
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
+
+    [InverseProperty(nameof(BankBranch.Region))]
+    public virtual ICollection<BankBranch> BankBranches { get; set; } = new List<BankBranch>();
 
     [InverseProperty("Region")]
     public virtual ICollection<Organization> Organizations { get; set; } = new List<Organization>();

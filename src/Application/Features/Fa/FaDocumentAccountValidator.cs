@@ -51,7 +51,7 @@ public sealed class FaDocumentAccountValidator : IFaDocumentAccountValidator
     {
         var missing = requirements.FirstOrDefault(item => item.IsRequired && !item.AccountId.HasValue);
         if (missing is not null)
-            return Result.Failure(AccountRequired(missing.RoleCode));
+            return Result.Failure(FaDocumentErrors.AccountRequired(missing.RoleCode, _userContext.LanguageId));
 
         var accountIds = requirements
             .Where(item => item.AccountId.HasValue)
@@ -73,7 +73,7 @@ public sealed class FaDocumentAccountValidator : IFaDocumentAccountValidator
 
         var invalidAccountId = accountIds.FirstOrDefault(id => !activeAccountIds.Contains(id));
         if (invalidAccountId != 0)
-            return Result.Failure(AccountUnavailable(invalidAccountId));
+            return Result.Failure(FaDocumentErrors.AccountUnavailable(invalidAccountId, _userContext.LanguageId));
 
         var roleCodes = requirements
             .Select(item => item.RoleCode)
@@ -126,40 +126,11 @@ public sealed class FaDocumentAccountValidator : IFaDocumentAccountValidator
                     setting.RoleCode == requirement.RoleCode &&
                     setting.ChartAccountId == accountId))
             {
-                return Result.Failure(AccountNotAllowed(accountId, requirement.RoleCode));
+                return Result.Failure(FaDocumentErrors.AccountNotAllowed(accountId, requirement.RoleCode, _userContext.LanguageId));
             }
         }
 
         return Result.Success();
     }
 
-    private Error AccountRequired(string roleCode) =>
-        Error.Business(
-            "Fa.AccountRequired",
-            _userContext.LanguageId switch
-            {
-                LanguageIdConst.UZ => $"'{roleCode}' roli uchun hisob ko'rsatilishi shart.",
-                LanguageIdConst.RU => $"Для роли '{roleCode}' необходимо указать счёт.",
-                _ => $"An account is required for role '{roleCode}'."
-            });
-
-    private Error AccountUnavailable(int accountId) =>
-        Error.Business(
-            "Fa.AccountUnavailable",
-            _userContext.LanguageId switch
-            {
-                LanguageIdConst.UZ => $"Id-si {accountId} bo'lgan hisob faol emas yoki joriy tashkilotga tegishli emas.",
-                LanguageIdConst.RU => $"Счёт с id {accountId} неактивен или не принадлежит текущей организации.",
-                _ => $"Account with id {accountId} is inactive or does not belong to the current organization."
-            });
-
-    private Error AccountNotAllowed(int accountId, string roleCode) =>
-        Error.Business(
-            "Fa.AccountNotAllowed",
-            _userContext.LanguageId switch
-            {
-                LanguageIdConst.UZ => $"Id-si {accountId} bo'lgan hisob '{roleCode}' roli uchun ruxsat etilmagan.",
-                LanguageIdConst.RU => $"Для роли '{roleCode}' необходимо указать счёт.",
-                _ => $"Account with id {accountId} is not allowed for role '{roleCode}'."
-            });
 }

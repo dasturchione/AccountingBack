@@ -123,7 +123,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             var dto = await GetDtoInternalAsync(id, ct);
             return dto is null
-                ? Result.Failure<HrAbsenceDto>(HrErrors.NotFound("Absence", id))
+                ? Result.Failure<HrAbsenceDto>(HrErrors.NotFound("Absence", id, _userContext.LanguageId))
                 : Result.Success(dto);
         });
 
@@ -197,12 +197,13 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             var entity = await GetEntityAsync(id, includeAttachments: false, ct);
             if (entity is null)
-                return Result.Failure(HrErrors.NotFound("Absence", id));
+                return Result.Failure(HrErrors.NotFound("Absence", id, _userContext.LanguageId));
 
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘zgartirib bo‘lmaydi."));
+                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘zgartirib bo‘lmaydi.",
+                    _userContext.LanguageId));
 
             var validation = await ValidateAsync(dto, id, ct);
             if (!validation.IsSuccess)
@@ -232,12 +233,13 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             var entity = await GetEntityAsync(id, includeAttachments: true, ct);
             if (entity is null)
-                return Result.Failure(HrErrors.NotFound("Absence", id));
+                return Result.Failure(HrErrors.NotFound("Absence", id, _userContext.LanguageId));
 
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘chirib bo‘lmaydi."));
+                    "Ushbu yo‘qlik hujjati tasdiqlangan tabelda ishlatilgan, shuning uchun uni o‘chirib bo‘lmaydi.",
+                    _userContext.LanguageId));
 
             _auditLogService.SetOldValues((await GetDtoInternalAsync(id, ct))!);
             await _absenceCommand.DeleteAsync(entity, ct);
@@ -257,15 +259,16 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             if (files.Count == 0)
                 return Result.Failure<List<HrAbsenceAttachmentDto>>(
-                    HrErrors.Business("EmptyAttachments", "Kamida bitta fayl tanlanishi kerak."));
+                    HrErrors.Business("EmptyAttachments", "Kamida bitta fayl tanlanishi kerak.", _userContext.LanguageId));
 
             var entity = await GetEntityAsync(id, includeAttachments: false, ct);
             if (entity is null)
-                return Result.Failure<List<HrAbsenceAttachmentDto>>(HrErrors.NotFound("Absence", id));
+                return Result.Failure<List<HrAbsenceAttachmentDto>>(HrErrors.NotFound("Absence", id, _userContext.LanguageId));
             if (await IsLockedByPostedTimesheetAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, ct))
                 return Result.Failure<List<HrAbsenceAttachmentDto>>(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi."));
+                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi.",
+                    _userContext.LanguageId));
 
             return await AddAttachmentsCoreAsync(entity, files, ct);
         }, ct);
@@ -278,7 +281,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             var attachment = await GetAttachmentAsync(absenceId, attachmentId, ct);
             if (attachment is null)
-                return Result.Failure<HrAttachmentDownload>(HrErrors.NotFound("AbsenceAttachment", attachmentId));
+                return Result.Failure<HrAttachmentDownload>(HrErrors.NotFound("AbsenceAttachment", attachmentId, _userContext.LanguageId));
 
             var local = await _fileStorage.OpenAsync(attachment.FilePath, ct);
             if (local is null)
@@ -292,12 +295,12 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 catch
                 {
                     return Result.Failure<HrAttachmentDownload>(
-                        HrErrors.FileStorage("Fayl serverda ham, Telegram arxivida ham topilmadi."));
+                        HrErrors.FileStorage("Fayl serverda ham, Telegram arxivida ham topilmadi.", _userContext.LanguageId));
                 }
             }
 
             return local is null
-                ? Result.Failure<HrAttachmentDownload>(HrErrors.FileStorage("Faylni qayta tiklab bo‘lmadi."))
+                ? Result.Failure<HrAttachmentDownload>(HrErrors.FileStorage("Faylni qayta tiklab bo‘lmadi.", _userContext.LanguageId))
                 : Result.Success(new HrAttachmentDownload(local, attachment.ContentType, attachment.OriginalFileName));
         });
 
@@ -309,14 +312,15 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         {
             var attachment = await GetAttachmentAsync(absenceId, attachmentId, ct);
             if (attachment is null)
-                return Result.Failure(HrErrors.NotFound("AbsenceAttachment", attachmentId));
+                return Result.Failure(HrErrors.NotFound("AbsenceAttachment", attachmentId, _userContext.LanguageId));
             var absence = await GetEntityAsync(absenceId, includeAttachments: false, ct);
             if (absence is null)
-                return Result.Failure(HrErrors.NotFound("Absence", absenceId));
+                return Result.Failure(HrErrors.NotFound("Absence", absenceId, _userContext.LanguageId));
             if (await IsLockedByPostedTimesheetAsync(absence.EmployeeId, absence.StartDate, absence.EndDate, ct))
                 return Result.Failure(HrErrors.Conflict(
                     "AbsenceLocked",
-                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi."));
+                    "Yo‘qlik hujjati tasdiqlangan tabelda ishlatilgandan keyin uning fayllarini o‘zgartirib bo‘lmaydi.",
+                    _userContext.LanguageId));
 
             await _attachmentCommand.DeleteAsync(attachment, ct);
             await CleanupFilesAsync([attachment], CancellationToken.None);
@@ -411,7 +415,7 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
 
             await CleanupArtifactsAsync(localPaths, telegramMessageIds, CancellationToken.None);
             return Result.Failure<List<HrAbsenceAttachmentDto>>(
-                HrErrors.FileStorage("Faylni AppData va Telegram arxiviga saqlab bo‘lmadi."));
+                HrErrors.FileStorage("Faylni AppData va Telegram arxiviga saqlab bo‘lmadi.", _userContext.LanguageId));
         }
     }
 
@@ -420,19 +424,19 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
         if (_userContext.OrganizationId is null)
             return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
         if (dto.EndDate < dto.StartDate)
-            return Result.Failure(HrErrors.Business("InvalidAbsenceDates", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas."));
+            return Result.Failure(HrErrors.Business("InvalidAbsenceDates", "Tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas.", _userContext.LanguageId));
         if (dto.EndDate.DayNumber - dto.StartDate.DayNumber > 731)
-            return Result.Failure(HrErrors.Business("AbsenceRangeTooLarge", "Bitta yo‘qlik hujjati davri ikki yildan oshmasligi kerak."));
+            return Result.Failure(HrErrors.Business("AbsenceRangeTooLarge", "Bitta yo‘qlik hujjati davri ikki yildan oshmasligi kerak.", _userContext.LanguageId));
         if (dto.Note?.Length > 1000)
-            return Result.Failure(HrErrors.Business("AbsenceNoteTooLong", "Izoh 1000 ta belgidan oshmasligi kerak."));
+            return Result.Failure(HrErrors.Business("AbsenceNoteTooLong", "Izoh 1000 ta belgidan oshmasligi kerak.", _userContext.LanguageId));
 
         if (!await _employeeQuery.AnyAsync(x =>
                 x.Id == dto.EmployeeId &&
                 x.OrganizationId == _userContext.OrganizationId.Value &&
                 x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(HrErrors.NotFound("Employee", dto.EmployeeId));
+            return Result.Failure(HrErrors.NotFound("Employee", dto.EmployeeId, _userContext.LanguageId));
         if (!await _typeQuery.AnyAsync(x => x.Id == dto.AbsenceTypeId && x.StateId == StateIdConst.ACTIVE, ct))
-            return Result.Failure(HrErrors.NotFound("AbsenceType", dto.AbsenceTypeId));
+            return Result.Failure(HrErrors.NotFound("AbsenceType", dto.AbsenceTypeId, _userContext.LanguageId));
         if (!await _employmentQuery.AnyAsync(x =>
                 x.EmployeeId == dto.EmployeeId &&
                 x.StateId == StateIdConst.ACTIVE &&
@@ -440,7 +444,8 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 (!x.EndDate.HasValue || x.EndDate.Value >= dto.EndDate), ct))
             return Result.Failure(HrErrors.Business(
                 "AbsenceOutsideEmployment",
-                "Yo‘qlik davri xodimning amaldagi ishga qabul davri ichida bo‘lishi kerak."));
+                "Yo‘qlik davri xodimning amaldagi ishga qabul davri ichida bo‘lishi kerak.",
+                _userContext.LanguageId));
         if (await _absenceQuery.AnyAsync(x =>
                 x.EmployeeId == dto.EmployeeId &&
                 x.StateId == StateIdConst.ACTIVE &&
@@ -449,11 +454,13 @@ public sealed class HrAbsenceService : BaseService, IHrAbsenceService
                 x.EndDate >= dto.StartDate, ct))
             return Result.Failure(HrErrors.Conflict(
                 "AbsenceOverlap",
-                "Tanlangan davrda xodim uchun boshqa yo‘qlik hujjati mavjud."));
+                "Tanlangan davrda xodim uchun boshqa yo‘qlik hujjati mavjud.",
+                _userContext.LanguageId));
         if (await IsLockedByPostedTimesheetAsync(dto.EmployeeId, dto.StartDate, dto.EndDate, ct))
             return Result.Failure(HrErrors.Conflict(
                 "PostedTimesheet",
-                "Tasdiqlangan tabel mavjud bo‘lgan davr uchun yo‘qlik hujjatini yaratish yoki o‘zgartirish mumkin emas."));
+                "Tasdiqlangan tabel mavjud bo‘lgan davr uchun yo‘qlik hujjatini yaratish yoki o‘zgartirish mumkin emas.",
+                _userContext.LanguageId));
 
         return Result.Success();
     }

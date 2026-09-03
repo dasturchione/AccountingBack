@@ -20,6 +20,7 @@ public class TrialBalanceItemDto
 {
     public int AccountId { get; set; }
     public string AccountCode { get; set; } = null!;
+    public string AccountNumber { get; set; } = null!;
     public string AccountName { get; set; } = null!;
     public decimal OpeningDebit { get; set; }
     public decimal OpeningCredit { get; set; }

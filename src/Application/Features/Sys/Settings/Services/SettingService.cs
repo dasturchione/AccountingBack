@@ -70,7 +70,7 @@ public sealed class SettingService : BaseService, ISettingService
         ExecuteAsync(nameof(GetAllAsync), async () =>
         {
             if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-                return Result.Failure<List<SettingDto>>(PlatformErrors.GlobalAccessRequired());
+                return Result.Failure<List<SettingDto>>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
             var normalizedCategory = NormalizeCategory(category);
             var items = await _query.GetAllAsync(_queryBuilder.For<SystemSetting>()
@@ -93,7 +93,7 @@ public sealed class SettingService : BaseService, ISettingService
 
             var setting = settingResult.Value;
             if (!setting.IsEditable)
-                return Result.Failure(SettingErrors.ReadOnly(setting.Code));
+                return Result.Failure(SettingErrors.ReadOnly(setting.Code, _userContext.LanguageId));
 
             var validationError = ValidateValue(setting.Code, setting.ValueType, value);
             if (validationError is not null)
@@ -109,7 +109,7 @@ public sealed class SettingService : BaseService, ISettingService
     private async Task<Result<SystemSetting>> GetSettingAsync(string code, CancellationToken ct)
     {
         if (_userContext.UserKind != CurrentUserKind.SuperAdmin)
-            return Result.Failure<SystemSetting>(PlatformErrors.GlobalAccessRequired());
+            return Result.Failure<SystemSetting>(PlatformErrors.GlobalAccessRequired(_userContext.LanguageId));
 
         var normalizedCode = NormalizeCode(code);
         var setting = await _query.GetAsync(_queryBuilder.For<SystemSetting>()
@@ -119,7 +119,7 @@ public sealed class SettingService : BaseService, ISettingService
             .Build(), ct);
 
         return setting is null
-            ? Result.Failure<SystemSetting>(SettingErrors.NotFound(normalizedCode))
+            ? Result.Failure<SystemSetting>(SettingErrors.NotFound(normalizedCode, _userContext.LanguageId))
             : Result.Success(setting);
     }
 
@@ -134,7 +134,7 @@ public sealed class SettingService : BaseService, ISettingService
             IsEditable = setting.IsEditable
         };
 
-    private static Result<T> ParseValue<T>(SystemSetting setting)
+    private Result<T> ParseValue<T>(SystemSetting setting)
     {
         var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
@@ -142,31 +142,31 @@ public sealed class SettingService : BaseService, ISettingService
         {
             case StringValueType:
                 if (targetType != typeof(string))
-                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name));
+                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name, _userContext.LanguageId));
 
                 return Result.Success((T)(object?)setting.Value!);
 
             case IntValueType:
                 if (targetType != typeof(int))
-                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name));
+                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name, _userContext.LanguageId));
 
                 if (!int.TryParse(setting.Value, out var intValue))
-                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code));
+                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code, _userContext.LanguageId));
 
                 return Result.Success(CastValue<T, int>(intValue));
 
             case BoolValueType:
                 if (targetType != typeof(bool))
-                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name));
+                    return Result.Failure<T>(SettingErrors.TypeMismatch(setting.Code, typeof(T).Name, _userContext.LanguageId));
 
                 if (!bool.TryParse(setting.Value, out var boolValue))
-                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code));
+                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code, _userContext.LanguageId));
 
                 return Result.Success(CastValue<T, bool>(boolValue));
 
             case JsonValueType:
                 if (string.IsNullOrWhiteSpace(setting.Value))
-                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code));
+                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code, _userContext.LanguageId));
 
                 try
                 {
@@ -175,16 +175,16 @@ public sealed class SettingService : BaseService, ISettingService
 
                     var deserialized = JsonSerializer.Deserialize<T>(setting.Value);
                     return deserialized is null
-                        ? Result.Failure<T>(SettingErrors.InvalidValue(setting.Code))
+                        ? Result.Failure<T>(SettingErrors.InvalidValue(setting.Code, _userContext.LanguageId))
                         : Result.Success(deserialized);
                 }
                 catch (JsonException)
                 {
-                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code));
+                    return Result.Failure<T>(SettingErrors.InvalidValue(setting.Code, _userContext.LanguageId));
                 }
 
             default:
-                return Result.Failure<T>(SettingErrors.UnsupportedValueType(setting.Code, setting.ValueType));
+                return Result.Failure<T>(SettingErrors.UnsupportedValueType(setting.Code, setting.ValueType, _userContext.LanguageId));
         }
     }
 
@@ -200,18 +200,18 @@ public sealed class SettingService : BaseService, ISettingService
         throw new InvalidCastException($"Cannot cast setting value to {typeof(T).Name}.");
     }
 
-    private static Error? ValidateValue(string code, short valueType, string? value)
+    private Error? ValidateValue(string code, short valueType, string? value)
     {
         if (value is null)
-            return SettingErrors.InvalidValue(code);
+            return SettingErrors.InvalidValue(code, _userContext.LanguageId);
 
         return valueType switch
         {
             StringValueType => null,
-            IntValueType => int.TryParse(value, out _) ? null : SettingErrors.InvalidValue(code),
-            BoolValueType => bool.TryParse(value, out _) ? null : SettingErrors.InvalidValue(code),
-            JsonValueType => IsValidJson(value) ? null : SettingErrors.InvalidValue(code),
-            _ => SettingErrors.UnsupportedValueType(code, valueType)
+            IntValueType => int.TryParse(value, out _) ? null : SettingErrors.InvalidValue(code, _userContext.LanguageId),
+            BoolValueType => bool.TryParse(value, out _) ? null : SettingErrors.InvalidValue(code, _userContext.LanguageId),
+            JsonValueType => IsValidJson(value) ? null : SettingErrors.InvalidValue(code, _userContext.LanguageId),
+            _ => SettingErrors.UnsupportedValueType(code, valueType, _userContext.LanguageId)
         };
     }
 

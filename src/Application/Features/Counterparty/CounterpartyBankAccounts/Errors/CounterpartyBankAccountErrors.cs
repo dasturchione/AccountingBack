@@ -22,4 +22,22 @@ public static class CounterpartyBankAccountErrors
             LanguageIdConst.RU      => $"Номер счёта '{accountNumber}' уже существует.",
             _                       => $"Account number '{accountNumber}' already exists."
         });
+
+    public static Error BankBranchMismatch(int bankId, int bankBranchId, short? languageId = null) =>
+        Error.Business("CounterpartyBankAccount.BankBranchMismatch", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {bankBranchId} bo'lgan bank filiali id-si {bankId} bo'lgan bankka tegishli emas yoki faol emas.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {bankBranchId} бўлган банк филиали id-си {bankId} бўлган банкка тегишли эмас ёки фаол эмас.",
+            LanguageIdConst.RU      => $"Филиал банка с id {bankBranchId} не относится к банку с id {bankId} или неактивен.",
+            _                       => $"Bank branch {bankBranchId} does not belong to bank {bankId} or is inactive."
+        });
+
+    public static Error CounterpartyNotFound(int counterpartyId, short? languageId = null) =>
+        Error.NotFound("CounterpartyBankAccount.CounterpartyNotFound", languageId switch
+        {
+            LanguageIdConst.UZ      => $"Id-si {counterpartyId} bo'lgan kontragent joriy tashkilotda topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {counterpartyId} бўлган контрагент жорий ташкилотда топилмади.",
+            LanguageIdConst.RU      => $"Контрагент с id {counterpartyId} не найден в текущей организации.",
+            _                       => $"Counterparty with id {counterpartyId} was not found in the current organization."
+        });
 }

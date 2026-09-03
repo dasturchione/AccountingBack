@@ -9,6 +9,10 @@ public class BankOperationBaseDto
     public int? OffsetAccountId { get; set; }
     public int? CounterpartyId { get; set; }
     public int? CounterpartyBankAccountId { get; set; }
+    public string? BankDocumentNumber { get; set; }
+    public short? ClassificationCategoryId { get; set; }
+    public int? ClassificationRuleId { get; set; }
+    public long? RelatedDocumentId { get; set; }
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
     public decimal Amount { get; set; }

@@ -1,4 +1,6 @@
 using Application.Abstractions.Integration;
+using Application.Abstractions.Authentication;
+using Application.Features.Cmn.Taxes;
 using Application.Features.Cmn.Taxes.Integration.DTOs;
 using SharedKernel.Results;
 
@@ -7,10 +9,12 @@ namespace Application.Features.Cmn.Taxes.Integration.Services;
 public sealed class TaxIntegrationService : ITaxIntegrationService
 {
     private readonly ITaxProviderFactory _factory;
+    private readonly IUserContext _userContext;
 
-    public TaxIntegrationService(ITaxProviderFactory factory)
+    public TaxIntegrationService(ITaxProviderFactory factory, IUserContext userContext)
     {
         _factory = factory;
+        _userContext = userContext;
     }
 
     public Task<Result<IReadOnlyCollection<TaxProviderInfoDto>>> GetSupportedProvidersAsync(CancellationToken ct = default)
@@ -29,7 +33,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
     {
         var provider = _factory.Resolve("MXIK");
         if (provider is not ITaxLookupProvider lookupProvider)
-            return Result.Failure<TaxLookupItemDto?>(Error.NotFound("Tax.ProviderNotFound", "MXIK provider was not found."));
+            return Result.Failure<TaxLookupItemDto?>(TaxErrors.ProviderNotFound("MXIK", _userContext.LanguageId));
 
         var result = await lookupProvider.GetByCodeAsync(code, ct);
         return Result.Success(result is null
@@ -84,7 +88,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
     {
         var provider = _factory.Resolve(providerCode);
         if (provider is not ITaxLookupProvider lookupProvider)
-            return Result.Failure<IReadOnlyCollection<TaxLookupItemDto>>(Error.NotFound("Tax.ProviderNotFound", $"{providerCode} provider was not found."));
+            return Result.Failure<IReadOnlyCollection<TaxLookupItemDto>>(TaxErrors.ProviderNotFound(providerCode, _userContext.LanguageId));
 
         var result = await lookupProvider.SearchAsync(new TaxProviderLookupRequestDto
         {
@@ -108,7 +112,7 @@ public sealed class TaxIntegrationService : ITaxIntegrationService
     {
         var provider = _factory.Resolve(providerCode);
         if (provider is not ITaxDocumentProvider documentProvider)
-            return Result.Failure<TaxDocumentResultDto>(Error.NotFound("Tax.ProviderNotFound", $"{providerCode} provider was not found."));
+            return Result.Failure<TaxDocumentResultDto>(TaxErrors.ProviderNotFound(providerCode, _userContext.LanguageId));
 
         var model = new TaxProviderOperationRequestDto
         {

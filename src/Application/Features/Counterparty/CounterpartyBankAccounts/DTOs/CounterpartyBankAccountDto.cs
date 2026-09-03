@@ -7,6 +7,7 @@ public class CounterpartyBankAccountDto
     public int CounterpartyId { get; set; }
     public string CounterpartyName { get; set; } = null!;
     public int BankId { get; set; }
+    public int? BankBranchId { get; set; }
     public string BankName { get; set; } = null!;
     public string AccountNumber { get; set; } = null!;
     public short CurrencyId { get; set; }

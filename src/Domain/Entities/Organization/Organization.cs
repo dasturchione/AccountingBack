@@ -83,14 +83,20 @@ public partial class Organization
     [InverseProperty(nameof(RetailSaleDoc.Organization))]
     public virtual ICollection<RetailSaleDoc> RetailSaleDocs { get; set; } = new List<RetailSaleDoc>();
 
-    [InverseProperty(nameof(BankTerminal.Organization))]
-    public virtual ICollection<BankTerminal> BankTerminals { get; set; } = new List<BankTerminal>();
+    [InverseProperty(nameof(PaymentAcceptancePoint.Organization))]
+    public virtual ICollection<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; } = [];
+
+    [InverseProperty(nameof(PaymentAcceptancePointOperation.Organization))]
+    public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 
     [InverseProperty(nameof(DocumentAccountSetting.Organization))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 
     [InverseProperty(nameof(DocumentNumberSequence.Organization))]
     public virtual ICollection<DocumentNumberSequence> DocumentNumberSequences { get; set; } = new List<DocumentNumberSequence>();
+
+    [InverseProperty(nameof(DocumentRegistry.Organization))]
+    public virtual ICollection<DocumentRegistry> DocumentRegistries { get; set; } = new List<DocumentRegistry>();
 
     [InverseProperty(nameof(OpeningInventory.Organization))]
     public virtual ICollection<OpeningInventory> OpeningInventories { get; set; } = new List<OpeningInventory>();

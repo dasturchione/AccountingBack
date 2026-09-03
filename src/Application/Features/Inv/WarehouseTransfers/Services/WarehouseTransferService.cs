@@ -278,7 +278,9 @@ public class WarehouseTransferService : BaseService, IWarehouseTransferService
                 return Result.Failure<List<InventoryMovementListDto>>(WarehouseTransferErrors.NotFound(id, _userContext.LanguageId));
 
             var query = _queryBuilder.For<WarehouseProductMovement>()
-                .Where(x => x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER && x.DocumentId == id)
+                .Where(x => x.OrganizationId == _userContext.OrganizationId.Value &&
+                            x.DocumentTypeId == DocumentTypeIdConst.WAREHOUSETRANSFER &&
+                            x.DocumentId == id)
                 .As<InventoryMovementListDto>()
                 .Build();
 

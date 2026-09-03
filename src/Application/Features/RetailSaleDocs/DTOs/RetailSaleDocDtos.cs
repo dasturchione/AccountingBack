@@ -56,7 +56,7 @@ public class RetailSaleDocProductTableCreateDto
 public class RetailSaleDocPaymentDto
 {
     public short PaymentMethodId { get; set; }
-    public int? BankTerminalId { get; set; }
+    public int? PaymentAcceptancePointId { get; set; }
     public int DebitAccountId { get; set; }
     public decimal Amount { get; set; }
     public string? TransactionNumber { get; set; }
@@ -165,8 +165,8 @@ public class RetailSaleDocPaymentReadDto
     public long Id { get; set; }
     public short PaymentMethodId { get; set; }
     public string PaymentMethodName { get; set; } = null!;
-    public int? BankTerminalId { get; set; }
-    public string? BankTerminalName { get; set; }
+    public int? PaymentAcceptancePointId { get; set; }
+    public string? PaymentAcceptancePointName { get; set; }
     public int DebitAccountId { get; set; }
     public string DebitAccountNumber { get; set; } = null!;
     public string DebitAccountName { get; set; } = null!;

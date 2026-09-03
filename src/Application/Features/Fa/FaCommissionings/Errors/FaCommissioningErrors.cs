@@ -9,6 +9,7 @@ public static class FaCommissioningErrors
         Error.NotFound("FaCommissioning.NotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan foydalanishga topshirish hujjati topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган фойдаланишга топшириш ҳужжати топилмади.",
             LanguageIdConst.RU => $"Документ ввода в эксплуатацию с id {id} не найден.",
             _ => $"Commissioning document with id {id} was not found."
         });
@@ -17,6 +18,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.LinesRequired", languageId switch
         {
             LanguageIdConst.UZ => "Kamida bitta asosiy vosita kiritilishi shart.",
+            LanguageIdConst.UZ_CYRL => "Камида битта асосий восита киритилиши шарт.",
             LanguageIdConst.RU => "Необходимо добавить хотя бы одно основное средство.",
             _ => "At least one fixed asset is required."
         });
@@ -25,6 +27,7 @@ public static class FaCommissioningErrors
         Error.Conflict("FaCommissioning.DuplicateAsset", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vosita hujjatda takrorlangan.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий восита ҳужжатда такрорланган.",
             LanguageIdConst.RU => $"Основное средство с id {assetId} повторяется в документе.",
             _ => $"Fixed asset with id {assetId} is duplicated in the document."
         });
@@ -33,6 +36,7 @@ public static class FaCommissioningErrors
         Error.NotFound("FaCommissioning.AssetNotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vosita topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий восита топилмади.",
             LanguageIdConst.RU => $"Основное средство с id {assetId} не найдено.",
             _ => $"Fixed asset with id {assetId} was not found."
         });
@@ -41,6 +45,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.AssetUnavailable", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vositani foydalanishga topshirib bo'lmaydi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий воситани фойдаланишга топшириб бўлмайди.",
             LanguageIdConst.RU => $"Основное средство с id {assetId} нельзя ввести в эксплуатацию.",
             _ => $"Fixed asset with id {assetId} cannot be commissioned."
         });
@@ -49,6 +54,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.AccountingNotFound", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vositaning hisob ma'lumotlari topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий воситанинг ҳисоб маълумотлари топилмади.",
             LanguageIdConst.RU => $"Учетные данные основного средства с id {assetId} не найдены.",
             _ => $"Accounting data for fixed asset with id {assetId} was not found."
         });
@@ -57,6 +63,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.ReceiptNotPosted", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vositaning qabul hujjati o'tkazilmagan.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий воситанинг қабул ҳужжати ўтказилмаган.",
             LanguageIdConst.RU => $"Поступление основного средства с id {assetId} не проведено.",
             _ => $"The receipt for fixed asset with id {assetId} is not posted."
         });
@@ -65,6 +72,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.CapitalInvestmentAccountMissing", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vosita uchun kapital qo'yilma hisobi topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий восита учун капитал қўйилма ҳисобварағи топилмади.",
             LanguageIdConst.RU => $"Для основного средства с id {assetId} не найден счет капитальных вложений.",
             _ => $"Capital investment account for fixed asset with id {assetId} was not found."
         });
@@ -73,6 +81,7 @@ public static class FaCommissioningErrors
         Error.NotFound("FaCommissioning.ReferenceNotFound", languageId switch
         {
             LanguageIdConst.UZ => $"{referenceName} id {id} topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"{referenceName} id {id} топилмади.",
             LanguageIdConst.RU => $"{referenceName} с id {id} не найден.",
             _ => $"{referenceName} with id {id} was not found."
         });
@@ -81,6 +90,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.SalvageValueTooHigh", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vositaning tugatish qiymati boshlang'ich qiymatdan katta.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий воситанинг тугатиш қиймати бошланғич қийматдан катта.",
             LanguageIdConst.RU => $"Ликвидационная стоимость ОС с id {assetId} превышает первоначальную.",
             _ => $"Salvage value exceeds initial cost for fixed asset with id {assetId}."
         });
@@ -89,6 +99,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.PlannedUnitsRequired", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {assetId} bo'lgan asosiy vosita uchun reja birliklari majburiy.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {assetId} бўлган асосий восита учун режа бирликлари мажбурий.",
             LanguageIdConst.RU => $"Для основного средства с id {assetId} необходимо указать плановые единицы.",
             _ => $"Planned units are required for fixed asset with id {assetId}."
         });
@@ -97,6 +108,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.CannotUpdate", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida tahrirlab bo'lmaydi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида таҳрирлаб бўлмайди.",
             LanguageIdConst.RU => $"Документ с id {id} нельзя изменить в статусе {statusId}.",
             _ => $"Document with id {id} cannot be updated in status {statusId}."
         });
@@ -105,6 +117,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.CannotConfirm", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida tasdiqlab bo'lmaydi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида тасдиқлаб бўлмайди.",
             LanguageIdConst.RU => $"Документ с id {id} нельзя провести в статусе {statusId}.",
             _ => $"Document with id {id} cannot be confirmed in status {statusId}."
         });
@@ -113,6 +126,7 @@ public static class FaCommissioningErrors
         Error.Business("FaCommissioning.CannotCancel", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatni {statusId} holatida bekor qilib bo'lmaydi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатни {statusId} ҳолатида бекор қилиб бўлмайди.",
             LanguageIdConst.RU => $"Документ с id {id} нельзя отменить в статусе {statusId}.",
             _ => $"Document with id {id} cannot be cancelled in status {statusId}."
         });
@@ -121,6 +135,7 @@ public static class FaCommissioningErrors
         Error.Conflict("FaCommissioning.PostedDependenciesExist", languageId switch
         {
             LanguageIdConst.UZ => "Foydalanishga topshirishni bekor qilib bo'lmaydi: keyingi o'tkazilgan FA hujjatlari mavjud.",
+            LanguageIdConst.UZ_CYRL => "Фойдаланишга топширишни бекор қилиб бўлмайди: кейинги ўтказилган асосий восита ҳужжатлари мавжуд.",
             LanguageIdConst.RU => "Нельзя отменить ввод в эксплуатацию: существуют последующие проведённые документы ОС.",
             _ => "Commissioning cannot be cancelled because later posted fixed-asset documents exist."
         });
@@ -129,6 +144,7 @@ public static class FaCommissioningErrors
         Error.Conflict("FaCommissioning.MissingPostingBatch", languageId switch
         {
             LanguageIdConst.UZ => $"Id-si {id} bo'lgan hujjatning faol posting batch'i topilmadi.",
+            LanguageIdConst.UZ_CYRL => $"Id-си {id} бўлган ҳужжатнинг фаол ўтказмалар пакети топилмади.",
             LanguageIdConst.RU => $"Для документа с id {id} не найден активный пакет проводок.",
             _ => $"Active posting batch for document with id {id} was not found."
         });

@@ -5,6 +5,15 @@ namespace Application.Features.CashOperations;
 
 public static class CashOperationErrors
 {
+    public static Error ChartAccountRequired(short? languageId = null) =>
+        Error.Business("CashOperation.ChartAccountRequired", languageId switch
+        {
+            LanguageIdConst.UZ => "O'tkazma uchun kassa va korrespondent hisobvaraqlari ko'rsatilishi kerak.",
+            LanguageIdConst.UZ_CYRL => "Ўтказма учун касса ва корреспондент ҳисобварақлари кўрсатилиши керак.",
+            LanguageIdConst.RU => "Для проведения операции необходимо указать счёт кассы и корреспондирующий счёт.",
+            _ => "Cash and offset chart accounts are required for posting."
+        });
+
     public static Error NotFound(long id, short? languageId = null) =>
         Error.NotFound("CashOperation.NotFound", languageId switch
         {

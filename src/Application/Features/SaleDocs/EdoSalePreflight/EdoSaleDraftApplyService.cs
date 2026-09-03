@@ -279,8 +279,7 @@ public sealed class EdoSaleDraftApplyService(
             queryBuilder.For<CounterpartyCard>()
                 .Where(x => x.Id == item.CounterpartyId
                     && x.OrganizationId == organizationId
-                    && x.StateId == StateIdConst.ACTIVE
-                    && x.IsCustomer)
+                    && x.StateId == StateIdConst.ACTIVE)
                 .Build(), ct);
         if (counterparty is null
             || !string.Equals(counterparty.Inn?.Trim(), detail.Buyer.TaxIdentifier?.Trim(), StringComparison.Ordinal))
@@ -558,9 +557,7 @@ public sealed class EdoSaleDraftApplyService(
             detail.DocumentDate.ToDateTime(TimeOnly.MinValue),
             ct);
         if (!number.IsSuccess)
-            return Result.Failure<long>(Error.Business(
-                "HISTORICAL_SALE_NUMBER_REQUIRED",
-                "Historical sale document numbering is unavailable."));
+            return Result.Failure<long>(EdoSaleDraftErrors.HistoricalNumberRequired(userContext.LanguageId));
 
         var doc = new SaleDoc
         {
@@ -678,11 +675,11 @@ public sealed class EdoSaleDraftApplyService(
         document.Provider == ProviderCode
         && string.Equals(document.InternalDocumentType, InternalDocumentType, StringComparison.OrdinalIgnoreCase);
 
-    private static Result<EdoSaleDraftApplyResponseDto> Failure(string code, bool conflict = false) =>
+    private Result<EdoSaleDraftApplyResponseDto> Failure(string code, bool conflict = false) =>
         Result.Failure<EdoSaleDraftApplyResponseDto>(
             conflict
-                ? Error.Conflict(code, "The EDO sale draft plan is stale or no longer applicable.")
-                : Error.Business(code, "The EDO sale draft selection is invalid."));
+                ? EdoSaleDraftErrors.StalePlan(code, userContext.LanguageId)
+                : EdoSaleDraftErrors.InvalidSelection(code, userContext.LanguageId));
 
     private static string NormalizeDocumentType(string? value) =>
         string.Equals(value?.Trim(), "waybillLocal", StringComparison.OrdinalIgnoreCase)

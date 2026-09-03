@@ -75,6 +75,7 @@ using Application.Features.Organizations;
 using Application.Features.OrganizationSetup;
 using Application.Features.OrgBankAccounts;
 using Application.Features.Platform;
+using Application.Features.Dashboard.Services;
 using Application.Features.Positions;
 using Application.Features.Pay.Components;
 using Application.Features.Pay.Employees;
@@ -242,6 +243,8 @@ namespace Infrastructure
             services.AddScoped<IOrganizationSetupCore, OrganizationSetupCore>();
             services.AddScoped<IAuditLogQueryCore, AuditLogQueryCore>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IBusinessDashboardService, BusinessDashboardService>();
+            services.AddScoped<ITaskCalendarService, TaskCalendarService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>();

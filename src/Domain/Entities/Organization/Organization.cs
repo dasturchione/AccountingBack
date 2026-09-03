@@ -86,6 +86,9 @@ public partial class Organization
     [InverseProperty(nameof(PaymentAcceptancePoint.Organization))]
     public virtual ICollection<PaymentAcceptancePoint> PaymentAcceptancePoints { get; set; } = [];
 
+    [InverseProperty(nameof(OrganizationRegulatedObligationSetting.Organization))]
+    public virtual ICollection<OrganizationRegulatedObligationSetting> RegulatedObligationSettings { get; set; } = [];
+
     [InverseProperty(nameof(PaymentAcceptancePointOperation.Organization))]
     public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 

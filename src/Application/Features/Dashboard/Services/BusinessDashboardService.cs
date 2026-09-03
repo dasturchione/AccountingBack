@@ -17,7 +17,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
     private readonly IQueryRepository<CashOperation> _cashOperationQuery;
     private readonly IQueryRepository<CounterpartyRegisterBalance> _counterpartyBalanceQuery;
     private readonly IQueryRepository<EdoDocument> _edoDocumentQuery;
-    private readonly IQueryRepository<OrganizationTaxSetting> _taxSettingQuery;
+    private readonly IQueryRepository<OrganizationRegulatedObligationSetting> _regulatedObligationSettingQuery;
     private readonly IQueryRepository<SaleDoc> _saleDocQuery;
     private readonly IQueryRepository<PurchaseDoc> _purchaseDocQuery;
 
@@ -30,7 +30,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         IQueryRepository<CashOperation> cashOperationQuery,
         IQueryRepository<CounterpartyRegisterBalance> counterpartyBalanceQuery,
         IQueryRepository<EdoDocument> edoDocumentQuery,
-        IQueryRepository<OrganizationTaxSetting> taxSettingQuery,
+        IQueryRepository<OrganizationRegulatedObligationSetting> regulatedObligationSettingQuery,
         IQueryRepository<SaleDoc> saleDocQuery,
         IQueryRepository<PurchaseDoc> purchaseDocQuery)
     {
@@ -42,7 +42,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         _cashOperationQuery = cashOperationQuery;
         _counterpartyBalanceQuery = counterpartyBalanceQuery;
         _edoDocumentQuery = edoDocumentQuery;
-        _taxSettingQuery = taxSettingQuery;
+        _regulatedObligationSettingQuery = regulatedObligationSettingQuery;
         _saleDocQuery = saleDocQuery;
         _purchaseDocQuery = purchaseDocQuery;
     }
@@ -273,15 +273,17 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
                 ? await GetPurchaseTaxRowsAsync(organizationId, filter, ct)
                 : [];
 
-            var settings = await _taxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
-                .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-                .As(x => new TaxSettingRow { IsVatPayer = x.IsVatPayer, EffectiveFrom = x.EffectiveFrom, EffectiveTo = x.EffectiveTo })
-                .Build(), ct);
             var asOf = DateOnly.FromDateTime(filter.DateTo ?? DateTime.Today);
-            var setting = settings
-                .Where(x => x.EffectiveFrom <= asOf && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= asOf))
-                .OrderByDescending(x => x.EffectiveFrom)
-                .FirstOrDefault();
+            var setting = await _regulatedObligationSettingQuery.GetAsync(
+                _queryBuilder.For<OrganizationRegulatedObligationSetting>()
+                    .Where(x => x.OrganizationId == organizationId
+                                && x.RegulatedObligation.Code == "VAT"
+                                && x.StateId == StateIdConst.ACTIVE
+                                && x.EffectiveFrom <= asOf
+                                && (x.EffectiveTo == null || x.EffectiveTo >= asOf))
+                    .OrderBy(x => x.OrderByDescending(y => y.EffectiveFrom).ThenByDescending(y => y.Id))
+                    .Build(),
+                ct);
 
             var items = saleRows.Concat(purchaseRows)
                 .GroupBy(x => new { x.DocumentType, x.CurrencyId })
@@ -297,7 +299,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
             return new DashboardTaxSummaryDto
             {
                 SourceStatus = setting is null ? "PARTIAL" : "AVAILABLE",
-                IsVatPayer = setting?.IsVatPayer,
+                IsVatPayer = setting is null ? null : true,
                 Total = items.Sum(x => x.VatAmount),
                 Items = items
             };
@@ -480,10 +482,4 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         public decimal VatAmount { get; init; }
     }
 
-    private sealed class TaxSettingRow
-    {
-        public bool IsVatPayer { get; init; }
-        public DateOnly EffectiveFrom { get; init; }
-        public DateOnly? EffectiveTo { get; init; }
-    }
 }

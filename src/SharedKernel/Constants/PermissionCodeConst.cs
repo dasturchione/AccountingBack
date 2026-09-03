@@ -227,7 +227,8 @@ public static class PermissionCodeConst
     public const string ManualGetDocumentTypes            = "MANUAL_GET_DOCUMENT_TYPES";
     public const string ManualGetOperationTypes           = "MANUAL_GET_OPERATION_TYPES";
     public const string ManualGetMovementDirections      = "MANUAL_GET_MOVEMENT_DIRECTIONS";
-    public const string ManualGetTaxTypes                 = "MANUAL_GET_TAX_TYPES";
+    public const string ManualGetRegulatedObligations     = "MANUAL_GET_REGULATED_OBLIGATIONS";
+    public const string ManualGetRegulatedObligationPeriodicities = "MANUAL_GET_REGULATED_OBLIGATION_PERIODICITIES";
     public const string ManualGetVatRates                 = "MANUAL_GET_VAT_RATES";
     public const string ManualGetContractTypes            = "MANUAL_GET_CONTRACT_TYPES";
     public const string ManualGetRoles                    = "MANUAL_GET_ROLES";
@@ -254,6 +255,13 @@ public static class PermissionCodeConst
     public const string ManualGetPaymentMethods           = "MANUAL_GET_PAYMENT_METHODS";
     public const string ManualGetFiscalCashRegisters      = "MANUAL_GET_FISCAL_CASH_REGISTERS";
     public const string ManualGetFiscalCashRegisterTypes  = "MANUAL_GET_FISCAL_CASH_REGISTER_TYPES";
+    #endregion
+
+    #region RegulatedObligationSetting
+    public const string RegulatedObligationSettingView       = "REGULATED_OBLIGATION_SETTING_VIEW";
+    public const string RegulatedObligationSettingViewDetail = "REGULATED_OBLIGATION_SETTING_VIEW_DETAIL";
+    public const string RegulatedObligationSettingCreate     = "REGULATED_OBLIGATION_SETTING_CREATE";
+    public const string RegulatedObligationSettingUpdate     = "REGULATED_OBLIGATION_SETTING_UPDATE";
     #endregion
 
     #region PricingCondition
@@ -484,7 +492,6 @@ public static class PermissionCodeConst
     #region Setup
     public const string SetupGet                    = "SETUP_GET";
     public const string SetupUpdateCompanyProfile   = "SETUP_UPDATE_COMPANY_PROFILE";
-    public const string SetupUpdateTaxSettings      = "SETUP_UPDATE_TAX_SETTINGS";
     public const string SetupUpdateAccountingPolicy = "SETUP_UPDATE_ACCOUNTING_POLICY";
     public const string SetupUpdateDefaults         = "SETUP_UPDATE_DEFAULTS";
     public const string SetupUpdateUsers            = "SETUP_UPDATE_USERS";

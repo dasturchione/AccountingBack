@@ -76,6 +76,15 @@ public partial class Language
     [InverseProperty(nameof(PaymentAcceptancePointTypeTranslation.Language))]
     public virtual ICollection<PaymentAcceptancePointTypeTranslation> PaymentAcceptancePointTypeTranslations { get; set; } = [];
 
+    [InverseProperty(nameof(RegulatedObligationCategoryTranslation.Language))]
+    public virtual ICollection<RegulatedObligationCategoryTranslation> RegulatedObligationCategoryTranslations { get; set; } = [];
+
+    [InverseProperty(nameof(RegulatedObligationTranslation.Language))]
+    public virtual ICollection<RegulatedObligationTranslation> RegulatedObligationTranslations { get; set; } = [];
+
+    [InverseProperty(nameof(RegulatedObligationPeriodicityTranslation.Language))]
+    public virtual ICollection<RegulatedObligationPeriodicityTranslation> RegulatedObligationPeriodicityTranslations { get; set; } = [];
+
     [InverseProperty(nameof(BankOperationCategoryTranslation.Language))]
     public virtual ICollection<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; } = [];
 

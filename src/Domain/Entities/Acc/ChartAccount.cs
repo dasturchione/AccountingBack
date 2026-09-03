@@ -79,6 +79,9 @@ public partial class ChartAccount
     [InverseProperty(nameof(DocumentAccountSetting.ChartAccount))]
     public virtual ICollection<DocumentAccountSetting> DocumentAccountSettings { get; set; } = new List<DocumentAccountSetting>();
 
+    [InverseProperty(nameof(OrganizationRegulatedObligationSetting.ChartAccount))]
+    public virtual ICollection<OrganizationRegulatedObligationSetting> RegulatedObligationSettings { get; set; } = [];
+
     [InverseProperty(nameof(OpeningInventoryProduct.DebitAccount))]
     public virtual ICollection<OpeningInventoryProduct> OpeningInventoryProducts { get; set; } = new List<OpeningInventoryProduct>();
 

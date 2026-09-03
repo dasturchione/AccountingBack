@@ -28,10 +28,6 @@ public static class OrganizationSetupErrors
             $"STIR '{inn}' bo'lgan tashkilot allaqachon mavjud.", $"СТИР '{inn}' бўлган ташкилот аллақачон мавжуд.",
             $"Организация с ИНН '{inn}' уже существует.", $"Organization with INN '{inn}' already exists."));
 
-    public static Error TaxTypeNotFound(short id, short? languageId = null) => NotFound(
-        "OrganizationSetup.TaxTypeNotFound", id, languageId,
-        "soliq turi", "солиқ тури", "тип налога", "Tax type");
-
     public static Error AccountingPolicyNotFound(short id, short? languageId = null) => NotFound(
         "OrganizationSetup.AccountingPolicyNotFound", id, languageId,
         "hisob siyosati", "ҳисоб сиёсати", "учётная политика", "Accounting policy");

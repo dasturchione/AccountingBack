@@ -49,7 +49,6 @@ public sealed class RegionSelectListDtoOrderByBuilder : NameSelectListDtoOrderBy
 public sealed class RoleSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Role, SelectListDto>;
 public sealed class StateSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<State, SelectListDto>;
 public sealed class SubkontoTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<SubkontoType, SelectListDto>;
-public sealed class TaxTypeSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<TaxType, SelectListDto>;
 public sealed class UnitSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<Unit, SelectListDto>;
 public sealed class UserSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<User, SelectListDto>;
 public sealed class UserKindSelectListDtoOrderByBuilder : NameSelectListDtoOrderByBuilder<UserKind, SelectListDto>;

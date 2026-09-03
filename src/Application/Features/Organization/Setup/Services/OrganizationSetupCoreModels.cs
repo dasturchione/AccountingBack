@@ -1,16 +1,5 @@
 namespace Application.Features.OrganizationSetup;
 
-public sealed class OrganizationSetupTaxSettingsWriteModel
-{
-    public short TaxTypeId { get; init; }
-    public bool IsVatPayer { get; init; }
-    public string? VatRegistrationNumber { get; init; }
-    public DateOnly EffectiveFrom { get; init; }
-    public DateOnly? EffectiveTo { get; init; }
-    public short StateId { get; init; }
-    public DateTime CreatedDate { get; init; }
-}
-
 public sealed class OrganizationSetupAccountingPolicyWriteModel
 {
     public string InventoryValuationMethod { get; init; } = null!;

@@ -233,11 +233,19 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetTaxTypes)]
-    [HttpGet("tax-types")]
-    public async Task<IActionResult> GetTaxTypes(CancellationToken ct)
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRegulatedObligations)]
+    [HttpGet("regulated-obligations")]
+    public async Task<IActionResult> GetRegulatedObligations([FromQuery] string? categoryCode, CancellationToken ct)
     {
-        var result = await _manualService.GetTaxTypesAsync(ct);
+        var result = await _manualService.GetRegulatedObligationsAsync(categoryCode, ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRegulatedObligationPeriodicities)]
+    [HttpGet("regulated-obligation-periodicities")]
+    public async Task<IActionResult> GetRegulatedObligationPeriodicities(CancellationToken ct)
+    {
+        var result = await _manualService.GetRegulatedObligationPeriodicitiesAsync(ct);
         return Ok(result);
     }
 

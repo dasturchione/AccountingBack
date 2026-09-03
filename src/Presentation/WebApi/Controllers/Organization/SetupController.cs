@@ -36,14 +36,6 @@ public sealed class SetupController : ControllerBase
         return response.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.SetupUpdateTaxSettings)]
-    [HttpPut("tax-settings")]
-    public async Task<IResult> UpdateTaxSettingsAsync([FromBody] OrganizationSetupTaxSettingsDto dto, CancellationToken ct = default)
-    {
-        var response = await _setupService.UpdateTaxSettingsAsync(dto, ct);
-        return response.Match(Results.NoContent, CustomResults.Problem);
-    }
-
     [ModuleAuthorize(PermissionCodeConst.SetupUpdateAccountingPolicy)]
     [HttpPut("accounting-policy")]
     public async Task<IResult> UpdateAccountingPolicyAsync([FromBody] OrganizationSetupAccountingPolicyDto dto, CancellationToken ct = default)

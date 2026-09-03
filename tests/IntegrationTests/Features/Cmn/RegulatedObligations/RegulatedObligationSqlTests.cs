@@ -44,6 +44,16 @@ public sealed class RegulatedObligationSqlTests(PostgreSqlIntegrationFixture fix
                 create table org_tax_settings (id int primary key);
                 create table cmn_vat_rate (id smallint primary key);
 
+                create table org_setup_state
+                (
+                    id int primary key,
+                    current_step varchar(100) not null,
+                    tax_completed boolean default false not null,
+                    updated_date timestamp without time zone not null
+                );
+                insert into org_setup_state (id, current_step, tax_completed, updated_date)
+                values (1, 'tax-settings', true, now());
+
                 create table acc_subkonto_type
                 (
                     id smallint primary key,
@@ -146,6 +156,22 @@ public sealed class RegulatedObligationSqlTests(PostgreSqlIntegrationFixture fix
             Assert.True(await ScalarAsync<bool>(connection, "select to_regclass('cmn_tax_type') is null"));
             Assert.True(await ScalarAsync<bool>(connection, "select to_regclass('org_tax_settings') is null"));
             Assert.True(await ScalarAsync<bool>(connection, "select to_regclass('cmn_vat_rate') is not null"));
+            Assert.Equal(
+                "accounting-policy",
+                await ScalarAsync<string>(connection, "select current_step from org_setup_state where id = 1"));
+            Assert.False(
+                await ScalarAsync<bool>(
+                    connection,
+                    """
+                    select exists
+                    (
+                        select 1
+                        from information_schema.columns
+                        where table_schema = current_schema()
+                          and table_name = 'org_setup_state'
+                          and column_name = 'tax_completed'
+                    )
+                    """));
             Assert.Equal(
                 "cmn_regulated_obligation",
                 await ScalarAsync<string>(connection, "select source_table from acc_subkonto_type where id = 29"));

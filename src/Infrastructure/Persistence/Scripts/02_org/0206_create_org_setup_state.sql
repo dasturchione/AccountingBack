@@ -4,7 +4,6 @@ create table org_setup_state
     organization_id integer not null,
     current_step character varying(100) default 'organization'::character varying not null,
     organization_completed boolean default false not null,
-    tax_completed boolean default false not null,
     accounting_completed boolean default false not null,
     defaults_completed boolean default false not null,
     users_completed boolean default false not null,

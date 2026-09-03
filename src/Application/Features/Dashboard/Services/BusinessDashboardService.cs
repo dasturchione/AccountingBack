@@ -47,20 +47,44 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         _purchaseDocQuery = purchaseDocQuery;
     }
 
-    public async Task<DashboardOverviewDto> GetOverviewAsync(DashboardFilterDto filter, CancellationToken ct = default) =>
+    public async Task<DashboardOverviewDto> GetOverviewAsync(OverviewFilterDto filter, CancellationToken ct = default) =>
         new()
         {
             Filters = filter,
-            Cash = await GetCashAsync(filter, ct),
+            Cash = await GetCashAsync(new CashFilterDto
+            {
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo,
+                CurrencyIds = filter.CurrencyIds
+            }, ct),
             Relationships = await GetRelationshipsAsync(filter, ct),
             Tasks = new TaskCalendarDto(),
-            Receivables = await GetDebtAsync(filter, false, ct),
-            Payables = await GetDebtAsync(filter, true, ct),
-            Tax = await GetTaxSummaryAsync(filter, ct),
-            ElectronicDocuments = await GetElectronicDocumentsAsync(filter, ct)
+            Receivables = await GetDebtAsync(new ReceivablesPayablesFilterDto
+            {
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo,
+                CurrencyIds = filter.CurrencyIds
+            }, false, ct),
+            Payables = await GetDebtAsync(new ReceivablesPayablesFilterDto
+            {
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo,
+                CurrencyIds = filter.CurrencyIds
+            }, true, ct),
+            Tax = await GetTaxSummaryAsync(new TaxSummaryFilterDto
+            {
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo,
+                CurrencyIds = filter.CurrencyIds
+            }, ct),
+            ElectronicDocuments = await GetElectronicDocumentsAsync(new ElectronicDocumentsFilterDto
+            {
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo
+            }, ct)
         };
 
-    public async Task<DashboardCashDto> GetCashAsync(DashboardFilterDto filter, CancellationToken ct = default)
+    public async Task<DashboardCashDto> GetCashAsync(CashFilterDto filter, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is not int organizationId)
             return new DashboardCashDto { SourceStatus = "NOT_AVAILABLE" };
@@ -69,11 +93,13 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         {
             var accounts = await _bankAccountQuery.GetAllAsync(_queryBuilder.For<BankAccount>()
                 .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
-                    (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)))
+                    (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)))
                 .As(x => new CashAccountRow
                 {
                     AccountId = x.Id,
-                    AccountName = x.Name ?? x.AccountNumber,
+                    AccountName = x.Name,
+                    AccountNumber = x.AccountNumber,
+                    SourceType = "BANK_ACCOUNT",
                     CurrencyId = x.CurrencyId,
                     CurrencyCode = x.Currency.Code,
                     OpeningBalance = x.OpeningBalance,
@@ -83,11 +109,12 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
 
             var cashBoxes = await _cashBoxQuery.GetAllAsync(_queryBuilder.For<CashBox>()
                 .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
-                    (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)))
+                    (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)))
                 .As(x => new CashAccountRow
                 {
                     AccountId = x.Id,
                     AccountName = x.Name,
+                    SourceType = "CASH_BOX",
                     CurrencyId = x.CurrencyId,
                     CurrencyCode = x.Currency.Code,
                     OpeningBalance = x.OpeningBalance,
@@ -98,8 +125,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
             var bankOperations = await _bankOperationQuery.GetAllAsync(_queryBuilder.For<BankOperation>()
                 .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
                     x.PostedAt.HasValue && !x.CancelledAt.HasValue &&
-                    (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)) &&
-                    (!filter.HasStatusFilter || filter.StatusIds.Contains(x.StatusId)) &&
+                    (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)) &&
                     (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)))
                 .As(x => new CashMovementRow
                 {
@@ -114,8 +140,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
             var cashOperations = await _cashOperationQuery.GetAllAsync(_queryBuilder.For<CashOperation>()
                 .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
                     x.PostedAt.HasValue && !x.CancelledAt.HasValue &&
-                    (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)) &&
-                    (!filter.HasStatusFilter || filter.StatusIds.Contains(x.StatusId)) &&
+                    (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)) &&
                     (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)))
                 .As(x => new CashMovementRow
                 {
@@ -145,7 +170,10 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
                     return new DashboardCashItemDto
                     {
                         AccountId = account.AccountId,
-                        AccountName = account.AccountName,
+                        AccountName = string.IsNullOrWhiteSpace(account.AccountName)
+                            ? MaskAccountNumber(account.AccountNumber)
+                            : account.AccountName,
+                        SourceType = account.SourceType,
                         CurrencyId = account.CurrencyId,
                         CurrencyCode = account.CurrencyCode,
                         OpeningBalance = opening,
@@ -158,7 +186,6 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
 
             return new DashboardCashDto
             {
-                SourceStatus = filter.HasWarehouseFilter || filter.HasDocumentTypeFilter ? "PARTIAL" : "AVAILABLE",
                 Items = items,
                 Totals = new DashboardCashTotalsDto
                 {
@@ -175,24 +202,24 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         }
     }
 
-    public async Task<DashboardReceivablesPayablesDto> GetReceivablesPayablesAsync(DashboardFilterDto filter, CancellationToken ct = default) =>
+    public async Task<DashboardReceivablesPayablesDto> GetReceivablesPayablesAsync(ReceivablesPayablesFilterDto filter, CancellationToken ct = default) =>
         new()
         {
             Receivables = await GetDebtAsync(filter, false, ct),
             Payables = await GetDebtAsync(filter, true, ct)
         };
 
-    private async Task<DashboardRelationshipsDto> GetRelationshipsAsync(DashboardFilterDto filter, CancellationToken ct) =>
+    private async Task<DashboardRelationshipsDto> GetRelationshipsAsync(OverviewFilterDto filter, CancellationToken ct) =>
         new()
         {
-            SourceStatus = filter.HasCurrencyFilter || filter.HasStatusFilter || filter.HasWarehouseFilter
+            SourceStatus = filter.CurrencyIds.Count > 0
                 ? "PARTIAL"
                 : "AVAILABLE",
             Incoming = await GetRelationshipsSideAsync(filter, "INBOX", ct),
             Outgoing = await GetRelationshipsSideAsync(filter, "OUTBOX", ct)
         };
 
-    public async Task<DashboardElectronicDocumentsDto> GetElectronicDocumentsAsync(DashboardFilterDto filter, CancellationToken ct = default)
+    public async Task<DashboardElectronicDocumentsDto> GetElectronicDocumentsAsync(ElectronicDocumentsFilterDto filter, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is not int organizationId)
             return new DashboardElectronicDocumentsDto { SourceStatus = "NOT_AVAILABLE" };
@@ -201,7 +228,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         {
             var query = _queryBuilder.For<EdoDocument>()
                 .Where(x => x.OrganizationId == organizationId &&
-                    (!filter.HasDocumentTypeFilter || filter.DocumentTypes.Contains(x.DocumentType)) &&
+                    (filter.DocumentTypes.Count == 0 || filter.DocumentTypes.Contains(x.DocumentType)) &&
                     x.DocumentDate.HasValue &&
                     (!filter.DateFrom.HasValue || x.DocumentDate.Value >= DateOnly.FromDateTime(filter.DateFrom.Value.Date)) &&
                     (!filter.DateTo.HasValue || x.DocumentDate.Value < DateOnly.FromDateTime(filter.DateTo.Value.Date.AddDays(1))))
@@ -217,9 +244,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
             var rows = await _edoDocumentQuery.GetAllAsync(query, ct);
             var result = new DashboardElectronicDocumentsDto
             {
-                SourceStatus = filter.HasStatusFilter || filter.HasCurrencyFilter || filter.HasWarehouseFilter
-                    ? "PARTIAL"
-                    : "AVAILABLE",
+                SourceStatus = filter.StatusIds.Count > 0 ? "PARTIAL" : "AVAILABLE",
                 StatusCounts = GroupCounts(rows.Select(x => (x.Status, (short?)null))),
                 TypeCounts = GroupCounts(rows.Select(x => (x.DocumentType, (short?)null))),
                 DirectionCounts = GroupCounts(rows.Select(x => (x.Direction, (short?)null))),
@@ -234,7 +259,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         }
     }
 
-    public async Task<DashboardTaxSummaryDto> GetTaxSummaryAsync(DashboardFilterDto filter, CancellationToken ct = default)
+    public async Task<DashboardTaxSummaryDto> GetTaxSummaryAsync(TaxSummaryFilterDto filter, CancellationToken ct = default)
     {
         if (_userContext.OrganizationId is not int organizationId)
             return new DashboardTaxSummaryDto { SourceStatus = "NOT_AVAILABLE" };
@@ -283,7 +308,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         }
     }
 
-    private async Task<DashboardRelationshipSideDto> GetRelationshipsSideAsync(DashboardFilterDto filter, string direction, CancellationToken ct)
+    private async Task<DashboardRelationshipSideDto> GetRelationshipsSideAsync(OverviewFilterDto filter, string direction, CancellationToken ct)
     {
         if (_userContext.OrganizationId is not int organizationId)
             return new DashboardRelationshipSideDto { SourceStatus = "NOT_AVAILABLE" };
@@ -292,7 +317,6 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         {
             var rows = await _edoDocumentQuery.GetAllAsync(_queryBuilder.For<EdoDocument>()
                 .Where(x => x.OrganizationId == organizationId && x.Direction == direction &&
-                    (!filter.HasDocumentTypeFilter || filter.DocumentTypes.Contains(x.DocumentType)) &&
                     x.DocumentDate.HasValue &&
                     (!filter.DateFrom.HasValue || x.DocumentDate.Value >= DateOnly.FromDateTime(filter.DateFrom.Value.Date)) &&
                     (!filter.DateTo.HasValue || x.DocumentDate.Value < DateOnly.FromDateTime(filter.DateTo.Value.Date.AddDays(1))))
@@ -300,7 +324,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
                 .Build(), ct);
             return new DashboardRelationshipSideDto
             {
-                SourceStatus = filter.HasCurrencyFilter || filter.HasStatusFilter || filter.HasWarehouseFilter
+                SourceStatus = filter.CurrencyIds.Count > 0
                     ? "PARTIAL"
                     : "AVAILABLE",
                 Total = rows.Count,
@@ -313,24 +337,17 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         }
     }
 
-    private async Task<DashboardDebtDto> GetDebtAsync(DashboardFilterDto filter, bool payable, CancellationToken ct)
+    private async Task<DashboardDebtDto> GetDebtAsync(ReceivablesPayablesFilterDto filter, bool payable, CancellationToken ct)
     {
         if (_userContext.OrganizationId is not int organizationId)
             return new DashboardDebtDto { SourceStatus = "NOT_AVAILABLE" };
-
-        var requiredDocumentType = payable ? "PURCHASE" : "SALE";
-        if (!filter.IncludesDocumentType(requiredDocumentType))
-            return new DashboardDebtDto
-            {
-                SourceStatus = filter.HasWarehouseFilter || filter.HasStatusFilter ? "PARTIAL" : "AVAILABLE"
-            };
 
         try
         {
             var rows = await _counterpartyBalanceQuery.GetAllAsync(_queryBuilder.For<CounterpartyRegisterBalance>()
                 .Where(x => x.OrganizationId == organizationId &&
                     (payable ? x.DocumentTypeId == DocumentTypeIdConst.PURCHASE : x.DocumentTypeId == DocumentTypeIdConst.SALE) &&
-                    (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)) &&
+                    (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)) &&
                     (!filter.DateFrom.HasValue || x.DocDate >= filter.DateFrom.Value.Date) &&
                     (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)))
                 .As(x => new DebtRow
@@ -356,9 +373,7 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
 
             return new DashboardDebtDto
             {
-                SourceStatus = filter.HasWarehouseFilter || filter.HasStatusFilter
-                    ? "PARTIAL"
-                    : rows.Count == 0 ? "AVAILABLE" : "PARTIAL",
+                SourceStatus = rows.Count == 0 ? "AVAILABLE" : "PARTIAL",
                 Current = counterparties.Sum(x => x.CurrentAmount),
                 Overdue = null,
                 Buckets = [],
@@ -373,28 +388,24 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
         }
     }
 
-    private async Task<List<TaxRow>> GetSaleTaxRowsAsync(int organizationId, DashboardFilterDto filter, CancellationToken ct)
+    private async Task<List<TaxRow>> GetSaleTaxRowsAsync(int organizationId, TaxSummaryFilterDto filter, CancellationToken ct)
     {
         if (!filter.IncludesDocumentType("SALE"))
             return [];
         return await _saleDocQuery.GetAllAsync(_queryBuilder.For<SaleDoc>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
-                (!filter.HasWarehouseFilter || filter.WarehouseIds.Contains(x.WarehouseId)) &&
-                (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)) &&
-                (!filter.HasStatusFilter || filter.StatusIds.Contains(x.StatusId)) &&
+                (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)) &&
                 (!filter.DateFrom.HasValue || x.DocDate >= filter.DateFrom.Value.Date) &&
                 (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)))
             .As(x => new TaxRow { DocumentType = "SALE", CurrencyId = x.CurrencyId, VatAmount = x.VatAmount })
             .Build(), ct);
     }
 
-    private async Task<List<TaxRow>> GetPurchaseTaxRowsAsync(int organizationId, DashboardFilterDto filter, CancellationToken ct)
+    private async Task<List<TaxRow>> GetPurchaseTaxRowsAsync(int organizationId, TaxSummaryFilterDto filter, CancellationToken ct)
     {
         return await _purchaseDocQuery.GetAllAsync(_queryBuilder.For<PurchaseDoc>()
             .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE &&
-                (!filter.HasWarehouseFilter || filter.WarehouseIds.Contains(x.WarehouseId)) &&
-                (!filter.HasCurrencyFilter || filter.CurrencyIds.Contains(x.CurrencyId)) &&
-                (!filter.HasStatusFilter || filter.StatusIds.Contains(x.StatusId)) &&
+                (filter.CurrencyIds.Count == 0 || filter.CurrencyIds.Contains(x.CurrencyId)) &&
                 (!filter.DateFrom.HasValue || x.DocDate >= filter.DateFrom.Value.Date) &&
                 (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)))
             .As(x => new TaxRow { DocumentType = "PURCHASE", CurrencyId = x.CurrencyId, VatAmount = x.VatAmount })
@@ -412,10 +423,24 @@ public sealed class BusinessDashboardService : IBusinessDashboardService
             })
             .ToList();
 
+    private static string MaskAccountNumber(string? accountNumber)
+    {
+        var value = accountNumber?.Trim();
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        if (value.Length <= 4)
+            return new string('*', value.Length);
+
+        return new string('*', value.Length - 4) + value[^4..];
+    }
+
     private sealed class CashAccountRow
     {
         public int AccountId { get; init; }
-        public string AccountName { get; init; } = string.Empty;
+        public string? AccountName { get; init; }
+        public string? AccountNumber { get; init; }
+        public string SourceType { get; init; } = string.Empty;
         public short CurrencyId { get; init; }
         public string CurrencyCode { get; init; } = string.Empty;
         public decimal OpeningBalance { get; init; }

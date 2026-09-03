@@ -4,5 +4,5 @@ namespace Application.Features.Dashboard.Services;
 
 public interface ITaskCalendarService
 {
-    Task<TaskCalendarDto> GetAsync(DashboardFilterDto filter, CancellationToken ct = default);
+    Task<TaskCalendarDto> GetAsync(TaskCalendarFilterDto filter, CancellationToken ct = default);
 }

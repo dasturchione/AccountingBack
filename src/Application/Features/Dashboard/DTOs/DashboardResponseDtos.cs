@@ -7,7 +7,7 @@ public abstract class DashboardSourceDto
 
 public sealed class DashboardOverviewDto
 {
-    public DashboardFilterDto Filters { get; set; } = new();
+    public OverviewFilterDto Filters { get; set; } = new();
     public DashboardCashDto Cash { get; set; } = new();
     public DashboardRelationshipsDto Relationships { get; set; } = new();
     public TaskCalendarDto Tasks { get; set; } = new();
@@ -26,6 +26,7 @@ public sealed class DashboardCashDto : DashboardSourceDto
 public sealed class DashboardCashItemDto
 {
     public int AccountId { get; set; }
+    public string SourceType { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
     public short CurrencyId { get; set; }
     public string CurrencyCode { get; set; } = string.Empty;

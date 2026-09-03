@@ -10,6 +10,7 @@ namespace WebApi.Controllers.Dashboard;
 [Route("api/dashboard")]
 [ApiController]
 [Authorize]
+[Produces("application/json")]
 [ReadOnlyModuleAuthorize(PermissionCodeConst.DashboardView)]
 public sealed class BusinessDashboardController : ControllerBase
 {
@@ -18,22 +19,22 @@ public sealed class BusinessDashboardController : ControllerBase
     public BusinessDashboardController(IBusinessDashboardService service) => _service = service;
 
     [HttpGet("overview")]
-    public Task<DashboardOverviewDto> GetOverview([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<DashboardOverviewDto> GetOverview([FromQuery] OverviewFilterDto filter, CancellationToken ct = default) =>
         _service.GetOverviewAsync(filter, ct);
 
     [HttpGet("cash")]
-    public Task<DashboardCashDto> GetCash([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<DashboardCashDto> GetCash([FromQuery] CashFilterDto filter, CancellationToken ct = default) =>
         _service.GetCashAsync(filter, ct);
 
     [HttpGet("receivables-payables")]
-    public Task<DashboardReceivablesPayablesDto> GetReceivablesPayables([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<DashboardReceivablesPayablesDto> GetReceivablesPayables([FromQuery] ReceivablesPayablesFilterDto filter, CancellationToken ct = default) =>
         _service.GetReceivablesPayablesAsync(filter, ct);
 
     [HttpGet("electronic-documents")]
-    public Task<DashboardElectronicDocumentsDto> GetElectronicDocuments([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<DashboardElectronicDocumentsDto> GetElectronicDocuments([FromQuery] ElectronicDocumentsFilterDto filter, CancellationToken ct = default) =>
         _service.GetElectronicDocumentsAsync(filter, ct);
 
     [HttpGet("tax-summary")]
-    public Task<DashboardTaxSummaryDto> GetTaxSummary([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<DashboardTaxSummaryDto> GetTaxSummary([FromQuery] TaxSummaryFilterDto filter, CancellationToken ct = default) =>
         _service.GetTaxSummaryAsync(filter, ct);
 }

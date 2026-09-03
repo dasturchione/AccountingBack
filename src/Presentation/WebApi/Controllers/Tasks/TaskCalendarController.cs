@@ -10,6 +10,7 @@ namespace WebApi.Controllers.Tasks;
 [Route("api/tasks")]
 [ApiController]
 [Authorize]
+[Produces("application/json")]
 [ReadOnlyModuleAuthorize(PermissionCodeConst.DashboardView)]
 public sealed class TaskCalendarController : ControllerBase
 {
@@ -18,6 +19,6 @@ public sealed class TaskCalendarController : ControllerBase
     public TaskCalendarController(ITaskCalendarService service) => _service = service;
 
     [HttpGet("calendar")]
-    public Task<TaskCalendarDto> GetCalendar([FromQuery] DashboardFilterDto filter, CancellationToken ct = default) =>
+    public Task<TaskCalendarDto> GetCalendar([FromQuery] TaskCalendarFilterDto filter, CancellationToken ct = default) =>
         _service.GetAsync(filter, ct);
 }

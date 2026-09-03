@@ -32,7 +32,6 @@
 01_cmn/0111_create_cmn_bank.sql
 01_cmn/0112_create_cmn_document_type.sql
 01_cmn/0113_create_cmn_operation_type.sql
-01_cmn/0114_create_cmn_tax_type.sql
 01_cmn/0115_create_cmn_vat_rate.sql
 01_cmn/0116_create_cmn_contract_type.sql
 01_cmn/0117_create_cmn_contract.sql
@@ -90,7 +89,6 @@
 02_org/0204_create_org_position.sql
 02_org/0205_create_org_organization_config.sql
 02_org/0206_create_org_setup_state.sql
-02_org/0207_create_org_tax_settings.sql
 02_org/0208_create_org_defaults.sql
 02_org/0209_create_org_user_invitation.sql
 02_org/0210_create_org_claim_request.sql
@@ -293,3 +291,12 @@
 05_bank/0509_create_payment_acceptance_point_operation.sql
 05_bank/0510_add_payment_operation_document_link_and_retail_constraints.sql
 00_sys/0020_migrate_payment_acceptance_point_permissions.sql
+01_cmn/0175_create_cmn_regulated_obligation_category.sql
+01_cmn/0176_create_cmn_regulated_obligation_category_translation.sql
+01_cmn/0177_create_cmn_regulated_obligation.sql
+01_cmn/0178_create_cmn_regulated_obligation_translation.sql
+01_cmn/0179_create_cmn_regulated_obligation_periodicity.sql
+01_cmn/0180_create_cmn_regulated_obligation_periodicity_translation.sql
+01_cmn/0181_insert_cmn_regulated_obligation_catalogues.sql
+02_org/0211_create_org_regulated_obligation_setting.sql
+02_org/0212_drop_legacy_tax_settings.sql

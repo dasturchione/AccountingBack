@@ -414,6 +414,14 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.RentalContractView)]
+    [HttpGet("utility-services")]
+    public async Task<IActionResult> GetUtilityServices(CancellationToken ct)
+    {
+        var result = await _manualService.GetUtilityServicesAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetPaymentAcceptancePointTypes)]
     [HttpGet("payment-acceptance-point-types")]
     public async Task<IActionResult> GetPaymentAcceptancePointTypes(CancellationToken ct)

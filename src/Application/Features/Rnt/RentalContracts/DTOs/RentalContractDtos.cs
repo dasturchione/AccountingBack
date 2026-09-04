@@ -1,5 +1,22 @@
 namespace Application.Features.Rnt.RentalContracts;
 
+public sealed class RentalLessorInputDto
+{
+    public string LessorKindCode { get; set; } = null!;
+    public string FullName { get; set; } = null!;
+    public string? Inn { get; set; }
+    public string? Pinfl { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? RegisteredAddress { get; set; }
+    public string? ResidentialAddress { get; set; }
+}
+
+public sealed class RentalContractObjectUtilityInputDto
+{
+    public short UtilityServiceId { get; set; }
+    public string PayerCode { get; set; } = null!;
+}
+
 public sealed class RentalContractObjectInputDto
 {
     public long? Id { get; set; }
@@ -7,6 +24,8 @@ public sealed class RentalContractObjectInputDto
     public string ObjectName { get; set; } = null!;
     public string? ObjectIdentifier { get; set; }
     public string? ObjectAddress { get; set; }
+    public decimal? TotalArea { get; set; }
+    public decimal? RentedArea { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public string PeriodUnit { get; set; } = "MONTH";
@@ -15,13 +34,12 @@ public sealed class RentalContractObjectInputDto
     public decimal TaxBaseAmount { get; set; }
     public decimal TaxRate { get; set; }
     public int? ExpenseAccountId { get; set; }
+    public List<RentalContractObjectUtilityInputDto> Utilities { get; set; } = [];
 }
 
 public class RentalContractBaseDto
 {
-    public string LessorFullName { get; set; } = null!;
-    public string? LessorInn { get; set; }
-    public string? LessorPinfl { get; set; }
+    public bool IsFreeOfCharge { get; set; }
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
     public DateTime StartDate { get; set; }
@@ -30,11 +48,34 @@ public class RentalContractBaseDto
     public int? LessorPayableAccountId { get; set; }
     public int? TaxPayableAccountId { get; set; }
     public string? Comment { get; set; }
+    public List<RentalLessorInputDto> Lessors { get; set; } = [];
     public List<RentalContractObjectInputDto> Objects { get; set; } = [];
 }
 
 public sealed class RentalContractCreateDto : RentalContractBaseDto;
 public sealed class RentalContractUpdateDto : RentalContractBaseDto;
+
+public sealed class RentalLessorDto
+{
+    public long Id { get; set; }
+    public string LessorKindCode { get; set; } = null!;
+    public int? CounterpartyId { get; set; }
+    public string FullName { get; set; } = null!;
+    public string? Inn { get; set; }
+    public string? Pinfl { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? RegisteredAddress { get; set; }
+    public string? ResidentialAddress { get; set; }
+}
+
+public sealed class RentalContractObjectUtilityDto
+{
+    public long Id { get; set; }
+    public short UtilityServiceId { get; set; }
+    public string UtilityServiceCode { get; set; } = null!;
+    public string UtilityServiceName { get; set; } = null!;
+    public string PayerCode { get; set; } = null!;
+}
 
 public sealed class RentalContractObjectDto
 {
@@ -45,6 +86,8 @@ public sealed class RentalContractObjectDto
     public string ObjectName { get; set; } = null!;
     public string? ObjectIdentifier { get; set; }
     public string? ObjectAddress { get; set; }
+    public decimal? TotalArea { get; set; }
+    public decimal? RentedArea { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public string PeriodUnit { get; set; } = null!;
@@ -56,15 +99,14 @@ public sealed class RentalContractObjectDto
     public int? ExpenseAccountId { get; set; }
     public string? ExpenseAccountNumber { get; set; }
     public string? ExpenseAccountName { get; set; }
+    public List<RentalContractObjectUtilityDto> Utilities { get; set; } = [];
 }
 
 public class RentalContractDto
 {
     public long Id { get; set; }
     public int OrganizationId { get; set; }
-    public string LessorFullName { get; set; } = null!;
-    public string? LessorInn { get; set; }
-    public string? LessorPinfl { get; set; }
+    public bool IsFreeOfCharge { get; set; }
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
     public DateTime StartDate { get; set; }
@@ -83,6 +125,7 @@ public class RentalContractDto
     public DateTime CreatedDate { get; set; }
     public DateTime? PostedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
+    public List<RentalLessorDto> Lessors { get; set; } = [];
     public List<RentalContractObjectDto> Objects { get; set; } = [];
 }
 
@@ -91,9 +134,7 @@ public sealed class RentalContractListDto
     public long Id { get; set; }
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
-    public string LessorFullName { get; set; } = null!;
-    public string? LessorInn { get; set; }
-    public string? LessorPinfl { get; set; }
+    public bool IsFreeOfCharge { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public short CurrencyId { get; set; }
@@ -101,4 +142,5 @@ public sealed class RentalContractListDto
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public int ObjectCount { get; set; }
+    public List<RentalLessorDto> Lessors { get; set; } = [];
 }

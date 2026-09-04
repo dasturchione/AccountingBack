@@ -21,7 +21,12 @@ public sealed class RentalContractService : BaseService, IRentalContractService
     private readonly IQueryRepository<RentalAccrualDoc> _accrualQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
     private readonly IQueryRepository<RentalObjectType> _typeQuery;
+    private readonly IQueryRepository<UtilityService> _utilityServiceQuery;
     private readonly IQueryRepository<ChartAccount> _accountQuery;
+    private readonly IQueryRepository<RentalLessor> _lessorQuery;
+    private readonly ICommandRepository<RentalLessor> _lessorCommand;
+    private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
+    private readonly ICommandRepository<CounterpartyCard> _counterpartyCommand;
 
     public RentalContractService(
         IUserContext userContext,
@@ -32,7 +37,12 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         IQueryRepository<RentalAccrualDoc> accrualQuery,
         IQueryRepository<Currency> currencyQuery,
         IQueryRepository<RentalObjectType> typeQuery,
+        IQueryRepository<UtilityService> utilityServiceQuery,
         IQueryRepository<ChartAccount> accountQuery,
+        IQueryRepository<RentalLessor> lessorQuery,
+        ICommandRepository<RentalLessor> lessorCommand,
+        IQueryRepository<CounterpartyCard> counterpartyQuery,
+        ICommandRepository<CounterpartyCard> counterpartyCommand,
         ILogger<RentalContractService> logger,
         IUnitOfWork unitOfWork) : base(logger, unitOfWork)
     {
@@ -44,7 +54,12 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         _accrualQuery = accrualQuery;
         _currencyQuery = currencyQuery;
         _typeQuery = typeQuery;
+        _utilityServiceQuery = utilityServiceQuery;
         _accountQuery = accountQuery;
+        _lessorQuery = lessorQuery;
+        _lessorCommand = lessorCommand;
+        _counterpartyQuery = counterpartyQuery;
+        _counterpartyCommand = counterpartyCommand;
     }
 
     public Task<Result<PagedResponse<RentalContractListDto>>> GetAllAsync(RentalContractListFilter filter, CancellationToken ct = default) =>
@@ -83,6 +98,10 @@ public sealed class RentalContractService : BaseService, IRentalContractService
                                          x.ContractNumber == normalizedNumber && x.ContractDate.Year == contractYear, ct))
                 return Result.Failure<long>(RentalContractErrors.DuplicateNumber(normalizedNumber, contractYear, _userContext.LanguageId));
 
+            var lessorResult = await ResolveLessorsAsync(dto.Lessors, organizationId, ct);
+            if (!lessorResult.IsSuccess)
+                return Result.Failure<long>(lessorResult.Error);
+
             var entity = new RentalContract
             {
                 OrganizationId = organizationId,
@@ -92,6 +111,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
                 CreatedByUserId = _userContext.Id
             };
             ApplyHeader(dto, entity);
+            SyncLessors(entity, lessorResult.Value);
             foreach (var item in dto.Objects)
                 entity.Objects.Add(CreateObject(item));
 
@@ -131,7 +151,12 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             if (old is not null)
                 _auditLogService.SetOldValues(old);
 
+            var lessorResult = await ResolveLessorsAsync(dto.Lessors, entity.OrganizationId, ct);
+            if (!lessorResult.IsSuccess)
+                return Result.Failure(lessorResult.Error);
+
             ApplyHeader(dto, entity);
+            SyncLessors(entity, lessorResult.Value);
             foreach (var existing in entity.Objects.Where(x => x.StateId == StateIdConst.ACTIVE && !requestedIds.Contains(x.Id)))
             {
                 existing.StateId = StateIdConst.PASSIVE;
@@ -196,12 +221,13 @@ public sealed class RentalContractService : BaseService, IRentalContractService
                 return Result.Success();
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(RentalContractErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
-            if (!entity.LessorPayableAccountId.HasValue || !entity.TaxPayableAccountId.HasValue ||
-                entity.Objects.Where(x => x.StateId == StateIdConst.ACTIVE).Any(x => !x.ExpenseAccountId.HasValue))
+            if (!entity.IsFreeOfCharge &&
+                (!entity.LessorPayableAccountId.HasValue || !entity.TaxPayableAccountId.HasValue ||
+                 entity.Objects.Where(x => x.StateId == StateIdConst.ACTIVE).Any(x => !x.ExpenseAccountId.HasValue)))
                 return Result.Failure(RentalContractErrors.MissingAccounts(_userContext.LanguageId));
 
             var activationDto = ToValidationDto(entity);
-            var references = await ValidateReferencesAsync(activationDto, requireAccounts: true, ct);
+            var references = await ValidateReferencesAsync(activationDto, requireAccounts: !entity.IsFreeOfCharge, ct);
             if (!references.IsSuccess)
                 return references;
 
@@ -264,6 +290,21 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         if ((await _typeQuery.GetAllAsync(typeQuery, ct)).Count != typeIds.Length)
             return Result.Failure(RentalContractErrors.InvalidReference(_userContext.LanguageId));
 
+        var utilityServiceIds = dto.Objects
+            .SelectMany(x => x.Utilities)
+            .Select(x => x.UtilityServiceId)
+            .Distinct()
+            .ToArray();
+        if (utilityServiceIds.Length > 0)
+        {
+            var utilityQuery = _queryBuilder.For<UtilityService>()
+                .Where(x => utilityServiceIds.Contains(x.Id) && x.StateId == StateIdConst.ACTIVE)
+                .As(x => x.Id)
+                .Build();
+            if ((await _utilityServiceQuery.GetAllAsync(utilityQuery, ct)).Count != utilityServiceIds.Length)
+                return Result.Failure(RentalContractErrors.InvalidReference(_userContext.LanguageId));
+        }
+
         var accountIds = dto.Objects.Select(x => x.ExpenseAccountId)
             .Append(dto.LessorPayableAccountId)
             .Append(dto.TaxPayableAccountId)
@@ -301,7 +342,10 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             .Where(x => x.Id == id && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
             .Build();
         if (includeObjects)
-            query.AddIncludes(x => x.Include(c => c.Objects));
+        {
+            query.AddIncludes(x => x.Include(c => c.Objects).ThenInclude(o => o.Utilities));
+            query.AddIncludes(x => x.Include(c => c.Lessors).ThenInclude(link => link.Lessor));
+        }
         return await _query.GetAsync(query, ct);
     }
 
@@ -319,9 +363,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
 
     private static void ApplyHeader(RentalContractBaseDto dto, RentalContract entity)
     {
-        entity.LessorFullName = dto.LessorFullName.Trim();
-        entity.LessorInn = NullIfWhiteSpace(dto.LessorInn);
-        entity.LessorPinfl = NullIfWhiteSpace(dto.LessorPinfl);
+        entity.IsFreeOfCharge = dto.IsFreeOfCharge;
         entity.ContractNumber = dto.ContractNumber.Trim();
         entity.ContractDate = dto.ContractDate.Date;
         entity.StartDate = dto.StartDate.Date;
@@ -330,6 +372,136 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         entity.LessorPayableAccountId = dto.LessorPayableAccountId;
         entity.TaxPayableAccountId = dto.TaxPayableAccountId;
         entity.Comment = NullIfWhiteSpace(dto.Comment);
+    }
+
+    private async Task<Result<List<RentalLessor>>> ResolveLessorsAsync(
+        IReadOnlyCollection<RentalLessorInputDto> items,
+        int organizationId,
+        CancellationToken ct)
+    {
+        var result = new List<RentalLessor>(items.Count);
+        foreach (var item in items)
+        {
+            var inn = NullIfWhiteSpace(item.Inn);
+            var pinfl = NullIfWhiteSpace(item.Pinfl);
+            var kindCode = item.LessorKindCode.Trim().ToUpperInvariant();
+            if (inn is null && pinfl is null)
+                return Result.Failure<List<RentalLessor>>(RentalContractErrors.InvalidLessor(_userContext.LanguageId));
+
+            RentalLessor? lessor = null;
+            if (pinfl is not null)
+            {
+                var pinflQuery = _queryBuilder.For<RentalLessor>()
+                    .Where(x => x.OrganizationId == organizationId &&
+                                x.StateId == StateIdConst.ACTIVE &&
+                                x.Pinfl != null && x.Pinfl.Trim() == pinfl)
+                    .OrderBy(x => x.Id)
+                    .Build();
+                lessor = await _lessorQuery.GetAsync(pinflQuery, ct);
+            }
+
+            if (lessor is null && inn is not null)
+            {
+                var innQuery = _queryBuilder.For<RentalLessor>()
+                    .Where(x => x.OrganizationId == organizationId &&
+                                x.StateId == StateIdConst.ACTIVE &&
+                                x.Inn != null && x.Inn.Trim() == inn)
+                    .OrderBy(x => x.Id)
+                    .Build();
+                lessor = await _lessorQuery.GetAsync(innQuery, ct);
+            }
+
+            int? counterpartyId = null;
+            if (kindCode == RentalLessorKindConst.LegalEntity)
+            {
+                if (inn is null)
+                    return Result.Failure<List<RentalLessor>>(RentalContractErrors.InvalidLessor(_userContext.LanguageId));
+                counterpartyId = (await ResolveLegalCounterpartyAsync(item, inn, organizationId, ct)).Id;
+            }
+
+            if (lessor is null)
+            {
+                lessor = new RentalLessor
+                {
+                    OrganizationId = organizationId,
+                    StateId = StateIdConst.ACTIVE,
+                    CreatedDate = DateTime.Now
+                };
+                ApplyLessor(item, lessor, kindCode, inn, pinfl, counterpartyId);
+                await _lessorCommand.CreateAsync(lessor, ct);
+            }
+            else
+            {
+                ApplyLessor(item, lessor, kindCode, inn, pinfl, counterpartyId);
+                lessor.UpdatedDate = DateTime.Now;
+                await _lessorCommand.UpdateAsync(lessor, ct);
+            }
+
+            result.Add(lessor);
+        }
+
+        return Result.Success(result);
+    }
+
+    private async Task<CounterpartyCard> ResolveLegalCounterpartyAsync(
+        RentalLessorInputDto item,
+        string inn,
+        int organizationId,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<CounterpartyCard>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.Inn != null && x.Inn.Trim() == inn)
+            .OrderBy(x => x.Id)
+            .Build();
+        var counterparty = await _counterpartyQuery.GetAsync(query, ct);
+        if (counterparty is not null)
+            return counterparty;
+
+        var fullName = item.FullName.Trim();
+        counterparty = new CounterpartyCard
+        {
+            OrganizationId = organizationId,
+            ShortName = fullName.Length <= 250 ? fullName : fullName[..250],
+            FullName = fullName,
+            Inn = inn,
+            PhoneNumber = NullIfWhiteSpace(item.PhoneNumber),
+            Address = NullIfWhiteSpace(item.RegisteredAddress),
+            IsVatPayer = false,
+            StateId = StateIdConst.ACTIVE,
+            CreatedDate = DateTime.Now
+        };
+        await _counterpartyCommand.CreateAsync(counterparty, ct);
+        return counterparty;
+    }
+
+    private static void ApplyLessor(
+        RentalLessorInputDto dto,
+        RentalLessor entity,
+        string kindCode,
+        string? inn,
+        string? pinfl,
+        int? counterpartyId)
+    {
+        entity.LessorKindCode = kindCode;
+        entity.CounterpartyId = counterpartyId;
+        entity.FullName = dto.FullName.Trim();
+        entity.Inn = inn;
+        entity.Pinfl = pinfl;
+        entity.PhoneNumber = NullIfWhiteSpace(dto.PhoneNumber);
+        entity.RegisteredAddress = NullIfWhiteSpace(dto.RegisteredAddress);
+        entity.ResidentialAddress = NullIfWhiteSpace(dto.ResidentialAddress);
+    }
+
+    private static void SyncLessors(RentalContract entity, IReadOnlyCollection<RentalLessor> lessors)
+    {
+        var requestedIds = lessors.Select(x => x.Id).ToHashSet();
+        foreach (var existing in entity.Lessors.Where(x => !requestedIds.Contains(x.LessorId)).ToList())
+            entity.Lessors.Remove(existing);
+
+        var existingIds = entity.Lessors.Select(x => x.LessorId).ToHashSet();
+        foreach (var lessor in lessors.Where(x => !existingIds.Contains(x.Id)))
+            entity.Lessors.Add(new RentalContractLessor { LessorId = lessor.Id });
     }
 
     private static RentalContractObject CreateObject(RentalContractObjectInputDto dto)
@@ -349,6 +521,8 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         entity.ObjectName = dto.ObjectName.Trim();
         entity.ObjectIdentifier = NullIfWhiteSpace(dto.ObjectIdentifier);
         entity.ObjectAddress = NullIfWhiteSpace(dto.ObjectAddress);
+        entity.TotalArea = dto.TotalArea;
+        entity.RentedArea = dto.RentedArea;
         entity.StartDate = dto.StartDate.Date;
         entity.EndDate = dto.EndDate.Date;
         entity.PeriodUnit = dto.PeriodUnit.ToUpperInvariant();
@@ -361,13 +535,38 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         entity.ExpenseAccountId = dto.ExpenseAccountId;
         entity.StateId = StateIdConst.ACTIVE;
         entity.UpdatedDate = entity.Id == 0 ? null : DateTime.Now;
+        SyncUtilities(entity, dto.Utilities);
+    }
+
+    private static void SyncUtilities(
+        RentalContractObject entity,
+        IReadOnlyCollection<RentalContractObjectUtilityInputDto> utilities)
+    {
+        var requestedIds = utilities.Select(x => x.UtilityServiceId).ToHashSet();
+        foreach (var existing in entity.Utilities.Where(x => !requestedIds.Contains(x.UtilityServiceId)).ToList())
+            entity.Utilities.Remove(existing);
+
+        foreach (var item in utilities)
+        {
+            var existing = entity.Utilities.SingleOrDefault(x => x.UtilityServiceId == item.UtilityServiceId);
+            if (existing is null)
+            {
+                entity.Utilities.Add(new RentalContractObjectUtility
+                {
+                    UtilityServiceId = item.UtilityServiceId,
+                    PayerCode = item.PayerCode.Trim().ToUpperInvariant()
+                });
+            }
+            else
+            {
+                existing.PayerCode = item.PayerCode.Trim().ToUpperInvariant();
+            }
+        }
     }
 
     private static RentalContractUpdateDto ToValidationDto(RentalContract entity) => new()
     {
-        LessorFullName = entity.LessorFullName,
-        LessorInn = entity.LessorInn,
-        LessorPinfl = entity.LessorPinfl,
+        IsFreeOfCharge = entity.IsFreeOfCharge,
         ContractNumber = entity.ContractNumber,
         ContractDate = entity.ContractDate,
         StartDate = entity.StartDate,
@@ -375,6 +574,18 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         CurrencyId = entity.CurrencyId,
         LessorPayableAccountId = entity.LessorPayableAccountId,
         TaxPayableAccountId = entity.TaxPayableAccountId,
+        Lessors = entity.Lessors
+            .Where(x => x.Lessor.StateId == StateIdConst.ACTIVE)
+            .Select(x => new RentalLessorInputDto
+            {
+                LessorKindCode = x.Lessor.LessorKindCode,
+                FullName = x.Lessor.FullName,
+                Inn = x.Lessor.Inn,
+                Pinfl = x.Lessor.Pinfl,
+                PhoneNumber = x.Lessor.PhoneNumber,
+                RegisteredAddress = x.Lessor.RegisteredAddress,
+                ResidentialAddress = x.Lessor.ResidentialAddress
+            }).ToList(),
         Objects = entity.Objects.Where(x => x.StateId == StateIdConst.ACTIVE).Select(x => new RentalContractObjectInputDto
         {
             Id = x.Id,
@@ -382,6 +593,8 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             ObjectName = x.ObjectName,
             ObjectIdentifier = x.ObjectIdentifier,
             ObjectAddress = x.ObjectAddress,
+            TotalArea = x.TotalArea,
+            RentedArea = x.RentedArea,
             StartDate = x.StartDate,
             EndDate = x.EndDate,
             PeriodUnit = x.PeriodUnit,
@@ -389,7 +602,12 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             ContractAmount = x.ContractAmount,
             TaxBaseAmount = x.TaxBaseAmount,
             TaxRate = x.TaxRate,
-            ExpenseAccountId = x.ExpenseAccountId
+            ExpenseAccountId = x.ExpenseAccountId,
+            Utilities = x.Utilities.Select(utility => new RentalContractObjectUtilityInputDto
+            {
+                UtilityServiceId = utility.UtilityServiceId,
+                PayerCode = utility.PayerCode
+            }).ToList()
         }).ToList()
     };
 

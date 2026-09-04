@@ -58,8 +58,9 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
             var query = _queryBuilder.For<RentalContractObject>()
                 .IgnoreQueryFilters()
                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
-                            x.Contract.StateId == StateIdConst.ACTIVE &&
-                            x.Contract.StatusId == DocumentStatusIdConst.POSTED &&
+                             x.Contract.StateId == StateIdConst.ACTIVE &&
+                             x.Contract.StatusId == DocumentStatusIdConst.POSTED &&
+                             !x.Contract.IsFreeOfCharge &&
                             x.NextAccrualDate <= date &&
                             x.NextAccrualDate <= x.EndDate &&
                             (!organizationId.HasValue || x.Contract.OrganizationId == organizationId.Value))

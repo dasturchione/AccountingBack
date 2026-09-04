@@ -85,6 +85,9 @@ public partial class Language
     [InverseProperty(nameof(RegulatedObligationPeriodicityTranslation.Language))]
     public virtual ICollection<RegulatedObligationPeriodicityTranslation> RegulatedObligationPeriodicityTranslations { get; set; } = [];
 
+    [InverseProperty(nameof(UtilityServiceTranslation.Language))]
+    public virtual ICollection<UtilityServiceTranslation> UtilityServiceTranslations { get; set; } = [];
+
     [InverseProperty(nameof(BankOperationCategoryTranslation.Language))]
     public virtual ICollection<BankOperationCategoryTranslation> BankOperationCategoryTranslations { get; set; } = [];
 

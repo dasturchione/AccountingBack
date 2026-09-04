@@ -29,6 +29,14 @@ public sealed class RentalContractObject
     [StringLength(1000)]
     public string? ObjectAddress { get; set; }
 
+    [Column("total_area")]
+    [Precision(24, 8)]
+    public decimal? TotalArea { get; set; }
+
+    [Column("rented_area")]
+    [Precision(24, 8)]
+    public decimal? RentedArea { get; set; }
+
     [Column("start_date", TypeName = "date")]
     public DateTime StartDate { get; set; }
 
@@ -82,4 +90,5 @@ public sealed class RentalContractObject
     public State State { get; set; } = null!;
 
     public ICollection<RentalAccrualDocItem> AccrualItems { get; set; } = new List<RentalAccrualDocItem>();
+    public ICollection<RentalContractObjectUtility> Utilities { get; set; } = [];
 }

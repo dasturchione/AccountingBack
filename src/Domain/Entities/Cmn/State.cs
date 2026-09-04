@@ -54,6 +54,12 @@ public partial class State
     [InverseProperty(nameof(OrganizationRegulatedObligationSetting.State))]
     public virtual ICollection<OrganizationRegulatedObligationSetting> OrganizationRegulatedObligationSettings { get; set; } = [];
 
+    [InverseProperty(nameof(UtilityService.State))]
+    public virtual ICollection<UtilityService> UtilityServices { get; set; } = [];
+
+    [InverseProperty(nameof(RentalLessor.State))]
+    public virtual ICollection<RentalLessor> RentalLessors { get; set; } = [];
+
     [InverseProperty(nameof(PaymentAcceptancePointOperation.State))]
     public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 

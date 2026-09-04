@@ -12,6 +12,8 @@ public static class RentalAccrualDraftFactory
         IReadOnlyCollection<RentalAccrualDraftSource> sources,
         int? createdByUserId)
     {
+        if (contract.IsFreeOfCharge)
+            throw new InvalidOperationException("A free rental contract cannot produce accrual documents.");
         if (sources.Count == 0)
             throw new ArgumentException("At least one due rental object is required.", nameof(sources));
         if (sources

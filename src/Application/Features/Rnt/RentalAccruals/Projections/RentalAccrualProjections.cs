@@ -1,4 +1,6 @@
+using Application.Features.Rnt.RentalContracts;
 using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using System.Linq.Expressions;
 
@@ -12,9 +14,21 @@ public sealed class RentalAccrualDocDtoProjection : IProjectionBuilder<RentalAcc
         OrganizationId = x.OrganizationId,
         ContractId = x.ContractId,
         ContractNumber = x.Contract.ContractNumber,
-        LessorFullName = x.Contract.LessorFullName,
-        LessorInn = x.Contract.LessorInn,
-        LessorPinfl = x.Contract.LessorPinfl,
+        Lessors = x.Contract.Lessors
+            .Where(link => link.Lessor.StateId == StateIdConst.ACTIVE)
+            .OrderBy(link => link.LessorId)
+            .Select(link => new RentalLessorDto
+            {
+                Id = link.Lessor.Id,
+                LessorKindCode = link.Lessor.LessorKindCode,
+                CounterpartyId = link.Lessor.CounterpartyId,
+                FullName = link.Lessor.FullName,
+                Inn = link.Lessor.Inn,
+                Pinfl = link.Lessor.Pinfl,
+                PhoneNumber = link.Lessor.PhoneNumber,
+                RegisteredAddress = link.Lessor.RegisteredAddress,
+                ResidentialAddress = link.Lessor.ResidentialAddress
+            }).ToList(),
         DocNumber = x.DocNumber,
         DocDate = x.DocDate,
         CurrencyId = x.CurrencyId,
@@ -64,7 +78,21 @@ public sealed class RentalAccrualDocListDtoProjection : IProjectionBuilder<Renta
         Id = x.Id,
         ContractId = x.ContractId,
         ContractNumber = x.Contract.ContractNumber,
-        LessorFullName = x.Contract.LessorFullName,
+        Lessors = x.Contract.Lessors
+            .Where(link => link.Lessor.StateId == StateIdConst.ACTIVE)
+            .OrderBy(link => link.LessorId)
+            .Select(link => new RentalLessorDto
+            {
+                Id = link.Lessor.Id,
+                LessorKindCode = link.Lessor.LessorKindCode,
+                CounterpartyId = link.Lessor.CounterpartyId,
+                FullName = link.Lessor.FullName,
+                Inn = link.Lessor.Inn,
+                Pinfl = link.Lessor.Pinfl,
+                PhoneNumber = link.Lessor.PhoneNumber,
+                RegisteredAddress = link.Lessor.RegisteredAddress,
+                ResidentialAddress = link.Lessor.ResidentialAddress
+            }).ToList(),
         DocNumber = x.DocNumber,
         DocDate = x.DocDate,
         CurrencyCode = x.Currency.Code,

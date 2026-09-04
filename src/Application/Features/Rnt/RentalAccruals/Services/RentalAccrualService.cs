@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
-using SharedKernel.Time;
 
 namespace Application.Features.Rnt.RentalAccruals;
 
@@ -142,12 +141,12 @@ public sealed class RentalAccrualService : BaseService, IRentalAccrualService
     public Task<Result> PostAsync(long id, CancellationToken ct = default) => _lifecycleService.PostAsync(id, ct);
     public Task<Result> CancelAsync(long id, CancellationToken ct = default) => _lifecycleService.CancelAsync(id, ct);
 
-    public Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(DateTime? asOfDate, CancellationToken ct = default) =>
+    public Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(int year, int month, CancellationToken ct = default) =>
         ExecuteAsync(nameof(GenerateDueAsync), async () =>
         {
             if (_userContext.OrganizationId is null)
                 return Result.Failure<RentalAccrualGenerationResult>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
-            return await _generationService.GenerateDueAsync(asOfDate?.Date ?? TashkentTime.Today, _userContext.OrganizationId.Value, ct);
+            return await _generationService.GenerateDueAsync(year, month, _userContext.OrganizationId.Value, ct);
         });
 
     private async Task<RentalAccrualDoc?> GetEntityAsync(long id, CancellationToken ct)

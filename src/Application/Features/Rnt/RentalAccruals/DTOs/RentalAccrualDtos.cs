@@ -85,7 +85,8 @@ public sealed class RentalAccrualUpdateDto
 
 public sealed class RentalAccrualGenerateDueDto
 {
-    public DateTime? AsOfDate { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
 }
 
 public sealed record RentalAccrualGenerationResult(int CreatedDocumentCount, int CreatedItemCount, IReadOnlyList<long> DocumentIds);

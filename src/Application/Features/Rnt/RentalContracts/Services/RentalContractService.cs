@@ -2,12 +2,14 @@ using Application.Abstractions;
 using Application.Abstractions.Authentication;
 using Application.Common.Pagination;
 using Application.Features.AuditLogs;
+using Application.Features.Rnt.RentalAccruals;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
+using SharedKernel.Time;
 
 namespace Application.Features.Rnt.RentalContracts;
 
@@ -211,7 +213,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             return Result.Success();
         }, ct);
 
-    public Task<Result> ActivateAsync(long id, CancellationToken ct = default) =>
+    public Task<Result> ActivateAsync(long id, DateTime? confirmationDate = null, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(ActivateAsync), async () =>
         {
             var entity = await GetEntityAsync(id, includeObjects: true, ct);
@@ -221,6 +223,9 @@ public sealed class RentalContractService : BaseService, IRentalContractService
                 return Result.Success();
             if (entity.StatusId != DocumentStatusIdConst.DRAFT)
                 return Result.Failure(RentalContractErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
+            var effectiveConfirmationDate = (confirmationDate ?? TashkentTime.Today).Date;
+            if (effectiveConfirmationDate < entity.ContractDate.Date || effectiveConfirmationDate > TashkentTime.Today)
+                return Result.Failure(RentalContractErrors.InvalidConfirmationDate(effectiveConfirmationDate, _userContext.LanguageId));
             if (!entity.IsFreeOfCharge &&
                 (!entity.LessorPayableAccountId.HasValue || !entity.TaxPayableAccountId.HasValue ||
                  entity.Objects.Where(x => x.StateId == StateIdConst.ACTIVE).Any(x => !x.ExpenseAccountId.HasValue)))
@@ -235,6 +240,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             if (old is not null)
                 _auditLogService.SetOldValues(old);
             entity.StatusId = DocumentStatusIdConst.POSTED;
+            entity.ConfirmationDate = effectiveConfirmationDate;
             entity.PostedAt = DateTime.Now;
             entity.PostedByUserId = _userContext.Id;
             await _command.UpdateAsync(entity, ct);
@@ -247,7 +253,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             return Result.Success();
         }, ct);
 
-    public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
+    public Task<Result> CancelAsync(long id, DateTime? terminationDate = null, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
         {
             var entity = await GetEntityAsync(id, includeObjects: false, ct);
@@ -258,10 +264,22 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             if (entity.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.POSTED))
                 return Result.Failure(RentalContractErrors.InvalidStatus(id, entity.StatusId, _userContext.LanguageId));
 
+            DateTime? effectiveTerminationDate = null;
+            if (entity.StatusId == DocumentStatusIdConst.POSTED)
+            {
+                effectiveTerminationDate = (terminationDate ?? TashkentTime.Today).Date;
+                if (effectiveTerminationDate < entity.StartDate.Date || effectiveTerminationDate > TashkentTime.Today)
+                    return Result.Failure(RentalContractErrors.InvalidTerminationDate(effectiveTerminationDate.Value, entity.StartDate, _userContext.LanguageId));
+            }
+
             var old = await GetDtoAsync(id, ct);
             if (old is not null)
                 _auditLogService.SetOldValues(old);
+            if (entity.StatusId == DocumentStatusIdConst.POSTED && !entity.ConfirmationDate.HasValue)
+                entity.ConfirmationDate = entity.PostedAt?.Date ?? entity.ContractDate.Date;
             entity.StatusId = DocumentStatusIdConst.CANCELLED;
+            if (entity.ConfirmationDate.HasValue && effectiveTerminationDate.HasValue)
+                entity.TerminationDate = effectiveTerminationDate;
             entity.CancelledAt = DateTime.Now;
             entity.CancelledByUserId = _userContext.Id;
             await _command.UpdateAsync(entity, ct);
@@ -358,7 +376,27 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             .Where(x => x.Id == id && x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
             .As<RentalContractDto>()
             .Build();
-        return await _query.GetAsync(query, ct);
+        var dto = await _query.GetAsync(query, ct);
+        if (dto is null)
+            return null;
+
+        foreach (var contractObject in dto.Objects)
+        {
+            var totals = RentalAccrualSchedule.CalculateContractTotals(
+                contractObject.PeriodAmount,
+                contractObject.TaxBaseAmount,
+                contractObject.TaxRate,
+                contractObject.PeriodUnit,
+                contractObject.StartDate,
+                dto.EndDate,
+                contractObject.EndDate,
+                dto.TerminationDate);
+            contractObject.ContractAmount = totals.ContractAmount;
+            contractObject.ContractTaxBaseAmount = totals.ContractTaxBaseAmount;
+            contractObject.ContractTaxAmount = totals.ContractTaxAmount;
+        }
+
+        return dto;
     }
 
     private static void ApplyHeader(RentalContractBaseDto dto, RentalContract entity)
@@ -367,7 +405,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         entity.ContractNumber = dto.ContractNumber.Trim();
         entity.ContractDate = dto.ContractDate.Date;
         entity.StartDate = dto.StartDate.Date;
-        entity.EndDate = dto.EndDate.Date;
+        entity.EndDate = dto.EndDate?.Date;
         entity.CurrencyId = dto.CurrencyId;
         entity.LessorPayableAccountId = dto.LessorPayableAccountId;
         entity.TaxPayableAccountId = dto.TaxPayableAccountId;
@@ -524,12 +562,11 @@ public sealed class RentalContractService : BaseService, IRentalContractService
         entity.TotalArea = dto.TotalArea;
         entity.RentedArea = dto.RentedArea;
         entity.StartDate = dto.StartDate.Date;
-        entity.EndDate = dto.EndDate.Date;
+        entity.EndDate = dto.EndDate?.Date;
         entity.PeriodUnit = dto.PeriodUnit.ToUpperInvariant();
-        entity.PeriodValue = dto.PeriodValue;
         if (!preserveNextAccrualDate)
             entity.NextAccrualDate = dto.StartDate.Date;
-        entity.ContractAmount = dto.ContractAmount;
+        entity.PeriodAmount = dto.PeriodAmount;
         entity.TaxBaseAmount = dto.TaxBaseAmount;
         entity.TaxRate = dto.TaxRate;
         entity.ExpenseAccountId = dto.ExpenseAccountId;
@@ -598,8 +635,7 @@ public sealed class RentalContractService : BaseService, IRentalContractService
             StartDate = x.StartDate,
             EndDate = x.EndDate,
             PeriodUnit = x.PeriodUnit,
-            PeriodValue = x.PeriodValue,
-            ContractAmount = x.ContractAmount,
+            PeriodAmount = x.PeriodAmount,
             TaxBaseAmount = x.TaxBaseAmount,
             TaxRate = x.TaxRate,
             ExpenseAccountId = x.ExpenseAccountId,

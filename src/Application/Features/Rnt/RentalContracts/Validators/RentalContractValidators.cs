@@ -49,11 +49,12 @@ public sealed class RentalContractObjectInputDtoValidator : AbstractValidator<Re
             .Must(x => !x.TotalArea.HasValue || !x.RentedArea.HasValue || x.RentedArea <= x.TotalArea)
             .WithMessage("Rented area cannot exceed total area.");
         RuleFor(x => x.StartDate).NotEmpty();
-        RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
+        RuleFor(x => x)
+            .Must(x => !x.EndDate.HasValue || x.EndDate.Value.Date >= x.StartDate.Date)
+            .WithMessage("Rental object end date cannot be before its start date.");
         RuleFor(x => x.PeriodUnit).Must(x => x is "DAY" or "MONTH");
-        RuleFor(x => x.PeriodValue).GreaterThan(0);
-        RuleFor(x => x.ContractAmount).GreaterThanOrEqualTo(0m);
-        RuleFor(x => x.TaxBaseAmount).GreaterThanOrEqualTo(x => x.ContractAmount);
+        RuleFor(x => x.PeriodAmount).GreaterThanOrEqualTo(0m);
+        RuleFor(x => x.TaxBaseAmount).GreaterThanOrEqualTo(x => x.PeriodAmount);
         RuleFor(x => x.TaxRate).InclusiveBetween(0m, 100m);
         RuleFor(x => x.ExpenseAccountId).GreaterThan(0).When(x => x.ExpenseAccountId.HasValue);
         RuleFor(x => x.Utilities)
@@ -70,7 +71,9 @@ public sealed class RentalContractBaseDtoValidator : AbstractValidator<RentalCon
         RuleFor(x => x.ContractNumber).NotEmpty().MaximumLength(100);
         RuleFor(x => x.ContractDate).NotEmpty();
         RuleFor(x => x.StartDate).NotEmpty();
-        RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
+        RuleFor(x => x)
+            .Must(x => !x.EndDate.HasValue || x.EndDate.Value.Date >= x.StartDate.Date)
+            .WithMessage("Contract end date cannot be before its start date.");
         RuleFor(x => x.CurrencyId).GreaterThan((short)0);
         RuleFor(x => x.LessorPayableAccountId).GreaterThan(0).When(x => x.LessorPayableAccountId.HasValue);
         RuleFor(x => x.TaxPayableAccountId).GreaterThan(0).When(x => x.TaxPayableAccountId.HasValue);
@@ -83,16 +86,19 @@ public sealed class RentalContractBaseDtoValidator : AbstractValidator<RentalCon
         RuleFor(x => x.Objects).NotEmpty();
         RuleForEach(x => x.Objects).SetValidator(new RentalContractObjectInputDtoValidator());
         RuleFor(x => x)
-            .Must(x => x.Objects.All(o => o.StartDate.Date >= x.StartDate.Date && o.EndDate.Date <= x.EndDate.Date))
+            .Must(x => x.Objects.All(o =>
+                o.StartDate.Date >= x.StartDate.Date &&
+                (!x.EndDate.HasValue || o.StartDate.Date <= x.EndDate.Value.Date) &&
+                (!x.EndDate.HasValue || !o.EndDate.HasValue || o.EndDate.Value.Date <= x.EndDate.Value.Date)))
             .WithMessage("Rental object dates must be inside the contract period.");
         RuleFor(x => x.Objects)
-            .Must(x => x.All(o => o.ContractAmount == 0m && o.TaxBaseAmount == 0m && o.TaxRate == 0m))
+            .Must(x => x.All(o => o.PeriodAmount == 0m && o.TaxBaseAmount == 0m && o.TaxRate == 0m))
             .When(x => x.IsFreeOfCharge)
             .WithMessage("Free rental objects must have zero contract and tax amounts.");
         RuleFor(x => x.Objects)
-            .Must(x => x.All(o => o.ContractAmount > 0m))
+            .Must(x => x.All(o => o.PeriodAmount > 0m))
             .When(x => !x.IsFreeOfCharge)
-            .WithMessage("Paid rental objects must have a positive contract amount.");
+            .WithMessage("Paid rental objects must have a positive period amount.");
     }
 
     private static bool HaveUniqueLessorIdentifiers(IReadOnlyCollection<RentalLessorInputDto> lessors)

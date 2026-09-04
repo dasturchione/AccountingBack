@@ -26,6 +26,16 @@ public static class RentalContractErrors
     public static Error DuplicateNumber(string number, int year, short? languageId) => Conflict("RentalContract.DuplicateNumber", languageId,
         $"{year}-yil uchun {number}-raqamli ijara shartnomasi mavjud.", $"{year}-йил учун {number}-рақамли ижара шартномаси мавжуд.",
         $"Договор аренды №{number} за {year} год уже существует.", $"Rental contract {number} for {year} already exists.");
+    public static Error InvalidConfirmationDate(DateTime date, short? languageId) => Business("RentalContract.InvalidConfirmationDate", languageId,
+        $"Tasdiqlash sanasi ({date:yyyy-MM-dd}) shartnoma sanasidan oldin yoki bugundan keyin bo'lishi mumkin emas.",
+        $"Тасдиқлаш санаси ({date:yyyy-MM-dd}) шартнома санасидан олдин ёки бугундан кейин бўлиши мумкин эмас.",
+        $"Дата подтверждения ({date:yyyy-MM-dd}) не может быть раньше даты договора или позже текущей даты.",
+        $"Confirmation date ({date:yyyy-MM-dd}) cannot be before the contract date or after today.");
+    public static Error InvalidTerminationDate(DateTime date, DateTime startDate, short? languageId) => Business("RentalContract.InvalidTerminationDate", languageId,
+        $"Bekor qilish sanasi ({date:yyyy-MM-dd}) boshlanish sanasidan ({startDate:yyyy-MM-dd}) oldin yoki bugundan keyin bo'lishi mumkin emas.",
+        $"Бекор қилиш санаси ({date:yyyy-MM-dd}) бошланиш санасидан ({startDate:yyyy-MM-dd}) олдин ёки бугундан кейин бўлиши мумкин эмас.",
+        $"Дата прекращения ({date:yyyy-MM-dd}) не может быть раньше даты начала ({startDate:yyyy-MM-dd}) или позже текущей даты.",
+        $"Termination date ({date:yyyy-MM-dd}) cannot be before the start date ({startDate:yyyy-MM-dd}) or after today.");
 
     private static Error Business(string code, short? lang, string uz, string cyrl, string ru, string en) => Error.Business(code, Message(lang, uz, cyrl, ru, en));
     private static Error Conflict(string code, short? lang, string uz, string cyrl, string ru, string en) => Error.Conflict(code, Message(lang, uz, cyrl, ru, en));

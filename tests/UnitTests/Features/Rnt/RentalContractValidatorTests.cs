@@ -6,6 +6,91 @@ namespace UnitTests.Features.Rnt;
 public sealed class RentalContractValidatorTests
 {
     [Fact]
+    public void CreateValidatorAcceptsPeriodAmountWithoutPeriodValueOrContractAmount()
+    {
+        const string json = """
+        {
+          "isFreeOfCharge": false,
+          "lessors": [
+            {
+              "lessorKindCode": "INDIVIDUAL",
+              "fullName": "Ali Valiyev",
+              "pinfl": "12345678901234"
+            }
+          ],
+          "contractNumber": "R-PERIOD-AMOUNT",
+          "contractDate": "2026-09-04",
+          "startDate": "2026-09-04",
+          "endDate": "2026-12-04",
+          "currencyId": 1,
+          "objects": [
+            {
+              "rentalObjectTypeId": 1,
+              "objectName": "Bino",
+              "startDate": "2026-09-04",
+              "periodUnit": "MONTH",
+              "periodAmount": 5000000,
+              "taxBaseAmount": 6000000,
+              "taxRate": 12
+            }
+          ]
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<RentalContractCreateDto>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        Assert.NotNull(dto);
+        var result = new RentalContractCreateDtoValidator().Validate(dto);
+
+        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors.Select(x => x.ErrorMessage)));
+    }
+
+    [Fact]
+    public void CreateValidatorAcceptsIndefiniteContractAndObject()
+    {
+        const string json = """
+        {
+          "isFreeOfCharge": true,
+          "lessors": [
+            {
+              "lessorKindCode": "INDIVIDUAL",
+              "fullName": "Ali Valiyev",
+              "pinfl": "12345678901234"
+            }
+          ],
+          "contractNumber": "R-INDEFINITE",
+          "contractDate": "2026-09-04",
+          "startDate": "2026-09-04",
+          "currencyId": 1,
+          "objects": [
+            {
+              "rentalObjectTypeId": 1,
+              "objectName": "Bino",
+              "startDate": "2026-09-04",
+              "periodUnit": "MONTH",
+              "periodAmount": 0,
+              "taxBaseAmount": 0,
+              "taxRate": 0
+            }
+          ]
+        }
+        """;
+
+        var dto = JsonSerializer.Deserialize<RentalContractCreateDto>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        Assert.NotNull(dto);
+        var result = new RentalContractCreateDtoValidator().Validate(dto);
+
+        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors.Select(x => x.ErrorMessage)));
+    }
+
+    [Fact]
     public void CreateValidatorAcceptsFreeIndividualContractWithNewNestedRequestShape()
     {
         const string json = """
@@ -35,8 +120,7 @@ public sealed class RentalContractValidatorTests
               "startDate": "2026-09-04",
               "endDate": "2027-09-03",
               "periodUnit": "MONTH",
-              "periodValue": 1,
-              "contractAmount": 0,
+              "periodAmount": 0,
               "taxBaseAmount": 0,
               "taxRate": 0,
               "utilities": [
@@ -95,7 +179,7 @@ public sealed class RentalContractValidatorTests
                     ObjectName = "Bino",
                     StartDate = new DateTime(2026, 9, 4),
                     EndDate = new DateTime(2027, 9, 3),
-                    ContractAmount = 0,
+                    PeriodAmount = 0,
                     TaxBaseAmount = 0,
                     TaxRate = 0
                 }

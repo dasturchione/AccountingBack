@@ -10,6 +10,8 @@ public sealed class RentalAccrualJob(
     IRentalAccrualGenerationService generationService,
     ILogger<RentalAccrualJob> logger) : IJob
 {
+    public const string CronSchedule = "0 0 0 1 * ?";
+
     public async Task Execute(IJobExecutionContext context)
     {
         await ExecuteAsync(TashkentTime.Today, context.CancellationToken);
@@ -19,16 +21,26 @@ public sealed class RentalAccrualJob(
     {
         try
         {
-            var result = await generationService.GenerateDueAsync(date.Date, organizationId: null, cancellationToken);
+            var accrualMonth = RentalAccrualSchedule.GetPreviousMonth(date);
+            var result = await generationService.GenerateDueAsync(
+                accrualMonth.Year,
+                accrualMonth.Month,
+                organizationId: null,
+                cancellationToken);
             if (!result.IsSuccess)
             {
-                logger.LogError("Rental accrual generation failed for {Date}: {ErrorCode}", date, result.Error.Code);
+                logger.LogError(
+                    "Rental accrual generation failed for {Year}-{Month}: {ErrorCode}",
+                    accrualMonth.Year,
+                    accrualMonth.Month,
+                    result.Error.Code);
                 throw new JobExecutionException($"Rental accrual generation failed: {result.Error.Code}");
             }
 
             logger.LogInformation(
-                "Rental accrual generation finished for {Date}; Documents={DocumentCount}; Items={ItemCount}",
-                date,
+                "Rental accrual generation finished for {Year}-{Month}; Documents={DocumentCount}; Items={ItemCount}",
+                accrualMonth.Year,
+                accrualMonth.Month,
                 result.Value.CreatedDocumentCount,
                 result.Value.CreatedItemCount);
         }

@@ -10,7 +10,9 @@ public sealed class RentalContractCriteriaBuilder : ICriteriaBuilder<RentalContr
     public Expression<Func<RentalContract, bool>> Build(RentalContractListFilter filter) => x =>
         x.StateId == StateIdConst.ACTIVE &&
         (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
-        (!filter.DateFrom.HasValue || x.EndDate >= filter.DateFrom.Value.Date) &&
+        (!filter.DateFrom.HasValue ||
+         (!x.EndDate.HasValue || x.EndDate.Value >= filter.DateFrom.Value.Date) &&
+         (!x.TerminationDate.HasValue || x.TerminationDate.Value >= filter.DateFrom.Value.Date)) &&
         (!filter.DateTo.HasValue || x.StartDate <= filter.DateTo.Value.Date) &&
         (string.IsNullOrEmpty(filter.Search) ||
          x.ContractNumber.ToLower().Contains(filter.Search.ToLower()) ||

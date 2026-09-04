@@ -41,21 +41,18 @@ public sealed class RentalContractObject
     public DateTime StartDate { get; set; }
 
     [Column("end_date", TypeName = "date")]
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     [Column("period_unit")]
     [StringLength(20)]
     public string PeriodUnit { get; set; } = null!;
 
-    [Column("period_value")]
-    public int PeriodValue { get; set; }
-
     [Column("next_accrual_date", TypeName = "date")]
     public DateTime NextAccrualDate { get; set; }
 
-    [Column("contract_amount")]
+    [Column("period_amount")]
     [Precision(24, 8)]
-    public decimal ContractAmount { get; set; }
+    public decimal PeriodAmount { get; set; }
 
     [Column("tax_base_amount")]
     [Precision(24, 8)]

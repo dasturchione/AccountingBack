@@ -50,35 +50,41 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
         _objectCommand = objectCommand;
     }
 
-    public Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(DateTime asOfDate, int? organizationId, CancellationToken ct = default) =>
+    public Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(int year, int month, int? organizationId, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(GenerateDueAsync), async () =>
         {
             await _postingLock.AcquireAsync(DocumentTypeIdConst.RENTAL_ACCRUAL, 0, ct);
-            var date = asOfDate.Date;
+            var accrualMonth = RentalAccrualSchedule.GetMonth(year, month);
             var query = _queryBuilder.For<RentalContractObject>()
                 .IgnoreQueryFilters()
                 .Where(x => x.StateId == StateIdConst.ACTIVE &&
                              x.Contract.StateId == StateIdConst.ACTIVE &&
-                             x.Contract.StatusId == DocumentStatusIdConst.POSTED &&
+                             (x.Contract.StatusId == DocumentStatusIdConst.POSTED ||
+                              (x.Contract.StatusId == DocumentStatusIdConst.CANCELLED &&
+                               x.Contract.ConfirmationDate.HasValue &&
+                               x.Contract.TerminationDate.HasValue)) &&
                              !x.Contract.IsFreeOfCharge &&
-                            x.NextAccrualDate <= date &&
-                            x.NextAccrualDate <= x.EndDate &&
-                            (!organizationId.HasValue || x.Contract.OrganizationId == organizationId.Value))
+                             x.StartDate <= accrualMonth.EndDate &&
+                             x.Contract.StartDate <= accrualMonth.EndDate &&
+                            (!x.EndDate.HasValue || x.EndDate.Value >= accrualMonth.StartDate) &&
+                            (!x.Contract.EndDate.HasValue || x.Contract.EndDate.Value >= accrualMonth.StartDate) &&
+                            (!x.Contract.TerminationDate.HasValue || x.Contract.TerminationDate.Value >= accrualMonth.StartDate) &&
+                             (!organizationId.HasValue || x.Contract.OrganizationId == organizationId.Value))
                 .OrderBy(items => items.OrderBy(x => x.Contract.OrganizationId).ThenBy(x => x.ContractId).ThenBy(x => x.Id))
                 .Build();
             query.AddIncludes(x => x.Include(o => o.Contract));
             var dueObjects = await _objectQuery.GetAllAsync(query, ct);
             var dueObjectIds = dueObjects.Select(x => x.Id).ToArray();
-            var existingPeriods = new HashSet<(long ObjectId, DateTime PeriodFrom, DateTime PeriodTo)>();
+            var existingObjectIds = new HashSet<long>();
             if (dueObjectIds.Length > 0)
             {
                 var periodQuery = _queryBuilder.For<RentalAccrualDocItem>()
-                    .Where(x => dueObjectIds.Contains(x.ContractObjectId))
-                    .As(x => new ExistingRentalAccrualPeriod(x.ContractObjectId, x.PeriodFrom, x.PeriodTo))
+                    .Where(x => dueObjectIds.Contains(x.ContractObjectId) &&
+                                x.PeriodFrom <= accrualMonth.EndDate &&
+                                x.PeriodTo >= accrualMonth.StartDate)
+                    .As(x => x.ContractObjectId)
                     .Build();
-                existingPeriods = (await _itemQuery.GetAllAsync(periodQuery, ct))
-                    .Select(x => (x.ContractObjectId, x.PeriodFrom.Date, x.PeriodTo.Date))
-                    .ToHashSet();
+                existingObjectIds = (await _itemQuery.GetAllAsync(periodQuery, ct)).ToHashSet();
             }
 
             var documentIds = new List<long>();
@@ -98,20 +104,27 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
                         var sources = new List<RentalAccrualDraftSource>();
                         foreach (var contractObject in contractGroup)
                         {
-                            var cursor = contractObject.NextAccrualDate.Date;
-                            while (cursor <= date && cursor <= contractObject.EndDate.Date)
-                            {
-                                var period = RentalAccrualSchedule.GetPeriod(
-                                    cursor,
-                                    contractObject.PeriodUnit,
-                                    contractObject.PeriodValue,
-                                    contractObject.EndDate.Date);
-                                var periodKey = (contractObject.Id, period.PeriodFrom.Date, period.PeriodTo.Date);
-                                if (existingPeriods.Add(periodKey))
-                                    sources.Add(new RentalAccrualDraftSource(contractObject, period));
-                                cursor = period.NextAccrualDate;
-                            }
-                            contractObject.NextAccrualDate = cursor;
+                            if (existingObjectIds.Contains(contractObject.Id))
+                                continue;
+
+                            var accrualLimit = RentalAccrualSchedule.GetAccrualLimit(
+                                contractObject.Contract.EndDate,
+                                contractObject.EndDate,
+                                contractObject.Contract.TerminationDate);
+                            var accrualStart = contractObject.StartDate.Date >= contractObject.Contract.StartDate.Date
+                                ? contractObject.StartDate.Date
+                                : contractObject.Contract.StartDate.Date;
+                            var period = RentalAccrualSchedule.GetPeriodForMonth(
+                                accrualMonth,
+                                contractObject.PeriodUnit,
+                                accrualStart,
+                                accrualLimit);
+                            if (!period.HasValue)
+                                continue;
+
+                            sources.Add(new RentalAccrualDraftSource(contractObject, period.Value));
+                            if (period.Value.NextAccrualDate > contractObject.NextAccrualDate)
+                                contractObject.NextAccrualDate = period.Value.NextAccrualDate;
                             contractObject.UpdatedDate = DateTime.Now;
                         }
 
@@ -121,7 +134,7 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
                             var number = await _documentNumberService.GetNextAsync(
                                 contract.OrganizationId,
                                 DocumentTypeIdConst.RENTAL_ACCRUAL,
-                                date,
+                                accrualMonth.EndDate,
                                 ct);
                             if (!number.IsSuccess)
                                 return Result.Failure<RentalAccrualGenerationResult>(number.Error);
@@ -129,7 +142,7 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
                             var document = RentalAccrualDraftFactory.Create(
                                 contract,
                                 number.Value.DocumentNumber,
-                                date,
+                                accrualMonth.EndDate,
                                 sources,
                                 organizationId.HasValue ? _userContext.Id : null);
                             await _documentCommand.CreateAsync(document, ct);
@@ -178,8 +191,3 @@ public sealed class RentalAccrualGenerationService : BaseService, IRentalAccrual
             return Result.Success(new RentalAccrualGenerationResult(documentIds.Count, itemCount, documentIds));
         }, ct);
 }
-
-internal readonly record struct ExistingRentalAccrualPeriod(
-    long ContractObjectId,
-    DateTime PeriodFrom,
-    DateTime PeriodTo);

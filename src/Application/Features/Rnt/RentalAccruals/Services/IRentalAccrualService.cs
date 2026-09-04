@@ -11,7 +11,7 @@ public interface IRentalAccrualService
     Task<Result> DeleteAsync(long id, CancellationToken ct = default);
     Task<Result> PostAsync(long id, CancellationToken ct = default);
     Task<Result> CancelAsync(long id, CancellationToken ct = default);
-    Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(DateTime? asOfDate, CancellationToken ct = default);
+    Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(int year, int month, CancellationToken ct = default);
 }
 
 public interface IRentalAccrualLifecycleService
@@ -22,5 +22,5 @@ public interface IRentalAccrualLifecycleService
 
 public interface IRentalAccrualGenerationService
 {
-    Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(DateTime asOfDate, int? organizationId, CancellationToken ct = default);
+    Task<Result<RentalAccrualGenerationResult>> GenerateDueAsync(int year, int month, int? organizationId, CancellationToken ct = default);
 }

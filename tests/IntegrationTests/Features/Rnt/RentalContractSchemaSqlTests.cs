@@ -57,7 +57,7 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
                 insert into acc_chart_account (id) values (1), (2), (3);
 
                 create table cmn_document_status (id smallint primary key);
-                insert into cmn_document_status (id) values (1);
+                insert into cmn_document_status (id) values (1), (2), (3);
 
                 create table rnt_rental_object_type (id smallint primary key);
                 insert into rnt_rental_object_type (id) values (1);
@@ -78,7 +78,9 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
                     tax_payable_account_id int references acc_chart_account(id),
                     status_id smallint not null references cmn_document_status(id),
                     state_id smallint not null default 1 references cmn_state(id),
-                    created_date timestamp without time zone not null default now()
+                    created_date timestamp without time zone not null default now(),
+                    posted_at timestamp without time zone,
+                    cancelled_at timestamp without time zone
                 );
 
                 create table rnt_contract_object
@@ -104,11 +106,11 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
                 insert into rnt_contract
                     (organization_id, lessor_full_name, lessor_inn, lessor_pinfl,
                      contract_number, contract_date, start_date, end_date, currency_id,
-                     lessor_payable_account_id, tax_payable_account_id, status_id)
+                     lessor_payable_account_id, tax_payable_account_id, status_id, posted_at)
                 values
                     (1, 'Existing Individual', '301111111', '12345678901234',
                      'R-1', date '2026-01-01', date '2026-01-01', date '2026-12-31',
-                     1, 1, 2, 1);
+                     1, 1, 2, 2, timestamp '2026-01-02 10:00:00');
 
                 insert into rnt_contract_object
                     (contract_id, rental_object_type_id, object_name, start_date, end_date,
@@ -147,8 +149,19 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
             Assert.False(await ColumnExistsAsync(connection, "rnt_contract", "lessor_inn"));
             Assert.False(await ColumnExistsAsync(connection, "rnt_contract", "lessor_pinfl"));
             Assert.True(await ColumnExistsAsync(connection, "rnt_contract", "is_free_of_charge"));
+            Assert.True(await ColumnExistsAsync(connection, "rnt_contract", "confirmation_date"));
+            Assert.True(await ColumnExistsAsync(connection, "rnt_contract", "termination_date"));
+            Assert.True(await ColumnIsNullableAsync(connection, "rnt_contract", "end_date"));
+            Assert.True(await ColumnIsNullableAsync(connection, "rnt_contract_object", "end_date"));
+            Assert.Equal(
+                new DateTime(2026, 1, 2),
+                await ScalarAsync<DateTime>(connection, "select confirmation_date from rnt_contract where id = 1"));
             Assert.True(await ColumnExistsAsync(connection, "rnt_contract_object", "total_area"));
             Assert.True(await ColumnExistsAsync(connection, "rnt_contract_object", "rented_area"));
+            Assert.True(await ColumnExistsAsync(connection, "rnt_contract_object", "period_amount"));
+            Assert.False(await ColumnExistsAsync(connection, "rnt_contract_object", "period_value"));
+            Assert.False(await ColumnExistsAsync(connection, "rnt_contract_object", "contract_amount"));
+            Assert.Equal(5000000m, await ScalarAsync<decimal>(connection, "select period_amount from rnt_contract_object where id = 1"));
             Assert.False(await ScalarAsync<bool>(connection, "select is_free_of_charge from rnt_contract where id = 1"));
 
             await ExecuteAsync(
@@ -212,13 +225,33 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
                 """
                 update rnt_contract set is_free_of_charge = true where id = 1;
                 update rnt_contract_object
-                set contract_amount = 0,
+                set period_amount = 0,
                     tax_base_amount = 0,
                     tax_rate = 0
                 where id = 1
                 """);
-            Assert.Equal(0m, await ScalarAsync<decimal>(connection, "select contract_amount from rnt_contract_object where id = 1"));
-            await AssertRejectedAsync(connection, "update rnt_contract_object set contract_amount = -1 where id = 1");
+            Assert.Equal(0m, await ScalarAsync<decimal>(connection, "select period_amount from rnt_contract_object where id = 1"));
+            await AssertRejectedAsync(connection, "update rnt_contract_object set period_amount = -1 where id = 1");
+
+            await ExecuteAsync(
+                connection,
+                """
+                update rnt_contract
+                set end_date = null,
+                    confirmation_date = date '2026-01-01',
+                    termination_date = date '2026-09-20'
+                where id = 1;
+
+                update rnt_contract_object
+                set end_date = null
+                where id = 1;
+                """);
+
+            Assert.Null(await ScalarNullableAsync<DateTime>(connection, "select end_date from rnt_contract where id = 1"));
+            Assert.Null(await ScalarNullableAsync<DateTime>(connection, "select end_date from rnt_contract_object where id = 1"));
+            await AssertRejectedAsync(
+                connection,
+                "update rnt_contract set termination_date = date '2025-12-31' where id = 1");
         }
         finally
         {
@@ -234,7 +267,9 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
         return
         [
             Path.Combine(scripts, "01_cmn", "0182_create_cmn_utility_service.sql"),
-            Path.Combine(scripts, "18_rnt", "1806_expand_rental_contract.sql")
+            Path.Combine(scripts, "18_rnt", "1806_expand_rental_contract.sql"),
+            Path.Combine(scripts, "18_rnt", "1807_add_rental_contract_lifecycle_dates.sql"),
+            Path.Combine(scripts, "18_rnt", "1808_replace_rental_contract_period_fields.sql")
         ];
     }
 
@@ -277,4 +312,23 @@ public sealed class RentalContractSchemaSqlTests(PostgreSqlIntegrationFixture fi
         command.CommandText = sql;
         return (T)(await command.ExecuteScalarAsync())!;
     }
+
+    private static async Task<T?> ScalarNullableAsync<T>(DbConnection connection, string sql) where T : struct
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        var value = await command.ExecuteScalarAsync();
+        return value is null or DBNull ? null : (T)value;
+    }
+
+    private static async Task<bool> ColumnIsNullableAsync(DbConnection connection, string tableName, string columnName) =>
+        await ScalarAsync<bool>(
+            connection,
+            $"""
+            select is_nullable = 'YES'
+            from information_schema.columns
+            where table_schema = current_schema()
+              and table_name = '{tableName}'
+              and column_name = '{columnName}'
+            """);
 }

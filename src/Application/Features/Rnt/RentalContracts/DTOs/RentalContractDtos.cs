@@ -27,10 +27,9 @@ public sealed class RentalContractObjectInputDto
     public decimal? TotalArea { get; set; }
     public decimal? RentedArea { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string PeriodUnit { get; set; } = "MONTH";
-    public int PeriodValue { get; set; } = 1;
-    public decimal ContractAmount { get; set; }
+    public decimal PeriodAmount { get; set; }
     public decimal TaxBaseAmount { get; set; }
     public decimal TaxRate { get; set; }
     public int? ExpenseAccountId { get; set; }
@@ -43,7 +42,7 @@ public class RentalContractBaseDto
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public short CurrencyId { get; set; }
     public int? LessorPayableAccountId { get; set; }
     public int? TaxPayableAccountId { get; set; }
@@ -89,13 +88,15 @@ public sealed class RentalContractObjectDto
     public decimal? TotalArea { get; set; }
     public decimal? RentedArea { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string PeriodUnit { get; set; } = null!;
-    public int PeriodValue { get; set; }
     public DateTime NextAccrualDate { get; set; }
-    public decimal ContractAmount { get; set; }
+    public decimal PeriodAmount { get; set; }
     public decimal TaxBaseAmount { get; set; }
     public decimal TaxRate { get; set; }
+    public decimal? ContractAmount { get; set; }
+    public decimal? ContractTaxBaseAmount { get; set; }
+    public decimal? ContractTaxAmount { get; set; }
     public int? ExpenseAccountId { get; set; }
     public string? ExpenseAccountNumber { get; set; }
     public string? ExpenseAccountName { get; set; }
@@ -110,7 +111,9 @@ public class RentalContractDto
     public string ContractNumber { get; set; } = null!;
     public DateTime ContractDate { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? ConfirmationDate { get; set; }
+    public DateTime? TerminationDate { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyCode { get; set; } = null!;
     public int? LessorPayableAccountId { get; set; }
@@ -136,7 +139,9 @@ public sealed class RentalContractListDto
     public DateTime ContractDate { get; set; }
     public bool IsFreeOfCharge { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime? ConfirmationDate { get; set; }
+    public DateTime? TerminationDate { get; set; }
     public short CurrencyId { get; set; }
     public string CurrencyCode { get; set; } = null!;
     public short StatusId { get; set; }

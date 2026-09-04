@@ -24,7 +24,13 @@ public sealed class RentalContract
     public DateTime StartDate { get; set; }
 
     [Column("end_date", TypeName = "date")]
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
+
+    [Column("confirmation_date", TypeName = "date")]
+    public DateTime? ConfirmationDate { get; set; }
+
+    [Column("termination_date", TypeName = "date")]
+    public DateTime? TerminationDate { get; set; }
 
     [Column("is_free_of_charge")]
     public bool IsFreeOfCharge { get; set; }

@@ -301,6 +301,5 @@
 01_cmn/0180_create_cmn_regulated_obligation_periodicity_translation.sql
 01_cmn/0181_insert_cmn_regulated_obligation_catalogues.sql
 02_org/0211_create_org_regulated_obligation_setting.sql
-02_org/0212_drop_legacy_tax_settings.sql
 01_cmn/0182_create_cmn_utility_service.sql
 18_rnt/1806_expand_rental_contract.sql

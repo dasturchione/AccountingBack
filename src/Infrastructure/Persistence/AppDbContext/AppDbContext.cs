@@ -106,6 +106,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PricingMethod> PricingMethods { get; set; }
     public virtual DbSet<Region> Regions { get; set; }
     public virtual DbSet<State> States { get; set; }
+    public virtual DbSet<TaxType> TaxTypes { get; set; }
     public virtual DbSet<RegulatedObligationCategory> RegulatedObligationCategories { get; set; }
     public virtual DbSet<RegulatedObligationCategoryTranslation> RegulatedObligationCategoryTranslations { get; set; }
     public virtual DbSet<RegulatedObligation> RegulatedObligations { get; set; }
@@ -188,6 +189,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OrganizationDefault> OrganizationDefaults { get; set; }
     public virtual DbSet<OrganizationSetupState> OrganizationSetupStates { get; set; }
     public virtual DbSet<OrganizationRegulatedObligationSetting> OrganizationRegulatedObligationSettings { get; set; }
+    public virtual DbSet<OrganizationTaxSetting> OrganizationTaxSettings { get; set; }
     public virtual DbSet<OrganizationUserInvitation> OrganizationUserInvitations { get; set; }
     public virtual DbSet<PlatformTenant> PlatformTenants { get; set; }
     public virtual DbSet<PurchaseDoc> PurchaseDocs { get; set; }

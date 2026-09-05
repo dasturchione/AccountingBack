@@ -133,6 +133,9 @@ public partial class CmnState
     public virtual ICollection<CmnRegion> CmnRegions { get; set; } = new List<CmnRegion>();
 
     [InverseProperty("State")]
+    public virtual ICollection<CmnTaxType> CmnTaxTypes { get; set; } = new List<CmnTaxType>();
+
+    [InverseProperty("State")]
     public virtual ICollection<CmnUnit> CmnUnits { get; set; } = new List<CmnUnit>();
 
     [InverseProperty("State")]

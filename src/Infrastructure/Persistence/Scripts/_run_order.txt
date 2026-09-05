@@ -94,6 +94,7 @@
 02_org/0208_create_org_defaults.sql
 02_org/0209_create_org_user_invitation.sql
 02_org/0210_create_org_claim_request.sql
+02_org/0211_create_org_accounting_policy_version.sql
 03_counterparty/0301_create_counterparty_card.sql
 03_counterparty/0302_create_counterparty_bank_account.sql
 03_counterparty/0303_create_counterparty_contact.sql

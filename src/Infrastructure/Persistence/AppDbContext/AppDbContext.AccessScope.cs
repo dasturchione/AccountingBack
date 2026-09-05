@@ -87,6 +87,7 @@ public partial class AppDbContext
         ApplyScopedFilter<EdoImportCandidate>(modelBuilder);
         ApplyScopedFilter<EdoProviderProductMapping>(modelBuilder);
         ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);
+        ApplyScopedFilter<OrganizationAccountingPolicyVersion>(modelBuilder);
         ApplyScopedFilter<OrganizationDefault>(modelBuilder);
         ApplyScopedFilter<OrganizationUserInvitation>(modelBuilder);
         ApplyScopedFilter<Warehouse>(modelBuilder);

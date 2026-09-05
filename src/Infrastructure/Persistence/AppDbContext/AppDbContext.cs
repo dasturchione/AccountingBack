@@ -214,6 +214,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ContractType> ContractTypes { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<OrganizationConfig> OrganizationConfigs { get; set; }
+    public virtual DbSet<OrganizationAccountingPolicyVersion> OrganizationAccountingPolicyVersions { get; set; }
     public virtual DbSet<NotificationType> NotificationTypes { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<NotificationRead> NotificationReads { get; set; }
@@ -935,6 +936,59 @@ public partial class AppDbContext : DbContext
             .HasOne(x => x.Organization)
             .WithOne(x => x.OrganizationConfig)
             .HasForeignKey<OrganizationConfig>(x => x.OrganizationId);
+
+        modelBuilder.Entity<OrganizationAccountingPolicyVersion>(entity =>
+        {
+            entity.ToTable("org_accounting_policy_version", "public");
+            entity.HasKey(x => x.Id)
+                .HasName("pk_org_accounting_policy_version");
+
+            entity.Property(x => x.InventoryValuationMethod).IsRequired();
+            entity.Property(x => x.BaseCurrencyId).IsRequired();
+            entity.Property(x => x.VatTaxPeriod).IsRequired();
+            entity.Property(x => x.VatBaseMoment).IsRequired();
+            entity.Property(x => x.ClosedPeriodPolicy).IsRequired();
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("timestamp without time zone")
+                .IsRequired();
+            entity.Property(x => x.CreatedByUserId).IsRequired();
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_org_accounting_policy_version_organization");
+
+            entity.HasIndex(x => new { x.OrganizationId, x.Version })
+                .HasDatabaseName("ux_org_accounting_policy_version_org_version")
+                .IsUnique();
+
+            entity.HasIndex(x => new { x.OrganizationId, x.EffectiveFrom, x.EffectiveTo })
+                .HasDatabaseName("ix_org_accounting_policy_version_effective_dates");
+
+            entity.HasIndex(x => x.OrganizationId)
+                .HasDatabaseName("ix_org_accounting_policy_version_organization_id");
+
+            foreach (var property in new[]
+                     {
+                         entity.Property(x => x.OrganizationId).Metadata,
+                         entity.Property(x => x.Version).Metadata,
+                         entity.Property(x => x.EffectiveFrom).Metadata,
+                         entity.Property(x => x.EffectiveTo).Metadata,
+                         entity.Property(x => x.InventoryValuationMethod).Metadata,
+                         entity.Property(x => x.BaseCurrencyId).Metadata,
+                         entity.Property(x => x.VatPayer).Metadata,
+                         entity.Property(x => x.TaxTypeId).Metadata,
+                         entity.Property(x => x.VatTaxPeriod).Metadata,
+                         entity.Property(x => x.VatBaseMoment).Metadata,
+                         entity.Property(x => x.ClosedPeriodPolicy).Metadata,
+                         entity.Property(x => x.CreatedAt).Metadata,
+                         entity.Property(x => x.CreatedByUserId).Metadata
+                     })
+            {
+                property.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+            }
+        });
 
         modelBuilder.Entity<SystemSetting>(entity =>
         {

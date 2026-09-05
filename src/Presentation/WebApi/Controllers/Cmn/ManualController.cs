@@ -233,7 +233,7 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
-    [ModuleAuthorize(PermissionCodeConst.ManualGetTaxTypes)]
+    [ModuleAuthorize(PermissionCodeConst.ManualGetVatRates)]
     [HttpGet("tax-types")]
     public async Task<IActionResult> GetTaxTypes(CancellationToken ct)
     {

@@ -34,18 +34,26 @@ public static class RentalAccrualSchedule
             return null;
 
         var actualDayCount = (periodTo - periodFrom).Days + 1;
-        var factor = periodUnit switch
+        if (periodUnit == "DAY")
         {
-            "DAY" => actualDayCount,
-            "MONTH" => (decimal)actualDayCount / DateTime.DaysInMonth(month.Year, month.Month),
-            _ => throw new ArgumentOutOfRangeException(nameof(periodUnit))
-        };
+            return new RentalAccrualPeriod(
+                periodFrom,
+                periodTo,
+                GetNextDate(periodTo),
+                actualDayCount);
+        }
+
+        if (periodUnit != "MONTH")
+            throw new ArgumentOutOfRangeException(nameof(periodUnit));
+
+        var amountFactors = GetContractMonthAmountFactors(startDate.Date, periodFrom, periodTo);
 
         return new RentalAccrualPeriod(
             periodFrom,
             periodTo,
             GetNextDate(periodTo),
-            factor);
+            amountFactors.Sum(),
+            amountFactors);
     }
 
     public static DateTime GetAccrualLimit(
@@ -63,41 +71,6 @@ public static class RentalAccrualSchedule
         return limit;
     }
 
-    public static RentalAccrualPeriod GetPeriod(
-        DateTime nextAccrualDate,
-        string periodUnit,
-        DateTime contractEndDate)
-    {
-        var periodFrom = nextAccrualDate.Date;
-        var endDate = contractEndDate.Date;
-        if (periodFrom > endDate)
-            throw new ArgumentOutOfRangeException(nameof(nextAccrualDate));
-
-        var calculatedPeriodTo = periodUnit switch
-        {
-            "DAY" => periodFrom,
-            "MONTH" => new DateTime(
-                periodFrom.Year,
-                periodFrom.Month,
-                DateTime.DaysInMonth(periodFrom.Year, periodFrom.Month)),
-            _ => throw new ArgumentOutOfRangeException(nameof(periodUnit))
-        };
-        var periodTo = calculatedPeriodTo <= endDate ? calculatedPeriodTo : endDate;
-        var scheduledDayCount = periodUnit == "MONTH"
-            ? DateTime.DaysInMonth(periodFrom.Year, periodFrom.Month)
-            : 1;
-        var actualDayCount = (periodTo - periodFrom).Days + 1;
-        var prorationFactor = actualDayCount == scheduledDayCount
-            ? 1m
-            : (decimal)actualDayCount / scheduledDayCount;
-
-        return new RentalAccrualPeriod(
-            periodFrom,
-            periodTo,
-            GetNextDate(periodTo),
-            prorationFactor);
-    }
-
     public static RentalContractTotals CalculateContractTotals(
         decimal periodAmount,
         decimal taxBaseAmount,
@@ -112,26 +85,33 @@ public static class RentalAccrualSchedule
             return new RentalContractTotals(null, null, null);
 
         var accrualLimit = GetAccrualLimit(contractEndDate, objectEndDate, terminationDate);
-        var cursor = startDate.Date;
-        if (cursor > accrualLimit)
+        var firstMonth = GetMonth(startDate.Year, startDate.Month);
+        if (firstMonth.StartDate > accrualLimit)
             return new RentalContractTotals(0m, 0m, 0m);
 
         var contractAmount = 0m;
         var contractTaxBaseAmount = 0m;
         var contractTaxAmount = 0m;
-        while (cursor <= accrualLimit)
+        var month = firstMonth;
+        while (month.StartDate <= accrualLimit)
         {
-            var period = GetPeriod(cursor, periodUnit, accrualLimit);
-            var accruedAmount = ProrateAmount(periodAmount, period.ProrationFactor);
-            var accruedTaxBaseAmount = ProrateAmount(taxBaseAmount, period.ProrationFactor);
+            var period = GetPeriodForMonth(month, periodUnit, startDate, accrualLimit);
+            if (!period.HasValue)
+                break;
+
+            var accruedAmount = ProrateAmount(periodAmount, period.Value);
+            var accruedTaxBaseAmount = ProrateAmount(taxBaseAmount, period.Value);
             var accruedAmounts = RentalAccrualCalculator.Calculate(accruedAmount, accruedTaxBaseAmount, taxRate);
 
             contractAmount += accruedAmount;
             contractTaxBaseAmount += accruedTaxBaseAmount;
             contractTaxAmount += accruedAmounts.TaxAmount;
-            if (period.NextAccrualDate <= cursor)
+
+            if (month.EndDate == DateTime.MaxValue.Date)
                 break;
-            cursor = period.NextAccrualDate;
+
+            var nextMonthDate = month.EndDate.AddDays(1);
+            month = GetMonth(nextMonthDate.Year, nextMonthDate.Month);
         }
 
         return new RentalContractTotals(contractAmount, contractTaxBaseAmount, contractTaxAmount);
@@ -141,6 +121,59 @@ public static class RentalAccrualSchedule
         factor == 1m
             ? amount
             : Math.Round(amount * factor, 2, MidpointRounding.AwayFromZero);
+
+    public static decimal ProrateAmount(decimal amount, RentalAccrualPeriod period) =>
+        period.AmountFactors is { Count: > 0 }
+            ? period.AmountFactors.Sum(factor => ProrateAmount(amount, factor))
+            : ProrateAmount(amount, period.ProrationFactor);
+
+    private static IReadOnlyList<decimal> GetContractMonthAmountFactors(
+        DateTime rentalStart,
+        DateTime periodFrom,
+        DateTime periodTo)
+    {
+        var factors = new List<decimal>(2);
+        var monthIndex = Math.Max(0, GetMonthDifference(rentalStart, periodFrom) - 1);
+
+        while (true)
+        {
+            var contractMonthStart = rentalStart.AddMonths(monthIndex);
+            if (contractMonthStart > periodTo)
+                break;
+
+            var contractMonthEnd = GetContractMonthEnd(rentalStart, monthIndex);
+            if (contractMonthEnd >= periodFrom)
+            {
+                var overlapFrom = contractMonthStart > periodFrom ? contractMonthStart : periodFrom;
+                var overlapTo = contractMonthEnd < periodTo ? contractMonthEnd : periodTo;
+                if (overlapFrom <= overlapTo)
+                {
+                    var contractMonthDayCount = (contractMonthEnd - contractMonthStart).Days + 1;
+                    var overlapDayCount = (overlapTo - overlapFrom).Days + 1;
+                    factors.Add((decimal)overlapDayCount / contractMonthDayCount);
+                }
+            }
+
+            if (contractMonthEnd == DateTime.MaxValue.Date)
+                break;
+
+            monthIndex++;
+        }
+
+        return factors;
+    }
+
+    private static DateTime GetContractMonthEnd(DateTime rentalStart, int monthIndex)
+    {
+        var contractMonthStart = rentalStart.AddMonths(monthIndex);
+        var monthsUntilMaximum = GetMonthDifference(contractMonthStart, DateTime.MaxValue.Date);
+        return monthsUntilMaximum == 0
+            ? DateTime.MaxValue.Date
+            : rentalStart.AddMonths(monthIndex + 1).AddDays(-1);
+    }
+
+    private static int GetMonthDifference(DateTime from, DateTime to) =>
+        (to.Year - from.Year) * 12 + to.Month - from.Month;
 
     private static DateTime GetNextDate(DateTime date) =>
         date.Date == DateTime.MaxValue.Date
@@ -152,7 +185,8 @@ public readonly record struct RentalAccrualPeriod(
     DateTime PeriodFrom,
     DateTime PeriodTo,
     DateTime NextAccrualDate,
-    decimal ProrationFactor = 1m);
+    decimal ProrationFactor = 1m,
+    IReadOnlyList<decimal>? AmountFactors = null);
 
 public readonly record struct RentalContractTotals(
     decimal? ContractAmount,

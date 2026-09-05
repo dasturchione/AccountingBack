@@ -128,6 +128,9 @@ public class RentalContractDto
     public DateTime CreatedDate { get; set; }
     public DateTime? PostedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
+
+    public decimal TotalContractAmount { get => Objects.Sum(s => s.ContractAmount ?? 0); }
+
     public List<RentalLessorDto> Lessors { get; set; } = [];
     public List<RentalContractObjectDto> Objects { get; set; } = [];
 }

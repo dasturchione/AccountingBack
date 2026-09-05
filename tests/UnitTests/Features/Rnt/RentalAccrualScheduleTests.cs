@@ -5,17 +5,19 @@ namespace UnitTests.Features.Rnt;
 public sealed class RentalAccrualScheduleTests
 {
     [Fact]
-    public void GetPeriodProratesFirstMonthFromContractStartToCalendarMonthEnd()
+    public void GetPeriodForMonthProratesFirstCalendarMonthByContractMonthLength()
     {
-        var period = RentalAccrualSchedule.GetPeriod(
-            new DateTime(2024, 7, 9),
+        var period = RentalAccrualSchedule.GetPeriodForMonth(
+            RentalAccrualSchedule.GetMonth(2024, 7),
             "MONTH",
+            new DateTime(2024, 7, 9),
             new DateTime(2024, 10, 9));
 
-        Assert.Equal(new DateTime(2024, 7, 9), period.PeriodFrom);
-        Assert.Equal(new DateTime(2024, 7, 31), period.PeriodTo);
-        Assert.Equal(new DateTime(2024, 8, 1), period.NextAccrualDate);
-        Assert.Equal(23m / 31m, period.ProrationFactor);
+        Assert.NotNull(period);
+        Assert.Equal(new DateTime(2024, 7, 9), period.Value.PeriodFrom);
+        Assert.Equal(new DateTime(2024, 7, 31), period.Value.PeriodTo);
+        Assert.Equal(new DateTime(2024, 8, 1), period.Value.NextAccrualDate);
+        Assert.Equal(348709.68m, RentalAccrualSchedule.ProrateAmount(470000m, period.Value));
     }
 
     [Fact]
@@ -104,15 +106,17 @@ public sealed class RentalAccrualScheduleTests
     }
 
     [Fact]
-    public void GetPeriodProratesPeriodEndingOnTerminationDate()
+    public void GetPeriodForMonthProratesPeriodEndingOnTerminationDate()
     {
-        var period = RentalAccrualSchedule.GetPeriod(
-            new DateTime(2026, 9, 9),
+        var period = RentalAccrualSchedule.GetPeriodForMonth(
+            RentalAccrualSchedule.GetMonth(2026, 9),
             "MONTH",
+            new DateTime(2026, 9, 9),
             new DateTime(2026, 9, 20));
 
-        Assert.Equal(new DateTime(2026, 9, 20), period.PeriodTo);
-        Assert.Equal(0.4m, period.ProrationFactor);
+        Assert.NotNull(period);
+        Assert.Equal(new DateTime(2026, 9, 20), period.Value.PeriodTo);
+        Assert.Equal(0.4m, period.Value.ProrationFactor);
     }
 
     [Fact]
@@ -131,6 +135,24 @@ public sealed class RentalAccrualScheduleTests
         Assert.Equal(1425161.29m, result.ContractAmount);
         Assert.Equal(1819354.84m, result.ContractTaxBaseAmount);
         Assert.Equal(218322.5808m, result.ContractTaxAmount);
+    }
+
+    [Fact]
+    public void CalculateContractTotalsUsesFullContractMonthsForIjaraPeriod()
+    {
+        var result = RentalAccrualSchedule.CalculateContractTotals(
+            periodAmount: 3700000m,
+            taxBaseAmount: 3700000m,
+            taxRate: 0m,
+            periodUnit: "MONTH",
+            startDate: new DateTime(2026, 2, 20),
+            contractEndDate: new DateTime(2026, 5, 19),
+            objectEndDate: null,
+            terminationDate: null);
+
+        Assert.Equal(11100000m, result.ContractAmount);
+        Assert.Equal(11100000m, result.ContractTaxBaseAmount);
+        Assert.Equal(0m, result.ContractTaxAmount);
     }
 
     [Fact]

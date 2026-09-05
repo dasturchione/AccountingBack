@@ -41,10 +41,10 @@ public static class RentalAccrualDraftFactory
         {
             var contractAmount = RentalAccrualSchedule.ProrateAmount(
                 source.ContractObject.PeriodAmount,
-                source.Period.ProrationFactor);
+                source.Period);
             var taxBaseAmount = RentalAccrualSchedule.ProrateAmount(
                 source.ContractObject.TaxBaseAmount,
-                source.Period.ProrationFactor);
+                source.Period);
             var amounts = RentalAccrualCalculator.Calculate(
                 contractAmount,
                 taxBaseAmount,

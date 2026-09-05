@@ -29,25 +29,30 @@ public sealed class RentalContractObject
     [StringLength(1000)]
     public string? ObjectAddress { get; set; }
 
+    [Column("total_area")]
+    [Precision(24, 8)]
+    public decimal? TotalArea { get; set; }
+
+    [Column("rented_area")]
+    [Precision(24, 8)]
+    public decimal? RentedArea { get; set; }
+
     [Column("start_date", TypeName = "date")]
     public DateTime StartDate { get; set; }
 
     [Column("end_date", TypeName = "date")]
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     [Column("period_unit")]
     [StringLength(20)]
     public string PeriodUnit { get; set; } = null!;
 
-    [Column("period_value")]
-    public int PeriodValue { get; set; }
-
     [Column("next_accrual_date", TypeName = "date")]
     public DateTime NextAccrualDate { get; set; }
 
-    [Column("contract_amount")]
+    [Column("period_amount")]
     [Precision(24, 8)]
-    public decimal ContractAmount { get; set; }
+    public decimal PeriodAmount { get; set; }
 
     [Column("tax_base_amount")]
     [Precision(24, 8)]
@@ -82,4 +87,5 @@ public sealed class RentalContractObject
     public State State { get; set; } = null!;
 
     public ICollection<RentalAccrualDocItem> AccrualItems { get; set; } = new List<RentalAccrualDocItem>();
+    public ICollection<RentalContractObjectUtility> Utilities { get; set; } = [];
 }

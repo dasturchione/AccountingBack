@@ -88,6 +88,7 @@ public partial class AppDbContext
         ApplyScopedFilter<EdoProviderProductMapping>(modelBuilder);
         ApplyScopedFilter<OrganizationTaxSetting>(modelBuilder);
         ApplyScopedFilter<OrganizationAccountingPolicyVersion>(modelBuilder);
+        ApplyScopedFilter<OrganizationRegulatedObligationSetting>(modelBuilder);
         ApplyScopedFilter<OrganizationDefault>(modelBuilder);
         ApplyScopedFilter<OrganizationUserInvitation>(modelBuilder);
         ApplyScopedFilter<Warehouse>(modelBuilder);
@@ -148,6 +149,7 @@ public partial class AppDbContext
         ApplyScopedFilter<PayPaymentBatch>(modelBuilder);
         ApplyScopedFilter<PayPaymentLine>(modelBuilder);
         ApplyScopedFilter<RentalContract>(modelBuilder);
+        ApplyScopedFilter<RentalLessor>(modelBuilder);
         ApplyScopedFilter<RentalAccrualDoc>(modelBuilder);
         ApplyScopedFilter<HrEmployeeWorkSchedule>(modelBuilder);
         ApplyScopedFilter<HrEmployeeWorkScheduleDay>(modelBuilder);
@@ -273,6 +275,27 @@ public partial class AppDbContext
                               && (CurrentOrganizationId != 0
                                   ? e.Owner.OrganizationId == CurrentOrganizationId
                                   : AllowedOrgIds.Contains(e.Owner.OrganizationId))));
+
+        modelBuilder.Entity<RentalContractObject>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Contract.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Contract.OrganizationId))));
+
+        modelBuilder.Entity<RentalContractLessor>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.Contract.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.Contract.OrganizationId))));
+
+        modelBuilder.Entity<RentalContractObjectUtility>()
+            .HasQueryFilter(e => IsSuperAdmin
+                              || (AllowedOrgIds.Count > 0
+                              && (CurrentOrganizationId != 0
+                                  ? e.ContractObject.Contract.OrganizationId == CurrentOrganizationId
+                                  : AllowedOrgIds.Contains(e.ContractObject.Contract.OrganizationId))));
 
         modelBuilder.Entity<WarehouseTransferLine>()
             .HasQueryFilter(e => IsSuperAdmin

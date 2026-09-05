@@ -25,9 +25,6 @@ public partial class OrgSetupState
     [Column("organization_completed")]
     public bool OrganizationCompleted { get; set; }
 
-    [Column("tax_completed")]
-    public bool TaxCompleted { get; set; }
-
     [Column("accounting_completed")]
     public bool AccountingCompleted { get; set; }
 

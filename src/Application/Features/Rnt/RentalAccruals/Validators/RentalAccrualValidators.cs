@@ -25,3 +25,12 @@ public sealed class RentalAccrualUpdateDtoValidator : AbstractValidator<RentalAc
             .WithMessage("Accrual item ids must be unique.");
     }
 }
+
+public sealed class RentalAccrualGenerateDueDtoValidator : AbstractValidator<RentalAccrualGenerateDueDto>
+{
+    public RentalAccrualGenerateDueDtoValidator()
+    {
+        RuleFor(x => x.Year).InclusiveBetween(1, 9999);
+        RuleFor(x => x.Month).InclusiveBetween(1, 12);
+    }
+}

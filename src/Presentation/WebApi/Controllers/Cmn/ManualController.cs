@@ -241,6 +241,22 @@ public class ManualController : ControllerBase
         return Ok(result);
     }
 
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRegulatedObligations)]
+    [HttpGet("regulated-obligations")]
+    public async Task<IActionResult> GetRegulatedObligations([FromQuery] string? categoryCode, CancellationToken ct)
+    {
+        var result = await _manualService.GetRegulatedObligationsAsync(categoryCode, ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.ManualGetRegulatedObligationPeriodicities)]
+    [HttpGet("regulated-obligation-periodicities")]
+    public async Task<IActionResult> GetRegulatedObligationPeriodicities(CancellationToken ct)
+    {
+        var result = await _manualService.GetRegulatedObligationPeriodicitiesAsync(ct);
+        return Ok(result);
+    }
+
     [ModuleAuthorize(PermissionCodeConst.ManualGetVatRates)]
     [HttpGet("vat-rates")]
     public async Task<IActionResult> GetVatRates(CancellationToken ct)
@@ -403,6 +419,14 @@ public class ManualController : ControllerBase
     public async Task<IActionResult> GetRentalObjectTypes(CancellationToken ct)
     {
         var result = await _manualService.GetRentalObjectTypesAsync(ct);
+        return Ok(result);
+    }
+
+    [ModuleAuthorize(PermissionCodeConst.RentalContractView)]
+    [HttpGet("utility-services")]
+    public async Task<IActionResult> GetUtilityServices(CancellationToken ct)
+    {
+        var result = await _manualService.GetUtilityServicesAsync(ct);
         return Ok(result);
     }
 

@@ -13,18 +13,6 @@ public sealed class RentalContract
     [Column("organization_id")]
     public int OrganizationId { get; set; }
 
-    [Column("lessor_full_name")]
-    [StringLength(500)]
-    public string LessorFullName { get; set; } = null!;
-
-    [Column("lessor_inn")]
-    [StringLength(20)]
-    public string? LessorInn { get; set; }
-
-    [Column("lessor_pinfl")]
-    [StringLength(14)]
-    public string? LessorPinfl { get; set; }
-
     [Column("contract_number")]
     [StringLength(100)]
     public string ContractNumber { get; set; } = null!;
@@ -36,7 +24,16 @@ public sealed class RentalContract
     public DateTime StartDate { get; set; }
 
     [Column("end_date", TypeName = "date")]
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
+
+    [Column("confirmation_date", TypeName = "date")]
+    public DateTime? ConfirmationDate { get; set; }
+
+    [Column("termination_date", TypeName = "date")]
+    public DateTime? TerminationDate { get; set; }
+
+    [Column("is_free_of_charge")]
+    public bool IsFreeOfCharge { get; set; }
 
     [Column("currency_id")]
     public short CurrencyId { get; set; }
@@ -100,5 +97,6 @@ public sealed class RentalContract
     public State State { get; set; } = null!;
 
     public ICollection<RentalContractObject> Objects { get; set; } = new List<RentalContractObject>();
+    public ICollection<RentalContractLessor> Lessors { get; set; } = [];
     public ICollection<RentalAccrualDoc> AccrualDocuments { get; set; } = new List<RentalAccrualDoc>();
 }

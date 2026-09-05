@@ -37,7 +37,7 @@ namespace Application.Features.Acc.OpeningBalances
         private readonly IQueryRepository<CashOperation> _cashOperationQuery;
         private readonly IQueryRepository<CashBox> _cashBoxQuery;
         private readonly IQueryRepository<BankAccount> _bankAccountQuery;
-        private readonly IQueryRepository<TaxType> _taxTypeQuery;
+        private readonly IQueryRepository<RegulatedObligation> _regulatedObligationQuery;
 
         public OpeningBalanceService(
             IUserContext userContext,
@@ -67,7 +67,7 @@ namespace Application.Features.Acc.OpeningBalances
             IQueryRepository<CashOperation> cashOperationQuery,
             IQueryRepository<CashBox> cashBoxQuery,
             IQueryRepository<BankAccount> bankAccountQuery,
-            IQueryRepository<TaxType> taxTypeQuery,
+            IQueryRepository<RegulatedObligation> regulatedObligationQuery,
             ILogger<OpeningBalanceService> logger,
             IUnitOfWork unitOfWork)
             : base(logger, unitOfWork)
@@ -99,7 +99,7 @@ namespace Application.Features.Acc.OpeningBalances
             _cashOperationQuery = cashOperationQuery;
             _cashBoxQuery = cashBoxQuery;
             _bankAccountQuery = bankAccountQuery;
-            _taxTypeQuery = taxTypeQuery;
+            _regulatedObligationQuery = regulatedObligationQuery;
         }
 
         public Task<Result<OpeningBalanceDto>> GetAsync(CancellationToken ct = default) =>

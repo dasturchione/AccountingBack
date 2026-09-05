@@ -29,10 +29,12 @@ public interface IManualService
     Task<List<SelectListDto>> GetDocumentTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetOperationTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetMovementDirectionsAsync(CancellationToken ct = default);
-    Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetRegulatedObligationsAsync(string? categoryCode = null, CancellationToken ct = default);
+    Task<List<SelectListDto>> GetRegulatedObligationPeriodicitiesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetContractTypesAsync(CancellationToken ct = default);
     Task<List<SelectListDto>> GetRentalObjectTypesAsync(CancellationToken ct = default);
+    Task<List<SelectListDto>> GetUtilityServicesAsync(CancellationToken ct = default);
 
     // sys
     Task<List<SelectListDto>> GetRolesAsync(CancellationToken ct = default);

@@ -10,18 +10,16 @@ public sealed class RentalContractCriteriaBuilder : ICriteriaBuilder<RentalContr
     public Expression<Func<RentalContract, bool>> Build(RentalContractListFilter filter) => x =>
         x.StateId == StateIdConst.ACTIVE &&
         (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
-        (!filter.DateFrom.HasValue || x.EndDate >= filter.DateFrom.Value.Date) &&
-        (!filter.DateTo.HasValue || x.StartDate <= filter.DateTo.Value.Date);
-}
-
-public sealed class RentalContractListCriteriaBuilder : ICriteriaBuilder<RentalContractListDto, RentalContractListFilter>
-{
-    public Expression<Func<RentalContractListDto, bool>> Build(RentalContractListFilter filter) => x =>
-        string.IsNullOrEmpty(filter.Search) ||
-        x.ContractNumber.ToLower().Contains(filter.Search.ToLower()) ||
-        x.LessorFullName.ToLower().Contains(filter.Search.ToLower()) ||
-        (x.LessorInn != null && x.LessorInn.Contains(filter.Search)) ||
-        (x.LessorPinfl != null && x.LessorPinfl.Contains(filter.Search));
+        (!filter.DateFrom.HasValue ||
+         (!x.EndDate.HasValue || x.EndDate.Value >= filter.DateFrom.Value.Date) &&
+         (!x.TerminationDate.HasValue || x.TerminationDate.Value >= filter.DateFrom.Value.Date)) &&
+        (!filter.DateTo.HasValue || x.StartDate <= filter.DateTo.Value.Date) &&
+        (string.IsNullOrEmpty(filter.Search) ||
+         x.ContractNumber.ToLower().Contains(filter.Search.ToLower()) ||
+         x.Lessors.Any(link =>
+             link.Lessor.FullName.ToLower().Contains(filter.Search.ToLower()) ||
+             (link.Lessor.Inn != null && link.Lessor.Inn.Contains(filter.Search)) ||
+             (link.Lessor.Pinfl != null && link.Lessor.Pinfl.Contains(filter.Search))));
 }
 
 public sealed class RentalContractOrderByBuilder : IOrderByBuilder<RentalContract, RentalContractListDto>

@@ -46,7 +46,7 @@ values
     (26, 'budget_fund_payment_types', 'Budjetga (jamgʻarmalarga) toʻlov turlari', 'acc_budget_fund_payment_types', 1, now()),
     (27, 'tax_authority_registrations', 'Soliq organida roʻyxatdan oʻtish', 'acc_tax_authority_registrations', 1, now()),
     (28, 'excisable_product_types', 'Aksiz mahsulotlari turlari', 'acc_excisable_product_types', 1, now()),
-    (29, 'tax_types', 'Soliq turlari', 'cmn_tax_type', 1, now()),
+    (29, 'regulated_obligations', 'Tartibga solinadigan majburiyatlar', 'cmn_regulated_obligation', 1, now()),
     (30, 'counterparty_settlement_documents', 'Kontragent bilan hisob-kitob hujjatlari', 'acc_counterparty_settlement_documents', 1, now()),
     (31, 'cash_flow_items_turnover', 'Pul mablagʻlari harakati moddalari (aylanma)', 'acc_cash_flow_items_turnover', 1, now()),
     (32, 'organization_cash_desks', 'Tashkilot kassalari', 'cash_box', 1, now()),

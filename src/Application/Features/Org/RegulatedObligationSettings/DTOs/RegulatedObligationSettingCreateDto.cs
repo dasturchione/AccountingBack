@@ -1,0 +1,3 @@
+namespace Application.Features.RegulatedObligationSettings;
+
+public sealed class RegulatedObligationSettingCreateDto : RegulatedObligationSettingBaseDto;

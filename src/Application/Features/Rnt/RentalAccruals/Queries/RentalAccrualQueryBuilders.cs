@@ -12,16 +12,14 @@ public sealed class RentalAccrualCriteriaBuilder : ICriteriaBuilder<RentalAccrua
         (!filter.ContractId.HasValue || x.ContractId == filter.ContractId.Value) &&
         (!filter.StatusId.HasValue || x.StatusId == filter.StatusId.Value) &&
         (!filter.DateFrom.HasValue || x.DocDate >= filter.DateFrom.Value.Date) &&
-        (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1));
-}
-
-public sealed class RentalAccrualListCriteriaBuilder : ICriteriaBuilder<RentalAccrualDocListDto, RentalAccrualListFilter>
-{
-    public Expression<Func<RentalAccrualDocListDto, bool>> Build(RentalAccrualListFilter filter) => x =>
-        string.IsNullOrEmpty(filter.Search) ||
-        x.DocNumber.ToLower().Contains(filter.Search.ToLower()) ||
-        x.ContractNumber.ToLower().Contains(filter.Search.ToLower()) ||
-        x.LessorFullName.ToLower().Contains(filter.Search.ToLower());
+        (!filter.DateTo.HasValue || x.DocDate < filter.DateTo.Value.Date.AddDays(1)) &&
+        (string.IsNullOrEmpty(filter.Search) ||
+         x.DocNumber.ToLower().Contains(filter.Search.ToLower()) ||
+         x.Contract.ContractNumber.ToLower().Contains(filter.Search.ToLower()) ||
+         x.Contract.Lessors.Any(link =>
+             link.Lessor.FullName.ToLower().Contains(filter.Search.ToLower()) ||
+             (link.Lessor.Inn != null && link.Lessor.Inn.Contains(filter.Search)) ||
+             (link.Lessor.Pinfl != null && link.Lessor.Pinfl.Contains(filter.Search))));
 }
 
 public sealed class RentalAccrualOrderByBuilder : IOrderByBuilder<RentalAccrualDoc, RentalAccrualDocListDto>

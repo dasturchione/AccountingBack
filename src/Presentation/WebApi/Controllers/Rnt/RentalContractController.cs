@@ -55,17 +55,17 @@ public sealed class RentalContractController(IRentalContractService service) : C
 
     [HttpPut("{id:long}/activate")]
     [ModuleAuthorize(PermissionCodeConst.RentalContractActivate)]
-    public async Task<IResult> ActivateAsync(long id, CancellationToken ct)
+    public async Task<IResult> ActivateAsync(long id, [FromQuery] DateTime? confirmationDate, CancellationToken ct)
     {
-        var result = await service.ActivateAsync(id, ct);
+        var result = await service.ActivateAsync(id, confirmationDate, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
     [HttpPut("{id:long}/cancel")]
     [ModuleAuthorize(PermissionCodeConst.RentalContractCancel)]
-    public async Task<IResult> CancelAsync(long id, CancellationToken ct)
+    public async Task<IResult> CancelAsync(long id, [FromQuery] DateTime? terminationDate, CancellationToken ct)
     {
-        var result = await service.CancelAsync(id, ct);
+        var result = await service.CancelAsync(id, terminationDate, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 }

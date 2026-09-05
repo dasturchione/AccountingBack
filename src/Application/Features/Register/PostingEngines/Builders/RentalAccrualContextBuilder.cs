@@ -23,7 +23,7 @@ public sealed class RentalAccrualContextBuilder(
                     CreditAccountId = document.LessorPayableAccountId,
                     Amount = item.PayableAmount,
                     SourceLineId = item.Id,
-                    Content = $"Rental payable: {document.Contract.LessorFullName}"
+                    Content = $"Rental payable for contract {document.Contract.ContractNumber}"
                 });
             }
 
@@ -35,7 +35,7 @@ public sealed class RentalAccrualContextBuilder(
                     CreditAccountId = document.TaxPayableAccountId,
                     Amount = item.TaxAmount,
                     SourceLineId = item.Id,
-                    Content = $"Rental personal income tax: {document.Contract.LessorFullName}"
+                    Content = $"Rental personal income tax for contract {document.Contract.ContractNumber}"
                 });
             }
 

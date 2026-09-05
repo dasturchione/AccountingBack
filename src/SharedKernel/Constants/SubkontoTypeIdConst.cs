@@ -145,7 +145,7 @@
         /// <summary>
         /// Виды налогов.
         /// </summary>
-        public const short TaxTypes = 29;
+        public const short RegulatedObligations = 29;
 
         /// <summary>
         /// Документы расчетов с контрагентом.

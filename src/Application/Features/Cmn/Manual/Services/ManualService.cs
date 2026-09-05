@@ -27,7 +27,8 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Module> _moduleQuery;
     private readonly IQueryRepository<Region> _regionQuery;
     private readonly IQueryRepository<FaGroup> _faGroupQuery;
-    private readonly IQueryRepository<TaxType> _taxTypeQuery;
+    private readonly IQueryRepository<RegulatedObligation> _regulatedObligationQuery;
+    private readonly IQueryRepository<RegulatedObligationPeriodicity> _regulatedObligationPeriodicityQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
     private readonly IQueryRepository<District> _districtQuery;
@@ -46,6 +47,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<MovementDirection> _movementDirectionQuery;
     private readonly IQueryRepository<ContractType> _contractTypeQuery;
     private readonly IQueryRepository<RentalObjectType> _rentalObjectTypeQuery;
+    private readonly IQueryRepository<UtilityService> _utilityServiceQuery;
     private readonly IQueryRepository<Position> _positionQuery;
     private readonly IQueryRepository<Department> _departmentQuery;
     private readonly IQueryRepository<CounterpartyCard> _counterpartyQuery;
@@ -96,10 +98,12 @@ public class ManualService : IManualService
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
         IQueryRepository<MovementDirection> movementDirectionQuery,
-        IQueryRepository<TaxType> taxTypeQuery,
+        IQueryRepository<RegulatedObligation> regulatedObligationQuery,
+        IQueryRepository<RegulatedObligationPeriodicity> regulatedObligationPeriodicityQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryRepository<ContractType> contractTypeQuery,
         IQueryRepository<RentalObjectType> rentalObjectTypeQuery,
+        IQueryRepository<UtilityService> utilityServiceQuery,
         IQueryRepository<Branch> branchQuery,
         IQueryRepository<Department> departmentQuery,
         IQueryRepository<Position> positionQuery,
@@ -153,10 +157,12 @@ public class ManualService : IManualService
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
         _movementDirectionQuery = movementDirectionQuery;
-        _taxTypeQuery = taxTypeQuery;
+        _regulatedObligationQuery = regulatedObligationQuery;
+        _regulatedObligationPeriodicityQuery = regulatedObligationPeriodicityQuery;
         _vatRateQuery = vatRateQuery;
         _contractTypeQuery = contractTypeQuery;
         _rentalObjectTypeQuery = rentalObjectTypeQuery;
+        _utilityServiceQuery = utilityServiceQuery;
         _branchQuery = branchQuery;
         _departmentQuery = departmentQuery;
         _positionQuery = positionQuery;
@@ -617,20 +623,51 @@ public class ManualService : IManualService
         return await _movementDirectionQuery.GetAllAsync(query, ct);
     }
 
-    public async Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default)
+    public async Task<List<SelectListDto>> GetRegulatedObligationsAsync(
+        string? categoryCode = null,
+        CancellationToken ct = default)
     {
-        var query = _queryBuilder.For<TaxType>()
-                                 .Where(x => x.StateId == StateIdConst.ACTIVE)
-                                 .As(s => new SelectListDto
-                                 {
-                                     Id = s.Id,
-                                     Name = s.Name,
-                                     Code = s.Code
-                                 })
-                                 .OrderBy(o => o.Name)
-                                 .Build();
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var normalizedCategoryCode = string.IsNullOrWhiteSpace(categoryCode)
+            ? null
+            : categoryCode.Trim().ToUpperInvariant();
+        var query = _queryBuilder.For<RegulatedObligation>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE
+                        && x.Category.StateId == StateIdConst.ACTIVE
+                        && (normalizedCategoryCode == null || x.Category.Code == normalizedCategoryCode))
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
+                Code = x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
 
-        return await _taxTypeQuery.GetAllAsync(query, ct);
+        return await _regulatedObligationQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetRegulatedObligationPeriodicitiesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<RegulatedObligationPeriodicity>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Name,
+                Code = x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _regulatedObligationPeriodicityQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetVatRatesAsync(CancellationToken ct = default)
@@ -686,6 +723,25 @@ public class ManualService : IManualService
             .OrderBy(x => x.Name)
             .Build();
         return await _rentalObjectTypeQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetUtilityServicesAsync(CancellationToken ct = default)
+    {
+        var languageId = _userContext.LanguageId ?? LanguageIdConst.UZ;
+        var query = _queryBuilder.For<UtilityService>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Translations
+                    .Where(t => t.LanguageId == languageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+        return await _utilityServiceQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetBranchesAsync(CancellationToken ct = default)

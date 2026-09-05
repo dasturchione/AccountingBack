@@ -148,8 +148,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CmnState> CmnStates { get; set; }
 
-    public virtual DbSet<CmnTaxType> CmnTaxTypes { get; set; }
-
     public virtual DbSet<CmnTranslation> CmnTranslations { get; set; }
 
     public virtual DbSet<CmnUnit> CmnUnits { get; set; }
@@ -327,8 +325,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<OrgPosition> OrgPositions { get; set; }
 
     public virtual DbSet<OrgSetupState> OrgSetupStates { get; set; }
-
-    public virtual DbSet<OrgTaxSetting> OrgTaxSettings { get; set; }
 
     public virtual DbSet<OrgUserInvitation> OrgUserInvitations { get; set; }
 
@@ -1418,18 +1414,6 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-        });
-
-        modelBuilder.Entity<CmnTaxType>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cmn_tax_type_pkey");
-
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-
-            entity.HasOne(d => d.State).WithMany(p => p.CmnTaxTypes)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("cmn_tax_type_state_id_fkey");
         });
 
         modelBuilder.Entity<CmnTranslation>(entity =>
@@ -3220,15 +3204,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
             entity.Property(e => e.CurrentStep).HasDefaultValueSql("'organization'::character varying");
             entity.Property(e => e.UpdatedDate).HasDefaultValueSql("now()");
-        });
-
-        modelBuilder.Entity<OrgTaxSetting>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("org_tax_settings_pkey");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("now()");
-            entity.Property(e => e.EffectiveFrom).HasDefaultValueSql("CURRENT_DATE");
-            entity.Property(e => e.StateId).HasDefaultValue((short)1);
         });
 
         modelBuilder.Entity<OrgUserInvitation>(entity =>

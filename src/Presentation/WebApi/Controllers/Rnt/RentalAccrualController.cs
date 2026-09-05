@@ -49,7 +49,7 @@ public sealed class RentalAccrualController(IRentalAccrualService service) : Con
     [ModuleAuthorize(PermissionCodeConst.RentalAccrualGenerate)]
     public async Task<IResult> GenerateDueAsync([FromBody] RentalAccrualGenerateDueDto dto, CancellationToken ct)
     {
-        var result = await service.GenerateDueAsync(dto.AsOfDate, ct);
+        var result = await service.GenerateDueAsync(dto.Year, dto.Month, ct);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

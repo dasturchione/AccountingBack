@@ -1,0 +1,4 @@
+namespace Application.Features.RegulatedObligationSettings;
+
+public sealed class RegulatedObligationSettingCreateDtoValidator
+    : RegulatedObligationSettingBaseDtoValidator<RegulatedObligationSettingCreateDto>;

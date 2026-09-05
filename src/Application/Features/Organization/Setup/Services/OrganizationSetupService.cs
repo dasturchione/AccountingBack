@@ -22,12 +22,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private readonly IQueryRepository<Organization> _organizationQuery;
     private readonly ICommandRepository<Organization> _organizationCommand;
     private readonly IQueryRepository<OrganizationSetupState> _setupStateQuery;
-    private readonly IQueryRepository<OrganizationTaxSetting> _taxSettingQuery;
     private readonly IQueryRepository<OrganizationConfig> _configQuery;
     private readonly IQueryRepository<OrganizationDefault> _defaultQuery;
     private readonly IQueryRepository<UserOrganization> _userOrganizationQuery;
     private readonly IQueryRepository<PricingCondition> _pricingConditionQuery;
-    private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<AccountingPolicy> _accountingPolicyQuery;
     private readonly IQueryRepository<Currency> _currencyQuery;
     private readonly IQueryRepository<Branch> _branchQuery;
@@ -43,12 +41,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         IQueryRepository<Organization> organizationQuery,
         ICommandRepository<Organization> organizationCommand,
         IQueryRepository<OrganizationSetupState> setupStateQuery,
-        IQueryRepository<OrganizationTaxSetting> taxSettingQuery,
         IQueryRepository<OrganizationConfig> configQuery,
         IQueryRepository<OrganizationDefault> defaultQuery,
         IQueryRepository<UserOrganization> userOrganizationQuery,
         IQueryRepository<PricingCondition> pricingConditionQuery,
-        IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<AccountingPolicy> accountingPolicyQuery,
         IQueryRepository<Currency> currencyQuery,
         IQueryRepository<Branch> branchQuery,
@@ -65,12 +61,10 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
         _organizationQuery = organizationQuery;
         _organizationCommand = organizationCommand;
         _setupStateQuery = setupStateQuery;
-        _taxSettingQuery = taxSettingQuery;
         _configQuery = configQuery;
         _defaultQuery = defaultQuery;
         _userOrganizationQuery = userOrganizationQuery;
         _pricingConditionQuery = pricingConditionQuery;
-        _taxTypeQuery = taxTypeQuery;
         _accountingPolicyQuery = accountingPolicyQuery;
         _currencyQuery = currencyQuery;
         _branchQuery = branchQuery;
@@ -94,7 +88,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 return Result.Failure<OrganizationSetupDto>(OrganizationSetupErrors.OrganizationNotFound(orgIdResult.Value, _userContext.LanguageId));
 
             var setup = await GetSetupStateAsync(organization.Id, ct);
-            var tax = await GetCurrentTaxSettingAsync(organization.Id, ct);
             var config = await GetConfigAsync(organization.Id, ct);
             var defaults = await GetDefaultsAsync(organization.Id, ct);
             var pricingCondition = await GetCurrentPricingConditionAsync(organization.Id, ct);
@@ -105,13 +98,11 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
                 SetupStatus = organization.SetupStatus,
                 CurrentStep = setup?.CurrentStep ?? "company-profile",
                 OrganizationCompleted = setup?.OrganizationCompleted ?? false,
-                TaxCompleted = setup?.TaxCompleted ?? false,
                 AccountingCompleted = setup?.AccountingCompleted ?? false,
                 DefaultsCompleted = setup?.DefaultsCompleted ?? false,
                 IsCompleted = setup?.IsCompleted ?? false,
                 CompletedAt = setup?.CompletedAt,
                 CompanyProfile = MapCompanyProfile(organization),
-                TaxSettings = tax is null ? null : MapTaxSettings(tax),
                 AccountingPolicy = config is null ? null : MapAccountingPolicy(config),
                 CostingCondition = config is null ? null : MapCostingCondition(config),
                 PricingCondition = pricingCondition,
@@ -153,39 +144,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
 
             await _organizationCommand.UpdateAsync(organization, ct);
             await _organizationSetupCore.UpdateSetupStateAsync(organization.Id, setup => setup.OrganizationCompleted = true, ct);
-            return Result.Success();
-        }, ct);
-
-    public Task<Result> UpdateTaxSettingsAsync(OrganizationSetupTaxSettingsDto dto, CancellationToken ct = default) =>
-        ExecuteInTransactionAsync(nameof(UpdateTaxSettingsAsync), async () =>
-        {
-            var orgIdResult = await ResolveOrganizationIdAsync(ct);
-            if (!orgIdResult.IsSuccess)
-                return Result.Failure(orgIdResult.Error);
-
-            var taxTypeExists = await _taxTypeQuery.AnyAsync(x => x.Id == dto.TaxTypeId && x.StateId == StateIdConst.ACTIVE, ct);
-            if (!taxTypeExists)
-                return Result.Failure(OrganizationSetupErrors.TaxTypeNotFound(dto.TaxTypeId, _userContext.LanguageId));
-
-            var now = DateTime.Now;
-            await _organizationSetupCore.UpsertTaxSettingsAsync(
-                orgIdResult.Value,
-                new OrganizationSetupTaxSettingsWriteModel
-                {
-                    TaxTypeId = dto.TaxTypeId,
-                    IsVatPayer = dto.IsVatPayer,
-                    VatRegistrationNumber = dto.VatRegistrationNumber,
-                    EffectiveFrom = dto.EffectiveFrom,
-                    EffectiveTo = dto.EffectiveTo,
-                    StateId = dto.StateId,
-                    CreatedDate = now
-                },
-                ct);
-
-            await _organizationSetupCore.UpdateSetupStateAsync(
-                orgIdResult.Value,
-                setup => setup.TaxCompleted = dto.StateId == StateIdConst.ACTIVE,
-                ct);
             return Result.Success();
         }, ct);
 
@@ -307,14 +265,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
     private async Task<OrganizationSetupState?> GetSetupStateAsync(int organizationId, CancellationToken ct) =>
         await _setupStateQuery.GetAsync(_queryBuilder.For<OrganizationSetupState>().Where(x => x.OrganizationId == organizationId).Build(), ct);
 
-    private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
-    {
-        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
-            .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
-            .Build(), ct);
-    }
-
     private async Task<OrganizationConfig?> GetConfigAsync(int organizationId, CancellationToken ct) =>
         await _configQuery.GetAsync(_queryBuilder.For<OrganizationConfig>().Where(x => x.OrganizationId == organizationId).Build(), ct);
 
@@ -421,17 +371,6 @@ public sealed class OrganizationSetupService : BaseService, IOrganizationSetupSe
             Email = organization.Email,
             Website = organization.Website,
             Oked = organization.Oked
-        };
-
-    private static OrganizationSetupTaxSettingsDto MapTaxSettings(OrganizationTaxSetting tax) =>
-        new()
-        {
-            TaxTypeId = tax.TaxTypeId,
-            IsVatPayer = tax.IsVatPayer,
-            VatRegistrationNumber = tax.VatRegistrationNumber,
-            EffectiveFrom = tax.EffectiveFrom,
-            EffectiveTo = tax.EffectiveTo,
-            StateId = tax.StateId
         };
 
     private static OrganizationSetupAccountingPolicyDto MapAccountingPolicy(OrganizationConfig config) =>

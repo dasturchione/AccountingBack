@@ -12,6 +12,8 @@ public static class RentalAccrualDraftFactory
         IReadOnlyCollection<RentalAccrualDraftSource> sources,
         int? createdByUserId)
     {
+        if (contract.IsFreeOfCharge)
+            throw new InvalidOperationException("A free rental contract cannot produce accrual documents.");
         if (sources.Count == 0)
             throw new ArgumentException("At least one due rental object is required.", nameof(sources));
         if (sources
@@ -37,9 +39,15 @@ public static class RentalAccrualDraftFactory
 
         foreach (var source in sources)
         {
-            var amounts = RentalAccrualCalculator.Calculate(
-                source.ContractObject.ContractAmount,
+            var contractAmount = RentalAccrualSchedule.ProrateAmount(
+                source.ContractObject.PeriodAmount,
+                source.Period.ProrationFactor);
+            var taxBaseAmount = RentalAccrualSchedule.ProrateAmount(
                 source.ContractObject.TaxBaseAmount,
+                source.Period.ProrationFactor);
+            var amounts = RentalAccrualCalculator.Calculate(
+                contractAmount,
+                taxBaseAmount,
                 source.ContractObject.TaxRate);
 
             document.Items.Add(new RentalAccrualDocItem
@@ -47,8 +55,8 @@ public static class RentalAccrualDraftFactory
                 ContractObjectId = source.ContractObject.Id,
                 PeriodFrom = source.Period.PeriodFrom,
                 PeriodTo = source.Period.PeriodTo,
-                ContractAmount = source.ContractObject.ContractAmount,
-                TaxBaseAmount = source.ContractObject.TaxBaseAmount,
+                ContractAmount = contractAmount,
+                TaxBaseAmount = taxBaseAmount,
                 TaxRate = source.ContractObject.TaxRate,
                 TaxAmount = amounts.TaxAmount,
                 PayableAmount = amounts.PayableAmount,

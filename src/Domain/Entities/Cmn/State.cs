@@ -42,6 +42,24 @@ public partial class State
     [InverseProperty(nameof(PaymentAcceptancePointType.State))]
     public virtual ICollection<PaymentAcceptancePointType> PaymentAcceptancePointTypes { get; set; } = [];
 
+    [InverseProperty(nameof(RegulatedObligationCategory.State))]
+    public virtual ICollection<RegulatedObligationCategory> RegulatedObligationCategories { get; set; } = [];
+
+    [InverseProperty(nameof(RegulatedObligation.State))]
+    public virtual ICollection<RegulatedObligation> RegulatedObligations { get; set; } = [];
+
+    [InverseProperty(nameof(RegulatedObligationPeriodicity.State))]
+    public virtual ICollection<RegulatedObligationPeriodicity> RegulatedObligationPeriodicities { get; set; } = [];
+
+    [InverseProperty(nameof(OrganizationRegulatedObligationSetting.State))]
+    public virtual ICollection<OrganizationRegulatedObligationSetting> OrganizationRegulatedObligationSettings { get; set; } = [];
+
+    [InverseProperty(nameof(UtilityService.State))]
+    public virtual ICollection<UtilityService> UtilityServices { get; set; } = [];
+
+    [InverseProperty(nameof(RentalLessor.State))]
+    public virtual ICollection<RentalLessor> RentalLessors { get; set; } = [];
+
     [InverseProperty(nameof(PaymentAcceptancePointOperation.State))]
     public virtual ICollection<PaymentAcceptancePointOperation> PaymentAcceptancePointOperations { get; set; } = [];
 
@@ -128,9 +146,6 @@ public partial class State
 
     [InverseProperty("State")]
     public virtual ICollection<Region> Regions { get; set; } = new List<Region>();
-
-    [InverseProperty("State")]
-    public virtual ICollection<TaxType> TaxTypes { get; set; } = new List<TaxType>();
 
     [InverseProperty("State")]
     public virtual ICollection<Unit> Units { get; set; } = new List<Unit>();

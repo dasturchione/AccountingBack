@@ -12,8 +12,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
     private readonly IUserContext _userContext;
     private readonly IQueryRepository<OrganizationSetupState> _setupStateQuery;
     private readonly ICommandRepository<OrganizationSetupState> _setupStateCommand;
-    private readonly IQueryRepository<OrganizationTaxSetting> _taxSettingQuery;
-    private readonly ICommandRepository<OrganizationTaxSetting> _taxSettingCommand;
     private readonly IQueryRepository<OrganizationConfig> _configQuery;
     private readonly ICommandRepository<OrganizationConfig> _configCommand;
     private readonly IQueryRepository<OrganizationDefault> _defaultQuery;
@@ -25,8 +23,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         IUserContext userContext,
         IQueryRepository<OrganizationSetupState> setupStateQuery,
         ICommandRepository<OrganizationSetupState> setupStateCommand,
-        IQueryRepository<OrganizationTaxSetting> taxSettingQuery,
-        ICommandRepository<OrganizationTaxSetting> taxSettingCommand,
         IQueryRepository<OrganizationConfig> configQuery,
         ICommandRepository<OrganizationConfig> configCommand,
         IQueryRepository<OrganizationDefault> defaultQuery,
@@ -37,33 +33,12 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         _userContext = userContext;
         _setupStateQuery = setupStateQuery;
         _setupStateCommand = setupStateCommand;
-        _taxSettingQuery = taxSettingQuery;
-        _taxSettingCommand = taxSettingCommand;
         _configQuery = configQuery;
         _configCommand = configCommand;
         _defaultQuery = defaultQuery;
         _defaultCommand = defaultCommand;
         _organizationCommand = organizationCommand;
         _queryBuilder = queryBuilder;
-    }
-
-    public async Task UpsertTaxSettingsAsync(int organizationId, OrganizationSetupTaxSettingsWriteModel model, CancellationToken ct = default)
-    {
-        var tax = await GetCurrentTaxSettingAsync(organizationId, ct);
-        if (tax is null)
-        {
-            tax = new OrganizationTaxSetting
-            {
-                OrganizationId = organizationId,
-                CreatedDate = model.CreatedDate
-            };
-            ApplyTaxSettings(tax, model);
-            await _taxSettingCommand.CreateAsync(tax, ct);
-            return;
-        }
-
-        ApplyTaxSettings(tax, model);
-        await _taxSettingCommand.UpdateAsync(tax, ct);
     }
 
     public async Task UpsertAccountingPolicyAsync(int organizationId, OrganizationSetupAccountingPolicyWriteModel model, CancellationToken ct = default)
@@ -114,7 +89,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         var setup = await GetOrCreateSetupStateAsync(organizationId, ct);
         update(setup);
         setup.IsCompleted = setup.OrganizationCompleted
-            && setup.TaxCompleted
             && setup.AccountingCompleted
             && setup.DefaultsCompleted
             && setup.IsCompleted;
@@ -149,14 +123,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
         return Result.Success();
     }
 
-    private async Task<OrganizationTaxSetting?> GetCurrentTaxSettingAsync(int organizationId, CancellationToken ct)
-    {
-        return await _taxSettingQuery.GetAsync(_queryBuilder.For<OrganizationTaxSetting>()
-            .Where(x => x.OrganizationId == organizationId && x.StateId == StateIdConst.ACTIVE)
-            .OrderBy(query => query.OrderByDescending(x => x.EffectiveFrom).ThenByDescending(x => x.Id))
-            .Build(), ct);
-    }
-
     private async Task<OrganizationSetupState> GetOrCreateSetupStateAsync(int organizationId, CancellationToken ct)
     {
         var setup = await _setupStateQuery.GetAsync(_queryBuilder.For<OrganizationSetupState>()
@@ -177,16 +143,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
 
         await _setupStateCommand.CreateAsync(setup, ct);
         return setup;
-    }
-
-    private static void ApplyTaxSettings(OrganizationTaxSetting tax, OrganizationSetupTaxSettingsWriteModel model)
-    {
-        tax.TaxTypeId = model.TaxTypeId;
-        tax.IsVatPayer = model.IsVatPayer;
-        tax.VatRegistrationNumber = model.VatRegistrationNumber;
-        tax.EffectiveFrom = model.EffectiveFrom;
-        tax.EffectiveTo = model.EffectiveTo;
-        tax.StateId = model.StateId;
     }
 
     private static void ApplyAccountingPolicy(OrganizationConfig config, OrganizationSetupAccountingPolicyWriteModel model)
@@ -218,31 +174,9 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
     {
         if (!setup.OrganizationCompleted)
             return "company-profile";
-        if (!setup.TaxCompleted)
-            return "tax-settings";
         if (!setup.AccountingCompleted)
             return "accounting-policy";
         if (!setup.DefaultsCompleted)
-            return "defaults";
-        return "complete";
-    }
-
-    private static string ResolveWorkspaceCurrentStep(
-        bool organizationCompleted,
-        bool taxCompleted,
-        bool accountingCompleted,
-        bool defaultsCompleted,
-        bool isCompleted)
-    {
-        if (isCompleted)
-            return "complete";
-        if (!organizationCompleted)
-            return "company-profile";
-        if (!taxCompleted)
-            return "tax-settings";
-        if (!accountingCompleted)
-            return "accounting-policy";
-        if (!defaultsCompleted)
             return "defaults";
         return "complete";
     }
@@ -251,8 +185,6 @@ public sealed class OrganizationSetupCore : IOrganizationSetupCore
     {
         if (!setup.OrganizationCompleted)
             return "company-profile";
-        if (!setup.TaxCompleted)
-            return "tax-settings";
         if (!setup.AccountingCompleted)
             return "accounting-policy";
         if (!setup.DefaultsCompleted)

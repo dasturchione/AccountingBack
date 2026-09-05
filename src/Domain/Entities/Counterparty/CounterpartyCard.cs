@@ -116,4 +116,7 @@ public partial class CounterpartyCard
     [InverseProperty(nameof(Contract.Counterparty))]
     public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 
+    [InverseProperty(nameof(RentalLessor.Counterparty))]
+    public virtual ICollection<RentalLessor> RentalLessors { get; set; } = [];
+
 }

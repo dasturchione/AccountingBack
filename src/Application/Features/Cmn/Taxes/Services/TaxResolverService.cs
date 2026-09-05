@@ -10,21 +10,21 @@ namespace Application.Features.Cmn.Taxes;
 public sealed class TaxResolverService : ITaxResolverService
 {
     private readonly IUserContext _userContext;
-    private readonly IQueryRepository<OrganizationTaxSetting> _organizationTaxSettingQuery;
-    private readonly IQueryRepository<TaxType> _taxTypeQuery;
+    private readonly IQueryRepository<OrganizationRegulatedObligationSetting> _organizationSettingQuery;
+    private readonly IQueryRepository<RegulatedObligation> _regulatedObligationQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
     private readonly IQueryBuilder _queryBuilder;
 
     public TaxResolverService(
         IUserContext userContext,
-        IQueryRepository<OrganizationTaxSetting> organizationTaxSettingQuery,
-        IQueryRepository<TaxType> taxTypeQuery,
+        IQueryRepository<OrganizationRegulatedObligationSetting> organizationSettingQuery,
+        IQueryRepository<RegulatedObligation> regulatedObligationQuery,
         IQueryRepository<VatRate> vatRateQuery,
         IQueryBuilder queryBuilder)
     {
         _userContext = userContext;
-        _organizationTaxSettingQuery = organizationTaxSettingQuery;
-        _taxTypeQuery = taxTypeQuery;
+        _organizationSettingQuery = organizationSettingQuery;
+        _regulatedObligationQuery = regulatedObligationQuery;
         _vatRateQuery = vatRateQuery;
         _queryBuilder = queryBuilder;
     }
@@ -43,16 +43,16 @@ public sealed class TaxResolverService : ITaxResolverService
 
         var date = effectiveDate ?? DateOnly.FromDateTime(DateTime.Now);
 
-        var taxType = await _taxTypeQuery.GetAsync(_queryBuilder.For<TaxType>()
+        var obligation = await _regulatedObligationQuery.GetAsync(_queryBuilder.For<RegulatedObligation>()
             .Where(x => x.Id == taxTypeId && x.StateId == StateIdConst.ACTIVE)
             .Build(), ct);
 
-        if (taxType is null)
+        if (obligation is null)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.InactiveTaxType(taxTypeId, _userContext.LanguageId));
 
-        var settings = await _organizationTaxSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationTaxSetting>()
+        var settings = await _organizationSettingQuery.GetAllAsync(_queryBuilder.For<OrganizationRegulatedObligationSetting>()
             .Where(x => x.OrganizationId == organizationId
-                        && x.TaxTypeId == taxTypeId
+                        && x.RegulatedObligationId == taxTypeId
                         && x.EffectiveFrom <= date
                         && (x.EffectiveTo == null || x.EffectiveTo >= date))
             .OrderBy(q => q.OrderByDescending(x => x.EffectiveFrom))
@@ -69,9 +69,6 @@ public sealed class TaxResolverService : ITaxResolverService
         if (setting.StateId != StateIdConst.ACTIVE)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.DisabledTax(organizationId, taxTypeId, _userContext.LanguageId));
 
-        if (taxTypeId == TaxTypeIdConst.VAT && !setting.IsVatPayer)
-            return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.DisabledTax(organizationId, taxTypeId, _userContext.LanguageId));
-
         var vatRate = await _vatRateQuery.GetAsync(_queryBuilder.For<VatRate>()
             .Where(x => x.StateId == StateIdConst.ACTIVE
                         && x.EffectiveFrom.HasValue
@@ -80,19 +77,20 @@ public sealed class TaxResolverService : ITaxResolverService
             .OrderBy(q => q.OrderByDescending(x => x.EffectiveFrom))
             .Build(), ct);
 
-        if (vatRate is null)
+        var resolvedRate = setting.Rate ?? vatRate?.Rate;
+        if (!resolvedRate.HasValue)
             return Result.Failure<TaxResolutionResultDto>(TaxBusinessErrors.MissingOrganizationConfiguration(_userContext.LanguageId));
 
         return Result.Success(new TaxResolutionResultDto
         {
             OrganizationId = organizationId,
-            TaxTypeId = taxType.Id,
-            TaxTypeCode = taxType.Code,
-            TaxTypeName = taxType.Name,
-            VatRateId = vatRate.Id,
-            VatRateCode = vatRate.Code,
-            VatRateName = vatRate.Name,
-            Rate = vatRate.Rate,
+            TaxTypeId = obligation.Id,
+            TaxTypeCode = obligation.Code,
+            TaxTypeName = obligation.Name,
+            VatRateId = vatRate?.Id ?? 0,
+            VatRateCode = vatRate?.Code ?? obligation.Code,
+            VatRateName = vatRate?.Name ?? obligation.Name,
+            Rate = resolvedRate.Value,
             EffectiveDate = setting.EffectiveFrom,
             EffectiveTo = setting.EffectiveTo,
             StateId = setting.StateId

@@ -79,6 +79,7 @@ using Application.Features.Notifications;
 using Application.Features.Organizations;
 using Application.Features.OrganizationSetup;
 using Application.Features.AccountingPolicies.Services;
+using Application.Features.RegulatedObligationSettings;
 using Application.Features.OrgBankAccounts;
 using Application.Features.Platform;
 using Application.Features.Dashboard.Services;
@@ -257,6 +258,7 @@ namespace Infrastructure
             services.AddScoped<IOrganizationService, OrganizationService>();
             services.AddScoped<IOrganizationSetupService, OrganizationSetupService>();
             services.AddScoped<IAccountingPolicyService, AccountingPolicyService>();
+            services.AddScoped<IRegulatedObligationSettingService, RegulatedObligationSettingService>();
             services.AddScoped<IPlatformService, PlatformService>();
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();

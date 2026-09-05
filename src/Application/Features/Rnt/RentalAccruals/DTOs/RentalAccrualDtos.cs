@@ -1,3 +1,5 @@
+using Application.Features.Rnt.RentalContracts;
+
 namespace Application.Features.Rnt.RentalAccruals;
 
 public sealed class RentalAccrualDocItemDto
@@ -24,9 +26,7 @@ public sealed class RentalAccrualDocDto
     public int OrganizationId { get; set; }
     public long ContractId { get; set; }
     public string ContractNumber { get; set; } = null!;
-    public string LessorFullName { get; set; } = null!;
-    public string? LessorInn { get; set; }
-    public string? LessorPinfl { get; set; }
+    public List<RentalLessorDto> Lessors { get; set; } = [];
     public string DocNumber { get; set; } = null!;
     public DateTime DocDate { get; set; }
     public short CurrencyId { get; set; }
@@ -57,7 +57,7 @@ public sealed class RentalAccrualDocListDto
     public long Id { get; set; }
     public long ContractId { get; set; }
     public string ContractNumber { get; set; } = null!;
-    public string LessorFullName { get; set; } = null!;
+    public List<RentalLessorDto> Lessors { get; set; } = [];
     public string DocNumber { get; set; } = null!;
     public DateTime DocDate { get; set; }
     public string CurrencyCode { get; set; } = null!;
@@ -85,7 +85,8 @@ public sealed class RentalAccrualUpdateDto
 
 public sealed class RentalAccrualGenerateDueDto
 {
-    public DateTime? AsOfDate { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
 }
 
 public sealed record RentalAccrualGenerationResult(int CreatedDocumentCount, int CreatedItemCount, IReadOnlyList<long> DocumentIds);

@@ -48,7 +48,7 @@ public partial class OpeningBalanceService
                 GetProductGroupNamesAsync(ids, organizationId, ct),
             SubkontoTypeIdConst.VatRates or SubkontoTypeIdConst.VatRatesTurnover =>
                 GetVatRateNamesAsync(ids, ct),
-            SubkontoTypeIdConst.TaxTypes => GetTaxTypeNamesAsync(ids, ct),
+            SubkontoTypeIdConst.RegulatedObligations => GetRegulatedObligationNamesAsync(ids, ct),
             SubkontoTypeIdConst.SalesDocumentsTurnover => GetSaleDocumentNamesAsync(ids, organizationId, ct),
             SubkontoTypeIdConst.CounterpartySettlementDocuments =>
                 GetSettlementDocumentNamesAsync(ids, organizationId, ct),
@@ -210,17 +210,17 @@ public partial class OpeningBalanceService
         return items.ToDictionary(x => (long)x.Id, x => x.Name);
     }
 
-    private async Task<Dictionary<long, string>> GetTaxTypeNamesAsync(IReadOnlyCollection<long> ids, CancellationToken ct)
+    private async Task<Dictionary<long, string>> GetRegulatedObligationNamesAsync(IReadOnlyCollection<long> ids, CancellationToken ct)
     {
         var entityIds = ToShortIds(ids);
         if (entityIds.Count == 0)
             return [];
 
-        var query = _queryBuilder.For<TaxType>()
+        var query = _queryBuilder.For<RegulatedObligation>()
             .Where(x => entityIds.Contains(x.Id))
             .As(x => new { x.Id, x.Name })
             .Build();
-        var items = await _taxTypeQuery.GetAllAsync(query, ct);
+        var items = await _regulatedObligationQuery.GetAllAsync(query, ct);
         return items.ToDictionary(x => (long)x.Id, x => x.Name);
     }
 

@@ -13,56 +13,85 @@ public sealed class RentalContractDtoProjection(IUserContext userContext) : IPro
         var languageId = userContext.LanguageId ?? LanguageIdConst.UZ;
         return x => new()
         {
-        Id = x.Id,
-        OrganizationId = x.OrganizationId,
-        LessorFullName = x.LessorFullName,
-        LessorInn = x.LessorInn,
-        LessorPinfl = x.LessorPinfl,
-        ContractNumber = x.ContractNumber,
-        ContractDate = x.ContractDate,
-        StartDate = x.StartDate,
-        EndDate = x.EndDate,
-        CurrencyId = x.CurrencyId,
-        CurrencyCode = x.Currency.Code,
-        LessorPayableAccountId = x.LessorPayableAccountId,
-        LessorPayableAccountNumber = x.LessorPayableAccount == null ? null : x.LessorPayableAccount.Number,
-        LessorPayableAccountName = x.LessorPayableAccount == null ? null : x.LessorPayableAccount.Name,
-        TaxPayableAccountId = x.TaxPayableAccountId,
-        TaxPayableAccountNumber = x.TaxPayableAccount == null ? null : x.TaxPayableAccount.Number,
-        TaxPayableAccountName = x.TaxPayableAccount == null ? null : x.TaxPayableAccount.Name,
-        StatusId = x.StatusId,
-        StatusName = x.Status.Name,
-        Comment = x.Comment,
-        CreatedDate = x.CreatedDate,
-        PostedAt = x.PostedAt,
-        CancelledAt = x.CancelledAt,
-        Objects = x.Objects
-            .Where(o => o.StateId == StateIdConst.ACTIVE)
-            .OrderBy(o => o.Id)
-            .Select(o => new RentalContractObjectDto
-            {
-                Id = o.Id,
-                RentalObjectTypeId = o.RentalObjectTypeId,
-                RentalObjectTypeCode = o.RentalObjectType.Code,
-                RentalObjectTypeName = o.RentalObjectType.Translations
-                    .Where(t => t.LanguageId == languageId)
-                    .Select(t => t.Name)
-                    .FirstOrDefault() ?? o.RentalObjectType.Code,
-                ObjectName = o.ObjectName,
-                ObjectIdentifier = o.ObjectIdentifier,
-                ObjectAddress = o.ObjectAddress,
-                StartDate = o.StartDate,
-                EndDate = o.EndDate,
-                PeriodUnit = o.PeriodUnit,
-                PeriodValue = o.PeriodValue,
-                NextAccrualDate = o.NextAccrualDate,
-                ContractAmount = o.ContractAmount,
-                TaxBaseAmount = o.TaxBaseAmount,
-                TaxRate = o.TaxRate,
-                ExpenseAccountId = o.ExpenseAccountId,
-                ExpenseAccountNumber = o.ExpenseAccount == null ? null : o.ExpenseAccount.Number,
-                ExpenseAccountName = o.ExpenseAccount == null ? null : o.ExpenseAccount.Name
-            }).ToList()
+            Id = x.Id,
+            OrganizationId = x.OrganizationId,
+            IsFreeOfCharge = x.IsFreeOfCharge,
+            ContractNumber = x.ContractNumber,
+            ContractDate = x.ContractDate,
+            StartDate = x.StartDate,
+            EndDate = x.EndDate,
+            ConfirmationDate = x.ConfirmationDate,
+            TerminationDate = x.TerminationDate,
+            CurrencyId = x.CurrencyId,
+            CurrencyCode = x.Currency.Code,
+            LessorPayableAccountId = x.LessorPayableAccountId,
+            LessorPayableAccountNumber = x.LessorPayableAccount == null ? null : x.LessorPayableAccount.Number,
+            LessorPayableAccountName = x.LessorPayableAccount == null ? null : x.LessorPayableAccount.Name,
+            TaxPayableAccountId = x.TaxPayableAccountId,
+            TaxPayableAccountNumber = x.TaxPayableAccount == null ? null : x.TaxPayableAccount.Number,
+            TaxPayableAccountName = x.TaxPayableAccount == null ? null : x.TaxPayableAccount.Name,
+            StatusId = x.StatusId,
+            StatusName = x.Status.Name,
+            Comment = x.Comment,
+            CreatedDate = x.CreatedDate,
+            PostedAt = x.PostedAt,
+            CancelledAt = x.CancelledAt,
+            Lessors = x.Lessors
+                .Where(link => link.Lessor.StateId == StateIdConst.ACTIVE)
+                .OrderBy(link => link.LessorId)
+                .Select(link => new RentalLessorDto
+                {
+                    Id = link.Lessor.Id,
+                    LessorKindCode = link.Lessor.LessorKindCode,
+                    CounterpartyId = link.Lessor.CounterpartyId,
+                    FullName = link.Lessor.FullName,
+                    Inn = link.Lessor.Inn,
+                    Pinfl = link.Lessor.Pinfl,
+                    PhoneNumber = link.Lessor.PhoneNumber,
+                    RegisteredAddress = link.Lessor.RegisteredAddress,
+                    ResidentialAddress = link.Lessor.ResidentialAddress
+                }).ToList(),
+            Objects = x.Objects
+                .Where(o => o.StateId == StateIdConst.ACTIVE)
+                .OrderBy(o => o.Id)
+                .Select(o => new RentalContractObjectDto
+                {
+                    Id = o.Id,
+                    RentalObjectTypeId = o.RentalObjectTypeId,
+                    RentalObjectTypeCode = o.RentalObjectType.Code,
+                    RentalObjectTypeName = o.RentalObjectType.Translations
+                        .Where(t => t.LanguageId == languageId)
+                        .Select(t => t.Name)
+                        .FirstOrDefault() ?? o.RentalObjectType.Code,
+                    ObjectName = o.ObjectName,
+                    ObjectIdentifier = o.ObjectIdentifier,
+                    ObjectAddress = o.ObjectAddress,
+                    TotalArea = o.TotalArea,
+                    RentedArea = o.RentedArea,
+                    StartDate = o.StartDate,
+                    EndDate = o.EndDate,
+                    PeriodUnit = o.PeriodUnit,
+                    NextAccrualDate = o.NextAccrualDate,
+                    PeriodAmount = o.PeriodAmount,
+                    TaxBaseAmount = o.TaxBaseAmount,
+                    TaxRate = o.TaxRate,
+                    ExpenseAccountId = o.ExpenseAccountId,
+                    ExpenseAccountNumber = o.ExpenseAccount == null ? null : o.ExpenseAccount.Number,
+                    ExpenseAccountName = o.ExpenseAccount == null ? null : o.ExpenseAccount.Name,
+                    Utilities = o.Utilities
+                        .OrderBy(utility => utility.UtilityServiceId)
+                        .Select(utility => new RentalContractObjectUtilityDto
+                        {
+                            Id = utility.Id,
+                            UtilityServiceId = utility.UtilityServiceId,
+                            UtilityServiceCode = utility.UtilityService.Code,
+                            UtilityServiceName = utility.UtilityService.Translations
+                                .Where(t => t.LanguageId == languageId)
+                                .Select(t => t.Name)
+                                .FirstOrDefault() ?? utility.UtilityService.Code,
+                            PayerCode = utility.PayerCode
+                        }).ToList()
+                }).ToList()
         };
     }
 }
@@ -74,15 +103,30 @@ public sealed class RentalContractListDtoProjection : IProjectionBuilder<RentalC
         Id = x.Id,
         ContractNumber = x.ContractNumber,
         ContractDate = x.ContractDate,
-        LessorFullName = x.LessorFullName,
-        LessorInn = x.LessorInn,
-        LessorPinfl = x.LessorPinfl,
+        IsFreeOfCharge = x.IsFreeOfCharge,
         StartDate = x.StartDate,
         EndDate = x.EndDate,
+        ConfirmationDate = x.ConfirmationDate,
+        TerminationDate = x.TerminationDate,
         CurrencyId = x.CurrencyId,
         CurrencyCode = x.Currency.Code,
         StatusId = x.StatusId,
         StatusName = x.Status.Name,
-        ObjectCount = x.Objects.Count(o => o.StateId == StateIdConst.ACTIVE)
+        ObjectCount = x.Objects.Count(o => o.StateId == StateIdConst.ACTIVE),
+        Lessors = x.Lessors
+            .Where(link => link.Lessor.StateId == StateIdConst.ACTIVE)
+            .OrderBy(link => link.LessorId)
+            .Select(link => new RentalLessorDto
+            {
+                Id = link.Lessor.Id,
+                LessorKindCode = link.Lessor.LessorKindCode,
+                CounterpartyId = link.Lessor.CounterpartyId,
+                FullName = link.Lessor.FullName,
+                Inn = link.Lessor.Inn,
+                Pinfl = link.Lessor.Pinfl,
+                PhoneNumber = link.Lessor.PhoneNumber,
+                RegisteredAddress = link.Lessor.RegisteredAddress,
+                ResidentialAddress = link.Lessor.ResidentialAddress
+            }).ToList()
     };
 }

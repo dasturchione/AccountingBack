@@ -8,6 +8,12 @@ public sealed class PayrollCalculateDto
     public DateTime DocDate { get; set; }
     public string DocumentKind { get; set; } = "REGULAR";
     public long? CorrectionOfDocId { get; set; }
+    public int SalaryExpenseAccountId { get; set; }
+    public int SalaryPayableAccountId { get; set; }
+    public int DeductionPayableAccountId { get; set; }
+    public int EmployerTaxExpenseAccountId { get; set; }
+    public int EmployerTaxPayableAccountId { get; set; }
+    public int AdvanceReceivableAccountId { get; set; }
     public string? Note { get; set; }
     public List<PayrollManualAdjustmentDto> Adjustments { get; set; } = [];
 }
@@ -52,6 +58,12 @@ public sealed class PayrollDocumentDto : PayrollDocumentListDto
     public int OrganizationId { get; set; }
     public long? CorrectionOfDocId { get; set; }
     public short CurrencyId { get; set; }
+    public int? SalaryExpenseAccountId { get; set; }
+    public int? SalaryPayableAccountId { get; set; }
+    public int? DeductionPayableAccountId { get; set; }
+    public int? EmployerTaxExpenseAccountId { get; set; }
+    public int? EmployerTaxPayableAccountId { get; set; }
+    public int? AdvanceReceivableAccountId { get; set; }
     public decimal AdvanceAmount { get; set; }
     public string? Note { get; set; }
     public short StateId { get; set; }
@@ -93,6 +105,8 @@ public sealed class PayrollCalcLineDto
     public decimal? Quantity { get; set; }
     public decimal? Rate { get; set; }
     public decimal Amount { get; set; }
+    public int? DebitAccountId { get; set; }
+    public int? CreditAccountId { get; set; }
     public bool IsManual { get; set; }
     public string? Note { get; set; }
 }

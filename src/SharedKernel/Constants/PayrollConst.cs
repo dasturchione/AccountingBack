@@ -11,8 +11,9 @@ public static class PayrollComponentTypeConst
     public const string Earning = "EARNING";
     public const string Deduction = "DEDUCTION";
     public const string EmployerTax = "EMPLOYER_TAX";
+    public const string Reclassification = "RECLASSIFICATION";
 
-    public static readonly string[] All = [Earning, Deduction, EmployerTax];
+    public static readonly string[] All = [Earning, Deduction, EmployerTax, Reclassification];
 }
 
 public static class PayrollCalculationMethodConst

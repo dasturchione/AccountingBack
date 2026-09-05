@@ -66,7 +66,21 @@ public static class PayrollErrors
 
     public static Error DuplicateAdjustment(long employeeId, int componentId, short? languageId = null) => B("DuplicateAdjustment", languageId, $"Xodim uchun komponent bo'yicha bir nechta tuzatish kiritilgan (xodim: {employeeId}, komponent: {componentId}).", $"Ходим учун компонент бўйича бир нечта тузатиш киритилган (ходим: {employeeId}, компонент: {componentId}).", $"Для сотрудника {employeeId} указано несколько корректировок компонента {componentId}.", $"Multiple adjustments for component {componentId} were supplied for employee {employeeId}.");
 
-    public static Error AccountRoleNotConfigured(string roleCode, short? languageId = null) => B("AccountRoleNotConfigured", languageId, $"Oylikdagi '{roleCode}' roli uchun standart hisobvaraq sozlanmagan.", $"Ойликдаги '{roleCode}' роли учун стандарт ҳисобварақ созланмаган.", $"Для роли зарплаты '{roleCode}' не настроен счёт по умолчанию.", $"Default account is not configured for payroll role '{roleCode}'.");
+    public static Error ReclassificationAccountsRequired(int componentId, short? languageId = null) => B(
+        "ReclassificationAccountsRequired",
+        languageId,
+        $"Qayta tasniflash komponenti uchun debet va kredit hisobvaraqlari ko‘rsatilishi kerak (ID: {componentId}).",
+        $"Қайта таснифлаш компоненти учун дебет ва кредит ҳисобварақлари кўрсатилиши керак (ID: {componentId}).",
+        $"Для компонента переклассификации необходимо указать дебетовый и кредитовый счета (ID: {componentId}).",
+        $"Debit and credit accounts are required for reclassification component {componentId}.");
+
+    public static Error StoredPostingAccountMissing(string accountName, long sourceLineId, short? languageId = null) => B(
+        "StoredPostingAccountMissing",
+        languageId,
+        $"Oylik provodkasi uchun saqlangan '{accountName}' hisobvarag‘i mavjud emas (qator ID: {sourceLineId}).",
+        $"Ойлик проводкаси учун сақланган '{accountName}' ҳисобварағи мавжуд эмас (қатор ID: {sourceLineId}).",
+        $"Для проводки зарплаты отсутствует сохранённый счёт '{accountName}' (строка ID: {sourceLineId}).",
+        $"Stored payroll posting account '{accountName}' is missing (line ID: {sourceLineId}).");
 
     public static Error PaymentExceedsOutstanding(long employeeId, decimal amount, decimal outstanding, short? languageId = null) => B("PaymentExceedsOutstanding", languageId, $"To'lov {amount:N2} xodim qoldig'i {outstanding:N2} dan katta (ID: {employeeId}).", $"Тўлов {amount:N2} ходим қолдиғи {outstanding:N2} дан катта (ID: {employeeId}).", $"Платёж {amount:N2} превышает задолженность {outstanding:N2} сотруднику {employeeId}.", $"Payment {amount:N2} exceeds outstanding {outstanding:N2} for employee {employeeId}.");
 

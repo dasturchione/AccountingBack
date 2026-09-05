@@ -39,6 +39,12 @@ public partial class PayPayrollCalcLine
     [Precision(18, 2)]
     public decimal Amount { get; set; }
 
+    [Column("debit_account_id")]
+    public int? DebitAccountId { get; set; }
+
+    [Column("credit_account_id")]
+    public int? CreditAccountId { get; set; }
+
     [Column("is_manual")]
     public bool IsManual { get; set; }
 
@@ -54,4 +60,10 @@ public partial class PayPayrollCalcLine
 
     [ForeignKey(nameof(ComponentId))]
     public virtual PayComponent Component { get; set; } = null!;
+
+    [ForeignKey(nameof(DebitAccountId))]
+    public virtual ChartAccount? DebitAccount { get; set; }
+
+    [ForeignKey(nameof(CreditAccountId))]
+    public virtual ChartAccount? CreditAccount { get; set; }
 }

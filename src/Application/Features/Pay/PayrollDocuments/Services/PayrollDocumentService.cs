@@ -29,6 +29,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly IQueryRepository<PayTimesheet> _timesheetQuery;
     private readonly IQueryRepository<PayEmployment> _employmentQuery;
     private readonly IQueryRepository<PayComponent> _componentQuery;
+    private readonly IQueryRepository<ChartAccount> _accountQuery;
     private readonly IQueryRepository<PayEmployeeComponent> _assignmentQuery;
     private readonly IQueryRepository<PayPaymentLine> _paymentLineQuery;
     private readonly IQueryRepository<PayPaymentBatch> _paymentBatchQuery;
@@ -51,6 +52,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         IQueryRepository<PayTimesheet> timesheetQuery,
         IQueryRepository<PayEmployment> employmentQuery,
         IQueryRepository<PayComponent> componentQuery,
+        IQueryRepository<ChartAccount> accountQuery,
         IQueryRepository<PayEmployeeComponent> assignmentQuery,
         IQueryRepository<PayPaymentLine> paymentLineQuery,
         IQueryRepository<PayPaymentBatch> paymentBatchQuery,
@@ -75,6 +77,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _timesheetQuery = timesheetQuery;
         _employmentQuery = employmentQuery;
         _componentQuery = componentQuery;
+        _accountQuery = accountQuery;
         _assignmentQuery = assignmentQuery;
         _paymentLineQuery = paymentLineQuery;
         _paymentBatchQuery = paymentBatchQuery;
@@ -141,6 +144,27 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var organizationId = _userContext.OrganizationId.Value;
+            var accountIds = new[]
+            {
+                dto.SalaryExpenseAccountId,
+                dto.SalaryPayableAccountId,
+                dto.DeductionPayableAccountId,
+                dto.EmployerTaxExpenseAccountId,
+                dto.EmployerTaxPayableAccountId,
+                dto.AdvanceReceivableAccountId
+            }.Distinct().ToList();
+            var accountQuery = _queryBuilder.For<ChartAccount>()
+                .Where(x =>
+                    x.OrganizationId == organizationId &&
+                    x.StateId == StateIdConst.ACTIVE &&
+                    accountIds.Contains(x.Id))
+                .As(x => x.Id)
+                .Build();
+            var existingAccountIds = await _accountQuery.GetAllAsync(accountQuery, ct);
+            var missingAccountId = accountIds.Except(existingAccountIds).FirstOrDefault();
+            if (missingAccountId > 0)
+                return Result.Failure<long>(PayrollErrors.ReferencedRecordNotFound("ChartAccount", missingAccountId, _userContext.LanguageId));
+
             var period = await GetPeriodAsync(dto.PeriodId, ct);
             if (period is null)
                 return Result.Failure<long>(PayrollErrors.NotFound("Period", dto.PeriodId, _userContext.LanguageId));
@@ -241,6 +265,14 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                         assignmentMap.ContainsKey((employeeId, component.Id)) ||
                         manualMap.ContainsKey((employeeId, component.Id))).ToList();
 
+                var invalidReclassification = selectedComponents.FirstOrDefault(component =>
+                    component.ComponentType == PayrollComponentTypeConst.Reclassification &&
+                    (!component.ExpenseAccountId.HasValue || !component.LiabilityAccountId.HasValue));
+                if (invalidReclassification is not null)
+                    return Result.Failure<long>(PayrollErrors.ReclassificationAccountsRequired(
+                        invalidReclassification.Id,
+                        _userContext.LanguageId));
+
                 var line = BuildPayrollLine(
                     organizationId,
                     employmentByEmployee[employeeId],
@@ -251,6 +283,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     manualMap,
                     advances.GetValueOrDefault(employeeId),
                     kind);
+                AssignPostingAccounts(line, dto);
                 payrollLines.Add(line);
             }
 
@@ -291,6 +324,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 CorrectionOfDocId = dto.CorrectionOfDocId,
                 CurrencyId = payrollCurrencyIds[0],
                 StatusId = DocumentStatusIdConst.DRAFT,
+                SalaryExpenseAccountId = dto.SalaryExpenseAccountId,
+                SalaryPayableAccountId = dto.SalaryPayableAccountId,
+                DeductionPayableAccountId = dto.DeductionPayableAccountId,
+                EmployerTaxExpenseAccountId = dto.EmployerTaxExpenseAccountId,
+                EmployerTaxPayableAccountId = dto.EmployerTaxPayableAccountId,
+                AdvanceReceivableAccountId = dto.AdvanceReceivableAccountId,
                 GrossAmount = Round(payrollLines.Sum(x => x.GrossAmount)),
                 DeductionAmount = Round(payrollLines.Sum(x => x.DeductionAmount)),
                 EmployerTaxAmount = Round(payrollLines.Sum(x => x.EmployerTaxAmount)),
@@ -527,6 +566,40 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         };
     }
 
+    private static void AssignPostingAccounts(PayPayrollLine line, PayrollCalculateDto accounts)
+    {
+        foreach (var calc in line.CalcLines)
+        {
+            (calc.DebitAccountId, calc.CreditAccountId) = calc.Component.ComponentType switch
+            {
+                PayrollComponentTypeConst.Earning =>
+                    (calc.Component.ExpenseAccountId
+                         ?? line.Employment.ExpenseAccountId
+                         ?? accounts.SalaryExpenseAccountId,
+                     calc.Component.LiabilityAccountId
+                         ?? accounts.SalaryPayableAccountId),
+
+                PayrollComponentTypeConst.Deduction =>
+                    (accounts.SalaryPayableAccountId,
+                     calc.Component.LiabilityAccountId
+                         ?? accounts.DeductionPayableAccountId),
+
+                PayrollComponentTypeConst.EmployerTax =>
+                    (calc.Component.ExpenseAccountId
+                         ?? accounts.EmployerTaxExpenseAccountId,
+                     calc.Component.LiabilityAccountId
+                         ?? accounts.EmployerTaxPayableAccountId),
+
+                PayrollComponentTypeConst.Reclassification =>
+                    (calc.Component.ExpenseAccountId!.Value,
+                     calc.Component.LiabilityAccountId!.Value),
+
+                _ => throw new InvalidOperationException(
+                    $"Unsupported payroll component type '{calc.Component.ComponentType}'.")
+            };
+        }
+    }
+
     private static PayPayrollCalcLine CalculateComponent(
         int organizationId,
         PayComponent component,
@@ -742,6 +815,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 DocumentKind = x.DocumentKind,
                 CorrectionOfDocId = x.CorrectionOfDocId,
                 CurrencyId = x.CurrencyId,
+                SalaryExpenseAccountId = x.SalaryExpenseAccountId,
+                SalaryPayableAccountId = x.SalaryPayableAccountId,
+                DeductionPayableAccountId = x.DeductionPayableAccountId,
+                EmployerTaxExpenseAccountId = x.EmployerTaxExpenseAccountId,
+                EmployerTaxPayableAccountId = x.EmployerTaxPayableAccountId,
+                AdvanceReceivableAccountId = x.AdvanceReceivableAccountId,
                 StatusId = x.StatusId,
                 StatusName = x.Status.Name,
                 GrossAmount = x.GrossAmount,
@@ -786,6 +865,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                                 Quantity = calc.Quantity,
                                 Rate = calc.Rate,
                                 Amount = calc.Amount,
+                                DebitAccountId = calc.DebitAccountId,
+                                CreditAccountId = calc.CreditAccountId,
                                 IsManual = calc.IsManual,
                                 Note = calc.Note
                             }).ToList()

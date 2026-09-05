@@ -74,6 +74,12 @@ public sealed class PayrollComponentCreateDtoValidator : AbstractValidator<Payro
         validator.RuleFor(x => x.DefaultRate).GreaterThanOrEqualTo(0).When(x => x.DefaultRate.HasValue);
         validator.RuleFor(x => x.EffectiveTo).GreaterThanOrEqualTo(x => x.EffectiveFrom).When(x => x.EffectiveTo.HasValue);
         validator.RuleFor(x => x.SortOrder).GreaterThan(0);
+        validator.RuleFor(x => x.ExpenseAccountId)
+            .NotNull()
+            .When(x => x.ComponentType == PayrollComponentTypeConst.Reclassification);
+        validator.RuleFor(x => x.LiabilityAccountId)
+            .NotNull()
+            .When(x => x.ComponentType == PayrollComponentTypeConst.Reclassification);
     }
 }
 
@@ -141,6 +147,12 @@ public sealed class PayrollCalculateDtoValidator : AbstractValidator<PayrollCalc
         RuleFor(x => x.CorrectionOfDocId)
             .Null()
             .When(x => x.DocumentKind == PayrollDocumentKindConst.Regular);
+        RuleFor(x => x.SalaryExpenseAccountId).GreaterThan(0);
+        RuleFor(x => x.SalaryPayableAccountId).GreaterThan(0);
+        RuleFor(x => x.DeductionPayableAccountId).GreaterThan(0);
+        RuleFor(x => x.EmployerTaxExpenseAccountId).GreaterThan(0);
+        RuleFor(x => x.EmployerTaxPayableAccountId).GreaterThan(0);
+        RuleFor(x => x.AdvanceReceivableAccountId).GreaterThan(0);
         RuleForEach(x => x.Adjustments).ChildRules(adjustment =>
         {
             adjustment.RuleFor(x => x.EmployeeId).GreaterThan(0);
@@ -158,6 +170,7 @@ public sealed class PayrollPaymentCreateDtoValidator : AbstractValidator<Payroll
         RuleFor(x => x.PaymentKind).Must(x => x is PayrollPaymentKindConst.Advance or PayrollPaymentKindConst.Final);
         RuleFor(x => x.SourceType).Must(x => x is PayrollPaymentSourceConst.Bank or PayrollPaymentSourceConst.Cash);
         RuleFor(x => x.SourceChartAccountId).GreaterThan(0);
+        RuleFor(x => x.OffsetAccountId).GreaterThan(0);
         RuleFor(x => x.CurrencyId).GreaterThan((short)0);
         RuleFor(x => x.Lines).NotEmpty();
         RuleForEach(x => x.Lines).ChildRules(line =>

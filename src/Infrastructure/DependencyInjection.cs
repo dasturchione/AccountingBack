@@ -270,7 +270,6 @@ namespace Infrastructure
             services.AddScoped<IPayrollComponentService, PayrollComponentService>();
             services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
             services.AddScoped<IPayrollTimesheetService, PayrollTimesheetService>();
-            services.AddScoped<IPayrollAccountResolver, PayrollAccountResolver>();
             services.AddScoped<IPayrollDocumentService, PayrollDocumentService>();
             services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
             services.AddScoped<IPayrollReportService, PayrollReportService>();

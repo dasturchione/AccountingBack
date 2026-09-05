@@ -5,7 +5,6 @@ using Application.Features.AuditLogs;
 using Application.Features.BankOperations;
 using Application.Features.CashOperations;
 using Application.Features.DocumentNumbers;
-using Application.Features.Pay.PayrollDocuments;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,7 +21,6 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
     private readonly IAuditLogService _auditLogService;
     private readonly IDocumentNumberService _documentNumberService;
     private readonly IDocumentPostingLock _postingLock;
-    private readonly IPayrollAccountResolver _accountResolver;
     private readonly IBankOperationService _bankOperationService;
     private readonly ICashOperationService _cashOperationService;
     private readonly IQueryRepository<PayPaymentBatch> _query;
@@ -44,7 +42,6 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         IAuditLogService auditLogService,
         IDocumentNumberService documentNumberService,
         IDocumentPostingLock postingLock,
-        IPayrollAccountResolver accountResolver,
         IBankOperationService bankOperationService,
         ICashOperationService cashOperationService,
         IQueryRepository<PayPaymentBatch> query,
@@ -68,7 +65,6 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         _auditLogService = auditLogService;
         _documentNumberService = documentNumberService;
         _postingLock = postingLock;
-        _accountResolver = accountResolver;
         _bankOperationService = bankOperationService;
         _cashOperationService = cashOperationService;
         _query = query;
@@ -249,6 +245,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 BankAccountId = dto.SourceType == PayrollPaymentSourceConst.Bank ? dto.BankAccountId : null,
                 CashBoxId = dto.SourceType == PayrollPaymentSourceConst.Cash ? dto.CashBoxId : null,
                 SourceChartAccountId = dto.SourceChartAccountId,
+                OffsetAccountId = dto.OffsetAccountId,
                 CurrencyId = dto.CurrencyId,
                 TotalAmount = dto.Lines.Sum(x => x.Amount),
                 StatusId = DocumentStatusIdConst.DRAFT,
@@ -303,13 +300,9 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 }
             }
 
-            var roleCode = batch.PaymentKind == PayrollPaymentKindConst.Advance
-                ? PayrollAccountRoleCodeConst.AdvanceReceivable
-                : PayrollAccountRoleCodeConst.SalaryPayable;
-            var accountsResult = await _accountResolver.ResolveAsync(batch.OrganizationId, [roleCode], ct);
-            if (!accountsResult.IsSuccess)
-                return Result.Failure(accountsResult.Error);
-            var offsetAccountId = accountsResult.Value[roleCode];
+            if (!batch.OffsetAccountId.HasValue)
+                return Result.Failure(PayrollErrors.StoredPostingAccountMissing("offsetAccountId", batch.Id, _userContext.LanguageId));
+            var offsetAccountId = batch.OffsetAccountId.Value;
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
             Result operationResult;
@@ -334,7 +327,6 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                         return Result.Failure(createResult.Error);
 
                     batch.BankOperationId = createResult.Value;
-                    batch.OffsetAccountId = offsetAccountId;
                     await _command.UpdateAsync(batch, ct);
                 }
                 operationResult = await _bankOperationService.ConfirmAsync(batch.BankOperationId.Value, ct);
@@ -361,7 +353,6 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                         return Result.Failure(createResult.Error);
 
                     batch.CashOperationId = createResult.Value;
-                    batch.OffsetAccountId = offsetAccountId;
                     await _command.UpdateAsync(batch, ct);
                 }
                 operationResult = await _cashOperationService.ConfirmAsync(batch.CashOperationId.Value, ct);
@@ -445,6 +436,12 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 x.OrganizationId == organizationId &&
                 x.StateId == StateIdConst.ACTIVE, ct))
             return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.SourceChartAccountId, _userContext.LanguageId));
+
+        if (!await _accountQuery.AnyAsync(x =>
+                x.Id == dto.OffsetAccountId &&
+                x.OrganizationId == organizationId &&
+                x.StateId == StateIdConst.ACTIVE, ct))
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound("ChartAccount", dto.OffsetAccountId, _userContext.LanguageId));
 
         if (!await _currencyQuery.AnyAsync(x =>
                 x.Id == dto.CurrencyId &&

@@ -1,4 +1,4 @@
-using Application.Features.Pay.PayrollDocuments;
+using Application.Features.Pay;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -8,34 +8,15 @@ public sealed class PayrollDocumentContextBuilder :
     IPostingContextBuilder<PayPayrollDoc>,
     IPostingContextValidator<PayPayrollDoc>
 {
-    private static readonly string[] RequiredAccountRoles =
-    [
-        PayrollAccountRoleCodeConst.SalaryExpense,
-        PayrollAccountRoleCodeConst.SalaryPayable,
-        PayrollAccountRoleCodeConst.DeductionPayable,
-        PayrollAccountRoleCodeConst.EmployerTaxExpense,
-        PayrollAccountRoleCodeConst.EmployerTaxPayable,
-        PayrollAccountRoleCodeConst.AdvanceReceivable
-    ];
-
-    private readonly IPayrollAccountResolver _accountResolver;
     private readonly IOrganizationAccountingPolicyResolver _accountingPolicyResolver;
 
-    public PayrollDocumentContextBuilder(
-        IPayrollAccountResolver accountResolver,
-        IOrganizationAccountingPolicyResolver accountingPolicyResolver)
+    public PayrollDocumentContextBuilder(IOrganizationAccountingPolicyResolver accountingPolicyResolver)
     {
-        _accountResolver = accountResolver;
         _accountingPolicyResolver = accountingPolicyResolver;
     }
 
     public async Task<List<PostingContext>> BuildAsync(PayPayrollDoc document)
     {
-        var accountsResult = await _accountResolver.ResolveAsync(document.OrganizationId, RequiredAccountRoles);
-        if (!accountsResult.IsSuccess)
-            throw new InvalidOperationException(accountsResult.Error.Description);
-
-        var accounts = accountsResult.Value;
         var accountingPolicyId = await _accountingPolicyResolver.ResolveAsync(document.OrganizationId);
         var contexts = new List<PostingContext>();
 
@@ -44,55 +25,21 @@ public sealed class PayrollDocumentContextBuilder :
             var entries = new List<PostingEntryContext>();
             foreach (var calc in line.CalcLines.OrderBy(x => x.Component.SortOrder))
             {
-                switch (calc.Component.ComponentType)
-                {
-                    case PayrollComponentTypeConst.Earning:
-                        AddSignedEntry(
-                            entries,
-                            calc.Component.ExpenseAccountId
-                                ?? line.Employment.ExpenseAccountId
-                                ?? accounts[PayrollAccountRoleCodeConst.SalaryExpense],
-                            calc.Component.LiabilityAccountId
-                                ?? accounts[PayrollAccountRoleCodeConst.SalaryPayable],
-                            calc.Amount,
-                            calc.Id,
-                            calc.Component.Name);
-                        break;
-
-                    case PayrollComponentTypeConst.Deduction:
-                        AddSignedEntry(
-                            entries,
-                            accounts[PayrollAccountRoleCodeConst.SalaryPayable],
-                            calc.Component.LiabilityAccountId
-                                ?? accounts[PayrollAccountRoleCodeConst.DeductionPayable],
-                            calc.Amount,
-                            calc.Id,
-                            calc.Component.Name);
-                        break;
-
-                    case PayrollComponentTypeConst.EmployerTax:
-                        AddSignedEntry(
-                            entries,
-                            calc.Component.ExpenseAccountId
-                                ?? accounts[PayrollAccountRoleCodeConst.EmployerTaxExpense],
-                            calc.Component.LiabilityAccountId
-                                ?? accounts[PayrollAccountRoleCodeConst.EmployerTaxPayable],
-                            calc.Amount,
-                            calc.Id,
-                            calc.Component.Name);
-                        break;
-
-                    default:
-                        throw new InvalidOperationException($"Unsupported payroll component type '{calc.Component.ComponentType}'.");
-                }
+                AddSignedEntry(
+                    entries,
+                    calc.DebitAccountId!.Value,
+                    calc.CreditAccountId!.Value,
+                    calc.Amount,
+                    calc.Id,
+                    calc.Component.Name);
             }
 
             if (line.AdvanceAmount != 0m)
             {
                 AddSignedEntry(
                     entries,
-                    accounts[PayrollAccountRoleCodeConst.SalaryPayable],
-                    accounts[PayrollAccountRoleCodeConst.AdvanceReceivable],
+                    document.SalaryPayableAccountId!.Value,
+                    document.AdvanceReceivableAccountId!.Value,
                     line.AdvanceAmount,
                     line.Id,
                     "Payroll advance offset");
@@ -119,18 +66,31 @@ public sealed class PayrollDocumentContextBuilder :
         return contexts;
     }
 
-    public async Task<SharedKernel.Results.Result> ValidateAsync(
+    public Task<SharedKernel.Results.Result> ValidateAsync(
         PayPayrollDoc document,
         CancellationToken ct = default)
     {
-        var accountsResult = await _accountResolver.ResolveAsync(
-            document.OrganizationId,
-            RequiredAccountRoles,
-            ct);
+        foreach (var line in document.Lines)
+        {
+            foreach (var calc in line.CalcLines.Where(x => x.Amount != 0m))
+            {
+                if (!calc.DebitAccountId.HasValue)
+                    return Task.FromResult(SharedKernel.Results.Result.Failure(
+                        PayrollErrors.StoredPostingAccountMissing("debitAccountId", calc.Id)));
+                if (!calc.CreditAccountId.HasValue)
+                    return Task.FromResult(SharedKernel.Results.Result.Failure(
+                        PayrollErrors.StoredPostingAccountMissing("creditAccountId", calc.Id)));
+            }
 
-        return accountsResult.IsSuccess
-            ? SharedKernel.Results.Result.Success()
-            : SharedKernel.Results.Result.Failure(accountsResult.Error);
+            if (line.AdvanceAmount != 0m && !document.SalaryPayableAccountId.HasValue)
+                return Task.FromResult(SharedKernel.Results.Result.Failure(
+                    PayrollErrors.StoredPostingAccountMissing("salaryPayableAccountId", line.Id)));
+            if (line.AdvanceAmount != 0m && !document.AdvanceReceivableAccountId.HasValue)
+                return Task.FromResult(SharedKernel.Results.Result.Failure(
+                    PayrollErrors.StoredPostingAccountMissing("advanceReceivableAccountId", line.Id)));
+        }
+
+        return Task.FromResult(SharedKernel.Results.Result.Success());
     }
 
     private static void AddSignedEntry(

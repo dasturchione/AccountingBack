@@ -12,6 +12,7 @@ public sealed class PayrollPaymentCreateDto
     public int? BankAccountId { get; set; }
     public int? CashBoxId { get; set; }
     public int SourceChartAccountId { get; set; }
+    public int OffsetAccountId { get; set; }
     public short CurrencyId { get; set; }
     public string? Note { get; set; }
     public List<PayrollPaymentLineCreateDto> Lines { get; set; } = [];

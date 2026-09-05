@@ -39,6 +39,24 @@ public partial class PayPayrollDoc
     [Column("status_id")]
     public short StatusId { get; set; }
 
+    [Column("salary_expense_account_id")]
+    public int? SalaryExpenseAccountId { get; set; }
+
+    [Column("salary_payable_account_id")]
+    public int? SalaryPayableAccountId { get; set; }
+
+    [Column("deduction_payable_account_id")]
+    public int? DeductionPayableAccountId { get; set; }
+
+    [Column("employer_tax_expense_account_id")]
+    public int? EmployerTaxExpenseAccountId { get; set; }
+
+    [Column("employer_tax_payable_account_id")]
+    public int? EmployerTaxPayableAccountId { get; set; }
+
+    [Column("advance_receivable_account_id")]
+    public int? AdvanceReceivableAccountId { get; set; }
+
     [Column("gross_amount")]
     [Precision(18, 2)]
     public decimal GrossAmount { get; set; }
@@ -111,6 +129,24 @@ public partial class PayPayrollDoc
 
     [ForeignKey(nameof(StatusId))]
     public virtual DocumentStatus Status { get; set; } = null!;
+
+    [ForeignKey(nameof(SalaryExpenseAccountId))]
+    public virtual ChartAccount? SalaryExpenseAccount { get; set; }
+
+    [ForeignKey(nameof(SalaryPayableAccountId))]
+    public virtual ChartAccount? SalaryPayableAccount { get; set; }
+
+    [ForeignKey(nameof(DeductionPayableAccountId))]
+    public virtual ChartAccount? DeductionPayableAccount { get; set; }
+
+    [ForeignKey(nameof(EmployerTaxExpenseAccountId))]
+    public virtual ChartAccount? EmployerTaxExpenseAccount { get; set; }
+
+    [ForeignKey(nameof(EmployerTaxPayableAccountId))]
+    public virtual ChartAccount? EmployerTaxPayableAccount { get; set; }
+
+    [ForeignKey(nameof(AdvanceReceivableAccountId))]
+    public virtual ChartAccount? AdvanceReceivableAccount { get; set; }
 
     [ForeignKey(nameof(StateId))]
     public virtual State State { get; set; } = null!;

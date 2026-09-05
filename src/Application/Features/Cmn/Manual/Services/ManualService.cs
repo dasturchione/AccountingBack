@@ -27,6 +27,7 @@ public class ManualService : IManualService
     private readonly IQueryRepository<Module> _moduleQuery;
     private readonly IQueryRepository<Region> _regionQuery;
     private readonly IQueryRepository<FaGroup> _faGroupQuery;
+    private readonly IQueryRepository<TaxType> _taxTypeQuery;
     private readonly IQueryRepository<RegulatedObligation> _regulatedObligationQuery;
     private readonly IQueryRepository<RegulatedObligationPeriodicity> _regulatedObligationPeriodicityQuery;
     private readonly IQueryRepository<VatRate> _vatRateQuery;
@@ -98,6 +99,7 @@ public class ManualService : IManualService
         IQueryRepository<DocumentType> documentTypeQuery,
         IQueryRepository<OperationType> operationTypeQuery,
         IQueryRepository<MovementDirection> movementDirectionQuery,
+        IQueryRepository<TaxType> taxTypeQuery,
         IQueryRepository<RegulatedObligation> regulatedObligationQuery,
         IQueryRepository<RegulatedObligationPeriodicity> regulatedObligationPeriodicityQuery,
         IQueryRepository<VatRate> vatRateQuery,
@@ -157,6 +159,7 @@ public class ManualService : IManualService
         _documentTypeQuery = documentTypeQuery;
         _operationTypeQuery = operationTypeQuery;
         _movementDirectionQuery = movementDirectionQuery;
+        _taxTypeQuery = taxTypeQuery;
         _regulatedObligationQuery = regulatedObligationQuery;
         _regulatedObligationPeriodicityQuery = regulatedObligationPeriodicityQuery;
         _vatRateQuery = vatRateQuery;
@@ -621,6 +624,22 @@ public class ManualService : IManualService
             .Build();
 
         return await _movementDirectionQuery.GetAllAsync(query, ct);
+    }
+
+    public async Task<List<SelectListDto>> GetTaxTypesAsync(CancellationToken ct = default)
+    {
+        var query = _queryBuilder.For<TaxType>()
+            .Where(x => x.StateId == StateIdConst.ACTIVE)
+            .As(x => new SelectListDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.Code
+            })
+            .OrderBy(x => x.Name)
+            .Build();
+
+        return await _taxTypeQuery.GetAllAsync(query, ct);
     }
 
     public async Task<List<SelectListDto>> GetRegulatedObligationsAsync(

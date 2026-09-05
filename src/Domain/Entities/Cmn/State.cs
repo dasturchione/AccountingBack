@@ -51,6 +51,9 @@ public partial class State
     [InverseProperty(nameof(RegulatedObligationPeriodicity.State))]
     public virtual ICollection<RegulatedObligationPeriodicity> RegulatedObligationPeriodicities { get; set; } = [];
 
+    [InverseProperty(nameof(TaxType.State))]
+    public virtual ICollection<TaxType> TaxTypes { get; set; } = [];
+
     [InverseProperty(nameof(OrganizationRegulatedObligationSetting.State))]
     public virtual ICollection<OrganizationRegulatedObligationSetting> OrganizationRegulatedObligationSettings { get; set; } = [];
 

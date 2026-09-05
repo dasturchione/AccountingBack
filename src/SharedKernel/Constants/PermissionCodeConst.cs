@@ -227,6 +227,7 @@ public static class PermissionCodeConst
     public const string ManualGetDocumentTypes            = "MANUAL_GET_DOCUMENT_TYPES";
     public const string ManualGetOperationTypes           = "MANUAL_GET_OPERATION_TYPES";
     public const string ManualGetMovementDirections      = "MANUAL_GET_MOVEMENT_DIRECTIONS";
+    public const string ManualGetTaxTypes                 = "MANUAL_GET_TAX_TYPES";
     public const string ManualGetRegulatedObligations     = "MANUAL_GET_REGULATED_OBLIGATIONS";
     public const string ManualGetRegulatedObligationPeriodicities = "MANUAL_GET_REGULATED_OBLIGATION_PERIODICITIES";
     public const string ManualGetVatRates                 = "MANUAL_GET_VAT_RATES";

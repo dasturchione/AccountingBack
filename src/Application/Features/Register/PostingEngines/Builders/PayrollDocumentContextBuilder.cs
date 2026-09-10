@@ -34,15 +34,21 @@ public sealed class PayrollDocumentContextBuilder :
                     calc.Component.Name);
             }
 
-            if (line.AdvanceAmount != 0m)
+            foreach (var tax in line.TaxLines.OrderBy(x => x.TaxDefinition.Code))
             {
-                AddSignedEntry(
-                    entries,
-                    document.SalaryPayableAccountId!.Value,
-                    document.AdvanceReceivableAccountId!.Value,
-                    line.AdvanceAmount,
-                    line.Id,
-                    "Payroll advance offset");
+                var debitAccountId = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer
+                    ? document.SalaryExpenseAccountId
+                    : document.SalaryPayableAccountId;
+                if (debitAccountId.HasValue)
+                {
+                    AddSignedEntry(
+                        entries,
+                        debitAccountId.Value,
+                        tax.LiabilityAccountId,
+                        tax.Amount,
+                        tax.Id,
+                        $"Tax: {tax.TaxDefinition.Name}");
+                }
             }
 
             if (entries.Count == 0)
@@ -82,12 +88,20 @@ public sealed class PayrollDocumentContextBuilder :
                         PayrollErrors.StoredPostingAccountMissing("creditAccountId", calc.Id)));
             }
 
-            if (line.AdvanceAmount != 0m && !document.SalaryPayableAccountId.HasValue)
-                return Task.FromResult(SharedKernel.Results.Result.Failure(
-                    PayrollErrors.StoredPostingAccountMissing("salaryPayableAccountId", line.Id)));
-            if (line.AdvanceAmount != 0m && !document.AdvanceReceivableAccountId.HasValue)
-                return Task.FromResult(SharedKernel.Results.Result.Failure(
-                    PayrollErrors.StoredPostingAccountMissing("advanceReceivableAccountId", line.Id)));
+            foreach (var tax in line.TaxLines.Where(x => x.Amount != 0m))
+            {
+                if (tax.LiabilityAccountId <= 0)
+                    return Task.FromResult(SharedKernel.Results.Result.Failure(
+                        PayrollErrors.StoredPostingAccountMissing("taxLiabilityAccountId", tax.Id)));
+
+                var debitAccountId = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer
+                    ? document.SalaryExpenseAccountId
+                    : document.SalaryPayableAccountId;
+                if (!debitAccountId.HasValue)
+                    return Task.FromResult(SharedKernel.Results.Result.Failure(
+                        PayrollErrors.StoredPostingAccountMissing("taxDebitAccountId", tax.Id)));
+            }
+
         }
 
         return Task.FromResult(SharedKernel.Results.Result.Success());

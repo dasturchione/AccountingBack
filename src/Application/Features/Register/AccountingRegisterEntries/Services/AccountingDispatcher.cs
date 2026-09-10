@@ -3,6 +3,7 @@ using Application.Abstractions.Authentication;
 using Application.Features.AccountingRegisterEntries;
 using Application.Features.Register.PostingEngines;
 using Domain.Entities;
+using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -61,9 +62,9 @@ namespace Application.Features.Register.AccountingRegisterEntries
             if (!validation.IsSuccess)
                 return Result.Failure<List<AccountingRegisterEntry>>(validation.Error);
 
-                //var groupAccountValidation = await EnsureNoGroupAccountsAsync(accountingEntries, ct);
-                //if (!groupAccountValidation.IsSuccess)
-                //    return Result.Failure<List<AccountingRegisterEntry>>(groupAccountValidation.Error);
+            var groupAccountValidation = await EnsureNoGroupAccountsAsync(accountingEntries, ct);
+            if (!groupAccountValidation.IsSuccess)
+                return Result.Failure<List<AccountingRegisterEntry>>(groupAccountValidation.Error);
 
             if (accountingEntries.Count > 0)
                 await _accountingRegisterCommand.CreateAsync(accountingEntries, ct);
@@ -72,7 +73,7 @@ namespace Application.Features.Register.AccountingRegisterEntries
         }
 
         // Group (header) accounts aggregate their children and must never receive a direct
-        // posting — only leaf accounts are postable, matching professional ERP ledgers.
+        // posting — only active leaf accounts are postable, matching professional ERP ledgers.
         private async Task<Result> EnsureNoGroupAccountsAsync(List<AccountingRegisterEntry> entries, CancellationToken ct)
         {
             var accountIds = entries
@@ -85,16 +86,34 @@ namespace Application.Features.Register.AccountingRegisterEntries
             if (accountIds.Count == 0)
                 return Result.Success();
 
+            var organizationIds = entries
+                .Select(entry => entry.OrganizationId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
             var query = _queryBuilder.For<ChartAccount>()
-                .Where(x => accountIds.Contains(x.Id) && x.IsGroup)
+                .Where(x => accountIds.Contains(x.Id) &&
+                            organizationIds.Contains(x.OrganizationId) &&
+                            (x.IsGroup || x.StateId != StateIdConst.ACTIVE))
                 .As(x => x.Id)
                 .Build();
 
-            var groupAccountIds = await _chartAccountQuery.GetAllAsync(query, ct);
+            var invalidAccountIds = await _chartAccountQuery.GetAllAsync(query, ct);
 
-            return groupAccountIds.Count == 0
+            var existingQuery = _queryBuilder.For<ChartAccount>()
+                .Where(x => accountIds.Contains(x.Id) && organizationIds.Contains(x.OrganizationId))
+                .As(x => x.Id)
+                .Build();
+            var existingAccountIds = await _chartAccountQuery.GetAllAsync(existingQuery, ct);
+            invalidAccountIds = invalidAccountIds
+                .Concat(accountIds.Except(existingAccountIds))
+                .Distinct()
+                .ToList();
+
+            return invalidAccountIds.Count == 0
                 ? Result.Success()
-                : Result.Failure(AccountingRegisterEntryErrors.GroupAccountNotPostable(groupAccountIds, _userContext.LanguageId));
+                : Result.Failure(AccountingRegisterEntryErrors.AccountNotPostable(invalidAccountIds, _userContext.LanguageId));
         }
     }
 }

@@ -145,7 +145,11 @@ public partial class AppDbContext
         ApplyScopedFilter<PayTimesheetLine>(modelBuilder);
         ApplyScopedFilter<PayPayrollDoc>(modelBuilder);
         ApplyScopedFilter<PayPayrollLine>(modelBuilder);
+        ApplyScopedFilter<PayPayrollLineSegment>(modelBuilder);
         ApplyScopedFilter<PayPayrollCalcLine>(modelBuilder);
+        ApplyScopedFilter<PayTaxDefinition>(modelBuilder);
+        ApplyScopedFilter<PayPayrollTaxLine>(modelBuilder);
+        ApplyScopedFilter<PayPayrollRecalculation>(modelBuilder);
         ApplyScopedFilter<PayPaymentBatch>(modelBuilder);
         ApplyScopedFilter<PayPaymentLine>(modelBuilder);
         ApplyScopedFilter<RentalContract>(modelBuilder);

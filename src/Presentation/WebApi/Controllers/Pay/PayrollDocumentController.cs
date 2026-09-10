@@ -44,6 +44,14 @@ public sealed class PayrollDocumentController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPost("{id:long}/recalculate")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollDocumentCalculate)]
+    public async Task<IResult> RecalculateAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.RecalculateAsync(id, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPut("{id:long}/confirm")]
     [ModuleAuthorize(PermissionCodeConst.PayrollDocumentConfirm)]
     public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)

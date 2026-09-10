@@ -37,6 +37,10 @@ public partial class PayPeriod
     [Precision(8, 2)]
     public decimal NormWorkHours { get; set; }
 
+    [Column("daily_work_hours")]
+    [Precision(8, 4)]
+    public decimal DailyWorkHours { get; set; }
+
     [Column("status")]
     [StringLength(20)]
     public string Status { get; set; } = null!;
@@ -57,6 +61,7 @@ public partial class PayPeriod
     public virtual User? ClosedByUser { get; set; }
 
     public virtual ICollection<PayTimesheet> Timesheets { get; set; } = new List<PayTimesheet>();
+    public virtual ICollection<PayPeriodWorkDay> WorkDays { get; set; } = new List<PayPeriodWorkDay>();
     public virtual ICollection<PayPayrollDoc> PayrollDocs { get; set; } = new List<PayPayrollDoc>();
     public virtual ICollection<PayPaymentBatch> PaymentBatches { get; set; } = new List<PayPaymentBatch>();
 }

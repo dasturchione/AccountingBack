@@ -19,6 +19,21 @@ public static class AccountingRegisterEntryErrors
     public static Error GroupAccountNotPostable(IReadOnlyCollection<int> accountIds, short? languageId = null) =>
         Error.Business("AccountingPosting.GroupAccountNotPostable", GetGroupAccountNotPostableDescription(accountIds, languageId));
 
+    public static Error AccountNotPostable(IReadOnlyCollection<int> accountIds, short? languageId = null) =>
+        Error.Business("AccountingPosting.AccountNotPostable", GetAccountNotPostableDescription(accountIds, languageId));
+
+    private static string GetAccountNotPostableDescription(IReadOnlyCollection<int> accountIds, short? languageId)
+    {
+        var ids = string.Join(", ", accountIds);
+        return languageId switch
+        {
+            LanguageIdConst.UZ => $"Faol va quyi (leaf) hisobvaraqlargagina o'tkazma yozish mumkin: {ids}.",
+            LanguageIdConst.UZ_CYRL => $"Фаол ва қуйи (leaf) ҳисобварақларгина ўтказма ёзиш мумкин: {ids}.",
+            LanguageIdConst.RU => $"Проводки разрешены только по активным конечным счетам: {ids}.",
+            _ => $"Only active leaf accounts can receive postings: {ids}."
+        };
+    }
+
     private static string GetGroupAccountNotPostableDescription(IReadOnlyCollection<int> accountIds, short? languageId)
     {
         var ids = string.Join(", ", accountIds);

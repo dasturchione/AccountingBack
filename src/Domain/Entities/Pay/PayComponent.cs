@@ -33,6 +33,10 @@ public partial class PayComponent
     [StringLength(30)]
     public string CalculationMethod { get; set; } = null!;
 
+    [Column("proration_basis")]
+    [StringLength(10)]
+    public string ProrationBasis { get; set; } = "DAYS";
+
     [Column("default_amount")]
     [Precision(18, 2)]
     public decimal? DefaultAmount { get; set; }
@@ -40,6 +44,20 @@ public partial class PayComponent
     [Column("default_rate")]
     [Precision(9, 4)]
     public decimal? DefaultRate { get; set; }
+
+    [Column("depends_on_component_id")]
+    public int? DependsOnComponentId { get; set; }
+
+    [Column("minimum_amount")]
+    [Precision(18, 2)]
+    public decimal? MinimumAmount { get; set; }
+
+    [Column("maximum_amount")]
+    [Precision(18, 2)]
+    public decimal? MaximumAmount { get; set; }
+
+    [Column("is_taxable")]
+    public bool IsTaxable { get; set; } = true;
 
     [Column("is_mandatory")]
     public bool IsMandatory { get; set; }
@@ -76,6 +94,9 @@ public partial class PayComponent
 
     [ForeignKey(nameof(LiabilityAccountId))]
     public virtual ChartAccount? LiabilityAccount { get; set; }
+
+    [ForeignKey(nameof(DependsOnComponentId))]
+    public virtual PayComponent? DependsOnComponent { get; set; }
 
     [ForeignKey(nameof(StateId))]
     public virtual State State { get; set; } = null!;

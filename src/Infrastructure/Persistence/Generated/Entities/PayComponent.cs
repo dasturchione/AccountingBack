@@ -37,6 +37,10 @@ public partial class PayComponent
     [StringLength(30)]
     public string CalculationMethod { get; set; } = null!;
 
+    [Column("proration_basis")]
+    [StringLength(10)]
+    public string ProrationBasis { get; set; } = "DAYS";
+
     [Column("default_amount")]
     [Precision(18, 2)]
     public decimal? DefaultAmount { get; set; }

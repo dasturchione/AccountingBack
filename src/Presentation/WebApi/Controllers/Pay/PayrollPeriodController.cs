@@ -44,6 +44,17 @@ public sealed class PayrollPeriodController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpPut("{id:long}")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollPeriodManage)]
+    public async Task<IResult> UpdateAsync(
+        [FromRoute] long id,
+        [FromBody] PayrollPeriodUpdateDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _service.UpdateAsync(id, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPost("{id:long}/close")]
     [ModuleAuthorize(PermissionCodeConst.PayrollPeriodManage)]
     public async Task<IResult> CloseAsync([FromRoute] long id, CancellationToken ct = default)

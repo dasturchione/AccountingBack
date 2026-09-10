@@ -16,13 +16,22 @@ public sealed class PayrollTimesheetUpdateDto : PayrollTimesheetSaveDto;
 public class PayrollTimesheetLineSaveDto
 {
     public long EmployeeId { get; set; }
-    public decimal WorkedDays { get; set; }
-    public decimal WorkedHours { get; set; }
-    public decimal LeaveDays { get; set; }
-    public decimal SickDays { get; set; }
-    public decimal AbsentDays { get; set; }
     public decimal OvertimeHours { get; set; }
     public string? Note { get; set; }
+    public List<PayrollTimesheetDaySaveDto> Days { get; set; } = [];
+}
+
+public sealed class PayrollTimesheetDaySaveDto
+{
+    public DateOnly Date { get; set; }
+    public string StatusCode { get; set; } = null!;
+    public short? AbsenceTypeId { get; set; }
+    public decimal? WorkedHours { get; set; }
+    public decimal? PlannedHours { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
 }
 
 public sealed class PayrollTimesheetListFilter : ISearchFilter, IPaginationFilter
@@ -44,6 +53,8 @@ public class PayrollTimesheetListDto
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public int EmployeeCount { get; set; }
+    public decimal TotalWorkedDays { get; set; }
+    public decimal TotalWorkedHours { get; set; }
     public string? Note { get; set; }
 }
 
@@ -58,11 +69,48 @@ public sealed class PayrollTimesheetDto : PayrollTimesheetListDto
     public PayrollTimesheetCalendarDto? Calendar { get; set; }
 }
 
-public sealed class PayrollTimesheetLineDto : PayrollTimesheetLineSaveDto
+public sealed class PayrollTimesheetLineDto
 {
     public long Id { get; set; }
+    public long EmployeeId { get; set; }
     public string EmployeeNumber { get; set; } = null!;
     public string EmployeeName { get; set; } = null!;
     public decimal NormWorkDays { get; set; }
     public decimal NormWorkHours { get; set; }
+    public decimal WorkedDays { get; set; }
+    public decimal WorkedHours { get; set; }
+    public decimal LeaveDays { get; set; }
+    public decimal SickDays { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal PaidSickDays { get; set; }
+    public decimal AbsentDays { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
+    public string? Note { get; set; }
+    public bool IsLegacy { get; set; }
+    public List<PayrollTimesheetDayDto> Days { get; set; } = [];
+}
+
+public sealed class PayrollTimesheetDayDto
+{
+    public DateOnly Date { get; set; }
+    public string SourceStatusCode { get; set; } = null!;
+    public long? SourceAbsenceId { get; set; }
+    public long? SourceScheduleId { get; set; }
+    public short? SourceAbsenceTypeId { get; set; }
+    public string StatusCode { get; set; } = null!;
+    public string StatusName { get; set; } = null!;
+    public short? AbsenceTypeId { get; set; }
+    public string? AbsenceTypeCode { get; set; }
+    public string? AbsenceTypeName { get; set; }
+    public string? TimesheetCategory { get; set; }
+    public decimal WorkedHours { get; set; }
+    public decimal PlannedHours { get; set; }
+    public bool IsOverridden { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
 }

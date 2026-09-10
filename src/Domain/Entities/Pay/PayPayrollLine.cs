@@ -34,6 +34,30 @@ public partial class PayPayrollLine
     [Precision(8, 2)]
     public decimal WorkedHours { get; set; }
 
+    [Column("paid_leave_days")]
+    [Precision(6, 2)]
+    public decimal PaidLeaveDays { get; set; }
+
+    [Column("paid_sick_days")]
+    [Precision(6, 2)]
+    public decimal PaidSickDays { get; set; }
+
+    [Column("overtime_hours")]
+    [Precision(8, 2)]
+    public decimal OvertimeHours { get; set; }
+
+    [Column("night_hours")]
+    [Precision(8, 2)]
+    public decimal NightHours { get; set; }
+
+    [Column("holiday_hours")]
+    [Precision(8, 2)]
+    public decimal HolidayHours { get; set; }
+
+    [Column("weekend_hours")]
+    [Precision(8, 2)]
+    public decimal WeekendHours { get; set; }
+
     [Column("gross_amount")]
     [Precision(18, 2)]
     public decimal GrossAmount { get; set; }
@@ -71,5 +95,7 @@ public partial class PayPayrollLine
     public virtual PayEmployment Employment { get; set; } = null!;
 
     public virtual ICollection<PayPayrollCalcLine> CalcLines { get; set; } = new List<PayPayrollCalcLine>();
+    public virtual ICollection<PayPayrollTaxLine> TaxLines { get; set; } = new List<PayPayrollTaxLine>();
+    public virtual ICollection<PayPayrollLineSegment> Segments { get; set; } = new List<PayPayrollLineSegment>();
     public virtual ICollection<PayPaymentLine> PaymentLines { get; set; } = new List<PayPaymentLine>();
 }

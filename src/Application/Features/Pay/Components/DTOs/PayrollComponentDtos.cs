@@ -1,4 +1,5 @@
 using SharedKernel.Filters;
+using SharedKernel.Constants;
 
 namespace Application.Features.Pay.Components;
 
@@ -8,8 +9,13 @@ public class PayrollComponentBaseDto
     public string Name { get; set; } = null!;
     public string ComponentType { get; set; } = null!;
     public string CalculationMethod { get; set; } = null!;
+    public string ProrationBasis { get; set; } = PayrollProrationBasisConst.Days;
     public decimal? DefaultAmount { get; set; }
     public decimal? DefaultRate { get; set; }
+    public int? DependsOnComponentId { get; set; }
+    public decimal? MinimumAmount { get; set; }
+    public decimal? MaximumAmount { get; set; }
+    public bool IsTaxable { get; set; } = true;
     public bool IsMandatory { get; set; }
     public int? ExpenseAccountId { get; set; }
     public int? LiabilityAccountId { get; set; }

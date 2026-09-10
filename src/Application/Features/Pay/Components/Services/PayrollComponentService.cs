@@ -156,12 +156,38 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
     private async Task<Result> ValidateAsync(PayrollComponentBaseDto dto, int organizationId, int? currentId, CancellationToken ct)
     {
         var code = dto.Code.Trim().ToUpperInvariant();
+        if (!PayrollComponentEffectiveDatePolicy.IsValidRange(dto.EffectiveFrom, dto.EffectiveTo))
+            return Result.Failure(PayrollErrors.Business(
+                "ComponentEffectiveDateRange",
+                "Hisoblash komponentining tugash sanasi boshlanish sanasidan oldin bo‘lishi mumkin emas.",
+                _userContext.LanguageId));
+
+        if (dto.MinimumAmount.HasValue && dto.MaximumAmount.HasValue && dto.MinimumAmount > dto.MaximumAmount)
+            return Result.Failure(PayrollErrors.Business(
+                "ComponentAmountRange",
+                "Komponentning minimal summasi maksimal summadan katta bo‘lishi mumkin emas.",
+                _userContext.LanguageId));
+
+        if (dto.DependsOnComponentId == currentId)
+            return Result.Failure(PayrollErrors.Business(
+                "ComponentDependencySelf",
+                "Komponent o‘ziga bog‘lanishi mumkin emas.",
+                _userContext.LanguageId));
+
+        if (dto.DependsOnComponentId is { } dependencyId && !await _query.AnyAsync(x =>
+                x.Id == dependencyId &&
+                x.OrganizationId == organizationId &&
+                x.StateId == StateIdConst.ACTIVE, ct))
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound(
+                "PayrollComponent", dependencyId, _userContext.LanguageId));
+
         if (await _query.AnyAsync(x =>
                 x.OrganizationId == organizationId &&
                 x.Id != currentId &&
                 x.Code == code &&
-                x.EffectiveFrom == dto.EffectiveFrom, ct))
-            return Result.Failure(PayrollErrors.Conflict("ComponentConflict", $"'{code}' hisoblash komponenti {dto.EffectiveFrom} sanasi uchun allaqachon mavjud.", _userContext.LanguageId));
+                x.EffectiveFrom <= (dto.EffectiveTo ?? DateOnly.MaxValue) &&
+                (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= dto.EffectiveFrom), ct))
+            return Result.Failure(PayrollErrors.Conflict("ComponentEffectiveDateOverlap", $"'{code}' hisoblash komponentining amal qilish sanalari boshqa versiya bilan kesishadi.", _userContext.LanguageId));
 
         var accountIds = new[] { dto.ExpenseAccountId, dto.LiabilityAccountId }
             .Where(x => x.HasValue)
@@ -206,8 +232,13 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
         entity.Name = dto.Name.Trim();
         entity.ComponentType = dto.ComponentType;
         entity.CalculationMethod = dto.CalculationMethod;
+        entity.ProrationBasis = dto.ProrationBasis;
         entity.DefaultAmount = dto.DefaultAmount;
         entity.DefaultRate = dto.DefaultRate;
+        entity.DependsOnComponentId = dto.DependsOnComponentId;
+        entity.MinimumAmount = dto.MinimumAmount;
+        entity.MaximumAmount = dto.MaximumAmount;
+        entity.IsTaxable = dto.IsTaxable;
         entity.IsMandatory = dto.IsMandatory;
         entity.ExpenseAccountId = dto.ExpenseAccountId;
         entity.LiabilityAccountId = dto.LiabilityAccountId;
@@ -225,8 +256,13 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             Name = x.Name,
             ComponentType = x.ComponentType,
             CalculationMethod = x.CalculationMethod,
+            ProrationBasis = x.ProrationBasis,
             DefaultAmount = x.DefaultAmount,
             DefaultRate = x.DefaultRate,
+            DependsOnComponentId = x.DependsOnComponentId,
+            MinimumAmount = x.MinimumAmount,
+            MaximumAmount = x.MaximumAmount,
+            IsTaxable = x.IsTaxable,
             IsMandatory = x.IsMandatory,
             ExpenseAccountId = x.ExpenseAccountId,
             ExpenseAccountNumber = x.ExpenseAccount != null ? x.ExpenseAccount.Number : null,
@@ -249,8 +285,13 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             Name = x.Name,
             ComponentType = x.ComponentType,
             CalculationMethod = x.CalculationMethod,
+            ProrationBasis = x.ProrationBasis,
             DefaultAmount = x.DefaultAmount,
             DefaultRate = x.DefaultRate,
+            DependsOnComponentId = x.DependsOnComponentId,
+            MinimumAmount = x.MinimumAmount,
+            MaximumAmount = x.MaximumAmount,
+            IsTaxable = x.IsTaxable,
             IsMandatory = x.IsMandatory,
             ExpenseAccountId = x.ExpenseAccountId,
             ExpenseAccountNumber = x.ExpenseAccount != null ? x.ExpenseAccount.Number : null,
@@ -273,8 +314,13 @@ public sealed class PayrollComponentService : BaseService, IPayrollComponentServ
             Name = x.Name,
             ComponentType = x.ComponentType,
             CalculationMethod = x.CalculationMethod,
+            ProrationBasis = x.ProrationBasis,
             DefaultAmount = x.DefaultAmount,
             DefaultRate = x.DefaultRate,
+            DependsOnComponentId = x.DependsOnComponentId,
+            MinimumAmount = x.MinimumAmount,
+            MaximumAmount = x.MaximumAmount,
+            IsTaxable = x.IsTaxable,
             IsMandatory = x.IsMandatory,
             ExpenseAccountId = x.ExpenseAccountId,
             ExpenseAccountNumber = x.ExpenseAccount != null ? x.ExpenseAccount.Number : null,

@@ -64,6 +64,22 @@ public static class PayrollErrors
 
     public static Error CorrectionSourceRequired(short? languageId = null) => B("CorrectionSourceRequired", languageId, "Tuzatish uchun tasdiqlangan oylik hujjati kerak.", "Тузатиш учун тасдиқланган ойлик ҳужжати керак.", "Для корректировки требуется исходный подтверждённый документ зарплаты.", "A confirmed source payroll document is required for a correction.");
 
+    public static Error RecalculationRequiresPosted(long id, short statusId, short? languageId = null) => B(
+        "RecalculationRequiresPosted",
+        languageId,
+        $"Qayta hisoblash faqat tasdiqlangan oylik hujjati uchun mumkin (hujjat ID: {id}, holat: {statusId}).",
+        $"Қайта ҳисоблаш фақат тасдиқланган ойлик ҳужжати учун мумкин (ҳужжат ID: {id}, ҳолат: {statusId}).",
+        $"Перерасчёт доступен только для проведённого документа зарплаты (ID: {id}, статус: {statusId}).",
+        $"Recalculation is available only for a posted payroll document (ID: {id}, status: {statusId}).");
+
+    public static Error RecalculationBlocksPeriodClose(long periodId, short? languageId = null) => B(
+        "RecalculationBlocksPeriodClose",
+        languageId,
+        $"Oylik davrini yopishdan oldin qayta hisoblash navbatidagi xatoni tuzating yoki jarayon tugashini kuting (davr ID: {periodId}).",
+        $"Ойлик даврини ёпишдан олдин қайта ҳисоблаш навбатидаги хатони тузатинг ёки жараён тугашини кутинг (давр ID: {periodId}).",
+        $"Перед закрытием периода исправьте ошибку перерасчёта или дождитесь завершения процесса (период ID: {periodId}).",
+        $"Resolve the payroll recalculation error or wait for it to finish before closing period {periodId}.");
+
     public static Error DuplicateAdjustment(long employeeId, int componentId, short? languageId = null) => B("DuplicateAdjustment", languageId, $"Xodim uchun komponent bo'yicha bir nechta tuzatish kiritilgan (xodim: {employeeId}, komponent: {componentId}).", $"Ходим учун компонент бўйича бир нечта тузатиш киритилган (ходим: {employeeId}, компонент: {componentId}).", $"Для сотрудника {employeeId} указано несколько корректировок компонента {componentId}.", $"Multiple adjustments for component {componentId} were supplied for employee {employeeId}.");
 
     public static Error ReclassificationAccountsRequired(int componentId, short? languageId = null) => B(

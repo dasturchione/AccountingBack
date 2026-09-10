@@ -9,6 +9,7 @@ public sealed class PayrollTimesheetCalendarDto
     public string PeriodName { get; set; } = null!;
     public DateOnly DateFrom { get; set; }
     public DateOnly DateTo { get; set; }
+    public bool IsLegacy { get; set; }
     public List<PayrollTimesheetCalendarDateDto> DailyAttendance { get; set; } = [];
     public List<PayrollTimesheetCalendarEmployeeSummaryDto> MonthlySummary { get; set; } = [];
 }
@@ -28,14 +29,23 @@ public sealed class PayrollTimesheetCalendarEmployeeDayDto
     public string EmployeeName { get; set; } = null!;
     public string StatusCode { get; set; } = null!;
     public string StatusName { get; set; } = null!;
+    public string? SourceStatusCode { get; set; }
+    public long? SourceAbsenceId { get; set; }
+    public long? SourceScheduleId { get; set; }
+    public short? SourceAbsenceTypeId { get; set; }
     public decimal PlannedHours { get; set; }
     public decimal WorkedHours { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
     public long? ScheduleId { get; set; }
     public long? AbsenceId { get; set; }
     public short? AbsenceTypeId { get; set; }
     public string? AbsenceTypeCode { get; set; }
     public string? AbsenceTypeName { get; set; }
     public string? TimesheetCategory { get; set; }
+    public bool IsOverridden { get; set; }
 }
 
 public sealed class PayrollTimesheetCalendarEmployeeSummaryDto
@@ -53,9 +63,16 @@ public sealed class PayrollTimesheetCalendarEmployeeSummaryDto
     public decimal PlannedWorkHours { get; set; }
     public decimal LeaveDays { get; set; }
     public decimal SickDays { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal PaidSickDays { get; set; }
     public decimal AbsentDays { get; set; }
     public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
     public string? Note { get; set; }
+    public bool IsLegacy { get; set; }
+    public List<PayrollTimesheetDayDto> Days { get; set; } = [];
 }
 
 public static class PayrollTimesheetCalendarBuilder
@@ -76,6 +93,9 @@ public static class PayrollTimesheetCalendarBuilder
         var daysByEmployee = calendars.ToDictionary(
             x => x.EmployeeId,
             x => x.Days.ToDictionary(day => day.Date));
+        var savedDaysByEmployee = documentLines?.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.Days.ToDictionary(day => day.Date));
 
         var result = new PayrollTimesheetCalendarDto
         {
@@ -83,7 +103,8 @@ public static class PayrollTimesheetCalendarBuilder
             PeriodId = periodId,
             PeriodName = periodName,
             DateFrom = dateFrom,
-            DateTo = dateTo
+            DateTo = dateTo,
+            IsLegacy = documentLines?.Values.Any(line => line.IsLegacy || line.Days.Count == 0) ?? false
         };
 
         for (var date = dateFrom; date <= dateTo; date = date.AddDays(1))
@@ -95,7 +116,15 @@ public static class PayrollTimesheetCalendarBuilder
                 DayOfWeek = dayOfWeek,
                 DayName = GetDayName(dayOfWeek),
                 Employees = calendars
-                    .Select(calendar => MapDay(calendar, daysByEmployee[calendar.EmployeeId][date]))
+                    .Where(calendar => !HasLegacyDocumentLine(documentLines, calendar.EmployeeId))
+                    .Select(calendar => MapDay(
+                        calendar,
+                        daysByEmployee[calendar.EmployeeId][date],
+                        savedDaysByEmployee is not null &&
+                        savedDaysByEmployee.TryGetValue(calendar.EmployeeId, out var savedDays) &&
+                        savedDays.TryGetValue(date, out var savedDay)
+                            ? savedDay
+                            : null))
                     .ToList()
             });
         }
@@ -111,16 +140,58 @@ public static class PayrollTimesheetCalendarBuilder
         return result;
     }
 
+    private static bool HasLegacyDocumentLine(
+        IReadOnlyDictionary<long, PayrollTimesheetLineDto>? documentLines,
+        long employeeId) =>
+        documentLines is not null &&
+        documentLines.TryGetValue(employeeId, out var line) &&
+        (line.IsLegacy || line.Days.Count == 0);
+
     private static PayrollTimesheetCalendarEmployeeDayDto MapDay(
         HrEmployeeCalendarDto calendar,
-        HrEmployeeCalendarDayDto day) =>
-        new()
+        HrEmployeeCalendarDayDto day,
+        PayrollTimesheetDayDto? savedDay)
+    {
+        if (savedDay is not null)
+        {
+            return new PayrollTimesheetCalendarEmployeeDayDto
+            {
+                EmployeeId = calendar.EmployeeId,
+                EmployeeNumber = calendar.EmployeeNumber,
+                EmployeeName = calendar.EmployeeName,
+                StatusCode = savedDay.StatusCode,
+                StatusName = savedDay.StatusName,
+                SourceStatusCode = savedDay.SourceStatusCode,
+                SourceAbsenceId = savedDay.SourceAbsenceId,
+                SourceScheduleId = savedDay.SourceScheduleId,
+                SourceAbsenceTypeId = savedDay.SourceAbsenceTypeId,
+                PlannedHours = savedDay.PlannedHours,
+                WorkedHours = savedDay.WorkedHours,
+                OvertimeHours = savedDay.OvertimeHours,
+                NightHours = savedDay.NightHours,
+                HolidayHours = savedDay.HolidayHours,
+                WeekendHours = savedDay.WeekendHours,
+                ScheduleId = savedDay.SourceScheduleId,
+                AbsenceId = savedDay.SourceAbsenceId,
+                AbsenceTypeId = savedDay.AbsenceTypeId,
+                AbsenceTypeCode = savedDay.AbsenceTypeCode,
+                AbsenceTypeName = savedDay.AbsenceTypeName,
+                TimesheetCategory = savedDay.TimesheetCategory,
+                IsOverridden = savedDay.IsOverridden
+            };
+        }
+
+        return new PayrollTimesheetCalendarEmployeeDayDto
         {
             EmployeeId = calendar.EmployeeId,
             EmployeeNumber = calendar.EmployeeNumber,
             EmployeeName = calendar.EmployeeName,
             StatusCode = day.StatusCode,
             StatusName = day.StatusName,
+            SourceStatusCode = day.StatusCode,
+            SourceAbsenceId = day.AbsenceId,
+            SourceScheduleId = day.ScheduleId,
+            SourceAbsenceTypeId = day.AbsenceTypeId,
             PlannedHours = day.PlannedHours,
             WorkedHours = day.WorkedHours,
             ScheduleId = day.ScheduleId,
@@ -130,12 +201,14 @@ public static class PayrollTimesheetCalendarBuilder
             AbsenceTypeName = day.AbsenceTypeName,
             TimesheetCategory = day.TimesheetCategory
         };
+    }
 
     private static PayrollTimesheetCalendarEmployeeSummaryDto MapSummary(
         HrEmployeeCalendarDto calendar,
         PayrollTimesheetLineDto? line)
     {
         var summary = calendar.Summary;
+        var hasSavedDays = line is { Days.Count: > 0 };
         return new PayrollTimesheetCalendarEmployeeSummaryDto
         {
             TimesheetLineId = line?.Id,
@@ -147,13 +220,24 @@ public static class PayrollTimesheetCalendarBuilder
             NormWorkHours = line?.NormWorkHours ?? summary.NormWorkHours,
             WorkedDays = line?.WorkedDays ?? summary.WorkedDays,
             WorkedHours = line?.WorkedHours ?? summary.WorkedHours,
-            PlannedWorkDays = summary.PlannedWorkDays,
-            PlannedWorkHours = summary.PlannedWorkHours,
+            PlannedWorkDays = hasSavedDays
+                ? line!.Days.Count(day => day.StatusCode == SharedKernel.Constants.HrCalendarStatusConst.PlannedWork)
+                : summary.PlannedWorkDays,
+            PlannedWorkHours = hasSavedDays
+                ? line!.Days.Sum(day => day.PlannedHours)
+                : summary.PlannedWorkHours,
             LeaveDays = line?.LeaveDays ?? summary.LeaveDays,
             SickDays = line?.SickDays ?? summary.SickDays,
+            PaidLeaveDays = line?.PaidLeaveDays ?? 0m,
+            PaidSickDays = line?.PaidSickDays ?? 0m,
             AbsentDays = line?.AbsentDays ?? summary.AbsentDays,
             OvertimeHours = line?.OvertimeHours ?? 0m,
-            Note = line?.Note
+            NightHours = line?.NightHours ?? 0m,
+            HolidayHours = line?.HolidayHours ?? 0m,
+            WeekendHours = line?.WeekendHours ?? 0m,
+            Note = line?.Note,
+            IsLegacy = line is not null && (line.IsLegacy || line.Days.Count == 0),
+            Days = line?.Days ?? []
         };
     }
 

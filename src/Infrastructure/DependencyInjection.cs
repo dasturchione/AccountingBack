@@ -91,6 +91,7 @@ using Application.Features.Pay.PayrollDocuments;
 using Application.Features.Pay.Periods;
 using Application.Features.Pay.Reports;
 using Application.Features.Pay.Timesheets;
+using Application.Features.Pay.Taxes;
 using Application.Features.PricingConditions;
 using Application.Features.ProductGroups;
 using Application.Features.Products;
@@ -162,6 +163,7 @@ namespace Infrastructure
             services.AddScoped<IIntegrationCredentialProvider, IntegrationCredentialProvider>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IDocumentPostingLock, DocumentPostingLock>();
+            services.AddScoped<IPayrollPeriodLock, PayrollPeriodLock>();
             services.AddScoped<INotificationDeduplicationLock, NotificationDeduplicationLock>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<ITokenProvider, TokenProvider>();
@@ -273,6 +275,7 @@ namespace Infrastructure
             services.AddScoped<IPayrollDocumentService, PayrollDocumentService>();
             services.AddScoped<IPayrollPaymentService, PayrollPaymentService>();
             services.AddScoped<IPayrollReportService, PayrollReportService>();
+            services.AddScoped<IPayrollTaxDefinitionService, PayrollTaxDefinitionService>();
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IProviderContractReconciliationService, ProviderContractReconciliationService>();
             services.AddScoped<IContractExpiryNotificationService, ContractExpiryNotificationService>();

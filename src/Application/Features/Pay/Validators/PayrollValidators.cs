@@ -70,6 +70,7 @@ public sealed class PayrollComponentCreateDtoValidator : AbstractValidator<Payro
         validator.RuleFor(x => x.Name).NotEmpty().MaximumLength(250);
         validator.RuleFor(x => x.ComponentType).Must(PayrollComponentTypeConst.All.Contains);
         validator.RuleFor(x => x.CalculationMethod).Must(PayrollCalculationMethodConst.All.Contains);
+        validator.RuleFor(x => x.ProrationBasis).Must(PayrollProrationBasisConst.All.Contains);
         validator.RuleFor(x => x.DefaultAmount).GreaterThanOrEqualTo(0).When(x => x.DefaultAmount.HasValue);
         validator.RuleFor(x => x.DefaultRate).GreaterThanOrEqualTo(0).When(x => x.DefaultRate.HasValue);
         validator.RuleFor(x => x.EffectiveTo).GreaterThanOrEqualTo(x => x.EffectiveFrom).When(x => x.EffectiveTo.HasValue);
@@ -91,13 +92,37 @@ public sealed class PayrollComponentUpdateDtoValidator : AbstractValidator<Payro
 
 public sealed class PayrollPeriodCreateDtoValidator : AbstractValidator<PayrollPeriodCreateDto>
 {
-    public PayrollPeriodCreateDtoValidator()
+    public PayrollPeriodCreateDtoValidator() => Configure(this);
+
+    internal static void Configure<T>(AbstractValidator<T> validator) where T : PayrollPeriodSaveDto
     {
-        RuleFor(x => x.Year).InclusiveBetween((short)2000, (short)2200);
-        RuleFor(x => x.Month).InclusiveBetween((short)1, (short)12);
-        RuleFor(x => x.NormWorkDays).GreaterThan(0);
-        RuleFor(x => x.NormWorkHours).GreaterThan(0);
+        validator.RuleFor(x => x.Year).InclusiveBetween((short)2000, (short)2200);
+        validator.RuleFor(x => x.Month).InclusiveBetween((short)1, (short)12);
+        validator.RuleFor(x => x.DailyWorkHours).GreaterThan(0).LessThanOrEqualTo(24);
+        validator.RuleFor(x => x.WorkDates)
+            .NotEmpty()
+            .When(x => x.CalendarDays is null || x.CalendarDays.Count == 0);
+        validator.RuleFor(x => x.WorkDates)
+            .Must(dates => dates is null || dates.Distinct().Count() == dates.Count)
+            .WithMessage("Work dates must be unique.");
+        validator.RuleForEach(x => x.WorkDates)
+            .Must((dto, date) => date.Year == dto.Year && date.Month == dto.Month)
+            .WithMessage("Every work date must belong to the submitted year and month.");
+        validator.RuleForEach(x => x.CalendarDays).ChildRules(day =>
+        {
+            day.RuleFor(x => x.DayType).Must(PayrollPeriodDayTypeConst.All.Contains);
+            day.RuleFor(x => x.WorkHours).GreaterThanOrEqualTo(0).LessThanOrEqualTo(24);
+        });
+        validator.RuleFor(x => x.CalendarDays)
+            .Must((dto, days) => days is null || days.All(day => day.Date.Year == dto.Year && day.Date.Month == dto.Month))
+            .WithMessage("Every calendar date must belong to the submitted year and month.");
     }
+}
+
+public sealed class PayrollPeriodUpdateDtoValidator : AbstractValidator<PayrollPeriodUpdateDto>
+{
+    public PayrollPeriodUpdateDtoValidator() =>
+        PayrollPeriodCreateDtoValidator.Configure(this);
 }
 
 public sealed class PayrollTimesheetCreateDtoValidator : AbstractValidator<PayrollTimesheetCreateDto>
@@ -125,12 +150,17 @@ public sealed class PayrollTimesheetLineSaveDtoValidator : AbstractValidator<Pay
     public PayrollTimesheetLineSaveDtoValidator()
     {
         RuleFor(x => x.EmployeeId).GreaterThan(0);
-        RuleFor(x => x.WorkedDays).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.WorkedHours).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.LeaveDays).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.SickDays).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.AbsentDays).GreaterThanOrEqualTo(0);
         RuleFor(x => x.OvertimeHours).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Note).MaximumLength(500);
+        RuleFor(x => x.Days)
+            .NotEmpty()
+            .Must(days => days is not null && days.Select(day => day.Date).Distinct().Count() == days.Count)
+            .WithMessage("Timesheet days must be unique.");
+        RuleForEach(x => x.Days).ChildRules(day =>
+        {
+            day.RuleFor(x => x.StatusCode).NotEmpty().MaximumLength(50);
+            day.RuleFor(x => x.AbsenceTypeId).GreaterThan((short)0).When(x => x.AbsenceTypeId.HasValue);
+        });
     }
 }
 
@@ -147,12 +177,10 @@ public sealed class PayrollCalculateDtoValidator : AbstractValidator<PayrollCalc
         RuleFor(x => x.CorrectionOfDocId)
             .Null()
             .When(x => x.DocumentKind == PayrollDocumentKindConst.Regular);
+        RuleFor(x => x.CorrectionPayoutMode)
+            .Must(x => x is null || PayrollCorrectionPayoutModeConst.All.Contains(x.Trim().ToUpperInvariant()));
         RuleFor(x => x.SalaryExpenseAccountId).GreaterThan(0);
         RuleFor(x => x.SalaryPayableAccountId).GreaterThan(0);
-        RuleFor(x => x.DeductionPayableAccountId).GreaterThan(0);
-        RuleFor(x => x.EmployerTaxExpenseAccountId).GreaterThan(0);
-        RuleFor(x => x.EmployerTaxPayableAccountId).GreaterThan(0);
-        RuleFor(x => x.AdvanceReceivableAccountId).GreaterThan(0);
         RuleForEach(x => x.Adjustments).ChildRules(adjustment =>
         {
             adjustment.RuleFor(x => x.EmployeeId).GreaterThan(0);

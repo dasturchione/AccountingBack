@@ -25,6 +25,7 @@ public sealed class PayrollAccountingTests
         components[1].LiabilityAccountId = 64201;
         components[2].ExpenseAccountId = 64201;
         components[2].LiabilityAccountId = 65302;
+        components[3].ExpenseAccountId = 9430;
         components[3].LiabilityAccountId = 65101;
         var service = (PayrollDocumentService)RuntimeHelpers.GetUninitializedObject(typeof(PayrollDocumentService));
         var method = typeof(PayrollDocumentService).GetMethod("BuildPayrollLine", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -60,11 +61,7 @@ public sealed class PayrollAccountingTests
             new PayrollCalculateDto
             {
                 SalaryExpenseAccountId = 9420,
-                SalaryPayableAccountId = 6710,
-                DeductionPayableAccountId = 6400,
-                EmployerTaxExpenseAccountId = 9430,
-                EmployerTaxPayableAccountId = 6500,
-                AdvanceReceivableAccountId = 4720
+                SalaryPayableAccountId = 6710
             }
         ]);
 
@@ -72,6 +69,44 @@ public sealed class PayrollAccountingTests
         AssertPostingAccounts(line, 2, 6710, 64201);
         AssertPostingAccounts(line, 3, 64201, 65302);
         AssertPostingAccounts(line, 4, 9430, 65101);
+    }
+
+    [Fact]
+    public void SalaryProrated_HourBasis_UsesEditedWorkedHours()
+    {
+        var component = Component(
+            1,
+            "Salary",
+            PayrollComponentTypeConst.Earning,
+            PayrollCalculationMethodConst.SalaryProrated);
+        component.ProrationBasis = PayrollProrationBasisConst.Hours;
+
+        var service = (PayrollDocumentService)RuntimeHelpers.GetUninitializedObject(typeof(PayrollDocumentService));
+        var method = typeof(PayrollDocumentService).GetMethod("BuildPayrollLine", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        var line = (PayPayrollLine?)method.Invoke(service,
+        [
+            2,
+            new PayEmployment { EmployeeId = 7, MonthlySalary = 2_200_000m, EmploymentRate = 1m, CurrencyId = 1 },
+            new PayTimesheetLine
+            {
+                WorkedDays = 22m,
+                WorkedHours = 172m,
+                NormWorkDays = 22m,
+                NormWorkHours = 176m
+            },
+            new PayPeriod { NormWorkDays = 22m, NormWorkHours = 176m },
+            new List<PayComponent> { component },
+            new Dictionary<(long EmployeeId, int ComponentId), PayEmployeeComponent>(),
+            new Dictionary<(long EmployeeId, int ComponentId), PayrollManualAdjustmentDto>(),
+            0m,
+            PayrollDocumentKindConst.Regular
+        ]);
+
+        Assert.NotNull(line);
+        Assert.Equal(2_150_000m, line.GrossAmount);
+        Assert.Equal(172m, Assert.Single(line.CalcLines).Quantity);
     }
 
     [Fact]

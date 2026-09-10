@@ -47,6 +47,14 @@ public sealed class PayrollTimesheetController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("attendance-status-options")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetView)]
+    public async Task<IResult> GetAttendanceStatusOptionsAsync(CancellationToken ct = default)
+    {
+        var result = await _service.GetAttendanceStatusOptionsAsync(ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpGet("calendar/table")]
     [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetView)]
     public async Task<IResult> GetCalendarTableAsync(
@@ -83,6 +91,14 @@ public sealed class PayrollTimesheetController : ControllerBase
         CancellationToken ct = default)
     {
         var result = await _service.UpdateAsync(id, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:long}/initialize-days")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollTimesheetUpdate)]
+    public async Task<IResult> InitializeDaysAsync([FromRoute] long id, CancellationToken ct)
+    {
+        var result = await _service.InitializeDaysAsync(id, ct);
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 

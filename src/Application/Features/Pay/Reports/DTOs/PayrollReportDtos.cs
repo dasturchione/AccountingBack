@@ -10,6 +10,17 @@ public sealed class PayrollRegisterReportDto
     public decimal NetAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
+    public decimal RegularGrossAmount { get; set; }
+    public decimal RegularNetAmount { get; set; }
+    public decimal CorrectionGrossAmount { get; set; }
+    public decimal CorrectionNetAmount { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal PaidSickDays { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
+    public decimal ReconciliationVariance { get; set; }
     public List<PayrollRegisterEmployeeDto> Employees { get; set; } = [];
 }
 
@@ -20,6 +31,8 @@ public class PayrollRegisterEmployeeDto
     public string EmployeeName { get; set; } = null!;
     public string? DepartmentName { get; set; }
     public string? PositionName { get; set; }
+    public decimal WorkedDays { get; set; }
+    public decimal WorkedHours { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal DeductionAmount { get; set; }
     public decimal EmployerTaxAmount { get; set; }
@@ -27,14 +40,23 @@ public class PayrollRegisterEmployeeDto
     public decimal NetAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
+    public decimal RegularGrossAmount { get; set; }
+    public decimal RegularNetAmount { get; set; }
+    public decimal CorrectionGrossAmount { get; set; }
+    public decimal CorrectionNetAmount { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal PaidSickDays { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
+    public decimal ReconciliationVariance { get; set; }
 }
 
 public sealed class PayrollPayslipDto : PayrollRegisterEmployeeDto
 {
     public long PeriodId { get; set; }
     public string PeriodName { get; set; } = null!;
-    public decimal WorkedDays { get; set; }
-    public decimal WorkedHours { get; set; }
     public List<PayrollPayslipComponentDto> Components { get; set; } = [];
 }
 

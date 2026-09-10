@@ -47,6 +47,14 @@ public partial class PayTimesheetLine
     [Precision(6, 2)]
     public decimal SickDays { get; set; }
 
+    [Column("paid_leave_days")]
+    [Precision(6, 2)]
+    public decimal PaidLeaveDays { get; set; }
+
+    [Column("paid_sick_days")]
+    [Precision(6, 2)]
+    public decimal PaidSickDays { get; set; }
+
     [Column("absent_days")]
     [Precision(6, 2)]
     public decimal AbsentDays { get; set; }
@@ -54,6 +62,18 @@ public partial class PayTimesheetLine
     [Column("overtime_hours")]
     [Precision(8, 2)]
     public decimal OvertimeHours { get; set; }
+
+    [Column("night_hours")]
+    [Precision(8, 2)]
+    public decimal NightHours { get; set; }
+
+    [Column("holiday_hours")]
+    [Precision(8, 2)]
+    public decimal HolidayHours { get; set; }
+
+    [Column("weekend_hours")]
+    [Precision(8, 2)]
+    public decimal WeekendHours { get; set; }
 
     [Column("note")]
     [StringLength(500)]
@@ -67,4 +87,6 @@ public partial class PayTimesheetLine
 
     [ForeignKey(nameof(EmployeeId))]
     public virtual PayEmployee Employee { get; set; } = null!;
+
+    public virtual ICollection<PayTimesheetLineDay> Days { get; set; } = new List<PayTimesheetLineDay>();
 }

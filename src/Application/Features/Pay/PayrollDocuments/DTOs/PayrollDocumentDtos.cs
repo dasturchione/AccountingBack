@@ -1,3 +1,4 @@
+using SharedKernel.Constants;
 using SharedKernel.Filters;
 
 namespace Application.Features.Pay.PayrollDocuments;
@@ -8,12 +9,9 @@ public sealed class PayrollCalculateDto
     public DateTime DocDate { get; set; }
     public string DocumentKind { get; set; } = "REGULAR";
     public long? CorrectionOfDocId { get; set; }
+    public string? CorrectionPayoutMode { get; set; }
     public int SalaryExpenseAccountId { get; set; }
     public int SalaryPayableAccountId { get; set; }
-    public int DeductionPayableAccountId { get; set; }
-    public int EmployerTaxExpenseAccountId { get; set; }
-    public int EmployerTaxPayableAccountId { get; set; }
-    public int AdvanceReceivableAccountId { get; set; }
     public string? Note { get; set; }
     public List<PayrollManualAdjustmentDto> Adjustments { get; set; } = [];
 }
@@ -44,6 +42,7 @@ public class PayrollDocumentListDto
     public long PeriodId { get; set; }
     public string PeriodName { get; set; } = null!;
     public string DocumentKind { get; set; } = null!;
+    public string CorrectionPayoutMode { get; set; } = PayrollCorrectionPayoutModeConst.WithSalary;
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public decimal GrossAmount { get; set; }
@@ -51,6 +50,8 @@ public class PayrollDocumentListDto
     public decimal EmployerTaxAmount { get; set; }
     public decimal NetAmount { get; set; }
     public decimal PayableAmount { get; set; }
+    public bool HasPendingRecalculation { get; set; }
+    public long? PendingRecalculationId { get; set; }
 }
 
 public sealed class PayrollDocumentDto : PayrollDocumentListDto
@@ -60,10 +61,6 @@ public sealed class PayrollDocumentDto : PayrollDocumentListDto
     public short CurrencyId { get; set; }
     public int? SalaryExpenseAccountId { get; set; }
     public int? SalaryPayableAccountId { get; set; }
-    public int? DeductionPayableAccountId { get; set; }
-    public int? EmployerTaxExpenseAccountId { get; set; }
-    public int? EmployerTaxPayableAccountId { get; set; }
-    public int? AdvanceReceivableAccountId { get; set; }
     public decimal AdvanceAmount { get; set; }
     public string? Note { get; set; }
     public short StateId { get; set; }
@@ -84,6 +81,12 @@ public sealed class PayrollLineDto
     public string? PositionName { get; set; }
     public decimal WorkedDays { get; set; }
     public decimal WorkedHours { get; set; }
+    public decimal PaidLeaveDays { get; set; }
+    public decimal PaidSickDays { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public decimal NightHours { get; set; }
+    public decimal HolidayHours { get; set; }
+    public decimal WeekendHours { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal DeductionAmount { get; set; }
     public decimal EmployerTaxAmount { get; set; }
@@ -91,6 +94,39 @@ public sealed class PayrollLineDto
     public decimal NetAmount { get; set; }
     public decimal PayableAmount { get; set; }
     public List<PayrollCalcLineDto> CalcLines { get; set; } = [];
+    public List<PayrollTaxLineDto> TaxLines { get; set; } = [];
+    public List<PayrollLineSegmentDto> Segments { get; set; } = [];
+}
+
+public sealed class PayrollLineSegmentDto
+{
+    public long Id { get; set; }
+    public long EmploymentId { get; set; }
+    public DateOnly SegmentStartDate { get; set; }
+    public DateOnly SegmentEndDate { get; set; }
+    public decimal MonthlySalary { get; set; }
+    public decimal EmploymentRate { get; set; }
+    public decimal WorkedDays { get; set; }
+    public decimal WorkedHours { get; set; }
+    public decimal NormWorkDays { get; set; }
+    public decimal NormWorkHours { get; set; }
+    public string ComponentSnapshotJson { get; set; } = "[]";
+}
+
+public sealed class PayrollTaxLineDto
+{
+    public long Id { get; set; }
+    public int TaxDefinitionId { get; set; }
+    public string TaxCode { get; set; } = null!;
+    public string TaxName { get; set; } = null!;
+    public string TaxType { get; set; } = null!;
+    public string BaseType { get; set; } = null!;
+    public decimal BaseAmount { get; set; }
+    public decimal ExemptionAmount { get; set; }
+    public decimal TaxableBase { get; set; }
+    public decimal Rate { get; set; }
+    public decimal Amount { get; set; }
+    public int LiabilityAccountId { get; set; }
 }
 
 public sealed class PayrollCalcLineDto

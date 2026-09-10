@@ -16,6 +16,16 @@ public static class PayrollComponentTypeConst
     public static readonly string[] All = [Earning, Deduction, EmployerTax, Reclassification];
 }
 
+public static class PayrollPeriodDayTypeConst
+{
+    public const string Normal = "NORMAL";
+    public const string Holiday = "HOLIDAY";
+    public const string Transferred = "TRANSFERRED";
+    public const string Shortened = "SHORTENED";
+
+    public static readonly string[] All = [Normal, Holiday, Transferred, Shortened];
+}
+
 public static class PayrollCalculationMethodConst
 {
     public const string SalaryProrated = "SALARY_PRORATED";
@@ -26,10 +36,54 @@ public static class PayrollCalculationMethodConst
     public static readonly string[] All = [SalaryProrated, Fixed, PercentOfGross, PerHour];
 }
 
+public static class PayrollProrationBasisConst
+{
+    public const string Days = "DAYS";
+    public const string Hours = "HOURS";
+
+    public static readonly string[] All = [Days, Hours];
+}
+
 public static class PayrollDocumentKindConst
 {
     public const string Regular = "REGULAR";
     public const string Correction = "CORRECTION";
+}
+
+public static class PayrollRecalculationStatusConst
+{
+    public const string Pending = "PENDING";
+    public const string Processing = "PROCESSING";
+    public const string Completed = "COMPLETED";
+    public const string Failed = "FAILED";
+
+    public static readonly string[] All = [Pending, Processing, Completed, Failed];
+}
+
+public static class PayrollCorrectionPayoutModeConst
+{
+    public const string WithSalary = "WITH_SALARY";
+    public const string WithAdvance = "WITH_ADVANCE";
+    public const string Separate = "SEPARATE";
+
+    public static readonly string[] All = [WithSalary, WithAdvance, Separate];
+}
+
+public static class PayrollTaxTypeConst
+{
+    public const string Withholding = "WITHHOLDING";
+    public const string Employer = "EMPLOYER";
+
+    public static readonly string[] All = [Withholding, Employer];
+}
+
+public static class PayrollTaxBaseTypeConst
+{
+    public const string Gross = "GROSS";
+    public const string TaxableEarnings = "TAXABLE_EARNINGS";
+    public const string Net = "NET";
+
+    public static readonly string[] All = [Gross, TaxableEarnings, Net];
 }
 
 public static class PayrollPaymentKindConst

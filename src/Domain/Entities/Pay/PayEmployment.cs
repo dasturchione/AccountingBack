@@ -85,4 +85,5 @@ public partial class PayEmployment
     public virtual State State { get; set; } = null!;
 
     public virtual ICollection<PayPayrollLine> PayrollLines { get; set; } = new List<PayPayrollLine>();
+    public virtual ICollection<PayPayrollLineSegment> PayrollLineSegments { get; set; } = new List<PayPayrollLineSegment>();
 }

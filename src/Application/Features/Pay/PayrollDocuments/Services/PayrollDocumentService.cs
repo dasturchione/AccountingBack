@@ -5,12 +5,17 @@ using Application.Features.Acc.AccountingPeriods;
 using Application.Features.AuditLogs;
 using Application.Features.DocumentNumbers;
 using Application.Features.Register.AccountingRegisterEntries;
+using Application.Features.Pay.Taxes;
+using Application.Features.Pay.Components;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
 using SharedKernel.Query;
 using SharedKernel.Results;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace Application.Features.Pay.PayrollDocuments;
 
@@ -25,10 +30,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly IAccountingDispatcher _dispatcher;
     private readonly IQueryRepository<PayPayrollDoc> _query;
     private readonly ICommandRepository<PayPayrollDoc> _command;
+    private readonly IQueryRepository<PayPayrollRecalculation> _recalculationQuery;
+    private readonly ICommandRepository<PayPayrollRecalculation> _recalculationCommand;
     private readonly IQueryRepository<PayPeriod> _periodQuery;
     private readonly IQueryRepository<PayTimesheet> _timesheetQuery;
     private readonly IQueryRepository<PayEmployment> _employmentQuery;
     private readonly IQueryRepository<PayComponent> _componentQuery;
+    private readonly IQueryRepository<PayTaxDefinition> _taxDefinitionQuery;
     private readonly IQueryRepository<ChartAccount> _accountQuery;
     private readonly IQueryRepository<PayEmployeeComponent> _assignmentQuery;
     private readonly IQueryRepository<PayPaymentLine> _paymentLineQuery;
@@ -37,6 +45,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingEntryQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingEntryCommand;
+    private readonly IUnitOfWork _serviceUnitOfWork;
 
     public PayrollDocumentService(
         IUserContext userContext,
@@ -48,10 +57,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         IAccountingDispatcher dispatcher,
         IQueryRepository<PayPayrollDoc> query,
         ICommandRepository<PayPayrollDoc> command,
+        IQueryRepository<PayPayrollRecalculation> recalculationQuery,
+        ICommandRepository<PayPayrollRecalculation> recalculationCommand,
         IQueryRepository<PayPeriod> periodQuery,
         IQueryRepository<PayTimesheet> timesheetQuery,
         IQueryRepository<PayEmployment> employmentQuery,
         IQueryRepository<PayComponent> componentQuery,
+        IQueryRepository<PayTaxDefinition> taxDefinitionQuery,
         IQueryRepository<ChartAccount> accountQuery,
         IQueryRepository<PayEmployeeComponent> assignmentQuery,
         IQueryRepository<PayPaymentLine> paymentLineQuery,
@@ -73,10 +85,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _dispatcher = dispatcher;
         _query = query;
         _command = command;
+        _recalculationQuery = recalculationQuery;
+        _recalculationCommand = recalculationCommand;
         _periodQuery = periodQuery;
         _timesheetQuery = timesheetQuery;
         _employmentQuery = employmentQuery;
         _componentQuery = componentQuery;
+        _taxDefinitionQuery = taxDefinitionQuery;
         _accountQuery = accountQuery;
         _assignmentQuery = assignmentQuery;
         _paymentLineQuery = paymentLineQuery;
@@ -85,6 +100,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _postingBatchCommand = postingBatchCommand;
         _accountingEntryQuery = accountingEntryQuery;
         _accountingEntryCommand = accountingEntryCommand;
+        _serviceUnitOfWork = unitOfWork;
     }
 
     public Task<Result<PagedResponse<PayrollDocumentListDto>>> GetAllAsync(
@@ -112,13 +128,23 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     PeriodId = x.PeriodId,
                     PeriodName = x.Period.PeriodYear + "-" + x.Period.PeriodMonth,
                     DocumentKind = x.DocumentKind,
+                    CorrectionPayoutMode = x.CorrectionPayoutMode,
                     StatusId = x.StatusId,
                     StatusName = x.Status.Name,
                     GrossAmount = x.GrossAmount,
                     DeductionAmount = x.DeductionAmount,
                     EmployerTaxAmount = x.EmployerTaxAmount,
                     NetAmount = x.NetAmount,
-                    PayableAmount = x.PayableAmount
+                    PayableAmount = x.PayableAmount,
+                    HasPendingRecalculation = x.RecalculationRequests.Any(request =>
+                        request.Status == PayrollRecalculationStatusConst.Pending ||
+                        request.Status == PayrollRecalculationStatusConst.Processing),
+                    PendingRecalculationId = x.RecalculationRequests
+                        .Where(request => request.Status == PayrollRecalculationStatusConst.Pending ||
+                                          request.Status == PayrollRecalculationStatusConst.Processing)
+                        .OrderByDescending(request => request.Id)
+                        .Select(request => (long?)request.Id)
+                        .FirstOrDefault()
                 })
                 .OrderBy(x => x.OrderByDescending(y => y.DocDate).ThenByDescending(y => y.Id))
                 .Skip((page - 1) * take)
@@ -147,11 +173,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var accountIds = new[]
             {
                 dto.SalaryExpenseAccountId,
-                dto.SalaryPayableAccountId,
-                dto.DeductionPayableAccountId,
-                dto.EmployerTaxExpenseAccountId,
-                dto.EmployerTaxPayableAccountId,
-                dto.AdvanceReceivableAccountId
+                dto.SalaryPayableAccountId
             }.Distinct().ToList();
             var accountQuery = _queryBuilder.For<ChartAccount>()
                 .Where(x =>
@@ -215,7 +237,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (timesheet is null)
                 return Result.Failure<long>(PayrollErrors.NoPostedTimesheet(period.Id, _userContext.LanguageId));
 
-            var components = await GetActiveComponentsAsync(period, ct);
+            var components = await GetActiveComponentsAsync(
+                period,
+                DateOnly.FromDateTime(dto.DocDate),
+                ct);
             if (components.Count == 0)
                 return Result.Failure<long>(PayrollErrors.NoCalculationComponents(period.Id, _userContext.LanguageId));
             if (kind == PayrollDocumentKindConst.Regular &&
@@ -224,6 +249,25 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     x.ComponentType == PayrollComponentTypeConst.Earning &&
                     x.CalculationMethod == PayrollCalculationMethodConst.SalaryProrated))
                 return Result.Failure<long>(PayrollErrors.MissingBaseSalaryComponent(_userContext.LanguageId));
+
+            // Manual correction documents use the tax snapshot of their source
+            // and therefore do not invent a fresh statutory tax amount. The
+            // automatic recalculation path below compares source/current tax
+            // lines explicitly.
+            var taxDefinitions = kind == PayrollDocumentKindConst.Regular
+                ? await GetActiveTaxDefinitionsAsync(
+                    organizationId,
+                    DateOnly.FromDateTime(dto.DocDate),
+                    ct)
+                : [];
+            var duplicateTaxDefinition = taxDefinitions
+                .GroupBy(x => x.Code)
+                .FirstOrDefault(x => x.Count() > 1);
+            if (duplicateTaxDefinition is not null)
+                return Result.Failure<long>(PayrollErrors.Conflict(
+                    "TaxDefinitionEffectiveDateOverlap",
+                    $"'{duplicateTaxDefinition.Key}' soliq qoidasining tanlangan sana uchun bir nechta faol versiyasi mavjud.",
+                    _userContext.LanguageId));
 
             var employeeIds = kind == PayrollDocumentKindConst.Regular
                 ? timesheet.Lines.Select(x => x.EmployeeId).Distinct().ToList()
@@ -237,7 +281,14 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             if (missingEmployment > 0)
                 return Result.Failure<long>(PayrollErrors.NoActiveEmployment(missingEmployment, _userContext.LanguageId));
 
-            var assignments = await GetAssignmentsAsync(employeeIds, period, ct);
+            var assignments = await GetAssignmentsAsync(
+                employeeIds,
+                period,
+                DateOnly.FromDateTime(dto.DocDate),
+                ct);
+            var assignmentHistory = kind == PayrollDocumentKindConst.Regular
+                ? await GetAssignmentHistoryAsync(employeeIds, period, ct)
+                : new Dictionary<long, List<PayEmployeeComponent>>();
             var assignmentMap = assignments
                 .GroupBy(x => (x.EmployeeId, x.ComponentId))
                 .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.EffectiveFrom).First());
@@ -273,22 +324,52 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                         invalidReclassification.Id,
                         _userContext.LanguageId));
 
-                var line = BuildPayrollLine(
+                var missingComponentAccount = selectedComponents.FirstOrDefault(component =>
+                    (component.ComponentType == PayrollComponentTypeConst.Deduction &&
+                     !component.LiabilityAccountId.HasValue) ||
+                    (component.ComponentType == PayrollComponentTypeConst.EmployerTax &&
+                     (!component.ExpenseAccountId.HasValue || !component.LiabilityAccountId.HasValue)));
+                if (missingComponentAccount is not null)
+                    return Result.Failure<long>(PayrollErrors.Business(
+                        "ComponentPostingAccountsRequired",
+                        $"'{missingComponentAccount.Name}' komponenti uchun provodka hisobvaraqlari ko‘rsatilishi kerak (ID: {missingComponentAccount.Id}).",
+                        _userContext.LanguageId));
+
+                var line = BuildPayrollLineWithTaxes(
                     organizationId,
                     employmentByEmployee[employeeId],
                     time,
                     period,
                     selectedComponents,
+                    taxDefinitions,
                     assignmentMap,
                     manualMap,
                     advances.GetValueOrDefault(employeeId),
                     kind);
+                if (kind == PayrollDocumentKindConst.Regular)
+                {
+                    line.Segments = BuildPayrollLineSegments(
+                        organizationId,
+                        line,
+                        time,
+                        period,
+                        employments.Where(x => x.EmployeeId == employeeId),
+                        selectedComponents,
+                        assignmentHistory.GetValueOrDefault(employeeId) ?? []);
+                }
                 AssignPostingAccounts(line, dto);
                 payrollLines.Add(line);
             }
 
             if (payrollLines.Count == 0)
                 return Result.Failure<long>(PayrollErrors.Business("NoPayrollLines", "Oylik hisoblash natijasida xodimlar bo‘yicha hech qanday qator hosil bo‘lmadi.", _userContext.LanguageId));
+
+            var postingAccountValidation = await ValidatePostingAccountsAsync(
+                organizationId,
+                payrollLines,
+                ct);
+            if (!postingAccountValidation.IsSuccess)
+                return Result.Failure<long>(postingAccountValidation.Error);
 
             var payrollCurrencyIds = payrollLines
                 .Select(x => x.Employment.CurrencyId)
@@ -322,14 +403,11 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 DocDate = dto.DocDate,
                 DocumentKind = kind,
                 CorrectionOfDocId = dto.CorrectionOfDocId,
+                CorrectionPayoutMode = PayrollDocumentPaymentPolicy.NormalizePayoutMode(kind, dto.CorrectionPayoutMode),
                 CurrencyId = payrollCurrencyIds[0],
                 StatusId = DocumentStatusIdConst.DRAFT,
                 SalaryExpenseAccountId = dto.SalaryExpenseAccountId,
                 SalaryPayableAccountId = dto.SalaryPayableAccountId,
-                DeductionPayableAccountId = dto.DeductionPayableAccountId,
-                EmployerTaxExpenseAccountId = dto.EmployerTaxExpenseAccountId,
-                EmployerTaxPayableAccountId = dto.EmployerTaxPayableAccountId,
-                AdvanceReceivableAccountId = dto.AdvanceReceivableAccountId,
                 GrossAmount = Round(payrollLines.Sum(x => x.GrossAmount)),
                 DeductionAmount = Round(payrollLines.Sum(x => x.DeductionAmount)),
                 EmployerTaxAmount = Round(payrollLines.Sum(x => x.EmployerTaxAmount)),
@@ -348,6 +426,496 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, document.Id.ToString(), AuditLogOperationTypeConst.Create);
             return Result.Success(document.Id);
         }, ct);
+
+    public Task<Result<long>> RecalculateAsync(long id, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(RecalculateAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            await _postingLock.AcquireAsync(DocumentTypeIdConst.SALARY, id, ct);
+            var document = await GetAggregateAsync(id, ct);
+            if (document is null)
+                return Result.Failure<long>(PayrollErrors.NotFound("PayrollDocument", id, _userContext.LanguageId));
+
+            if (!PayrollRecalculationPolicy.CanRequest(document.StatusId))
+                return Result.Failure<long>(PayrollErrors.RecalculationRequiresPosted(id, document.StatusId, _userContext.LanguageId));
+
+            if (document.DocumentKind != PayrollDocumentKindConst.Regular)
+                return Result.Failure<long>(PayrollErrors.Business(
+                    "RecalculationRegularOnly",
+                    "Avtomatik qayta hisoblash faqat asosiy oylik hujjati uchun ishlaydi; tuzatish hujjatini alohida tuzating.",
+                    _userContext.LanguageId));
+
+            var postedTimesheet = await GetPostedTimesheetAsync(document.PeriodId, ct);
+            if (postedTimesheet is null)
+                return Result.Failure<long>(PayrollErrors.NoPostedTimesheet(document.PeriodId, _userContext.LanguageId));
+
+            var sourceRevision = await BuildRecalculationSourceRevisionAsync(
+                document,
+                postedTimesheet,
+                ct);
+            var activeRequestQuery = _queryBuilder.For<PayPayrollRecalculation>()
+                .Where(x => x.PayrollDocId == id &&
+                            x.SourceRevision == sourceRevision &&
+                            (x.Status == PayrollRecalculationStatusConst.Pending ||
+                             x.Status == PayrollRecalculationStatusConst.Processing ||
+                             x.Status == PayrollRecalculationStatusConst.Completed))
+                .As(x => x.Id)
+                .Build();
+            var activeRequestId = await _recalculationQuery.GetAsync(activeRequestQuery, ct);
+            if (activeRequestId > 0)
+                return Result.Success(activeRequestId);
+
+            var request = new PayPayrollRecalculation
+            {
+                OrganizationId = document.OrganizationId,
+                PayrollDocId = document.Id,
+                Status = PayrollRecalculationStatusConst.Pending,
+                Reason = "Manual recalculation requested",
+                SourceRevision = sourceRevision,
+                RequestedDate = DateTime.Now,
+                RequestedByUserId = _userContext.Id
+            };
+            await _recalculationCommand.CreateAsync(request, ct);
+
+            // Move the request through PROCESSING before rebuilding the
+            // snapshot.  Keeping this transition explicit makes the queue
+            // observable and leaves a safe state if processing is later moved
+            // to a hosted worker.
+            request.Status = PayrollRecalculationStatusConst.Processing;
+            await _recalculationCommand.UpdateAsync(request, ct);
+
+            Result<long> correctionResult;
+            try
+            {
+                correctionResult = await BuildRecalculationCorrectionAsync(document, postedTimesheet, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                request.Status = PayrollRecalculationStatusConst.Failed;
+                request.ErrorMessage = ex.Message;
+                request.CompletedDate = DateTime.Now;
+                await _recalculationCommand.UpdateAsync(request, ct);
+                // Preserve the failed queue item even though the API reports
+                // the processing error to the caller. BaseService's rollback
+                // is a no-op after this explicit commit.
+                await _serviceUnitOfWork.CommitAsync(ct);
+                return Result.Failure<long>(PayrollErrors.Business(
+                    "RecalculationFailed",
+                    "Qayta hisoblash jarayonida xatolik yuz berdi.",
+                    _userContext.LanguageId));
+            }
+            if (!correctionResult.IsSuccess)
+            {
+                request.Status = PayrollRecalculationStatusConst.Failed;
+                request.ErrorMessage = correctionResult.Error.Description;
+                request.CompletedDate = DateTime.Now;
+                await _recalculationCommand.UpdateAsync(request, ct);
+                await _serviceUnitOfWork.CommitAsync(ct);
+                return Result.Failure<long>(correctionResult.Error);
+            }
+
+            request.Status = PayrollRecalculationStatusConst.Completed;
+            request.CorrectionDocId = correctionResult.Value > 0 ? correctionResult.Value : null;
+            request.CompletedDate = DateTime.Now;
+            await _recalculationCommand.UpdateAsync(request, ct);
+            return Result.Success(request.Id);
+        }, ct);
+
+    private async Task<string> BuildRecalculationSourceRevisionAsync(
+        PayPayrollDoc source,
+        PayTimesheet timesheet,
+        CancellationToken ct)
+    {
+        var parts = new List<string>
+        {
+            $"doc:{source.Id}:{(source.UpdatedDate ?? source.PostedAt ?? source.CreatedDate).Ticks}",
+            $"timesheet:{timesheet.Id}:{(timesheet.UpdatedDate ?? timesheet.PostedAt ?? timesheet.CreatedDate).Ticks}"
+        };
+
+        var components = await GetActiveComponentsAsync(
+            source.Period,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        parts.AddRange(components
+            .OrderBy(x => x.Id)
+            .Select(x =>
+                $"component:{x.Id}:{x.Code}:{x.ComponentType}:{x.CalculationMethod}:{x.ProrationBasis}:" +
+                $"{x.DefaultAmount}:{x.DefaultRate}:{x.IsMandatory}:{x.ExpenseAccountId}:{x.LiabilityAccountId}:" +
+                $"{x.EffectiveFrom}:{x.EffectiveTo}:{x.UpdatedDate ?? x.CreatedDate}"));
+
+        var taxDefinitions = await GetActiveTaxDefinitionsAsync(
+            source.OrganizationId,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        parts.AddRange(taxDefinitions
+            .OrderBy(x => x.Id)
+            .Select(x =>
+                $"tax:{x.Id}:{x.Code}:{x.TaxType}:{x.BaseType}:{x.Rate}:{x.ExemptionAmount}:{x.LimitAmount}:" +
+                $"{x.LiabilityAccountId}:{x.EffectiveFrom}:{x.EffectiveTo}:{x.UpdatedDate ?? x.CreatedDate}"));
+
+        var employeeIds = timesheet.Lines.Select(x => x.EmployeeId).Distinct().ToList();
+        var employments = await GetEmploymentsAsync(employeeIds, source.Period, ct);
+        parts.AddRange(employments
+            .OrderBy(x => x.Id)
+            .Select(x =>
+                $"employment:{x.Id}:{x.EmployeeId}:{x.StartDate}:{x.EndDate}:{x.MonthlySalary}:{x.EmploymentRate}:" +
+                $"{x.CurrencyId}:{x.ExpenseAccountId}:{x.UpdatedDate ?? x.CreatedDate}"));
+
+        var assignments = await GetAssignmentsAsync(
+            employeeIds,
+            source.Period,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        parts.AddRange(assignments
+            .OrderBy(x => x.Id)
+            .Select(x =>
+                $"assignment:{x.Id}:{x.EmployeeId}:{x.ComponentId}:{x.Amount}:{x.Rate}:" +
+                $"{x.EffectiveFrom}:{x.EffectiveTo}:{x.UpdatedDate ?? x.CreatedDate}"));
+
+        var advances = await GetPostedAdvancesAsync(source.PeriodId, employeeIds, ct);
+        parts.AddRange(advances.OrderBy(x => x.Key).Select(x => $"advance:{x.Key}:{x.Value}"));
+
+        var payload = string.Join("|", parts);
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
+        return Convert.ToHexString(hash);
+    }
+
+    /// <summary>
+    /// Rebuilds the regular payroll from the current posted timesheet and the
+    /// effective payroll rules, then stores only the difference as a draft
+    /// correction document.  The posted source document is deliberately never
+    /// mutated: this is the same audit-safe pattern used for manual payroll
+    /// corrections.
+    /// </summary>
+    private async Task<Result<long>> BuildRecalculationCorrectionAsync(
+        PayPayrollDoc source,
+        PayTimesheet timesheet,
+        CancellationToken ct)
+    {
+        if (source.Period.Status != PayrollPeriodStatusConst.Open)
+            return Result.Failure<long>(PayrollErrors.PeriodClosed(source.PeriodId, _userContext.LanguageId));
+
+        if (!source.SalaryExpenseAccountId.HasValue)
+            return Result.Failure<long>(PayrollErrors.StoredPostingAccountMissing(
+                "salary expense",
+                source.Id,
+                _userContext.LanguageId));
+        if (!source.SalaryPayableAccountId.HasValue)
+            return Result.Failure<long>(PayrollErrors.StoredPostingAccountMissing(
+                "salary payable",
+                source.Id,
+                _userContext.LanguageId));
+
+        var components = await GetActiveComponentsAsync(
+            source.Period,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        if (components.Count == 0)
+            return Result.Failure<long>(PayrollErrors.NoCalculationComponents(source.PeriodId, _userContext.LanguageId));
+        if (!components.Any(x =>
+                x.IsMandatory &&
+                x.ComponentType == PayrollComponentTypeConst.Earning &&
+                x.CalculationMethod == PayrollCalculationMethodConst.SalaryProrated))
+            return Result.Failure<long>(PayrollErrors.MissingBaseSalaryComponent(_userContext.LanguageId));
+
+        var taxDefinitions = await GetActiveTaxDefinitionsAsync(
+            source.OrganizationId,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        var duplicateTaxDefinition = taxDefinitions
+            .GroupBy(x => x.Code)
+            .FirstOrDefault(x => x.Count() > 1);
+        if (duplicateTaxDefinition is not null)
+            return Result.Failure<long>(PayrollErrors.Conflict(
+                "TaxDefinitionEffectiveDateOverlap",
+                $"'{duplicateTaxDefinition.Key}' soliq qoidasining tanlangan sana uchun bir nechta faol versiyasi mavjud.",
+                _userContext.LanguageId));
+
+        var timesheetEmployeeIds = timesheet.Lines
+            .Select(x => x.EmployeeId)
+            .Distinct()
+            .ToList();
+        var allEmployeeIds = source.Lines
+            .Select(x => x.EmployeeId)
+            .Concat(timesheetEmployeeIds)
+            .Distinct()
+            .ToList();
+
+        var employments = await GetEmploymentsAsync(timesheetEmployeeIds, source.Period, ct);
+        var employmentByEmployee = employments
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.StartDate).First());
+        var missingEmployment = timesheetEmployeeIds.FirstOrDefault(id => !employmentByEmployee.ContainsKey(id));
+        if (missingEmployment > 0)
+            return Result.Failure<long>(PayrollErrors.NoActiveEmployment(missingEmployment, _userContext.LanguageId));
+
+        var currencyMismatch = employmentByEmployee.Values.FirstOrDefault(x => x.CurrencyId != source.CurrencyId);
+        if (currencyMismatch is not null)
+            return Result.Failure<long>(PayrollErrors.Business(
+                "RecalculationCurrencyMismatch",
+                $"Qayta hisoblashdagi xodim ish haqi valyutasi asosiy hujjat valyutasiga mos kelmaydi (xodim ID: {currencyMismatch.EmployeeId}).",
+                _userContext.LanguageId));
+
+        var assignments = await GetAssignmentsAsync(
+            timesheetEmployeeIds,
+            source.Period,
+            DateOnly.FromDateTime(source.DocDate),
+            ct);
+        var assignmentMap = assignments
+            .GroupBy(x => (x.EmployeeId, x.ComponentId))
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.EffectiveFrom).First());
+        var sourceByEmployee = source.Lines
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(x => x.Key, x => x.First());
+        var timesheetByEmployee = timesheet.Lines
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(x => x.Key, x => x.First());
+        var advances = await GetPostedAdvancesAsync(source.PeriodId, timesheetEmployeeIds, ct);
+
+        var accounts = new PayrollCalculateDto
+        {
+            SalaryExpenseAccountId = source.SalaryExpenseAccountId.Value,
+            SalaryPayableAccountId = source.SalaryPayableAccountId.Value
+        };
+        var freshLines = new Dictionary<long, PayPayrollLine>();
+
+        foreach (var employeeId in timesheetEmployeeIds)
+        {
+            var employment = employmentByEmployee[employeeId];
+            var sourceLine = sourceByEmployee.GetValueOrDefault(employeeId);
+            var manualMap = sourceLine?.CalcLines
+                .Where(x => x.IsManual)
+                .GroupBy(x => x.ComponentId)
+                .ToDictionary(
+                    x => (employeeId, x.Key),
+                    x => new PayrollManualAdjustmentDto
+                    {
+                        EmployeeId = employeeId,
+                        ComponentId = x.Key,
+                        Amount = x.First().Amount,
+                        Note = x.First().Note
+                    })
+                ?? new Dictionary<(long EmployeeId, int ComponentId), PayrollManualAdjustmentDto>();
+
+            var selectedComponents = components
+                .Where(component =>
+                    component.IsMandatory ||
+                    assignmentMap.ContainsKey((employeeId, component.Id)) ||
+                    manualMap.ContainsKey((employeeId, component.Id)))
+                .ToList();
+
+            var invalidReclassification = selectedComponents.FirstOrDefault(component =>
+                component.ComponentType == PayrollComponentTypeConst.Reclassification &&
+                (!component.ExpenseAccountId.HasValue || !component.LiabilityAccountId.HasValue));
+            if (invalidReclassification is not null)
+                return Result.Failure<long>(PayrollErrors.ReclassificationAccountsRequired(
+                    invalidReclassification.Id,
+                    _userContext.LanguageId));
+
+            var missingComponentAccount = selectedComponents.FirstOrDefault(component =>
+                (component.ComponentType == PayrollComponentTypeConst.Deduction &&
+                 !component.LiabilityAccountId.HasValue) ||
+                (component.ComponentType == PayrollComponentTypeConst.EmployerTax &&
+                 (!component.ExpenseAccountId.HasValue || !component.LiabilityAccountId.HasValue)));
+            if (missingComponentAccount is not null)
+                return Result.Failure<long>(PayrollErrors.Business(
+                    "ComponentPostingAccountsRequired",
+                    $"'{missingComponentAccount.Name}' komponenti uchun provodka hisobvaraqlari ko‘rsatilishi kerak (ID: {missingComponentAccount.Id}).",
+                    _userContext.LanguageId));
+
+            var fresh = BuildPayrollLineWithTaxes(
+                source.OrganizationId,
+                employment,
+                timesheetByEmployee[employeeId],
+                source.Period,
+                selectedComponents,
+                taxDefinitions,
+                assignmentMap,
+                manualMap,
+                advances.GetValueOrDefault(employeeId),
+                PayrollDocumentKindConst.Correction);
+            AssignPostingAccounts(fresh, accounts);
+            freshLines[employeeId] = fresh;
+        }
+
+        var correctionLines = new List<PayPayrollLine>();
+        foreach (var employeeId in allEmployeeIds)
+        {
+            var sourceLine = sourceByEmployee.GetValueOrDefault(employeeId);
+            var fresh = freshLines.GetValueOrDefault(employeeId) ?? CreateZeroPayrollLine(sourceLine!);
+            var original = sourceLine ?? CreateZeroPayrollLine(fresh);
+            var delta = PayrollRecalculationDeltaCalculator.Calculate(original, fresh);
+            var correctionLine = BuildRecalculationDeltaLine(original, fresh, delta);
+            if (correctionLine is not null)
+                correctionLines.Add(correctionLine);
+        }
+
+        if (correctionLines.Count == 0)
+            return Result.Success(0L);
+
+        var postingAccountValidation = await ValidatePostingAccountsAsync(
+            source.OrganizationId,
+            correctionLines,
+            ct);
+        if (!postingAccountValidation.IsSuccess)
+            return Result.Failure<long>(postingAccountValidation.Error);
+
+        var documentNumberResult = await _documentNumberService.GetNextAsync(
+            source.OrganizationId,
+            DocumentTypeIdConst.SALARY,
+            source.DocDate,
+            ct);
+        if (!documentNumberResult.IsSuccess)
+            return Result.Failure<long>(documentNumberResult.Error);
+
+        var now = DateTime.Now;
+        var correction = new PayPayrollDoc
+        {
+            OrganizationId = source.OrganizationId,
+            PeriodId = source.PeriodId,
+            DocNumber = documentNumberResult.Value.DocumentNumber,
+            DocDate = source.DocDate,
+            DocumentKind = PayrollDocumentKindConst.Correction,
+            CorrectionOfDocId = source.Id,
+            CorrectionPayoutMode = PayrollCorrectionPayoutModeConst.Separate,
+            CurrencyId = source.CurrencyId,
+            StatusId = DocumentStatusIdConst.DRAFT,
+            SalaryExpenseAccountId = source.SalaryExpenseAccountId,
+            SalaryPayableAccountId = source.SalaryPayableAccountId,
+            GrossAmount = Round(correctionLines.Sum(x => x.GrossAmount)),
+            DeductionAmount = Round(correctionLines.Sum(x => x.DeductionAmount)),
+            EmployerTaxAmount = Round(correctionLines.Sum(x => x.EmployerTaxAmount)),
+            AdvanceAmount = 0m,
+            NetAmount = Round(correctionLines.Sum(x => x.NetAmount)),
+            PayableAmount = Round(correctionLines.Sum(x => x.PayableAmount)),
+            Note = $"Avtomatik qayta hisoblash: {source.DocNumber}",
+            StateId = StateIdConst.ACTIVE,
+            CreatedDate = now,
+            CreatedByUserId = _userContext.Id,
+            Lines = correctionLines
+        };
+
+        await _command.CreateAsync(correction, ct);
+        _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(correction.Id, ct));
+        await _auditLogService.CreateAsync(
+            AuditLogTableConst.PayPayrollDoc,
+            correction.Id.ToString(),
+            AuditLogOperationTypeConst.Create);
+        return Result.Success(correction.Id);
+    }
+
+    private static PayPayrollLine CreateZeroPayrollLine(PayPayrollLine source)
+    {
+        return new PayPayrollLine
+        {
+            OrganizationId = source.OrganizationId,
+            EmployeeId = source.EmployeeId,
+            EmploymentId = source.EmploymentId,
+            Employment = source.Employment,
+            Employee = source.Employee,
+            CalcLines = [],
+            TaxLines = []
+        };
+    }
+
+    private static PayPayrollLine? BuildRecalculationDeltaLine(
+        PayPayrollLine original,
+        PayPayrollLine recalculated,
+        PayrollRecalculationLineDelta delta)
+    {
+        var hasFinancialDelta = delta.GrossAmount != 0m ||
+                                delta.DeductionAmount != 0m ||
+                                delta.EmployerTaxAmount != 0m ||
+                                delta.NetAmount != 0m ||
+                                delta.ComponentDeltas.Values.Any(x => x != 0m) ||
+                                delta.TaxDeltas.Values.Any(x => x != 0m);
+        if (!hasFinancialDelta)
+            return null;
+
+        var calcReferences = original.CalcLines
+            .Concat(recalculated.CalcLines)
+            .GroupBy(x => x.ComponentId)
+            .ToDictionary(x => x.Key, x => x.Last());
+        var taxReferences = original.TaxLines
+            .Concat(recalculated.TaxLines)
+            .GroupBy(x => x.TaxDefinitionId)
+            .ToDictionary(x => x.Key, x => x.Last());
+
+        var calcLines = delta.ComponentDeltas
+            .Where(x => x.Value != 0m && calcReferences.ContainsKey(x.Key))
+            .Select(x =>
+            {
+                var originalCalc = original.CalcLines.FirstOrDefault(line => line.ComponentId == x.Key);
+                var recalculatedCalc = recalculated.CalcLines.FirstOrDefault(line => line.ComponentId == x.Key);
+                var reference = recalculatedCalc ?? originalCalc!;
+                return new PayPayrollCalcLine
+                {
+                    OrganizationId = recalculated.OrganizationId,
+                    ComponentId = reference.ComponentId,
+                    Component = reference.Component,
+                    BaseAmount = Round((recalculatedCalc?.BaseAmount ?? 0m) - (originalCalc?.BaseAmount ?? 0m)),
+                    Quantity = recalculatedCalc?.Quantity ?? originalCalc?.Quantity,
+                    Rate = recalculatedCalc?.Rate ?? originalCalc?.Rate,
+                    Amount = x.Value,
+                    DebitAccountId = reference.DebitAccountId,
+                    CreditAccountId = reference.CreditAccountId,
+                    IsManual = false,
+                    Note = "Avtomatik qayta hisoblash farqi"
+                };
+            })
+            .ToList();
+        var taxLines = delta.TaxDeltas
+            .Where(x => x.Value != 0m && taxReferences.ContainsKey(x.Key))
+            .Select(x =>
+            {
+                var originalTax = original.TaxLines.FirstOrDefault(line => line.TaxDefinitionId == x.Key);
+                var recalculatedTax = recalculated.TaxLines.FirstOrDefault(line => line.TaxDefinitionId == x.Key);
+                var reference = recalculatedTax ?? originalTax!;
+                return new PayPayrollTaxLine
+                {
+                    OrganizationId = recalculated.OrganizationId,
+                    TaxDefinitionId = reference.TaxDefinitionId,
+                    TaxDefinition = reference.TaxDefinition,
+                    BaseAmount = Round((recalculatedTax?.BaseAmount ?? 0m) - (originalTax?.BaseAmount ?? 0m)),
+                    ExemptionAmount = Round((recalculatedTax?.ExemptionAmount ?? 0m) - (originalTax?.ExemptionAmount ?? 0m)),
+                    TaxableBase = Round((recalculatedTax?.TaxableBase ?? 0m) - (originalTax?.TaxableBase ?? 0m)),
+                    Rate = recalculatedTax?.Rate ?? originalTax?.Rate ?? 0m,
+                    Amount = x.Value,
+                    LiabilityAccountId = reference.LiabilityAccountId,
+                    CreatedDate = DateTime.Now
+                };
+            })
+            .ToList();
+
+        return new PayPayrollLine
+        {
+            OrganizationId = recalculated.OrganizationId,
+            EmployeeId = recalculated.EmployeeId != 0 ? recalculated.EmployeeId : original.EmployeeId,
+            EmploymentId = recalculated.EmploymentId != 0 ? recalculated.EmploymentId : original.EmploymentId,
+            Employment = recalculated.Employment ?? original.Employment,
+            Employee = recalculated.Employee ?? original.Employee,
+            WorkedDays = delta.WorkedDays,
+            WorkedHours = delta.WorkedHours,
+            PaidLeaveDays = delta.PaidLeaveDays,
+            PaidSickDays = delta.PaidSickDays,
+            OvertimeHours = delta.OvertimeHours,
+            NightHours = delta.NightHours,
+            HolidayHours = delta.HolidayHours,
+            WeekendHours = delta.WeekendHours,
+            GrossAmount = delta.GrossAmount,
+            DeductionAmount = delta.DeductionAmount,
+            EmployerTaxAmount = delta.EmployerTaxAmount,
+            AdvanceAmount = 0m,
+            NetAmount = delta.NetAmount,
+            // A separate correction must not reverse the original advance
+            // offset. Its payable amount is the net correction only.
+            PayableAmount = delta.NetAmount,
+            CalcLines = calcLines,
+            TaxLines = taxLines
+        };
+    }
 
     public Task<Result> ConfirmAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(ConfirmAsync), async () =>
@@ -490,6 +1058,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             return Result.Success();
         }, ct);
 
+    // Kept as a compatibility seam for existing callers/tests that build a line
+    // without a tax registry. Production calculation uses the tax-aware method.
     private PayPayrollLine BuildPayrollLine(
         int organizationId,
         PayEmployment employment,
@@ -499,14 +1069,36 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         Dictionary<(long EmployeeId, int ComponentId), PayEmployeeComponent> assignments,
         Dictionary<(long EmployeeId, int ComponentId), PayrollManualAdjustmentDto> manualAdjustments,
         decimal advance,
+        string documentKind) =>
+        BuildPayrollLineWithTaxes(
+            organizationId,
+            employment,
+            time,
+            period,
+            components,
+            [],
+            assignments,
+            manualAdjustments,
+            advance,
+            documentKind);
+
+    private PayPayrollLine BuildPayrollLineWithTaxes(
+        int organizationId,
+        PayEmployment employment,
+        PayTimesheetLine time,
+        PayPeriod period,
+        List<PayComponent> components,
+        List<PayTaxDefinition> taxDefinitions,
+        Dictionary<(long EmployeeId, int ComponentId), PayEmployeeComponent> assignments,
+        Dictionary<(long EmployeeId, int ComponentId), PayrollManualAdjustmentDto> manualAdjustments,
+        decimal advance,
         string documentKind)
     {
         var employeeId = employment.EmployeeId;
         var calcLines = new List<PayPayrollCalcLine>();
-        var earnings = components
-            .Where(x => x.ComponentType == PayrollComponentTypeConst.Earning)
-            .OrderBy(x => x.SortOrder)
-            .ToList();
+        var earnings = PayrollComponentFormulaPolicy.Order(
+            components.Where(x => x.ComponentType == PayrollComponentTypeConst.Earning));
+        var calcAmounts = new Dictionary<int, decimal>();
 
         decimal gross = 0m;
         foreach (var component in earnings.Where(x => x.CalculationMethod != PayrollCalculationMethodConst.PercentOfGross))
@@ -514,8 +1106,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var calc = CalculateComponent(
                 organizationId, component, employment, time, period, gross,
                 assignments.GetValueOrDefault((employeeId, component.Id)),
-                manualAdjustments.GetValueOrDefault((employeeId, component.Id)));
+                manualAdjustments.GetValueOrDefault((employeeId, component.Id)),
+                component.DependsOnComponentId is { } dependencyId && calcAmounts.TryGetValue(dependencyId, out var dependencyAmount)
+                    ? dependencyAmount
+                    : null);
             calcLines.Add(calc);
+            calcAmounts[component.Id] = calc.Amount;
             gross += calc.Amount;
         }
         foreach (var component in earnings.Where(x => x.CalculationMethod == PayrollCalculationMethodConst.PercentOfGross))
@@ -523,20 +1119,28 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var calc = CalculateComponent(
                 organizationId, component, employment, time, period, gross,
                 assignments.GetValueOrDefault((employeeId, component.Id)),
-                manualAdjustments.GetValueOrDefault((employeeId, component.Id)));
+                manualAdjustments.GetValueOrDefault((employeeId, component.Id)),
+                component.DependsOnComponentId is { } dependencyId && calcAmounts.TryGetValue(dependencyId, out var dependencyAmount)
+                    ? dependencyAmount
+                    : null);
             calcLines.Add(calc);
+            calcAmounts[component.Id] = calc.Amount;
             gross += calc.Amount;
         }
         gross = Round(gross);
 
-        foreach (var component in components
-                     .Where(x => x.ComponentType != PayrollComponentTypeConst.Earning)
-                     .OrderBy(x => x.SortOrder))
+        foreach (var component in PayrollComponentFormulaPolicy.Order(
+                     components.Where(x => x.ComponentType != PayrollComponentTypeConst.Earning)))
         {
-            calcLines.Add(CalculateComponent(
+            var calc = CalculateComponent(
                 organizationId, component, employment, time, period, gross,
                 assignments.GetValueOrDefault((employeeId, component.Id)),
-                manualAdjustments.GetValueOrDefault((employeeId, component.Id))));
+                manualAdjustments.GetValueOrDefault((employeeId, component.Id)),
+                component.DependsOnComponentId is { } dependencyId && calcAmounts.TryGetValue(dependencyId, out var dependencyAmount)
+                    ? dependencyAmount
+                    : null);
+            calcLines.Add(calc);
+            calcAmounts[component.Id] = calc.Amount;
         }
 
         var deductions = Round(calcLines
@@ -545,8 +1149,26 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         var employerTax = Round(calcLines
             .Where(x => x.Component.ComponentType == PayrollComponentTypeConst.EmployerTax)
             .Sum(x => x.Amount));
+        var taxLines = taxDefinitions
+            .Select(definition => BuildTaxLine(
+                organizationId,
+                definition,
+                gross,
+                deductions,
+                calcLines
+                    .Where(x => x.Component.ComponentType == PayrollComponentTypeConst.Earning && x.Component.IsTaxable)
+                    .Sum(x => x.Amount)))
+            .Where(line => line.Amount != 0m)
+            .ToList();
+        deductions = Round(deductions + taxLines
+            .Where(line => line.TaxDefinition.TaxType == PayrollTaxTypeConst.Withholding)
+            .Sum(line => line.Amount));
+        employerTax = Round(employerTax + taxLines
+            .Where(line => line.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer)
+            .Sum(line => line.Amount));
         var net = Round(gross - deductions);
         var appliedAdvance = documentKind == PayrollDocumentKindConst.Regular ? Round(advance) : 0m;
+        var attendance = PayrollAttendanceSnapshotCalculator.FromTimesheet(time);
 
         return new PayPayrollLine
         {
@@ -554,15 +1176,54 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             EmployeeId = employeeId,
             EmploymentId = employment.Id,
             Employment = employment,
-            WorkedDays = time.WorkedDays,
-            WorkedHours = time.WorkedHours,
+            WorkedDays = attendance.WorkedDays,
+            WorkedHours = attendance.WorkedHours,
+            PaidLeaveDays = attendance.PaidLeaveDays,
+            PaidSickDays = attendance.PaidSickDays,
+            OvertimeHours = attendance.OvertimeHours,
+            NightHours = attendance.NightHours,
+            HolidayHours = attendance.HolidayHours,
+            WeekendHours = attendance.WeekendHours,
             GrossAmount = gross,
             DeductionAmount = deductions,
             EmployerTaxAmount = employerTax,
             AdvanceAmount = appliedAdvance,
             NetAmount = net,
             PayableAmount = Round(net - appliedAdvance),
-            CalcLines = calcLines
+            CalcLines = calcLines,
+            TaxLines = taxLines
+        };
+    }
+
+    private static PayPayrollTaxLine BuildTaxLine(
+        int organizationId,
+        PayTaxDefinition definition,
+        decimal gross,
+        decimal deductions,
+        decimal taxableGross)
+    {
+        var baseAmount = definition.BaseType switch
+        {
+            PayrollTaxBaseTypeConst.Net => Math.Max(gross - deductions, 0m),
+            PayrollTaxBaseTypeConst.TaxableEarnings => taxableGross,
+            _ => gross
+        };
+        var calculation = PayrollTaxCalculator.Calculate(new PayrollTaxCalculationInput(
+            baseAmount,
+            definition.Rate,
+            definition.ExemptionAmount ?? 0m,
+            definition.LimitAmount));
+        return new PayPayrollTaxLine
+        {
+            OrganizationId = organizationId,
+            TaxDefinitionId = definition.Id,
+            TaxDefinition = definition,
+            BaseAmount = Round(baseAmount),
+            ExemptionAmount = Round(Math.Max(definition.ExemptionAmount ?? 0m, 0m)),
+            TaxableBase = calculation.TaxableBase,
+            Rate = definition.Rate,
+            Amount = calculation.Amount,
+            LiabilityAccountId = definition.LiabilityAccountId
         };
     }
 
@@ -581,14 +1242,11 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
 
                 PayrollComponentTypeConst.Deduction =>
                     (accounts.SalaryPayableAccountId,
-                     calc.Component.LiabilityAccountId
-                         ?? accounts.DeductionPayableAccountId),
+                     calc.Component.LiabilityAccountId!.Value),
 
                 PayrollComponentTypeConst.EmployerTax =>
-                    (calc.Component.ExpenseAccountId
-                         ?? accounts.EmployerTaxExpenseAccountId,
-                     calc.Component.LiabilityAccountId
-                         ?? accounts.EmployerTaxPayableAccountId),
+                    (calc.Component.ExpenseAccountId!.Value,
+                     calc.Component.LiabilityAccountId!.Value),
 
                 PayrollComponentTypeConst.Reclassification =>
                     (calc.Component.ExpenseAccountId!.Value,
@@ -600,6 +1258,52 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         }
     }
 
+    private async Task<Result> ValidatePostingAccountsAsync(
+        int organizationId,
+        IEnumerable<PayPayrollLine> lines,
+        CancellationToken ct)
+    {
+        var accountIds = lines
+            .SelectMany(line =>
+                line.CalcLines
+                    .SelectMany(calc => new[] { calc.DebitAccountId, calc.CreditAccountId })
+                    .Concat(line.TaxLines.Select(tax => (int?)tax.LiabilityAccountId)))
+            .Where(id => id.HasValue && id.Value > 0)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+        if (accountIds.Count == 0)
+            return Result.Success();
+
+        var query = _queryBuilder.For<ChartAccount>()
+            .Where(x =>
+                accountIds.Contains(x.Id) &&
+                x.OrganizationId == organizationId &&
+                x.StateId == StateIdConst.ACTIVE)
+            .As(x => new { x.Id, x.IsGroup })
+            .Build();
+        var accounts = await _accountQuery.GetAllAsync(query, ct);
+        var missingAccount = accountIds
+            .Except(accounts.Select(x => x.Id))
+            .FirstOrDefault();
+        if (missingAccount > 0)
+            return Result.Failure(PayrollErrors.ReferencedRecordNotFound(
+                "ChartAccount",
+                missingAccount,
+                _userContext.LanguageId));
+
+        var groupAccounts = accounts
+            .Where(x => x.IsGroup)
+            .Select(x => x.Id)
+            .ToList();
+        return groupAccounts.Count == 0
+            ? Result.Success()
+            : Result.Failure(PayrollErrors.Business(
+                "PostingAccountNotPostable",
+                $"Guruh hisobvarag‘iga o‘tkazma yozib bo‘lmaydi: {string.Join(", ", groupAccounts)}.",
+                _userContext.LanguageId));
+    }
+
     private static PayPayrollCalcLine CalculateComponent(
         int organizationId,
         PayComponent component,
@@ -608,7 +1312,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         PayPeriod period,
         decimal gross,
         PayEmployeeComponent? assignment,
-        PayrollManualAdjustmentDto? manual)
+        PayrollManualAdjustmentDto? manual,
+        decimal? dependencyBase = null)
     {
         decimal baseAmount;
         decimal? quantity = null;
@@ -626,20 +1331,36 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             {
                 case PayrollCalculationMethodConst.SalaryProrated:
                     baseAmount = employment.MonthlySalary * employment.EmploymentRate;
-                    quantity = time.WorkedDays;
                     var employeeNormDays = time.NormWorkDays > 0m
                         ? time.NormWorkDays
                         : period.NormWorkDays;
-                    amount = employeeNormDays == 0m
-                        ? 0m
-                        : baseAmount * time.WorkedDays / employeeNormDays;
+                    var employeeNormHours = time.NormWorkHours > 0m
+                        ? time.NormWorkHours
+                        : period.NormWorkHours;
+                    var basis = PayrollProrationBasisConst.All.Contains(component.ProrationBasis)
+                        ? component.ProrationBasis
+                        : PayrollProrationBasisConst.Days;
+                    quantity = basis == PayrollProrationBasisConst.Hours
+                        ? time.WorkedHours
+                        : time.WorkedDays;
+                    amount = PayrollSalaryProrationCalculator.Calculate(
+                        employment.MonthlySalary,
+                        employment.EmploymentRate,
+                        time.WorkedDays,
+                        employeeNormDays,
+                        time.WorkedHours,
+                        employeeNormHours,
+                        basis,
+                        time.PaidLeaveDays,
+                        (time.PaidLeaveDays + time.PaidSickDays) * period.DailyWorkHours,
+                        time.PaidSickDays);
                     break;
                 case PayrollCalculationMethodConst.Fixed:
                     baseAmount = assignment?.Amount ?? component.DefaultAmount ?? 0m;
                     amount = baseAmount;
                     break;
                 case PayrollCalculationMethodConst.PercentOfGross:
-                    baseAmount = gross;
+                    baseAmount = dependencyBase ?? gross;
                     amount = baseAmount * (rate ?? 0m) / 100m;
                     break;
                 case PayrollCalculationMethodConst.PerHour:
@@ -651,6 +1372,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     throw new InvalidOperationException($"Qo‘llab-quvvatlanmaydigan oylik hisoblash usuli: '{component.CalculationMethod}'.");
             }
         }
+
+        amount = PayrollComponentFormulaPolicy.ApplyCaps(amount, component.MinimumAmount, component.MaximumAmount);
 
         return new PayPayrollCalcLine
         {
@@ -669,6 +1392,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private async Task<PayPeriod?> GetPeriodAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<PayPeriod>().Where(x => x.Id == id).Build();
+        query.AddIncludes(x => x.Include(period => period.WorkDays));
         return await _periodQuery.GetAsync(query, ct);
     }
 
@@ -680,19 +1404,37 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 x.StateId == StateIdConst.ACTIVE &&
                 x.StatusId == DocumentStatusIdConst.POSTED)
             .Build();
-        query.AddIncludes(x => x.Include(t => t.Lines));
+        query.AddIncludes(x => x.Include(t => t.Lines).ThenInclude(line => line.Days));
         return await _timesheetQuery.GetAsync(query, ct);
     }
 
-    private async Task<List<PayComponent>> GetActiveComponentsAsync(PayPeriod period, CancellationToken ct)
+    private async Task<List<PayComponent>> GetActiveComponentsAsync(
+        PayPeriod period,
+        DateOnly effectiveDate,
+        CancellationToken ct)
     {
         var query = _queryBuilder.For<PayComponent>()
             .Where(x =>
+                x.OrganizationId == period.OrganizationId &&
                 x.StateId == StateIdConst.ACTIVE &&
-                x.EffectiveFrom <= period.EndDate &&
-                (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= period.StartDate))
+                x.EffectiveFrom <= effectiveDate &&
+                (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= effectiveDate))
             .Build();
         return await _componentQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<List<PayTaxDefinition>> GetActiveTaxDefinitionsAsync(
+        int organizationId,
+        DateOnly effectiveDate,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayTaxDefinition>()
+            .Where(x => x.OrganizationId == organizationId &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.EffectiveFrom <= effectiveDate &&
+                        (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= effectiveDate))
+            .Build();
+        return await _taxDefinitionQuery.GetAllAsync(query, ct);
     }
 
     private async Task<List<PayEmployment>> GetEmploymentsAsync(List<long> employeeIds, PayPeriod period, CancellationToken ct)
@@ -708,7 +1450,26 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         return await _employmentQuery.GetAllAsync(query, ct);
     }
 
-    private async Task<List<PayEmployeeComponent>> GetAssignmentsAsync(List<long> employeeIds, PayPeriod period, CancellationToken ct)
+    private async Task<List<PayEmployeeComponent>> GetAssignmentsAsync(
+        List<long> employeeIds,
+        PayPeriod period,
+        DateOnly effectiveDate,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayEmployeeComponent>()
+            .Where(x =>
+                employeeIds.Contains(x.EmployeeId) &&
+                x.StateId == StateIdConst.ACTIVE &&
+                x.EffectiveFrom <= effectiveDate &&
+                (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= effectiveDate))
+            .Build();
+        return await _assignmentQuery.GetAllAsync(query, ct);
+    }
+
+    private async Task<Dictionary<long, List<PayEmployeeComponent>>> GetAssignmentHistoryAsync(
+        List<long> employeeIds,
+        PayPeriod period,
+        CancellationToken ct)
     {
         var query = _queryBuilder.For<PayEmployeeComponent>()
             .Where(x =>
@@ -717,8 +1478,115 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 x.EffectiveFrom <= period.EndDate &&
                 (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= period.StartDate))
             .Build();
-        return await _assignmentQuery.GetAllAsync(query, ct);
+        var assignments = await _assignmentQuery.GetAllAsync(query, ct);
+        return assignments
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(x => x.Key, x => x.OrderBy(y => y.EffectiveFrom).ThenBy(y => y.Id).ToList());
     }
+
+    private static List<PayPayrollLineSegment> BuildPayrollLineSegments(
+        int organizationId,
+        PayPayrollLine line,
+        PayTimesheetLine time,
+        PayPeriod period,
+        IEnumerable<PayEmployment> employments,
+        IReadOnlyCollection<PayComponent> components,
+        IReadOnlyCollection<PayEmployeeComponent> assignmentHistory)
+    {
+        var employmentList = employments.ToList();
+        var segments = PayrollEmploymentSegmentCalculator.Split(period, employmentList);
+        if (segments.Count == 0)
+            return [];
+
+        var periodDays = Math.Max(period.EndDate.DayNumber - period.StartDate.DayNumber + 1, 1);
+        var availableTimesheetDays = time.Days ?? [];
+        var availableWorkDays = period.WorkDays ?? [];
+        var totalSegmentDays = segments.Sum(x => x.EndDate.DayNumber - x.StartDate.DayNumber + 1);
+
+        return segments.Select(segment =>
+        {
+            var segmentDays = availableTimesheetDays
+                .Where(x => x.WorkDate >= segment.StartDate && x.WorkDate <= segment.EndDate)
+                .ToList();
+            decimal workedDays = segmentDays.Count(x => x.StatusCode == HrCalendarStatusConst.Worked);
+            var workedHours = segmentDays
+                .Where(x => x.StatusCode == HrCalendarStatusConst.Worked)
+                .Sum(x => x.WorkedHours);
+            if (segmentDays.Count == 0)
+            {
+                var ratio = totalSegmentDays == 0
+                    ? 0m
+                    : (segment.EndDate.DayNumber - segment.StartDate.DayNumber + 1) / (decimal)totalSegmentDays;
+                workedDays = time.WorkedDays * ratio;
+                workedHours = time.WorkedHours * ratio;
+            }
+
+            var segmentWorkDays = availableWorkDays
+                .Where(x => x.WorkDate >= segment.StartDate && x.WorkDate <= segment.EndDate && x.IsWorkDay)
+                .ToList();
+            var normWorkDays = segmentWorkDays.Count;
+            var normWorkHours = segmentWorkDays.Sum(x => x.WorkHours);
+            if (availableWorkDays.Count == 0)
+            {
+                var ratio = (segment.EndDate.DayNumber - segment.StartDate.DayNumber + 1) / (decimal)periodDays;
+                normWorkDays = (int)Math.Round((time.NormWorkDays > 0m ? time.NormWorkDays : period.NormWorkDays) * ratio, 0, MidpointRounding.AwayFromZero);
+                normWorkHours = (time.NormWorkHours > 0m ? time.NormWorkHours : period.NormWorkHours) * ratio;
+            }
+
+            var componentSnapshot = components
+                .Select(component =>
+                {
+                    var assignment = assignmentHistory
+                        .Where(x => x.ComponentId == component.Id &&
+                                    x.EffectiveFrom <= segment.EndDate &&
+                                    (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= segment.StartDate))
+                        .OrderByDescending(x => x.EffectiveFrom)
+                        .ThenByDescending(x => x.Id)
+                        .FirstOrDefault();
+                    return new PayrollComponentSnapshot(
+                        component.Id,
+                        component.Code,
+                        component.CalculationMethod,
+                        component.ProrationBasis,
+                        component.DefaultAmount,
+                        component.DefaultRate,
+                        assignment?.Amount,
+                        assignment?.Rate,
+                        assignment?.EffectiveFrom,
+                        assignment?.EffectiveTo);
+                })
+                .ToList();
+
+            return new PayPayrollLineSegment
+            {
+                OrganizationId = organizationId,
+                PayrollLine = line,
+                Employment = employmentList.First(x => x.Id == segment.EmploymentId),
+                EmploymentId = segment.EmploymentId,
+                SegmentStartDate = segment.StartDate,
+                SegmentEndDate = segment.EndDate,
+                MonthlySalary = segment.MonthlySalary,
+                EmploymentRate = segment.EmploymentRate,
+                WorkedDays = decimal.Round(workedDays, 2),
+                WorkedHours = decimal.Round(workedHours, 2),
+                NormWorkDays = decimal.Round(normWorkDays, 2),
+                NormWorkHours = decimal.Round(normWorkHours, 2),
+                ComponentSnapshotJson = JsonSerializer.Serialize(componentSnapshot)
+            };
+        }).ToList();
+    }
+
+    private sealed record PayrollComponentSnapshot(
+        int ComponentId,
+        string ComponentCode,
+        string CalculationMethod,
+        string ProrationBasis,
+        decimal? DefaultAmount,
+        decimal? DefaultRate,
+        decimal? AssignmentAmount,
+        decimal? AssignmentRate,
+        DateOnly? AssignmentEffectiveFrom,
+        DateOnly? AssignmentEffectiveTo);
 
     private async Task<Dictionary<long, decimal>> GetPostedAdvancesAsync(long periodId, List<long> employeeIds, CancellationToken ct)
     {
@@ -742,6 +1610,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.Employee));
         query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.Employment));
         query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.CalcLines).ThenInclude(c => c.Component));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.TaxLines).ThenInclude(t => t.TaxDefinition));
+        query.AddIncludes(x => x.Include(d => d.Lines).ThenInclude(l => l.Segments));
         return await _query.GetAsync(query, ct);
     }
 
@@ -814,13 +1684,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 PeriodName = x.Period.PeriodYear + "-" + x.Period.PeriodMonth,
                 DocumentKind = x.DocumentKind,
                 CorrectionOfDocId = x.CorrectionOfDocId,
+                CorrectionPayoutMode = x.CorrectionPayoutMode,
                 CurrencyId = x.CurrencyId,
                 SalaryExpenseAccountId = x.SalaryExpenseAccountId,
                 SalaryPayableAccountId = x.SalaryPayableAccountId,
-                DeductionPayableAccountId = x.DeductionPayableAccountId,
-                EmployerTaxExpenseAccountId = x.EmployerTaxExpenseAccountId,
-                EmployerTaxPayableAccountId = x.EmployerTaxPayableAccountId,
-                AdvanceReceivableAccountId = x.AdvanceReceivableAccountId,
                 StatusId = x.StatusId,
                 StatusName = x.Status.Name,
                 GrossAmount = x.GrossAmount,
@@ -829,6 +1696,15 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 AdvanceAmount = x.AdvanceAmount,
                 NetAmount = x.NetAmount,
                 PayableAmount = x.PayableAmount,
+                HasPendingRecalculation = x.RecalculationRequests.Any(request =>
+                    request.Status == PayrollRecalculationStatusConst.Pending ||
+                    request.Status == PayrollRecalculationStatusConst.Processing),
+                PendingRecalculationId = x.RecalculationRequests
+                    .Where(request => request.Status == PayrollRecalculationStatusConst.Pending ||
+                                      request.Status == PayrollRecalculationStatusConst.Processing)
+                    .OrderByDescending(request => request.Id)
+                    .Select(request => (long?)request.Id)
+                    .FirstOrDefault(),
                 Note = x.Note,
                 StateId = x.StateId,
                 CreatedDate = x.CreatedDate,
@@ -846,6 +1722,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                         PositionName = line.Employment.Position != null ? line.Employment.Position.Name : null,
                         WorkedDays = line.WorkedDays,
                         WorkedHours = line.WorkedHours,
+                        PaidLeaveDays = line.PaidLeaveDays,
+                        PaidSickDays = line.PaidSickDays,
+                        OvertimeHours = line.OvertimeHours,
+                        NightHours = line.NightHours,
+                        HolidayHours = line.HolidayHours,
+                        WeekendHours = line.WeekendHours,
                         GrossAmount = line.GrossAmount,
                         DeductionAmount = line.DeductionAmount,
                         EmployerTaxAmount = line.EmployerTaxAmount,
@@ -869,6 +1751,37 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                                 CreditAccountId = calc.CreditAccountId,
                                 IsManual = calc.IsManual,
                                 Note = calc.Note
+                            }).ToList(),
+                        TaxLines = line.TaxLines.OrderBy(tax => tax.TaxDefinition.Code)
+                            .Select(tax => new PayrollTaxLineDto
+                            {
+                                Id = tax.Id,
+                                TaxDefinitionId = tax.TaxDefinitionId,
+                                TaxCode = tax.TaxDefinition.Code,
+                                TaxName = tax.TaxDefinition.Name,
+                                TaxType = tax.TaxDefinition.TaxType,
+                                BaseType = tax.TaxDefinition.BaseType,
+                                BaseAmount = tax.BaseAmount,
+                                ExemptionAmount = tax.ExemptionAmount,
+                                TaxableBase = tax.TaxableBase,
+                                Rate = tax.Rate,
+                                Amount = tax.Amount,
+                                LiabilityAccountId = tax.LiabilityAccountId
+                            }).ToList(),
+                        Segments = line.Segments.OrderBy(segment => segment.SegmentStartDate)
+                            .Select(segment => new PayrollLineSegmentDto
+                            {
+                                Id = segment.Id,
+                                EmploymentId = segment.EmploymentId,
+                                SegmentStartDate = segment.SegmentStartDate,
+                                SegmentEndDate = segment.SegmentEndDate,
+                                MonthlySalary = segment.MonthlySalary,
+                                EmploymentRate = segment.EmploymentRate,
+                                WorkedDays = segment.WorkedDays,
+                                WorkedHours = segment.WorkedHours,
+                                NormWorkDays = segment.NormWorkDays,
+                                NormWorkHours = segment.NormWorkHours,
+                                ComponentSnapshotJson = segment.ComponentSnapshotJson
                             }).ToList()
                     }).ToList()
             })

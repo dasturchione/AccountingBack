@@ -37,17 +37,24 @@ public sealed class PayrollReportService : IPayrollReportService
         if (period is null)
             return Result.Failure<PayrollRegisterReportDto>(PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
 
-        var lines = await GetPayrollLinesAsync(periodId, null, ct);
-        var employeeIds = lines.Select(x => x.EmployeeId).Distinct().ToList();
-        var paid = await GetPaidByEmployeeAsync(periodId, employeeIds, ct);
+        var allLines = await GetPayrollLinesAsync(periodId, null, ct);
+        var eligibleLineIds = allLines
+            .Where(IncludeInMainPayrollTotals)
+            .Select(x => x.Id)
+            .ToList();
+        var paid = await GetPaidByEmployeeAsync(periodId, eligibleLineIds, ct);
 
-        var employees = lines
+        var employees = allLines
             .GroupBy(x => x.EmployeeId)
             .Select(group =>
             {
                 var latest = group.OrderByDescending(x => x.PayrollDoc.DocDate).First();
-                var payable = group.Sum(x => x.PayableAmount);
+                var main = group.Where(IncludeInMainPayrollTotals).ToList();
+                var payable = main.Sum(x => x.PayableAmount);
+                var calculatedPayable = main.Sum(x => Round(x.NetAmount - x.AdvanceAmount));
                 var paidAmount = paid.GetValueOrDefault(group.Key);
+                var regular = group.Where(x => x.PayrollDoc.DocumentKind == PayrollDocumentKindConst.Regular).ToList();
+                var corrections = group.Where(x => x.PayrollDoc.DocumentKind == PayrollDocumentKindConst.Correction).ToList();
                 return new PayrollRegisterEmployeeDto
                 {
                     EmployeeId = group.Key,
@@ -55,13 +62,26 @@ public sealed class PayrollReportService : IPayrollReportService
                     EmployeeName = $"{latest.Employee.LastName} {latest.Employee.FirstName}",
                     DepartmentName = latest.Employment.Department?.Name,
                     PositionName = latest.Employment.Position?.Name,
-                    GrossAmount = Round(group.Sum(x => x.GrossAmount)),
-                    DeductionAmount = Round(group.Sum(x => x.DeductionAmount)),
-                    EmployerTaxAmount = Round(group.Sum(x => x.EmployerTaxAmount)),
-                    AdvanceAmount = Round(group.Sum(x => x.AdvanceAmount)),
-                    NetAmount = Round(group.Sum(x => x.NetAmount)),
+                    WorkedDays = Round(main.Sum(x => x.WorkedDays)),
+                    WorkedHours = Round(main.Sum(x => x.WorkedHours)),
+                    GrossAmount = Round(main.Sum(x => x.GrossAmount)),
+                    DeductionAmount = Round(main.Sum(x => x.DeductionAmount)),
+                    EmployerTaxAmount = Round(main.Sum(x => x.EmployerTaxAmount)),
+                    AdvanceAmount = Round(main.Sum(x => x.AdvanceAmount)),
+                    NetAmount = Round(main.Sum(x => x.NetAmount)),
                     PaidAmount = Round(paidAmount),
-                    OutstandingAmount = Round(payable - paidAmount)
+                    OutstandingAmount = Round(payable - paidAmount),
+                    PaidLeaveDays = Round(main.Sum(x => x.PaidLeaveDays)),
+                    PaidSickDays = Round(main.Sum(x => x.PaidSickDays)),
+                    OvertimeHours = Round(main.Sum(x => x.OvertimeHours)),
+                    NightHours = Round(main.Sum(x => x.NightHours)),
+                    HolidayHours = Round(main.Sum(x => x.HolidayHours)),
+                    WeekendHours = Round(main.Sum(x => x.WeekendHours)),
+                    ReconciliationVariance = Round(payable - calculatedPayable),
+                    RegularGrossAmount = Round(regular.Sum(x => x.GrossAmount)),
+                    RegularNetAmount = Round(regular.Sum(x => x.NetAmount)),
+                    CorrectionGrossAmount = Round(corrections.Sum(x => x.GrossAmount)),
+                    CorrectionNetAmount = Round(corrections.Sum(x => x.NetAmount))
                 };
             })
             .OrderBy(x => x.EmployeeName)
@@ -77,6 +97,17 @@ public sealed class PayrollReportService : IPayrollReportService
             NetAmount = Round(employees.Sum(x => x.NetAmount)),
             PaidAmount = Round(employees.Sum(x => x.PaidAmount)),
             OutstandingAmount = Round(employees.Sum(x => x.OutstandingAmount)),
+            RegularGrossAmount = Round(employees.Sum(x => x.RegularGrossAmount)),
+            RegularNetAmount = Round(employees.Sum(x => x.RegularNetAmount)),
+            CorrectionGrossAmount = Round(employees.Sum(x => x.CorrectionGrossAmount)),
+            CorrectionNetAmount = Round(employees.Sum(x => x.CorrectionNetAmount)),
+            PaidLeaveDays = Round(employees.Sum(x => x.PaidLeaveDays)),
+            PaidSickDays = Round(employees.Sum(x => x.PaidSickDays)),
+            OvertimeHours = Round(employees.Sum(x => x.OvertimeHours)),
+            NightHours = Round(employees.Sum(x => x.NightHours)),
+            HolidayHours = Round(employees.Sum(x => x.HolidayHours)),
+            WeekendHours = Round(employees.Sum(x => x.WeekendHours)),
+            ReconciliationVariance = Round(employees.Sum(x => x.ReconciliationVariance)),
             Employees = employees
         });
     }
@@ -90,14 +121,22 @@ public sealed class PayrollReportService : IPayrollReportService
         if (period is null)
             return Result.Failure<PayrollPayslipDto>(PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
 
-        var lines = await GetPayrollLinesAsync(periodId, employeeId, ct);
-        if (lines.Count == 0)
+        var allLines = await GetPayrollLinesAsync(periodId, employeeId, ct);
+        if (allLines.Count == 0)
             return Result.Failure<PayrollPayslipDto>(PayrollErrors.NotFound("PayrollLine", employeeId, _userContext.LanguageId));
 
-        var paid = await GetPaidByEmployeeAsync(periodId, [employeeId], ct);
-        var latest = lines.OrderByDescending(x => x.PayrollDoc.DocDate).First();
+        var lines = allLines.Where(IncludeInMainPayrollTotals).ToList();
+
+        var paid = await GetPaidByEmployeeAsync(
+            periodId,
+            lines.Select(x => x.Id).ToList(),
+            ct);
+        var latest = allLines.OrderByDescending(x => x.PayrollDoc.DocDate).First();
         var payable = lines.Sum(x => x.PayableAmount);
+        var calculatedPayable = lines.Sum(x => Round(x.NetAmount - x.AdvanceAmount));
         var paidAmount = paid.GetValueOrDefault(employeeId);
+        var regular = allLines.Where(x => x.PayrollDoc.DocumentKind == PayrollDocumentKindConst.Regular).ToList();
+        var corrections = allLines.Where(x => x.PayrollDoc.DocumentKind == PayrollDocumentKindConst.Correction).ToList();
 
         return Result.Success(new PayrollPayslipDto
         {
@@ -110,6 +149,12 @@ public sealed class PayrollReportService : IPayrollReportService
             PositionName = latest.Employment.Position?.Name,
             WorkedDays = lines.Sum(x => x.WorkedDays),
             WorkedHours = lines.Sum(x => x.WorkedHours),
+            PaidLeaveDays = lines.Sum(x => x.PaidLeaveDays),
+            PaidSickDays = lines.Sum(x => x.PaidSickDays),
+            OvertimeHours = lines.Sum(x => x.OvertimeHours),
+            NightHours = lines.Sum(x => x.NightHours),
+            HolidayHours = lines.Sum(x => x.HolidayHours),
+            WeekendHours = lines.Sum(x => x.WeekendHours),
             GrossAmount = Round(lines.Sum(x => x.GrossAmount)),
             DeductionAmount = Round(lines.Sum(x => x.DeductionAmount)),
             EmployerTaxAmount = Round(lines.Sum(x => x.EmployerTaxAmount)),
@@ -117,6 +162,11 @@ public sealed class PayrollReportService : IPayrollReportService
             NetAmount = Round(lines.Sum(x => x.NetAmount)),
             PaidAmount = Round(paidAmount),
             OutstandingAmount = Round(payable - paidAmount),
+            ReconciliationVariance = Round(payable - calculatedPayable),
+            RegularGrossAmount = Round(regular.Sum(x => x.GrossAmount)),
+            RegularNetAmount = Round(regular.Sum(x => x.NetAmount)),
+            CorrectionGrossAmount = Round(corrections.Sum(x => x.GrossAmount)),
+            CorrectionNetAmount = Round(corrections.Sum(x => x.NetAmount)),
             Components = lines
                 .SelectMany(x => x.CalcLines)
                 .GroupBy(x => new { x.Component.Code, x.Component.Name, x.Component.ComponentType })
@@ -161,21 +211,28 @@ public sealed class PayrollReportService : IPayrollReportService
         return await _payrollLineQuery.GetAllAsync(query, ct);
     }
 
+    private static bool IncludeInMainPayrollTotals(PayPayrollLine line) =>
+        PayrollDocumentPaymentPolicy.IsIncludedInMainPayroll(
+            line.PayrollDoc.DocumentKind,
+            line.PayrollDoc.CorrectionPayoutMode);
+
     private async Task<Dictionary<long, decimal>> GetPaidByEmployeeAsync(
         long periodId,
-        List<long> employeeIds,
+        List<long> payrollLineIds,
         CancellationToken ct)
     {
-        if (employeeIds.Count == 0)
+        if (payrollLineIds.Count == 0)
             return new Dictionary<long, decimal>();
 
         var query = _queryBuilder.For<PayPaymentLine>()
             .Where(x =>
-                employeeIds.Contains(x.EmployeeId) &&
+                x.PayrollLineId.HasValue &&
+                payrollLineIds.Contains(x.PayrollLineId.Value) &&
                 x.PaymentBatch.PeriodId == periodId &&
                 x.PaymentBatch.PaymentKind == PayrollPaymentKindConst.Final &&
                 x.PaymentBatch.StateId == StateIdConst.ACTIVE &&
-                x.PaymentBatch.StatusId == DocumentStatusIdConst.POSTED)
+                x.PaymentBatch.StatusId == DocumentStatusIdConst.POSTED &&
+                x.PaymentBatch.PayrollDoc != null)
             .As(x => new { x.EmployeeId, x.Amount })
             .Build();
         var lines = await _paymentLineQuery.GetAllAsync(query, ct);

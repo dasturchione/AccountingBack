@@ -195,7 +195,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                         $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {missingPayrollLine}, hujjat ID: {payrollDoc.Id}).",
                         _userContext.LanguageId));
 
-                var outstanding = await GetOutstandingByEmployeeAsync(period.Id, employeeIds, ct);
+                var outstanding = await GetOutstandingByEmployeeAsync(period.Id, payrollDoc.Id, employeeIds, ct);
                 foreach (var line in dto.Lines)
                 {
                     var available = outstanding.GetValueOrDefault(line.EmployeeId);
@@ -291,7 +291,10 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (batch.PaymentKind == PayrollPaymentKindConst.Final)
             {
                 var employeeIds = batch.Lines.Select(x => x.EmployeeId).ToList();
-                var outstanding = await GetOutstandingByEmployeeAsync(batch.PeriodId, employeeIds, ct);
+                if (!batch.PayrollDocId.HasValue)
+                    return Result.Failure(PayrollErrors.Business("PayrollDocumentRequired", "Yakuniy to‘lov manba hujjatisiz tasdiqlanmaydi.", _userContext.LanguageId));
+
+                var outstanding = await GetOutstandingByEmployeeAsync(batch.PeriodId, batch.PayrollDocId.Value, employeeIds, ct);
                 foreach (var line in batch.Lines)
                 {
                     var available = outstanding.GetValueOrDefault(line.EmployeeId);
@@ -461,11 +464,12 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         return lines.ToDictionary(x => x.EmployeeId, x => x.Id);
     }
 
-    private async Task<Dictionary<long, decimal>> GetOutstandingByEmployeeAsync(long periodId, List<long> employeeIds, CancellationToken ct)
+    private async Task<Dictionary<long, decimal>> GetOutstandingByEmployeeAsync(long periodId, long payrollDocId, List<long> employeeIds, CancellationToken ct)
     {
         var payrollQuery = _queryBuilder.For<PayPayrollLine>()
             .Where(x =>
                 employeeIds.Contains(x.EmployeeId) &&
+                x.PayrollDocId == payrollDocId &&
                 x.PayrollDoc.PeriodId == periodId &&
                 x.PayrollDoc.StateId == StateIdConst.ACTIVE &&
                 x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED)
@@ -478,6 +482,10 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             .Where(x =>
                 employeeIds.Contains(x.EmployeeId) &&
                 x.PaymentBatch.PeriodId == periodId &&
+                // A final payment is allocated to exactly one posted payroll
+                // document.  Do not let payments for a separate correction (or
+                // another regular run) reduce this document's outstanding.
+                x.PaymentBatch.PayrollDocId == payrollDocId &&
                 x.PaymentBatch.PaymentKind == PayrollPaymentKindConst.Final &&
                 x.PaymentBatch.StateId == StateIdConst.ACTIVE &&
                 x.PaymentBatch.StatusId == DocumentStatusIdConst.POSTED)

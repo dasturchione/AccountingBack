@@ -37,6 +37,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1618_add_period_calendar_and_timesheet_days.sql" Link="SchemaContracts\1618_add_period_calendar_and_timesheet_days.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1620_remove_unused_payroll_account_fields.sql" Link="SchemaContracts\1620_remove_unused_payroll_account_fields.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1627_add_payroll_tax_registry.sql" Link="SchemaContracts\1627_add_payroll_tax_registry.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1628_add_payroll_recalculation.sql" Link="SchemaContracts\1628_add_payroll_recalculation.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1630_add_payroll_line_segments.sql" Link="SchemaContracts\1630_add_payroll_line_segments.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1631_add_payroll_line_attendance_totals.sql" Link="SchemaContracts\1631_add_payroll_line_attendance_totals.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1632_add_pay_component_formula_rules.sql" Link="SchemaContracts\1632_add_pay_component_formula_rules.sql" />
+    <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\16_pay\1633_create_pay_migration_history.sql" Link="SchemaContracts\1633_create_pay_migration_history.sql" />
     <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\01_cmn\0147_harden_org_organization_tenant_id.sql" Link="SchemaContracts\0147_harden_org_organization_tenant_id.sql" />
     <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1527_verify_org_organization_tenant_id_contract.sql" Link="SchemaContracts\1527_verify_org_organization_tenant_id_contract.sql" />
     <EmbeddedResource Include="..\..\src\Infrastructure\Persistence\Scripts\15_integration\1529_create_edo_import_batch.sql" Link="SchemaContracts\1529_create_edo_import_batch.sql" />

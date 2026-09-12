@@ -52,6 +52,25 @@ public sealed class PayrollDocumentController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("{id:long}/correction-basis")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollDocumentView)]
+    public async Task<IResult> GetCorrectionBasisAsync([FromRoute] long id, CancellationToken ct = default)
+    {
+        var result = await _service.GetCorrectionBasisAsync(id, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPut("{id:long}/draft")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollDocumentCalculate)]
+    public async Task<IResult> UpdateDraftAsync(
+        [FromRoute] long id,
+        [FromBody] PayrollDraftUpdateDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _service.UpdateDraftAsync(id, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPut("{id:long}/confirm")]
     [ModuleAuthorize(PermissionCodeConst.PayrollDocumentConfirm)]
     public async Task<IResult> ConfirmAsync([FromRoute] long id, CancellationToken ct = default)

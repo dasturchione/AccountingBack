@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -24,6 +25,14 @@ public sealed class HrAbsenceType
 
     [Column("is_paid")]
     public bool IsPaid { get; set; }
+
+    /// <summary>
+    /// Kasallik nafaqаси foizi (0..100). Ta'til turlари uchun 100. O'rtacha ish
+    /// haqidан nafaqа hisoblаshда ishlatилади.
+    /// </summary>
+    [Column("benefit_percent")]
+    [Precision(5, 2)]
+    public decimal BenefitPercent { get; set; } = 100m;
 
     [Column("state_id")]
     public short StateId { get; set; }

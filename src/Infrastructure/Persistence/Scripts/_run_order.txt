@@ -319,3 +319,9 @@
 02_org/0211_create_org_regulated_obligation_setting.sql
 01_cmn/0182_create_cmn_utility_service.sql
 18_rnt/1806_expand_rental_contract.sql
+16_pay/1634_add_pay_employment_action.sql
+16_pay/1635_add_pay_employment_advance.sql
+16_pay/1636_add_hr_absence_type_benefit_percent.sql
+00_sys/0023_insert_hr_order_permissions.sql
+01_cmn/0183_add_hr_order_document_type.sql
+16_pay/1637_create_pay_hr_order.sql

@@ -136,5 +136,10 @@ namespace SharedKernel.Constants
         /// Rental accrual for an individual lessor.
         /// </summary>
         public const short RENTAL_ACCRUAL = 26;
+
+        /// <summary>
+        /// HR personnel order (prikaz): hire / transfer / pay change / dismissal.
+        /// </summary>
+        public const short HRORDER = 27;
     }
 }

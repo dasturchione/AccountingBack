@@ -162,7 +162,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                 CreatedByUserId = _userContext.Id
             };
             ApplyEmployee(employee, dto);
-            employee.Employments.Add(BuildEmployment(organizationId, dto.Employment, now));
+            employee.Employments.Add(BuildEmployment(organizationId, dto.Employment, now, PayrollEmploymentActionConst.Hire));
 
             await _employeeCommand.CreateAsync(employee, ct);
             var created = await GetDtoInternalAsync(employee.Id, ct);
@@ -238,7 +238,7 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                 return Result.Failure<long>(validation.Error);
 
             _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(employeeId, ct));
-            var entity = BuildEmployment(employee.OrganizationId, dto, DateTime.Now);
+            var entity = BuildEmployment(employee.OrganizationId, dto, DateTime.Now, PayrollEmploymentActionConst.Hire);
             entity.EmployeeId = employeeId;
             await _employmentCommand.CreateAsync(entity, ct);
             _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(employeeId, ct));
@@ -340,6 +340,212 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
             return Result.Success();
         }, ct);
 
+    public Task<Result<long>> TransferAsync(long employeeId, PayrollEmploymentTransferDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(TransferAsync), async () =>
+        {
+            var employee = await GetEmployeeEntityAsync(employeeId, ct);
+            if (employee is null)
+                return Result.Failure<long>(PayrollErrors.NotFound("Employee", employeeId, _userContext.LanguageId));
+            if (!dto.PositionId.HasValue && !dto.DepartmentId.HasValue)
+                return Result.Failure<long>(PayrollErrors.TransferTargetRequired(_userContext.LanguageId));
+
+            var current = await GetCurrentEmploymentAsync(employeeId, ct);
+            if (current is null)
+                return Result.Failure<long>(PayrollErrors.NoOpenEmployment(employeeId, _userContext.LanguageId));
+            var guard = await GuardPersonnelActionAsync(employeeId, dto.EffectiveDate, current, ct);
+            if (!guard.IsSuccess)
+                return Result.Failure<long>(guard.Error);
+
+            var next = new PayrollEmploymentSaveDto
+            {
+                DepartmentId = dto.DepartmentId ?? current.DepartmentId,
+                PositionId = dto.PositionId ?? current.PositionId,
+                EmploymentType = string.IsNullOrWhiteSpace(dto.EmploymentType) ? current.EmploymentType : dto.EmploymentType,
+                StartDate = dto.EffectiveDate,
+                EndDate = null,
+                MonthlySalary = dto.MonthlySalary ?? current.MonthlySalary,
+                EmploymentRate = dto.EmploymentRate ?? current.EmploymentRate,
+                WeeklyHours = dto.WeeklyHours ?? current.WeeklyHours,
+                CurrencyId = dto.CurrencyId ?? current.CurrencyId,
+                ExpenseAccountId = dto.ExpenseAccountId ?? current.ExpenseAccountId,
+                AdvanceMethod = dto.AdvanceMethod ?? current.AdvanceMethod,
+                AdvanceValue = dto.AdvanceValue ?? current.AdvanceValue,
+                Note = dto.Note
+            };
+            // employeeId=0 reuses only the reference validations (skips the overlap check).
+            var validation = await ValidateEmploymentAsync(0, next, employee.OrganizationId, null, ct);
+            if (!validation.IsSuccess)
+                return Result.Failure<long>(validation.Error);
+
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            var newId = await CloseAndOpenAsync(current, next, PayrollEmploymentActionConst.Transfer, dto.EffectiveDate, ct);
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            await _auditLogService.CreateAsync(AuditLogTableConst.PayEmployee, employeeId.ToString(), AuditLogOperationTypeConst.Update, "Employee transferred");
+            return Result.Success(newId);
+        }, ct);
+
+    public Task<Result<long>> ChangePayAsync(long employeeId, PayrollEmploymentPayChangeDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(ChangePayAsync), async () =>
+        {
+            var employee = await GetEmployeeEntityAsync(employeeId, ct);
+            if (employee is null)
+                return Result.Failure<long>(PayrollErrors.NotFound("Employee", employeeId, _userContext.LanguageId));
+
+            var current = await GetCurrentEmploymentAsync(employeeId, ct);
+            if (current is null)
+                return Result.Failure<long>(PayrollErrors.NoOpenEmployment(employeeId, _userContext.LanguageId));
+            var guard = await GuardPersonnelActionAsync(employeeId, dto.EffectiveDate, current, ct);
+            if (!guard.IsSuccess)
+                return Result.Failure<long>(guard.Error);
+
+            var next = new PayrollEmploymentSaveDto
+            {
+                DepartmentId = current.DepartmentId,
+                PositionId = current.PositionId,
+                EmploymentType = current.EmploymentType,
+                StartDate = dto.EffectiveDate,
+                EndDate = null,
+                MonthlySalary = dto.MonthlySalary,
+                EmploymentRate = dto.EmploymentRate ?? current.EmploymentRate,
+                WeeklyHours = current.WeeklyHours,
+                CurrencyId = current.CurrencyId,
+                ExpenseAccountId = current.ExpenseAccountId,
+                AdvanceMethod = current.AdvanceMethod,
+                AdvanceValue = current.AdvanceValue,
+                Note = dto.Note
+            };
+            var validation = await ValidateEmploymentAsync(0, next, employee.OrganizationId, null, ct);
+            if (!validation.IsSuccess)
+                return Result.Failure<long>(validation.Error);
+
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            var newId = await CloseAndOpenAsync(current, next, PayrollEmploymentActionConst.PayChange, dto.EffectiveDate, ct);
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            await _auditLogService.CreateAsync(AuditLogTableConst.PayEmployee, employeeId.ToString(), AuditLogOperationTypeConst.Update, "Employee pay changed");
+            return Result.Success(newId);
+        }, ct);
+
+    public Task<Result> DismissAsync(long employeeId, PayrollEmploymentDismissDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(DismissAsync), async () =>
+        {
+            var employee = await GetEmployeeEntityAsync(employeeId, ct);
+            if (employee is null)
+                return Result.Failure(PayrollErrors.NotFound("Employee", employeeId, _userContext.LanguageId));
+
+            var current = await GetCurrentEmploymentAsync(employeeId, ct);
+            if (current is null)
+                return Result.Failure(PayrollErrors.NoOpenEmployment(employeeId, _userContext.LanguageId));
+            if (dto.EffectiveDate < current.StartDate)
+                return Result.Failure(PayrollErrors.PersonnelActionDateInvalid(dto.EffectiveDate, current.StartDate, _userContext.LanguageId));
+            // A posted payroll that already paid days beyond the dismissal date must be recalculated first.
+            if (await _payrollLineQuery.AnyAsync(x =>
+                    x.EmployeeId == employeeId &&
+                    x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED &&
+                    x.PayrollDoc.Period.EndDate > dto.EffectiveDate, ct))
+                return Result.Failure(PayrollErrors.PersonnelActionInPostedPeriod(employeeId, _userContext.LanguageId));
+
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            var now = DateTime.Now;
+            current.EndDate = dto.EffectiveDate;
+            current.Note = string.IsNullOrWhiteSpace(dto.Note) ? current.Note : dto.Note.Trim();
+            current.UpdatedDate = now;
+            current.UpdatedByUserId = _userContext.Id;
+            await _employmentCommand.UpdateAsync(current, ct);
+
+            employee.StateId = StateIdConst.PASSIVE;
+            employee.UpdatedDate = now;
+            employee.UpdatedByUserId = _userContext.Id;
+            await _employeeCommand.UpdateAsync(employee, ct);
+
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(employeeId, ct));
+            await _auditLogService.CreateAsync(AuditLogTableConst.PayEmployee, employeeId.ToString(), AuditLogOperationTypeConst.Update, "Employee dismissed");
+            return Result.Success();
+        }, ct);
+
+    public Task<Result<List<PayrollEmploymentDto>>> GetHistoryAsync(long employeeId, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetHistoryAsync), async () =>
+        {
+            if (!await _employeeQuery.AnyAsync(x => x.Id == employeeId, ct))
+                return Result.Failure<List<PayrollEmploymentDto>>(PayrollErrors.NotFound("Employee", employeeId, _userContext.LanguageId));
+
+            var query = _queryBuilder.For<PayEmployment>()
+                .Where(x => x.EmployeeId == employeeId)
+                .As(e => new PayrollEmploymentDto
+                {
+                    Id = e.Id,
+                    ActionType = e.ActionType,
+                    Note = e.Note,
+                    DepartmentId = e.DepartmentId,
+                    DepartmentName = e.Department != null ? e.Department.Name : null,
+                    PositionId = e.PositionId,
+                    PositionName = e.Position != null ? e.Position.Name : null,
+                    EmploymentType = e.EmploymentType,
+                    StartDate = e.StartDate,
+                    EndDate = e.EndDate,
+                    MonthlySalary = e.MonthlySalary,
+                    EmploymentRate = e.EmploymentRate,
+                    WeeklyHours = e.WeeklyHours,
+                    CurrencyId = e.CurrencyId,
+                    CurrencyName = e.Currency.Name,
+                    ExpenseAccountId = e.ExpenseAccountId,
+                    ExpenseAccountNumber = e.ExpenseAccount != null ? e.ExpenseAccount.Number : null,
+                    AdvanceMethod = e.AdvanceMethod,
+                    AdvanceValue = e.AdvanceValue,
+                    StateId = e.StateId
+                })
+                .OrderBy(x => x.OrderBy(y => y.StartDate).ThenBy(y => y.Id))
+                .Build();
+            var history = await _employmentQuery.GetAllAsync(query, ct);
+            return Result.Success(history);
+        });
+
+    private async Task<PayEmployment?> GetCurrentEmploymentAsync(long employeeId, CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayEmployment>()
+            .Where(x => x.EmployeeId == employeeId && x.StateId == StateIdConst.ACTIVE && x.EndDate == null)
+            .Build();
+        var open = await _employmentQuery.GetAllAsync(query, ct);
+        return open
+            .OrderByDescending(x => x.StartDate)
+            .ThenByDescending(x => x.Id)
+            .FirstOrDefault();
+    }
+
+    private async Task<Result> GuardPersonnelActionAsync(
+        long employeeId,
+        DateOnly effectiveDate,
+        PayEmployment current,
+        CancellationToken ct)
+    {
+        if (effectiveDate <= current.StartDate)
+            return Result.Failure(PayrollErrors.PersonnelActionDateInvalid(effectiveDate, current.StartDate, _userContext.LanguageId));
+        if (await _payrollLineQuery.AnyAsync(x =>
+                x.EmployeeId == employeeId &&
+                x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED &&
+                x.PayrollDoc.Period.EndDate >= effectiveDate, ct))
+            return Result.Failure(PayrollErrors.PersonnelActionInPostedPeriod(employeeId, _userContext.LanguageId));
+        return Result.Success();
+    }
+
+    private async Task<long> CloseAndOpenAsync(
+        PayEmployment current,
+        PayrollEmploymentSaveDto next,
+        string actionType,
+        DateOnly effectiveDate,
+        CancellationToken ct)
+    {
+        var now = DateTime.Now;
+        current.EndDate = effectiveDate.AddDays(-1);
+        current.UpdatedDate = now;
+        current.UpdatedByUserId = _userContext.Id;
+        await _employmentCommand.UpdateAsync(current, ct);
+
+        var entity = BuildEmployment(current.OrganizationId, next, now, actionType);
+        entity.EmployeeId = current.EmployeeId;
+        await _employmentCommand.CreateAsync(entity, ct);
+        return entity.Id;
+    }
+
     private async Task<Result> ValidateEmployeeUniquenessAsync(
         string employeeNumber,
         string? pinfl,
@@ -440,6 +646,8 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                     .Select(e => new PayrollEmploymentDto
                     {
                         Id = e.Id,
+                        ActionType = e.ActionType,
+                        Note = e.Note,
                         DepartmentId = e.DepartmentId,
                         DepartmentName = e.Department != null ? e.Department.Name : null,
                         PositionId = e.PositionId,
@@ -454,6 +662,8 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
                         CurrencyName = e.Currency.Name,
                         ExpenseAccountId = e.ExpenseAccountId,
                         ExpenseAccountNumber = e.ExpenseAccount != null ? e.ExpenseAccount.Number : null,
+                        AdvanceMethod = e.AdvanceMethod,
+                        AdvanceValue = e.AdvanceValue,
                         StateId = e.StateId
                     }).ToList(),
                 Components = x.EmployeeComponents
@@ -480,13 +690,15 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
         await GetDtoInternalAsync(id, ct)
         ?? throw new InvalidOperationException("Payroll employee audit snapshot is unavailable.");
 
-    private static PayEmployment BuildEmployment(int organizationId, PayrollEmploymentSaveDto dto, DateTime now)
+    private PayEmployment BuildEmployment(int organizationId, PayrollEmploymentSaveDto dto, DateTime now, string actionType)
     {
         var entity = new PayEmployment
         {
             OrganizationId = organizationId,
             StateId = StateIdConst.ACTIVE,
-            CreatedDate = now
+            ActionType = actionType,
+            CreatedDate = now,
+            CreatedByUserId = _userContext.Id
         };
         ApplyEmployment(entity, dto);
         return entity;
@@ -504,6 +716,11 @@ public sealed class PayrollEmployeeService : BaseService, IPayrollEmployeeServic
         entity.WeeklyHours = dto.WeeklyHours;
         entity.CurrencyId = dto.CurrencyId;
         entity.ExpenseAccountId = dto.ExpenseAccountId;
+        entity.AdvanceMethod = PayrollAdvanceMethodConst.All.Contains(dto.AdvanceMethod?.Trim().ToUpperInvariant())
+            ? dto.AdvanceMethod!.Trim().ToUpperInvariant()
+            : PayrollAdvanceMethodConst.Percent;
+        entity.AdvanceValue = dto.AdvanceValue;
+        entity.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
     }
 
     private static void ApplyEmployee(PayEmployee entity, PayrollEmployeeBaseDto dto)

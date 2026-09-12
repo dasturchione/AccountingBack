@@ -33,7 +33,13 @@ public static class PayrollCalculationMethodConst
     public const string PercentOfGross = "PERCENT_OF_GROSS";
     public const string PerHour = "PER_HOUR";
 
-    public static readonly string[] All = [SalaryProrated, Fixed, PercentOfGross, PerHour];
+    /// <summary>Ta'til puli: o'rtacha kunlik ish haqi × paid ta'til kunlari.</summary>
+    public const string AverageLeave = "AVERAGE_LEAVE";
+
+    /// <summary>Kasallik nafaqasi: o'rtacha kunlik × paid kasal kunlari × staj/tur foizi.</summary>
+    public const string AverageSick = "AVERAGE_SICK";
+
+    public static readonly string[] All = [SalaryProrated, Fixed, PercentOfGross, PerHour, AverageLeave, AverageSick];
 }
 
 public static class PayrollProrationBasisConst
@@ -105,6 +111,43 @@ public static class PayrollEmploymentTypeConst
     public const string Contract = "CONTRACT";
 
     public static readonly string[] All = [Primary, PartTime, Contract];
+}
+
+/// <summary>
+/// Personnel action that produced an employment interval. Mirrors the 1C ZUP
+/// personnel document kinds (приём / кадровый перевод / изменение оплаты /
+/// увольнение) while the changes stay interval-based rather than document-based.
+/// </summary>
+public static class PayrollEmploymentActionConst
+{
+    public const string Hire = "HIRE";
+    public const string Transfer = "TRANSFER";
+    public const string PayChange = "PAY_CHANGE";
+    public const string Dismissal = "DISMISSAL";
+
+    public static readonly string[] All = [Hire, Transfer, PayChange, Dismissal];
+}
+
+/// <summary>
+/// Kadr buyrug'i (prikaz) turi. 1C ZUP kadr hujjatlariga mos: приём / кадровый
+/// перевод / изменение оплаты / увольнение. Employment amal turi bilan bir xil kodlar.
+/// </summary>
+public static class PayrollHrOrderTypeConst
+{
+    public const string Hire = PayrollEmploymentActionConst.Hire;
+    public const string Transfer = PayrollEmploymentActionConst.Transfer;
+    public const string PayChange = PayrollEmploymentActionConst.PayChange;
+    public const string Dismissal = PayrollEmploymentActionConst.Dismissal;
+
+    public static readonly string[] All = [Hire, Transfer, PayChange, Dismissal];
+}
+
+public static class PayrollAdvanceMethodConst
+{
+    public const string Percent = "PERCENT";
+    public const string Fixed = "FIXED";
+
+    public static readonly string[] All = [Percent, Fixed];
 }
 
 public static class PayrollAccountRoleCodeConst

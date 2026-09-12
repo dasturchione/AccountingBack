@@ -10,18 +10,80 @@ public sealed class PayrollCalculateDto
     public string DocumentKind { get; set; } = "REGULAR";
     public long? CorrectionOfDocId { get; set; }
     public string? CorrectionPayoutMode { get; set; }
-    public int SalaryExpenseAccountId { get; set; }
-    public int SalaryPayableAccountId { get; set; }
+
+    /// <summary>
+    /// Ixtiyoriy. Berilmasa, tashkilotning "payroll_accrual" hujjat-schyot
+    /// sozlamalaridagi default schyotlar ishlatiladi (1C usuli: bir bosishli).
+    /// </summary>
+    public int? SalaryExpenseAccountId { get; set; }
+    public int? SalaryPayableAccountId { get; set; }
     public string? Note { get; set; }
     public List<PayrollManualAdjustmentDto> Adjustments { get; set; } = [];
+}
+
+/// <summary>
+/// DRAFT/PENDING oylik hujjatini admin panelda tahrirlash: provodka schyotlari va
+/// komponent/soliq summalari. Berilgan maydonlargina o'zgaradi; jami qayta hisoblanadi.
+/// </summary>
+public sealed class PayrollDraftUpdateDto
+{
+    public int? SalaryExpenseAccountId { get; set; }
+    public int? SalaryPayableAccountId { get; set; }
+    public List<PayrollDraftLineDto> Lines { get; set; } = [];
+}
+
+public sealed class PayrollDraftLineDto
+{
+    public long LineId { get; set; }
+    public List<PayrollDraftCalcLineDto> CalcLines { get; set; } = [];
+    public List<PayrollDraftTaxLineDto> TaxLines { get; set; } = [];
+}
+
+public sealed class PayrollDraftCalcLineDto
+{
+    public long CalcLineId { get; set; }
+    public decimal? Amount { get; set; }
+    public int? DebitAccountId { get; set; }
+    public int? CreditAccountId { get; set; }
+}
+
+public sealed class PayrollDraftTaxLineDto
+{
+    public long TaxLineId { get; set; }
+    public decimal? Amount { get; set; }
+    public int? LiabilityAccountId { get; set; }
 }
 
 public sealed class PayrollManualAdjustmentDto
 {
     public long EmployeeId { get; set; }
     public int ComponentId { get; set; }
-    public decimal Amount { get; set; }
+
+    /// <summary>Xom farq (delta). Ad-hoc doначисление/удержание uchun. TargetAmount bilan birga berilmaydi.</summary>
+    public decimal? Amount { get; set; }
+
+    /// <summary>Yangi (to'g'rilangan) absolut qiymat. Server delta = TargetAmount − joriy posted summa hisoblaydi.</summary>
+    public decimal? TargetAmount { get; set; }
     public string? Note { get; set; }
+}
+
+/// <summary>Tuzatish uchun asos: manba (posted) hujjatdagi har xodim/komponentning joriy summasi.</summary>
+public sealed class PayrollCorrectionBasisDto
+{
+    public long SourceDocId { get; set; }
+    public List<PayrollCorrectionBasisLineDto> Lines { get; set; } = [];
+}
+
+public sealed class PayrollCorrectionBasisLineDto
+{
+    public long EmployeeId { get; set; }
+    public string EmployeeNumber { get; set; } = null!;
+    public string EmployeeName { get; set; } = null!;
+    public int ComponentId { get; set; }
+    public string ComponentCode { get; set; } = null!;
+    public string ComponentName { get; set; } = null!;
+    public string ComponentType { get; set; } = null!;
+    public decimal CurrentAmount { get; set; }
 }
 
 public sealed class PayrollDocumentListFilter : ISearchFilter, IPaginationFilter

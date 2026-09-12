@@ -44,6 +44,72 @@ public static class PayrollErrors
         $"Tanlangan davrda xodimning boshqa ishga qabul yozuvi mavjud (xodim ID: {employeeId}).", $"Танланган даврда ходимнинг бошқа ишга қабул ёзуви мавжуд (ходим ID: {employeeId}).",
         $"В выбранном периоде уже существует другая запись трудоустройства сотрудника {employeeId}.", $"Another employment record exists for employee {employeeId} in the selected period.");
 
+    public static Error AdjustmentAmountOrTargetRequired(long employeeId, int componentId, short? languageId = null) => B("AdjustmentAmountOrTargetRequired", languageId,
+        $"Tuzatishда 'Amount' (farq) yoki 'TargetAmount' (yangi qiymat)dан aynан bittаси berilиши kerak (xodim: {employeeId}, komponent: {componentId}).",
+        $"Тузатишда 'Amount' (фарқ) ёки 'TargetAmount' (янги қиймат)дан айнан биттаси берилиши керак (ходим: {employeeId}, компонент: {componentId}).",
+        $"В корректировке нужно указать ровно одно: 'Amount' (разница) или 'TargetAmount' (новое значение) (сотрудник: {employeeId}, компонент: {componentId}).",
+        $"A correction must provide exactly one of 'Amount' (delta) or 'TargetAmount' (new value) (employee: {employeeId}, component: {componentId}).");
+
+    public static Error WithSalaryCorrectionNotDirectlyPayable(long docId, short? languageId = null) => C("WithSalaryCorrectionNotDirectlyPayable", languageId,
+        $"'Maosh bilan' to'lanadigan tuzatish hujjati alohida to'lanmaydi — u asosий oylik to'lovi bilan birga to'lanadi (hujjat ID: {docId}).",
+        $"'Маош билан' тўланадиган тузатиш ҳужжати алоҳида тўланмайди — у асосий ойлик тўлови билан бирга тўланади (ҳужжат ID: {docId}).",
+        $"Корректировка с выплатой 'вместе с зарплатой' не оплачивается отдельно — она выплачивается вместе с основным документом зарплаты (ID: {docId}).",
+        $"A 'with salary' correction cannot be paid on its own — it is paid together with the main payroll document (ID: {docId}).");
+
+    public static Error WithAdvanceCorrectionViaAdvanceOnly(long docId, short? languageId = null) => C("WithAdvanceCorrectionViaAdvanceOnly", languageId,
+        $"'Avans bilan' to'lanadigan tuzatish hujjati yakuniy to'lovда emas, avans qаydномасида to'lanади (hujjat ID: {docId}).",
+        $"'Аванс билан' тўланадиган тузатиш ҳужжати якуний тўловда эмас, аванс қайдномасида тўланади (ҳужжат ID: {docId}).",
+        $"Корректировка с выплатой 'вместе с авансом' оплачивается в авансовой ведомости, а не в окончательной выплате (ID: {docId}).",
+        $"A 'with advance' correction is paid in the advance vedomost, not in the final payment (ID: {docId}).");
+
+    public static Error DefaultPostingAccountMissing(string roleCode, short? languageId = null) => B("DefaultPostingAccountMissing", languageId,
+        $"Oylik provodkasi uchun standart '{roleCode}' hisobvarag'i sozlanmagan. Hujjat-hisobvaraq sozlamalarida ko'rsating yoki so'rovda yuboring.",
+        $"Ойлик проводкаси учун стандарт '{roleCode}' ҳисобварағи созланмаган. Ҳужжат-ҳисобварақ созламаларида кўрсатинг ёки сўровда юборинг.",
+        $"Для проводки зарплаты не настроен счёт по умолчанию '{roleCode}'. Укажите его в настройках счетов документа или передайте в запросе.",
+        $"Default payroll posting account '{roleCode}' is not configured. Set it in the document account settings or pass it in the request.");
+
+    public static Error NoOpenEmployment(long employeeId, short? languageId = null) => B("NoOpenEmployment", languageId,
+        $"Xodimning ochiq (faol) ishga qabul yozuvi yo'q. Avval ishga qabul qiling (xodim ID: {employeeId}).",
+        $"Ходимнинг очиқ (фаол) ишга қабул ёзуви йўқ. Аввал ишга қабул қилинг (ходим ID: {employeeId}).",
+        $"У сотрудника нет открытой (активной) записи трудоустройства. Сначала оформите приём (ID: {employeeId}).",
+        $"Employee has no open (active) employment record. Hire the employee first (ID: {employeeId}).");
+
+    public static Error PersonnelActionInPostedPeriod(long employeeId, short? languageId = null) => C("PersonnelActionInPostedPeriod", languageId,
+        $"Amal sanasi tasdiqlangan oylik hujjati qamragan davrga tushmoqda. Avval qayta hisoblang yoki keyingi sanani tanlang (xodim ID: {employeeId}).",
+        $"Амал санаси тасдиқланган ойлик ҳужжати қамраган даврга тушмоқда. Аввал қайта ҳисобланг ёки кейинги санани танланг (ходим ID: {employeeId}).",
+        $"Дата действия попадает в период, охваченный проведённым документом зарплаты. Сначала пересчитайте или выберите более позднюю дату (ID: {employeeId}).",
+        $"The effective date falls within a period covered by a posted payroll document. Recalculate first or choose a later date (employee ID: {employeeId}).");
+
+    public static Error PersonnelActionDateInvalid(DateOnly effectiveDate, DateOnly currentStart, short? languageId = null) => B("PersonnelActionDateInvalid", languageId,
+        $"Amal sanasi ({effectiveDate:yyyy-MM-dd}) joriy ishga qabul boshlanish sanasidan ({currentStart:yyyy-MM-dd}) keyin bo'lishi kerak.",
+        $"Амал санаси ({effectiveDate:yyyy-MM-dd}) жорий ишга қабул бошланиш санасидан ({currentStart:yyyy-MM-dd}) кейин бўлиши керак.",
+        $"Дата действия ({effectiveDate:yyyy-MM-dd}) должна быть позже даты начала текущего трудоустройства ({currentStart:yyyy-MM-dd}).",
+        $"The effective date ({effectiveDate:yyyy-MM-dd}) must be after the current employment start date ({currentStart:yyyy-MM-dd}).");
+
+    public static Error TransferTargetRequired(short? languageId = null) => B("TransferTargetRequired", languageId,
+        "O'tkazish uchun yangi lavozim yoki bo'lim ko'rsatilishi kerak.",
+        "Ўтказиш учун янги лавозим ёки бўлим кўрсатилиши керак.",
+        "Для перевода необходимо указать новую должность или подразделение.",
+        "A new position or department must be specified for a transfer.");
+
+    public static Error HrOrderTypeInvalid(string? orderType, short? languageId = null) => B("HrOrderTypeInvalid", languageId,
+        $"Buyruq turi noto'g'ri: '{orderType}'. Ruxsat etilgan: HIRE/TRANSFER/PAY_CHANGE/DISMISSAL.",
+        $"Буйруқ тури нотўғри: '{orderType}'. Рухсат этилган: HIRE/TRANSFER/PAY_CHANGE/DISMISSAL.",
+        $"Неверный тип приказа: '{orderType}'. Допустимо: HIRE/TRANSFER/PAY_CHANGE/DISMISSAL.",
+        $"Invalid order type: '{orderType}'. Allowed: HIRE/TRANSFER/PAY_CHANGE/DISMISSAL.");
+
+    public static Error HrOrderNotEditable(long id, short statusId, short? languageId = null) => C("HrOrderNotEditable", languageId,
+        $"Faqat qoralama (DRAFT) buyruqni tahrirlash/o'chirish mumkin (buyruq ID: {id}, holat: {statusId}).",
+        $"Фақат қоралама (DRAFT) буйруқни таҳрирлаш/ўчириш мумкин (буйруқ ID: {id}, ҳолат: {statusId}).",
+        $"Редактировать/удалять можно только черновик (DRAFT) приказа (ID: {id}, статус: {statusId}).",
+        $"Only a draft (DRAFT) order can be edited or deleted (order ID: {id}, status: {statusId}).");
+
+    public static Error HrOrderCancelLocked(long id, short? languageId = null) => C("HrOrderCancelLocked", languageId,
+        $"Buyruqni bekor qilib bo'lmaydi: hosil bo'lgan ishga qabul yozuvi tasdiqlangan oylikda ishlatilgan (buyruq ID: {id}).",
+        $"Буйруқни бекор қилиб бўлмайди: ҳосил бўлган ишга қабул ёзуви тасдиқланган ойликда ишлатилган (буйруқ ID: {id}).",
+        $"Нельзя отменить приказ: созданная запись трудоустройства использована в проведённой зарплате (ID: {id}).",
+        $"The order cannot be cancelled: the produced employment record is used in a posted payroll (order ID: {id}).");
+
     public static Error ReferencedRecordNotFound(string entity, long id, short? languageId = null) => B("ReferenceNotFound", languageId,
         $"{GetEntityName(entity, LanguageIdConst.UZ)} joriy tashkilotda topilmadi (ID: {id}).", $"{GetEntityName(entity, LanguageIdConst.UZ_CYRL)} жорий ташкилотда топилмади (ID: {id}).",
         $"{GetEntityName(entity, LanguageIdConst.RU)} не найден в текущей организации (ID: {id}).", $"{GetEntityName(entity, null)} was not found in the current organization (ID: {id}).");

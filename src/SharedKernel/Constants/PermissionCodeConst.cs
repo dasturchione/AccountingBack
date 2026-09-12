@@ -754,6 +754,12 @@ public static class PermissionCodeConst
     public const string HrAbsenceUpdate    = "HR_ABSENCE_UPDATE";
     public const string HrAbsenceDelete    = "HR_ABSENCE_DELETE";
     public const string HrCalendarView     = "HR_CALENDAR_VIEW";
+    public const string HrOrderView        = "HR_ORDER_VIEW";
+    public const string HrOrderCreate      = "HR_ORDER_CREATE";
+    public const string HrOrderUpdate      = "HR_ORDER_UPDATE";
+    public const string HrOrderConfirm     = "HR_ORDER_CONFIRM";
+    public const string HrOrderCancel      = "HR_ORDER_CANCEL";
+    public const string HrOrderDelete      = "HR_ORDER_DELETE";
     #endregion
 
     #region Payroll

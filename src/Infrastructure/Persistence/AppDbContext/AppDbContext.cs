@@ -157,6 +157,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Position> Positions { get; set; }
     public virtual DbSet<PayEmployee> PayEmployees { get; set; }
     public virtual DbSet<PayEmployment> PayEmployments { get; set; }
+    public virtual DbSet<PayHrOrder> PayHrOrders { get; set; }
     public virtual DbSet<PayComponent> PayComponents { get; set; }
     public virtual DbSet<PayEmployeeComponent> PayEmployeeComponents { get; set; }
     public virtual DbSet<PayPeriod> PayPeriods { get; set; }

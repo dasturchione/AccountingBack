@@ -26,4 +26,40 @@ public static class PayrollSalaryProrationCalculator
 
         return decimal.Round(baseAmount * fraction, 2, MidpointRounding.AwayFromZero);
     }
+
+    /// <summary>
+    /// Sums the prorated base salary across employment segments. Each segment is
+    /// prorated with its own salary, rate and norm, so a mid-period salary or
+    /// position change is reflected correctly (1C-style). With a single segment the
+    /// result equals <see cref="Calculate"/> over the whole period.
+    /// </summary>
+    public static decimal CalculateSegmented(IEnumerable<PayrollProrationSegment> segments, string basis)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        var total = 0m;
+        foreach (var s in segments)
+            total += Calculate(
+                s.MonthlySalary,
+                s.EmploymentRate,
+                s.WorkedDays,
+                s.NormDays,
+                s.WorkedHours,
+                s.NormHours,
+                basis,
+                s.PaidLeaveDays,
+                s.PaidLeaveHours,
+                s.PaidSickDays);
+        return total;
+    }
 }
+
+public readonly record struct PayrollProrationSegment(
+    decimal MonthlySalary,
+    decimal EmploymentRate,
+    decimal WorkedDays,
+    decimal NormDays,
+    decimal WorkedHours,
+    decimal NormHours,
+    decimal PaidLeaveDays,
+    decimal PaidLeaveHours,
+    decimal PaidSickDays);

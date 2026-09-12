@@ -25,6 +25,25 @@ public sealed class PayrollPaymentLineCreateDto
     public string? Note { get; set; }
 }
 
+/// <summary>Avans qaydnomasini prefill qilish uchun taklif: har xodim bo'yicha hisoblangan avans.</summary>
+public sealed class PayrollAdvanceSuggestionDto
+{
+    public long PeriodId { get; set; }
+    public List<PayrollAdvanceSuggestionLineDto> Lines { get; set; } = [];
+}
+
+public sealed class PayrollAdvanceSuggestionLineDto
+{
+    public long EmployeeId { get; set; }
+    public string EmployeeNumber { get; set; } = null!;
+    public string EmployeeName { get; set; } = null!;
+    public string AdvanceMethod { get; set; } = null!;
+    public decimal AdvanceValue { get; set; }
+    public decimal BaseAdvance { get; set; }
+    public decimal CorrectionAmount { get; set; }
+    public decimal Suggested { get; set; }
+}
+
 public sealed class PayrollPaymentListFilter : ISearchFilter, IPaginationFilter
 {
     public string? Search { get; set; }

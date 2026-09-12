@@ -86,6 +86,7 @@ using Application.Features.Dashboard.Services;
 using Application.Features.Positions;
 using Application.Features.Pay.Components;
 using Application.Features.Pay.Employees;
+using Application.Features.Pay.HrOrders;
 using Application.Features.Pay.Payments;
 using Application.Features.Pay.PayrollDocuments;
 using Application.Features.Pay.Periods;
@@ -269,6 +270,7 @@ namespace Infrastructure
             services.AddScoped<IHrEmployeeCalendarService, HrEmployeeCalendarService>();
             services.AddScoped<IHrAbsenceService, HrAbsenceService>();
             services.AddScoped<IPayrollEmployeeService, PayrollEmployeeService>();
+            services.AddScoped<IPayrollHrOrderService, PayrollHrOrderService>();
             services.AddScoped<IPayrollComponentService, PayrollComponentService>();
             services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
             services.AddScoped<IPayrollTimesheetService, PayrollTimesheetService>();

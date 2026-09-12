@@ -45,6 +45,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly ICommandRepository<PostingBatch> _postingBatchCommand;
     private readonly IQueryRepository<AccountingRegisterEntry> _accountingEntryQuery;
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingEntryCommand;
+    private readonly IQueryRepository<DocumentAccountSetting> _documentAccountSettingQuery;
+    private readonly IQueryRepository<PayPayrollCalcLine> _calcLineQuery;
+    private readonly IQueryRepository<HrAbsenceType> _absenceTypeQuery;
+    private readonly IQueryRepository<PayPayrollLine> _payrollLineQuery;
     private readonly IUnitOfWork _serviceUnitOfWork;
 
     public PayrollDocumentService(
@@ -72,6 +76,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         ICommandRepository<PostingBatch> postingBatchCommand,
         IQueryRepository<AccountingRegisterEntry> accountingEntryQuery,
         ICommandRepository<AccountingRegisterEntry> accountingEntryCommand,
+        IQueryRepository<DocumentAccountSetting> documentAccountSettingQuery,
+        IQueryRepository<PayPayrollCalcLine> calcLineQuery,
+        IQueryRepository<HrAbsenceType> absenceTypeQuery,
+        IQueryRepository<PayPayrollLine> payrollLineQuery,
         ILogger<PayrollDocumentService> logger,
         IUnitOfWork unitOfWork)
         : base(logger, unitOfWork)
@@ -100,6 +108,10 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _postingBatchCommand = postingBatchCommand;
         _accountingEntryQuery = accountingEntryQuery;
         _accountingEntryCommand = accountingEntryCommand;
+        _documentAccountSettingQuery = documentAccountSettingQuery;
+        _calcLineQuery = calcLineQuery;
+        _absenceTypeQuery = absenceTypeQuery;
+        _payrollLineQuery = payrollLineQuery;
         _serviceUnitOfWork = unitOfWork;
     }
 
@@ -170,11 +182,21 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 return Result.Failure<long>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
 
             var organizationId = _userContext.OrganizationId.Value;
-            var accountIds = new[]
-            {
-                dto.SalaryExpenseAccountId,
-                dto.SalaryPayableAccountId
-            }.Distinct().ToList();
+
+            // 1C-style one-click: fall back to the organization's default payroll
+            // posting accounts when the caller does not supply them. The admin can
+            // still override every account on the DRAFT document afterwards.
+            var defaultAccounts = await GetDefaultPostingAccountsAsync(organizationId, ct);
+            var salaryExpenseAccountId = dto.SalaryExpenseAccountId ?? defaultAccounts.SalaryExpenseAccountId;
+            var salaryPayableAccountId = dto.SalaryPayableAccountId ?? defaultAccounts.SalaryPayableAccountId;
+            if (salaryExpenseAccountId is null)
+                return Result.Failure<long>(PayrollErrors.DefaultPostingAccountMissing(PayrollAccountRoleCodeConst.SalaryExpense, _userContext.LanguageId));
+            if (salaryPayableAccountId is null)
+                return Result.Failure<long>(PayrollErrors.DefaultPostingAccountMissing(PayrollAccountRoleCodeConst.SalaryPayable, _userContext.LanguageId));
+            dto.SalaryExpenseAccountId = salaryExpenseAccountId;
+            dto.SalaryPayableAccountId = salaryPayableAccountId;
+
+            var accountIds = new[] { salaryExpenseAccountId.Value, salaryPayableAccountId.Value }.Distinct().ToList();
             var accountQuery = _queryBuilder.For<ChartAccount>()
                 .Where(x =>
                     x.OrganizationId == organizationId &&
@@ -220,6 +242,20 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired(_userContext.LanguageId));
                 if (dto.Adjustments.Count == 0)
                     return Result.Failure<long>(PayrollErrors.Business("EmptyCorrection", "Tuzatish hujjatida kamida bitta qo‘lda kiritilgan tuzatish bo‘lishi kerak.", _userContext.LanguageId));
+
+                // 1C-style delta: when the accountant sends a TargetAmount (new absolute
+                // value), record only the difference against the currently posted amount so
+                // the correction never re-adds the original salary. Raw Amount is kept as-is.
+                var sourceAmounts = await GetPostedComponentAmountsAsync(correctionSource.Id, ct);
+                foreach (var adjustment in dto.Adjustments)
+                {
+                    if (adjustment.Amount.HasValue == adjustment.TargetAmount.HasValue)
+                        return Result.Failure<long>(PayrollErrors.AdjustmentAmountOrTargetRequired(
+                            adjustment.EmployeeId, adjustment.ComponentId, _userContext.LanguageId));
+                    var current = sourceAmounts.GetValueOrDefault((adjustment.EmployeeId, adjustment.ComponentId));
+                    adjustment.Amount = PayrollCorrectionDeltaResolver.Resolve(
+                        adjustment.TargetAmount, adjustment.Amount, current);
+                }
             }
 
             var duplicateAdjustment = dto.Adjustments
@@ -303,6 +339,15 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 ? await GetPostedAdvancesAsync(period.Id, employeeIds, ct)
                 : new Dictionary<long, decimal>();
 
+            // Average-earnings benefits (отпускные/больничные): lookback base and the
+            // sick-benefit percentages per absence type. Regular runs only.
+            var averageEarnings = kind == PayrollDocumentKindConst.Regular
+                ? await GetAverageEarningsAsync(employeeIds, period, ct)
+                : new Dictionary<long, (decimal Gross, decimal WorkedDays)>();
+            var sickBenefitPercentByType = kind == PayrollDocumentKindConst.Regular
+                ? await GetSickBenefitPercentsAsync(ct)
+                : new Dictionary<short, decimal>();
+
             var payrollLines = new List<PayPayrollLine>();
             foreach (var employeeId in employeeIds)
             {
@@ -335,9 +380,29 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                         $"'{missingComponentAccount.Name}' komponenti uchun provodka hisobvaraqlari ko‘rsatilishi kerak (ID: {missingComponentAccount.Id}).",
                         _userContext.LanguageId));
 
+                var employeeEmployments = employments.Where(x => x.EmployeeId == employeeId).ToList();
+
+                var hasLeaveBenefit = selectedComponents.Any(c => c.CalculationMethod == PayrollCalculationMethodConst.AverageLeave);
+                var hasSickBenefit = selectedComponents.Any(c => c.CalculationMethod == PayrollCalculationMethodConst.AverageSick);
+                var employment = employmentByEmployee[employeeId];
+                var averages = averageEarnings.GetValueOrDefault(employeeId);
+                var dailyAverage = PayrollAverageEarningsCalculator.DailyAverage(averages.Gross, averages.WorkedDays);
+                if (dailyAverage <= 0m)
+                    dailyAverage = period.NormWorkDays > 0m
+                        ? Round(employment.MonthlySalary * employment.EmploymentRate / period.NormWorkDays)
+                        : 0m;
+                var weightedSickDays = hasSickBenefit
+                    ? ComputeWeightedSickDays(time, sickBenefitPercentByType)
+                    : 0m;
+                var benefit = new PayrollBenefitContext(dailyAverage, weightedSickDays, hasLeaveBenefit, hasSickBenefit);
+
+                var segmentComputations = kind == PayrollDocumentKindConst.Regular
+                    ? ComputeSegments(period, time, employeeEmployments, !hasLeaveBenefit, !hasSickBenefit)
+                    : [];
+
                 var line = BuildPayrollLineWithTaxes(
                     organizationId,
-                    employmentByEmployee[employeeId],
+                    employment,
                     time,
                     period,
                     selectedComponents,
@@ -345,15 +410,16 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     assignmentMap,
                     manualMap,
                     advances.GetValueOrDefault(employeeId),
-                    kind);
+                    kind,
+                    segmentComputations,
+                    benefit);
                 if (kind == PayrollDocumentKindConst.Regular)
                 {
                     line.Segments = BuildPayrollLineSegments(
                         organizationId,
                         line,
-                        time,
-                        period,
-                        employments.Where(x => x.EmployeeId == employeeId),
+                        segmentComputations,
+                        employeeEmployments,
                         selectedComponents,
                         assignmentHistory.GetValueOrDefault(employeeId) ?? []);
                 }
@@ -673,6 +739,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             .GroupBy(x => x.EmployeeId)
             .ToDictionary(x => x.Key, x => x.First());
         var advances = await GetPostedAdvancesAsync(source.PeriodId, timesheetEmployeeIds, ct);
+        var averageEarnings = await GetAverageEarningsAsync(timesheetEmployeeIds, source.Period, ct);
+        var sickBenefitPercentByType = await GetSickBenefitPercentsAsync(ct);
 
         var accounts = new PayrollCalculateDto
         {
@@ -725,6 +793,25 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     $"'{missingComponentAccount.Name}' komponenti uchun provodka hisobvaraqlari ko‘rsatilishi kerak (ID: {missingComponentAccount.Id}).",
                     _userContext.LanguageId));
 
+            var hasLeaveBenefit = selectedComponents.Any(c => c.CalculationMethod == PayrollCalculationMethodConst.AverageLeave);
+            var hasSickBenefit = selectedComponents.Any(c => c.CalculationMethod == PayrollCalculationMethodConst.AverageSick);
+            var averages = averageEarnings.GetValueOrDefault(employeeId);
+            var dailyAverage = PayrollAverageEarningsCalculator.DailyAverage(averages.Gross, averages.WorkedDays);
+            if (dailyAverage <= 0m)
+                dailyAverage = source.Period.NormWorkDays > 0m
+                    ? Round(employment.MonthlySalary * employment.EmploymentRate / source.Period.NormWorkDays)
+                    : 0m;
+            var weightedSickDays = hasSickBenefit
+                ? ComputeWeightedSickDays(timesheetByEmployee[employeeId], sickBenefitPercentByType)
+                : 0m;
+            var benefit = new PayrollBenefitContext(dailyAverage, weightedSickDays, hasLeaveBenefit, hasSickBenefit);
+
+            var recalcSegments = ComputeSegments(
+                source.Period,
+                timesheetByEmployee[employeeId],
+                employments.Where(x => x.EmployeeId == employeeId).ToList(),
+                !hasLeaveBenefit,
+                !hasSickBenefit);
             var fresh = BuildPayrollLineWithTaxes(
                 source.OrganizationId,
                 employment,
@@ -735,7 +822,9 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 assignmentMap,
                 manualMap,
                 advances.GetValueOrDefault(employeeId),
-                PayrollDocumentKindConst.Correction);
+                PayrollDocumentKindConst.Correction,
+                recalcSegments,
+                benefit);
             AssignPostingAccounts(fresh, accounts);
             freshLines[employeeId] = fresh;
         }
@@ -981,6 +1070,79 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             return Result.Success();
         }, ct);
 
+    public Task<Result> UpdateDraftAsync(long id, PayrollDraftUpdateDto dto, CancellationToken ct = default) =>
+        ExecuteInTransactionAsync(nameof(UpdateDraftAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var document = await GetAggregateAsync(id, ct);
+            if (document is null)
+                return Result.Failure(PayrollErrors.NotFound("PayrollDocument", id, _userContext.LanguageId));
+            if (document.StatusId is not (DocumentStatusIdConst.DRAFT or DocumentStatusIdConst.PENDING))
+                return Result.Failure(PayrollErrors.InvalidStatus("PayrollDocument", id, document.StatusId, "updated", _userContext.LanguageId));
+            if (document.Period.Status != PayrollPeriodStatusConst.Open)
+                return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId, _userContext.LanguageId));
+            if (await GetActivePostingBatchAsync(id, ct) is not null)
+                return Result.Failure(PayrollErrors.Conflict("BusinessEffectsExist", $"Oylik hisoblash hujjati bo‘yicha buxgalteriya o‘tkazmalari allaqachon yaratilgan (hujjat ID: {id}).", _userContext.LanguageId));
+
+            _auditLogService.SetOldValues(await GetRequiredDtoInternalAsync(id, ct));
+
+            if (dto.SalaryExpenseAccountId.HasValue)
+                document.SalaryExpenseAccountId = dto.SalaryExpenseAccountId.Value;
+            if (dto.SalaryPayableAccountId.HasValue)
+                document.SalaryPayableAccountId = dto.SalaryPayableAccountId.Value;
+
+            var linesById = document.Lines.ToDictionary(x => x.Id);
+            foreach (var lineDto in dto.Lines)
+            {
+                if (!linesById.TryGetValue(lineDto.LineId, out var line))
+                    return Result.Failure(PayrollErrors.NotFound("PayrollLine", lineDto.LineId, _userContext.LanguageId));
+
+                var calcById = line.CalcLines.ToDictionary(x => x.Id);
+                foreach (var calcDto in lineDto.CalcLines)
+                {
+                    if (!calcById.TryGetValue(calcDto.CalcLineId, out var calc))
+                        return Result.Failure(PayrollErrors.NotFound("PayrollLine", calcDto.CalcLineId, _userContext.LanguageId));
+                    if (calcDto.Amount.HasValue)
+                    {
+                        calc.Amount = Round(calcDto.Amount.Value);
+                        calc.IsManual = true;
+                    }
+                    if (calcDto.DebitAccountId.HasValue)
+                        calc.DebitAccountId = calcDto.DebitAccountId.Value;
+                    if (calcDto.CreditAccountId.HasValue)
+                        calc.CreditAccountId = calcDto.CreditAccountId.Value;
+                }
+
+                var taxById = line.TaxLines.ToDictionary(x => x.Id);
+                foreach (var taxDto in lineDto.TaxLines)
+                {
+                    if (!taxById.TryGetValue(taxDto.TaxLineId, out var tax))
+                        return Result.Failure(PayrollErrors.NotFound("PayrollLine", taxDto.TaxLineId, _userContext.LanguageId));
+                    if (taxDto.Amount.HasValue)
+                        tax.Amount = Round(taxDto.Amount.Value);
+                    if (taxDto.LiabilityAccountId.HasValue)
+                        tax.LiabilityAccountId = taxDto.LiabilityAccountId.Value;
+                }
+
+                PayrollDocumentTotalsCalculator.RecomputeLine(line);
+            }
+            PayrollDocumentTotalsCalculator.RecomputeDocument(document);
+
+            var accountValidation = await ValidatePostingAccountsAsync(document.OrganizationId, document.Lines, ct);
+            if (!accountValidation.IsSuccess)
+                return accountValidation;
+
+            document.UpdatedDate = DateTime.Now;
+            document.UpdatedByUserId = _userContext.Id;
+            await _serviceUnitOfWork.SaveChangesAsync(ct);
+
+            _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(id, ct));
+            await _auditLogService.CreateAsync(AuditLogTableConst.PayPayrollDoc, id.ToString(), AuditLogOperationTypeConst.Update, "Draft edited");
+            return Result.Success();
+        }, ct);
+
     public Task<Result> CancelAsync(long id, CancellationToken ct = default) =>
         ExecuteInTransactionAsync(nameof(CancelAsync), async () =>
         {
@@ -1092,8 +1254,11 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         Dictionary<(long EmployeeId, int ComponentId), PayEmployeeComponent> assignments,
         Dictionary<(long EmployeeId, int ComponentId), PayrollManualAdjustmentDto> manualAdjustments,
         decimal advance,
-        string documentKind)
+        string documentKind,
+        IReadOnlyList<PayrollSegmentComputation>? segments = null,
+        PayrollBenefitContext? benefit = null)
     {
+        var benefitContext = benefit ?? PayrollBenefitContext.None;
         var employeeId = employment.EmployeeId;
         var calcLines = new List<PayPayrollCalcLine>();
         var earnings = PayrollComponentFormulaPolicy.Order(
@@ -1109,7 +1274,9 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 manualAdjustments.GetValueOrDefault((employeeId, component.Id)),
                 component.DependsOnComponentId is { } dependencyId && calcAmounts.TryGetValue(dependencyId, out var dependencyAmount)
                     ? dependencyAmount
-                    : null);
+                    : null,
+                segments,
+                benefitContext);
             calcLines.Add(calc);
             calcAmounts[component.Id] = calc.Amount;
             gross += calc.Amount;
@@ -1122,7 +1289,9 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 manualAdjustments.GetValueOrDefault((employeeId, component.Id)),
                 component.DependsOnComponentId is { } dependencyId && calcAmounts.TryGetValue(dependencyId, out var dependencyAmount)
                     ? dependencyAmount
-                    : null);
+                    : null,
+                segments,
+                benefitContext);
             calcLines.Add(calc);
             calcAmounts[component.Id] = calc.Amount;
             gross += calc.Amount;
@@ -1313,8 +1482,11 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         decimal gross,
         PayEmployeeComponent? assignment,
         PayrollManualAdjustmentDto? manual,
-        decimal? dependencyBase = null)
+        decimal? dependencyBase = null,
+        IReadOnlyList<PayrollSegmentComputation>? segments = null,
+        PayrollBenefitContext? benefit = null)
     {
+        var benefitContext = benefit ?? PayrollBenefitContext.None;
         decimal baseAmount;
         decimal? quantity = null;
         decimal? rate = assignment?.Rate ?? component.DefaultRate;
@@ -1323,37 +1495,76 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         if (manual is not null)
         {
             baseAmount = gross;
-            amount = manual.Amount;
+            amount = manual.Amount ?? 0m;
         }
         else
         {
             switch (component.CalculationMethod)
             {
                 case PayrollCalculationMethodConst.SalaryProrated:
-                    baseAmount = employment.MonthlySalary * employment.EmploymentRate;
-                    var employeeNormDays = time.NormWorkDays > 0m
-                        ? time.NormWorkDays
-                        : period.NormWorkDays;
-                    var employeeNormHours = time.NormWorkHours > 0m
-                        ? time.NormWorkHours
-                        : period.NormWorkHours;
                     var basis = PayrollProrationBasisConst.All.Contains(component.ProrationBasis)
                         ? component.ProrationBasis
                         : PayrollProrationBasisConst.Days;
                     quantity = basis == PayrollProrationBasisConst.Hours
                         ? time.WorkedHours
                         : time.WorkedDays;
-                    amount = PayrollSalaryProrationCalculator.Calculate(
-                        employment.MonthlySalary,
-                        employment.EmploymentRate,
-                        time.WorkedDays,
-                        employeeNormDays,
-                        time.WorkedHours,
-                        employeeNormHours,
-                        basis,
-                        time.PaidLeaveDays,
-                        (time.PaidLeaveDays + time.PaidSickDays) * period.DailyWorkHours,
-                        time.PaidSickDays);
+                    if (segments is { Count: > 0 })
+                    {
+                        // 1C-style: prorate the base salary within each employment
+                        // segment using that segment's own salary, rate and norm, then
+                        // sum. This keeps the header consistent with the stored
+                        // segments when salary/position changes mid-period.
+                        amount = PayrollSalaryProrationCalculator.CalculateSegmented(
+                            segments.Select(s => new PayrollProrationSegment(
+                                s.Segment.MonthlySalary,
+                                s.Segment.EmploymentRate,
+                                s.WorkedDays,
+                                s.NormWorkDays,
+                                s.WorkedHours,
+                                s.NormWorkHours,
+                                s.PaidLeaveDays,
+                                (s.PaidLeaveDays + s.PaidSickDays) * period.DailyWorkHours,
+                                s.PaidSickDays)),
+                            basis);
+                        var last = segments[^1].Segment;
+                        baseAmount = last.MonthlySalary * last.EmploymentRate;
+                    }
+                    else
+                    {
+                        baseAmount = employment.MonthlySalary * employment.EmploymentRate;
+                        var employeeNormDays = time.NormWorkDays > 0m
+                            ? time.NormWorkDays
+                            : period.NormWorkDays;
+                        var employeeNormHours = time.NormWorkHours > 0m
+                            ? time.NormWorkHours
+                            : period.NormWorkHours;
+                        // When an average-earnings benefit pays these days, exclude them
+                        // from the salary base to avoid paying the same day twice.
+                        var paidLeaveDays = benefitContext.HasLeaveBenefit ? 0m : time.PaidLeaveDays;
+                        var paidSickDays = benefitContext.HasSickBenefit ? 0m : time.PaidSickDays;
+                        amount = PayrollSalaryProrationCalculator.Calculate(
+                            employment.MonthlySalary,
+                            employment.EmploymentRate,
+                            time.WorkedDays,
+                            employeeNormDays,
+                            time.WorkedHours,
+                            employeeNormHours,
+                            basis,
+                            paidLeaveDays,
+                            (paidLeaveDays + paidSickDays) * period.DailyWorkHours,
+                            paidSickDays);
+                    }
+                    break;
+                case PayrollCalculationMethodConst.AverageLeave:
+                    baseAmount = benefitContext.DailyAverage;
+                    quantity = time.PaidLeaveDays;
+                    amount = PayrollAverageEarningsCalculator.Benefit(benefitContext.DailyAverage, time.PaidLeaveDays, 100m);
+                    break;
+                case PayrollCalculationMethodConst.AverageSick:
+                    baseAmount = benefitContext.DailyAverage;
+                    quantity = benefitContext.WeightedSickDays;
+                    // Percentages are already folded into WeightedSickDays per absence type.
+                    amount = PayrollAverageEarningsCalculator.Benefit(benefitContext.DailyAverage, benefitContext.WeightedSickDays, 100m);
                     break;
                 case PayrollCalculationMethodConst.Fixed:
                     baseAmount = assignment?.Amount ?? component.DefaultAmount ?? 0m;
@@ -1389,11 +1600,83 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         };
     }
 
+    private async Task<(int? SalaryExpenseAccountId, int? SalaryPayableAccountId)> GetDefaultPostingAccountsAsync(
+        int organizationId,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<DocumentAccountSetting>()
+            .Where(x =>
+                x.OrganizationId == organizationId &&
+                x.StateId == StateIdConst.ACTIVE &&
+                x.IsDefault &&
+                x.DocumentAccountTypeRole.DocumentAccountType.Code == PayrollDocumentAccountTypeCodeConst.PayrollAccrual &&
+                (x.DocumentAccountTypeRole.DocumentAccountRole.Code == PayrollAccountRoleCodeConst.SalaryExpense ||
+                 x.DocumentAccountTypeRole.DocumentAccountRole.Code == PayrollAccountRoleCodeConst.SalaryPayable))
+            .As(x => new DefaultAccountRow(
+                x.DocumentAccountTypeRole.DocumentAccountRole.Code,
+                x.ChartAccountId))
+            .Build();
+        var rows = await _documentAccountSettingQuery.GetAllAsync(query, ct);
+        int? expense = rows
+            .Where(r => r.RoleCode == PayrollAccountRoleCodeConst.SalaryExpense)
+            .Select(r => (int?)r.ChartAccountId)
+            .FirstOrDefault();
+        int? payable = rows
+            .Where(r => r.RoleCode == PayrollAccountRoleCodeConst.SalaryPayable)
+            .Select(r => (int?)r.ChartAccountId)
+            .FirstOrDefault();
+        return (expense, payable);
+    }
+
+    private sealed record DefaultAccountRow(string RoleCode, int ChartAccountId);
+
     private async Task<PayPeriod?> GetPeriodAsync(long id, CancellationToken ct)
     {
         var query = _queryBuilder.For<PayPeriod>().Where(x => x.Id == id).Build();
         query.AddIncludes(x => x.Include(period => period.WorkDays));
         return await _periodQuery.GetAsync(query, ct);
+    }
+
+    public Task<Result<PayrollCorrectionBasisDto>> GetCorrectionBasisAsync(long sourceDocId, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetCorrectionBasisAsync), async () =>
+        {
+            if (!await _query.AnyAsync(x => x.Id == sourceDocId && x.StatusId == DocumentStatusIdConst.POSTED, ct))
+                return Result.Failure<PayrollCorrectionBasisDto>(PayrollErrors.CorrectionSourceRequired(_userContext.LanguageId));
+
+            var query = _queryBuilder.For<PayPayrollCalcLine>()
+                .Where(x => x.PayrollLine.PayrollDocId == sourceDocId)
+                .As(x => new PayrollCorrectionBasisLineDto
+                {
+                    EmployeeId = x.PayrollLine.EmployeeId,
+                    EmployeeNumber = x.PayrollLine.Employee.EmployeeNumber,
+                    EmployeeName = x.PayrollLine.Employee.LastName + " " + x.PayrollLine.Employee.FirstName,
+                    ComponentId = x.ComponentId,
+                    ComponentCode = x.Component.Code,
+                    ComponentName = x.Component.Name,
+                    ComponentType = x.Component.ComponentType,
+                    CurrentAmount = x.Amount
+                })
+                .Build();
+            var lines = await _calcLineQuery.GetAllAsync(query, ct);
+            return Result.Success(new PayrollCorrectionBasisDto
+            {
+                SourceDocId = sourceDocId,
+                Lines = lines
+            });
+        });
+
+    private async Task<Dictionary<(long EmployeeId, int ComponentId), decimal>> GetPostedComponentAmountsAsync(
+        long sourceDocId,
+        CancellationToken ct)
+    {
+        var query = _queryBuilder.For<PayPayrollCalcLine>()
+            .Where(x => x.PayrollLine.PayrollDocId == sourceDocId)
+            .As(x => new { x.PayrollLine.EmployeeId, x.ComponentId, x.Amount })
+            .Build();
+        var rows = await _calcLineQuery.GetAllAsync(query, ct);
+        return rows
+            .GroupBy(x => (x.EmployeeId, x.ComponentId))
+            .ToDictionary(g => g.Key, g => g.Sum(y => y.Amount));
     }
 
     private async Task<PayTimesheet?> GetPostedTimesheetAsync(long periodId, CancellationToken ct)
@@ -1484,17 +1767,78 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             .ToDictionary(x => x.Key, x => x.OrderBy(y => y.EffectiveFrom).ThenBy(y => y.Id).ToList());
     }
 
-    private static List<PayPayrollLineSegment> BuildPayrollLineSegments(
-        int organizationId,
-        PayPayrollLine line,
-        PayTimesheetLine time,
-        PayPeriod period,
-        IEnumerable<PayEmployment> employments,
-        IReadOnlyCollection<PayComponent> components,
-        IReadOnlyCollection<PayEmployeeComponent> assignmentHistory)
+    private sealed record PayrollBenefitContext(
+        decimal DailyAverage,
+        decimal WeightedSickDays,
+        bool HasLeaveBenefit,
+        bool HasSickBenefit)
     {
-        var employmentList = employments.ToList();
-        var segments = PayrollEmploymentSegmentCalculator.Split(period, employmentList);
+        public static readonly PayrollBenefitContext None = new(0m, 0m, false, false);
+    }
+
+    // Lookback average earnings base: 12 months of regular posted payroll before this
+    // period. Daily average = Σ gross / Σ worked days over that window.
+    private async Task<Dictionary<long, (decimal Gross, decimal WorkedDays)>> GetAverageEarningsAsync(
+        List<long> employeeIds,
+        PayPeriod period,
+        CancellationToken ct)
+    {
+        var from = period.StartDate.AddMonths(-12);
+        var query = _queryBuilder.For<PayPayrollLine>()
+            .Where(x =>
+                employeeIds.Contains(x.EmployeeId) &&
+                x.PayrollDoc.DocumentKind == PayrollDocumentKindConst.Regular &&
+                x.PayrollDoc.StateId == StateIdConst.ACTIVE &&
+                x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED &&
+                x.PayrollDoc.Period.StartDate >= from &&
+                x.PayrollDoc.Period.StartDate < period.StartDate)
+            .As(x => new { x.EmployeeId, x.GrossAmount, x.WorkedDays })
+            .Build();
+        var rows = await _payrollLineQuery.GetAllAsync(query, ct);
+        return rows
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(g => g.Key, g => (g.Sum(y => y.GrossAmount), g.Sum(y => y.WorkedDays)));
+    }
+
+    private async Task<Dictionary<short, decimal>> GetSickBenefitPercentsAsync(CancellationToken ct)
+    {
+        var query = _queryBuilder.For<HrAbsenceType>()
+            .Where(x => x.TimesheetCategory == HrTimesheetCategoryConst.Sick && x.IsPaid)
+            .As(x => new { x.Id, x.BenefitPercent })
+            .Build();
+        var rows = await _absenceTypeQuery.GetAllAsync(query, ct);
+        return rows.ToDictionary(x => x.Id, x => x.BenefitPercent);
+    }
+
+    // Paid sick days weighted by each absence type's benefit percentage.
+    private static decimal ComputeWeightedSickDays(PayTimesheetLine time, IReadOnlyDictionary<short, decimal> sickPercentByType)
+    {
+        var days = time.Days ?? [];
+        decimal weighted = 0m;
+        foreach (var day in days)
+        {
+            if (day.TimesheetCategory == HrTimesheetCategoryConst.Sick &&
+                day.AbsenceTypeId.HasValue &&
+                sickPercentByType.TryGetValue(day.AbsenceTypeId.Value, out var percent))
+                weighted += percent / 100m;
+        }
+        return decimal.Round(weighted, 2, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Splits the payroll period into employment segments and resolves the worked,
+    /// norm and paid-absence quantities for each one. This is the single source of
+    /// truth shared by the header salary proration and the persisted line segments,
+    /// so a mid-period salary/position change is calculated consistently.
+    /// </summary>
+    private static List<PayrollSegmentComputation> ComputeSegments(
+        PayPeriod period,
+        PayTimesheetLine time,
+        IReadOnlyCollection<PayEmployment> employments,
+        bool includePaidLeave = true,
+        bool includePaidSick = true)
+    {
+        var segments = PayrollEmploymentSegmentCalculator.Split(period, employments);
         if (segments.Count == 0)
             return [];
 
@@ -1503,7 +1847,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         var availableWorkDays = period.WorkDays ?? [];
         var totalSegmentDays = segments.Sum(x => x.EndDate.DayNumber - x.StartDate.DayNumber + 1);
 
-        return segments.Select(segment =>
+        var computations = segments.Select(segment =>
         {
             var segmentDays = availableTimesheetDays
                 .Where(x => x.WorkDate >= segment.StartDate && x.WorkDate <= segment.EndDate)
@@ -1524,15 +1868,81 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var segmentWorkDays = availableWorkDays
                 .Where(x => x.WorkDate >= segment.StartDate && x.WorkDate <= segment.EndDate && x.IsWorkDay)
                 .ToList();
-            var normWorkDays = segmentWorkDays.Count;
+            decimal normWorkDays = segmentWorkDays.Count;
             var normWorkHours = segmentWorkDays.Sum(x => x.WorkHours);
             if (availableWorkDays.Count == 0)
             {
                 var ratio = (segment.EndDate.DayNumber - segment.StartDate.DayNumber + 1) / (decimal)periodDays;
-                normWorkDays = (int)Math.Round((time.NormWorkDays > 0m ? time.NormWorkDays : period.NormWorkDays) * ratio, 0, MidpointRounding.AwayFromZero);
+                normWorkDays = Math.Round((time.NormWorkDays > 0m ? time.NormWorkDays : period.NormWorkDays) * ratio, 2, MidpointRounding.AwayFromZero);
                 normWorkHours = (time.NormWorkHours > 0m ? time.NormWorkHours : period.NormWorkHours) * ratio;
             }
 
+            return new PayrollSegmentComputation
+            {
+                Segment = segment,
+                WorkedDays = workedDays,
+                WorkedHours = workedHours,
+                NormWorkDays = normWorkDays,
+                NormWorkHours = normWorkHours
+            };
+        }).ToList();
+
+        // Paid leave/sick are tracked at the line level only, so distribute them
+        // across segments proportionally to each segment's norm days (falling back
+        // to segment length). The monthly totals are conserved by assigning any
+        // rounding remainder to the last segment.
+        AllocatePaidAbsence(computations, includePaidLeave ? time.PaidLeaveDays : 0m, static (c, v) => c.PaidLeaveDays = v);
+        AllocatePaidAbsence(computations, includePaidSick ? time.PaidSickDays : 0m, static (c, v) => c.PaidSickDays = v);
+        return computations;
+    }
+
+    private static void AllocatePaidAbsence(
+        List<PayrollSegmentComputation> computations,
+        decimal total,
+        Action<PayrollSegmentComputation, decimal> assign)
+    {
+        if (computations.Count == 0 || total <= 0m)
+            return;
+
+        var weights = computations.Select(x => x.NormWorkDays).ToList();
+        var weightSum = weights.Sum();
+        if (weightSum <= 0m)
+        {
+            weights = computations
+                .Select(x => (decimal)(x.Segment.EndDate.DayNumber - x.Segment.StartDate.DayNumber + 1))
+                .ToList();
+            weightSum = weights.Sum();
+        }
+        if (weightSum <= 0m)
+        {
+            assign(computations[^1], total);
+            return;
+        }
+
+        decimal allocated = 0m;
+        for (var i = 0; i < computations.Count - 1; i++)
+        {
+            var portion = decimal.Round(total * weights[i] / weightSum, 2, MidpointRounding.AwayFromZero);
+            assign(computations[i], portion);
+            allocated += portion;
+        }
+        assign(computations[^1], total - allocated);
+    }
+
+    private static List<PayPayrollLineSegment> BuildPayrollLineSegments(
+        int organizationId,
+        PayPayrollLine line,
+        IReadOnlyList<PayrollSegmentComputation> computations,
+        IReadOnlyCollection<PayEmployment> employments,
+        IReadOnlyCollection<PayComponent> components,
+        IReadOnlyCollection<PayEmployeeComponent> assignmentHistory)
+    {
+        if (computations.Count == 0)
+            return [];
+
+        return computations.Select(computation =>
+        {
+            var segment = computation.Segment;
             var componentSnapshot = components
                 .Select(component =>
                 {
@@ -1561,19 +1971,30 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             {
                 OrganizationId = organizationId,
                 PayrollLine = line,
-                Employment = employmentList.First(x => x.Id == segment.EmploymentId),
+                Employment = employments.First(x => x.Id == segment.EmploymentId),
                 EmploymentId = segment.EmploymentId,
                 SegmentStartDate = segment.StartDate,
                 SegmentEndDate = segment.EndDate,
                 MonthlySalary = segment.MonthlySalary,
                 EmploymentRate = segment.EmploymentRate,
-                WorkedDays = decimal.Round(workedDays, 2),
-                WorkedHours = decimal.Round(workedHours, 2),
-                NormWorkDays = decimal.Round(normWorkDays, 2),
-                NormWorkHours = decimal.Round(normWorkHours, 2),
+                WorkedDays = decimal.Round(computation.WorkedDays, 2),
+                WorkedHours = decimal.Round(computation.WorkedHours, 2),
+                NormWorkDays = decimal.Round(computation.NormWorkDays, 2),
+                NormWorkHours = decimal.Round(computation.NormWorkHours, 2),
                 ComponentSnapshotJson = JsonSerializer.Serialize(componentSnapshot)
             };
         }).ToList();
+    }
+
+    private sealed class PayrollSegmentComputation
+    {
+        public required PayrollEmploymentSegment Segment { get; init; }
+        public decimal WorkedDays { get; set; }
+        public decimal WorkedHours { get; set; }
+        public decimal NormWorkDays { get; set; }
+        public decimal NormWorkHours { get; set; }
+        public decimal PaidLeaveDays { get; set; }
+        public decimal PaidSickDays { get; set; }
     }
 
     private sealed record PayrollComponentSnapshot(
@@ -1590,9 +2011,13 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
 
     private async Task<Dictionary<long, decimal>> GetPostedAdvancesAsync(long periodId, List<long> employeeIds, CancellationToken ct)
     {
+        // Only prepayment advances (not tied to a payroll line) offset the regular final.
+        // Advance lines that settle a WITH_ADVANCE correction carry a PayrollLineId and
+        // must not reduce the regular document's payable.
         var query = _queryBuilder.For<PayPaymentLine>()
             .Where(x =>
                 employeeIds.Contains(x.EmployeeId) &&
+                x.PayrollLineId == null &&
                 x.PaymentBatch.PeriodId == periodId &&
                 x.PaymentBatch.PaymentKind == PayrollPaymentKindConst.Advance &&
                 x.PaymentBatch.StatusId == DocumentStatusIdConst.POSTED &&

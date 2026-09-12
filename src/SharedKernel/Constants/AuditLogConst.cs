@@ -31,6 +31,7 @@ public static class AuditLogTableConst
     public const string PayPaymentBatch = "pay_payment_batch";
     public const string HrEmployeeWorkSchedule = "hr_employee_work_schedule";
     public const string HrAbsence = "hr_absence";
+    public const string PayHrOrder = "pay_hr_order";
     public const string AuthorizationBypass = "sys_authorization_bypass";
     public const string Notification = "sys_notification";
     public const string EdoImportJob = "edo_import_job";

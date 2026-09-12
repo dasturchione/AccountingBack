@@ -51,6 +51,41 @@ public sealed class PayrollProrationTests
     }
 
     [Fact]
+    public void CalculateSegmented_SingleSegment_EqualsWholePeriodProration()
+    {
+        var whole = PayrollSalaryProrationCalculator.Calculate(
+            monthlySalary: 4_400_000m,
+            employmentRate: 1m,
+            workedDays: 20m,
+            normDays: 22m,
+            workedHours: 160m,
+            normHours: 176m,
+            basis: PayrollProrationBasisConst.Days);
+
+        var segmented = PayrollSalaryProrationCalculator.CalculateSegmented(
+            [new PayrollProrationSegment(4_400_000m, 1m, 20m, 22m, 160m, 176m, 0m, 0m, 0m)],
+            PayrollProrationBasisConst.Days);
+
+        Assert.Equal(whole, segmented);
+    }
+
+    [Fact]
+    public void CalculateSegmented_MidPeriodSalaryChange_SumsPerSegmentSalaries()
+    {
+        // 11 worked days on the old 2,200,000 salary (norm 22) +
+        // 11 worked days on the new 4,400,000 salary (norm 22).
+        var segmented = PayrollSalaryProrationCalculator.CalculateSegmented(
+            [
+                new PayrollProrationSegment(2_200_000m, 1m, 11m, 22m, 88m, 176m, 0m, 0m, 0m),
+                new PayrollProrationSegment(4_400_000m, 1m, 11m, 22m, 88m, 176m, 0m, 0m, 0m)
+            ],
+            PayrollProrationBasisConst.Days);
+
+        // 1,100,000 + 2,200,000 — NOT the buggy 2,200,000 (latest salary for all days).
+        Assert.Equal(3_300_000m, segmented);
+    }
+
+    [Fact]
     public void DayBasis_IncludesPaidLeaveInSalaryTime()
     {
         var amount = PayrollSalaryProrationCalculator.Calculate(

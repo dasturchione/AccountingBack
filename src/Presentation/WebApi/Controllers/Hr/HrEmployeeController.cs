@@ -99,6 +99,69 @@ public sealed class HrEmployeeController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [HttpGet("{employeeId:long}/history")]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeView)]
+    public async Task<IResult> GetHistoryAsync([FromRoute] long employeeId, CancellationToken ct = default)
+    {
+        var result = await _employeeService.GetHistoryAsync(employeeId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("{employeeId:long}/transfer")]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
+    public async Task<IResult> TransferAsync(
+        [FromRoute] long employeeId,
+        [FromBody] PayrollEmploymentTransferDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _employeeService.TransferAsync(employeeId, dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("{employeeId:long}/change-pay")]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
+    public async Task<IResult> ChangePayAsync(
+        [FromRoute] long employeeId,
+        [FromBody] PayrollEmploymentPayChangeDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _employeeService.ChangePayAsync(employeeId, dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("{employeeId:long}/dismiss")]
+    [ModuleAuthorize(PermissionCodeConst.HrEmployeeUpdate)]
+    public async Task<IResult> DismissAsync(
+        [FromRoute] long employeeId,
+        [FromBody] PayrollEmploymentDismissDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _employeeService.DismissAsync(employeeId, dto, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{employeeId:long}/components")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeUpdate)]
+    public async Task<IResult> AssignComponentAsync(
+        [FromRoute] long employeeId,
+        [FromBody] PayrollEmployeeComponentSaveDto dto,
+        CancellationToken ct = default)
+    {
+        var result = await _employeeService.AssignComponentAsync(employeeId, dto, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpDelete("{employeeId:long}/components/{assignmentId:long}")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollEmployeeUpdate)]
+    public async Task<IResult> RemoveComponentAsync(
+        [FromRoute] long employeeId,
+        [FromRoute] long assignmentId,
+        CancellationToken ct = default)
+    {
+        var result = await _employeeService.RemoveComponentAsync(employeeId, assignmentId, ct);
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpGet("{employeeId:long}/work-schedules")]
     [ModuleAuthorize(PermissionCodeConst.HrScheduleView)]
     public async Task<IResult> GetSchedulesAsync(

@@ -5,6 +5,7 @@ using Application.Features.AuditLogs;
 using Application.Features.BankOperations;
 using Application.Features.CashOperations;
 using Application.Features.DocumentNumbers;
+using Application.Features.Pay.PayrollDocuments;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -165,7 +166,7 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             if (missingEmployee > 0)
                 return Result.Failure<long>(PayrollErrors.NotFound("Employee", missingEmployee, _userContext.LanguageId));
 
-            Dictionary<long, long> payrollLineIdByEmployee = new();
+            var allocationsByEmployee = new Dictionary<long, IReadOnlyList<PayrollPaymentAllocationItem>>();
             if (dto.PaymentKind == PayrollPaymentKindConst.Final)
             {
                 if (!dto.PayrollDocId.HasValue)
@@ -185,26 +186,74 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                         "PaymentCurrencyMismatch",
                         $"To‘lov valyutasi (ID: {dto.CurrencyId}) oylik hisoblash valyutasiga (ID: {payrollDoc.CurrencyId}) mos kelmaydi.",
                         _userContext.LanguageId));
+                // Only a SEPARATE correction is paid on its own. WITH_SALARY is paid with
+                // the regular final; WITH_ADVANCE is paid through the advance vedomost.
+                if (payrollDoc.DocumentKind == PayrollDocumentKindConst.Correction)
+                {
+                    var payoutMode = PayrollDocumentPaymentPolicy.NormalizePayoutMode(payrollDoc.DocumentKind, payrollDoc.CorrectionPayoutMode);
+                    if (payoutMode == PayrollCorrectionPayoutModeConst.WithSalary)
+                        return Result.Failure<long>(PayrollErrors.WithSalaryCorrectionNotDirectlyPayable(payrollDoc.Id, _userContext.LanguageId));
+                    if (payoutMode == PayrollCorrectionPayoutModeConst.WithAdvance)
+                        return Result.Failure<long>(PayrollErrors.WithAdvanceCorrectionViaAdvanceOnly(payrollDoc.Id, _userContext.LanguageId));
+                }
 
-                payrollLineIdByEmployee = await GetPayrollLineIdsAsync(payrollDoc.Id, employeeIds, ct);
-                var missingPayrollLine = employeeIds
-                    .FirstOrDefault(employeeId => !payrollLineIdByEmployee.ContainsKey(employeeId));
-                if (missingPayrollLine > 0)
-                    return Result.Failure<long>(PayrollErrors.Business(
-                        "EmployeeMissingFromPayroll",
-                        $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {missingPayrollLine}, hujjat ID: {payrollDoc.Id}).",
-                        _userContext.LanguageId));
-
-                var outstanding = await GetOutstandingByEmployeeAsync(period.Id, payrollDoc.Id, employeeIds, ct);
+                var docIds = await GetPayableDocIdsAsync(period.Id, payrollDoc, ct);
+                var outstandingLines = await GetOutstandingLinesAsync(docIds, payrollDoc.Id, employeeIds, ct);
                 foreach (var line in dto.Lines)
                 {
-                    var available = outstanding.GetValueOrDefault(line.EmployeeId);
+                    if (!outstandingLines.TryGetValue(line.EmployeeId, out var targets) || targets.Count == 0)
+                        return Result.Failure<long>(PayrollErrors.Business(
+                            "EmployeeMissingFromPayroll",
+                            $"Xodim oylik hisoblash hujjatiga kiritilmagan (xodim ID: {line.EmployeeId}, hujjat ID: {payrollDoc.Id}).",
+                            _userContext.LanguageId));
+                    var available = PayrollPaymentAllocator.TotalOutstanding(targets);
                     if (line.Amount > available)
                         return Result.Failure<long>(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available, _userContext.LanguageId));
+                    allocationsByEmployee[line.EmployeeId] = PayrollPaymentAllocator.Allocate(line.Amount, targets);
+                }
+            }
+            else if (dto.PayrollDocId.HasValue)
+            {
+                // Advance that settles a WITH_ADVANCE correction: per-line, like a final.
+                var docQuery = _queryBuilder.For<PayPayrollDoc>()
+                    .Where(x =>
+                        x.Id == dto.PayrollDocId.Value &&
+                        x.PeriodId == period.Id &&
+                        x.StatusId == DocumentStatusIdConst.POSTED)
+                    .Build();
+                var correctionDoc = await _payrollDocQuery.GetAsync(docQuery, ct);
+                if (correctionDoc is null)
+                    return Result.Failure<long>(PayrollErrors.CorrectionSourceRequired(_userContext.LanguageId));
+                if (correctionDoc.CurrencyId != dto.CurrencyId)
+                    return Result.Failure<long>(PayrollErrors.Business(
+                        "PaymentCurrencyMismatch",
+                        $"To‘lov valyutasi (ID: {dto.CurrencyId}) tuzatish hujjati valyutasiga (ID: {correctionDoc.CurrencyId}) mos kelmaydi.",
+                        _userContext.LanguageId));
+                if (correctionDoc.DocumentKind != PayrollDocumentKindConst.Correction ||
+                    PayrollDocumentPaymentPolicy.NormalizePayoutMode(correctionDoc.DocumentKind, correctionDoc.CorrectionPayoutMode) != PayrollCorrectionPayoutModeConst.WithAdvance)
+                    return Result.Failure<long>(PayrollErrors.Business(
+                        "AdvanceDocumentMustBeWithAdvanceCorrection",
+                        $"Avans qaydnomasiga faqat 'avans bilan' to'lanadigan tuzatish hujjati biriktiriladi (hujjat ID: {correctionDoc.Id}).",
+                        _userContext.LanguageId));
+
+                var outstandingLines = await GetOutstandingLinesAsync([correctionDoc.Id], correctionDoc.Id, employeeIds, ct);
+                foreach (var line in dto.Lines)
+                {
+                    if (!outstandingLines.TryGetValue(line.EmployeeId, out var targets) || targets.Count == 0)
+                        return Result.Failure<long>(PayrollErrors.Business(
+                            "EmployeeMissingFromPayroll",
+                            $"Xodim tuzatish hujjatiga kiritilmagan (xodim ID: {line.EmployeeId}, hujjat ID: {correctionDoc.Id}).",
+                            _userContext.LanguageId));
+                    var available = PayrollPaymentAllocator.TotalOutstanding(targets);
+                    if (line.Amount > available)
+                        return Result.Failure<long>(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available, _userContext.LanguageId));
+                    allocationsByEmployee[line.EmployeeId] = PayrollPaymentAllocator.Allocate(line.Amount, targets);
                 }
             }
             else
             {
+                // Prepayment advance (against the coming salary): manual/computed amount,
+                // not tied to a payroll line.
                 var validAdvanceEmployeesQuery = _queryBuilder.For<PayEmployment>()
                     .Where(x =>
                         employeeIds.Contains(x.EmployeeId) &&
@@ -253,16 +302,23 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
                 StateId = StateIdConst.ACTIVE,
                 CreatedDate = now,
                 CreatedByUserId = _userContext.Id,
-                Lines = dto.Lines.Select(line => new PayPaymentLine
-                {
-                    OrganizationId = organizationId,
-                    EmployeeId = line.EmployeeId,
-                    PayrollLineId = payrollLineIdByEmployee.TryGetValue(line.EmployeeId, out var payrollLineId)
-                        ? payrollLineId
-                        : null,
-                    Amount = line.Amount,
-                    Note = line.Note
-                }).ToList()
+                Lines = allocationsByEmployee.Count > 0
+                    ? dto.Lines.SelectMany(line => allocationsByEmployee[line.EmployeeId].Select(item => new PayPaymentLine
+                    {
+                        OrganizationId = organizationId,
+                        EmployeeId = line.EmployeeId,
+                        PayrollLineId = item.PayrollLineId,
+                        Amount = item.Amount,
+                        Note = line.Note
+                    })).ToList()
+                    : dto.Lines.Select(line => new PayPaymentLine
+                    {
+                        OrganizationId = organizationId,
+                        EmployeeId = line.EmployeeId,
+                        PayrollLineId = null,
+                        Amount = line.Amount,
+                        Note = line.Note
+                    }).ToList()
             };
             await _command.CreateAsync(entity, ct);
             _auditLogService.SetNewValues(await GetRequiredDtoInternalAsync(entity.Id, ct));
@@ -290,14 +346,18 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
 
             if (batch.PaymentKind == PayrollPaymentKindConst.Final)
             {
-                var employeeIds = batch.Lines.Select(x => x.EmployeeId).ToList();
                 if (!batch.PayrollDocId.HasValue)
                     return Result.Failure(PayrollErrors.Business("PayrollDocumentRequired", "Yakuniy to‘lov manba hujjatisiz tasdiqlanmaydi.", _userContext.LanguageId));
 
-                var outstanding = await GetOutstandingByEmployeeAsync(batch.PeriodId, batch.PayrollDocId.Value, employeeIds, ct);
+                // Re-validate against the current per-line outstanding (other posted final
+                // payments only — this DRAFT batch's own lines are not yet posted).
+                var lineIds = batch.Lines.Where(x => x.PayrollLineId.HasValue).Select(x => x.PayrollLineId!.Value).Distinct().ToList();
+                var outstandingByLine = await GetOutstandingByLineAsync(lineIds, ct);
                 foreach (var line in batch.Lines)
                 {
-                    var available = outstanding.GetValueOrDefault(line.EmployeeId);
+                    var available = line.PayrollLineId.HasValue
+                        ? outstandingByLine.GetValueOrDefault(line.PayrollLineId.Value)
+                        : 0m;
                     if (line.Amount > available)
                         return Result.Failure(PayrollErrors.PaymentExceedsOutstanding(line.EmployeeId, line.Amount, available, _userContext.LanguageId));
                 }
@@ -407,6 +467,84 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
             return Result.Success();
         }, ct);
 
+    public Task<Result<PayrollAdvanceSuggestionDto>> GetAdvanceSuggestionAsync(long periodId, CancellationToken ct = default) =>
+        ExecuteAsync(nameof(GetAdvanceSuggestionAsync), async () =>
+        {
+            if (_userContext.OrganizationId is null)
+                return Result.Failure<PayrollAdvanceSuggestionDto>(CommonErrors.UserHasNoOrganization(_userContext.LanguageId));
+
+            var organizationId = _userContext.OrganizationId.Value;
+            var period = await _periodQuery.GetAsync(_queryBuilder.For<PayPeriod>().Where(x => x.Id == periodId).Build(), ct);
+            if (period is null)
+                return Result.Failure<PayrollAdvanceSuggestionDto>(PayrollErrors.NotFound("Period", periodId, _userContext.LanguageId));
+
+            var empQuery = _queryBuilder.For<PayEmployment>()
+                .Where(x =>
+                    x.OrganizationId == organizationId &&
+                    x.StateId == StateIdConst.ACTIVE &&
+                    x.StartDate <= period.EndDate &&
+                    (!x.EndDate.HasValue || x.EndDate.Value >= period.StartDate))
+                .As(x => new
+                {
+                    x.Id,
+                    x.EmployeeId,
+                    EmployeeNumber = x.Employee.EmployeeNumber,
+                    EmployeeName = x.Employee.LastName + " " + x.Employee.FirstName,
+                    x.MonthlySalary,
+                    x.EmploymentRate,
+                    x.AdvanceMethod,
+                    x.AdvanceValue,
+                    x.StartDate
+                })
+                .Build();
+            var employments = await _employmentQuery.GetAllAsync(empQuery, ct);
+            var latest = employments
+                .GroupBy(x => x.EmployeeId)
+                .Select(g => g.OrderByDescending(y => y.StartDate).ThenByDescending(y => y.Id).First())
+                .ToList();
+            var employeeIds = latest.Select(x => x.EmployeeId).ToList();
+
+            var correctionByEmployee = new Dictionary<long, decimal>();
+            var correctionDocIds = await _payrollDocQuery.GetAllAsync(
+                _queryBuilder.For<PayPayrollDoc>()
+                    .Where(x =>
+                        x.PeriodId == periodId &&
+                        x.DocumentKind == PayrollDocumentKindConst.Correction &&
+                        x.CorrectionPayoutMode == PayrollCorrectionPayoutModeConst.WithAdvance &&
+                        x.StateId == StateIdConst.ACTIVE &&
+                        x.StatusId == DocumentStatusIdConst.POSTED)
+                    .As(x => x.Id)
+                    .Build(), ct);
+            if (correctionDocIds.Count > 0 && employeeIds.Count > 0)
+            {
+                var lines = await GetOutstandingLinesAsync(correctionDocIds, 0, employeeIds, ct);
+                correctionByEmployee = lines.ToDictionary(kv => kv.Key, kv => PayrollPaymentAllocator.TotalOutstanding(kv.Value));
+            }
+
+            var resultLines = latest
+                .Select(x =>
+                {
+                    var baseAdvance = PayrollAdvanceCalculator.Compute(x.AdvanceMethod, x.AdvanceValue, x.MonthlySalary, x.EmploymentRate);
+                    var correction = correctionByEmployee.GetValueOrDefault(x.EmployeeId);
+                    return new PayrollAdvanceSuggestionLineDto
+                    {
+                        EmployeeId = x.EmployeeId,
+                        EmployeeNumber = x.EmployeeNumber,
+                        EmployeeName = x.EmployeeName,
+                        AdvanceMethod = x.AdvanceMethod,
+                        AdvanceValue = x.AdvanceValue,
+                        BaseAdvance = baseAdvance,
+                        CorrectionAmount = correction,
+                        Suggested = baseAdvance + correction
+                    };
+                })
+                .Where(x => x.Suggested > 0m)
+                .OrderBy(x => x.EmployeeName)
+                .ToList();
+
+            return Result.Success(new PayrollAdvanceSuggestionDto { PeriodId = periodId, Lines = resultLines });
+        });
+
     private async Task<Result> ValidateSourceAsync(PayrollPaymentCreateDto dto, int organizationId, CancellationToken ct)
     {
         var validSource = dto.SourceType switch
@@ -454,49 +592,94 @@ public sealed class PayrollPaymentService : BaseService, IPayrollPaymentService
         return Result.Success();
     }
 
-    private async Task<Dictionary<long, long>> GetPayrollLineIdsAsync(long payrollDocId, List<long> employeeIds, CancellationToken ct)
+    // Payout mode decides which posted documents one final payment covers:
+    // a regular run is paid together with its WITH_SALARY corrections; a SEPARATE
+    // (or WITH_ADVANCE) correction is paid on its own.
+    private async Task<List<long>> GetPayableDocIdsAsync(long periodId, PayPayrollDoc targetDoc, CancellationToken ct)
     {
-        var query = _queryBuilder.For<PayPayrollLine>()
-            .Where(x => x.PayrollDocId == payrollDocId && employeeIds.Contains(x.EmployeeId))
-            .As(x => new { x.EmployeeId, x.Id })
+        if (targetDoc.DocumentKind != PayrollDocumentKindConst.Regular)
+            return [targetDoc.Id];
+
+        var correctionQuery = _queryBuilder.For<PayPayrollDoc>()
+            .Where(x =>
+                x.PeriodId == periodId &&
+                x.DocumentKind == PayrollDocumentKindConst.Correction &&
+                x.CorrectionOfDocId == targetDoc.Id &&
+                x.CorrectionPayoutMode == PayrollCorrectionPayoutModeConst.WithSalary &&
+                x.StateId == StateIdConst.ACTIVE &&
+                x.StatusId == DocumentStatusIdConst.POSTED)
+            .As(x => x.Id)
             .Build();
-        var lines = await _payrollLineQuery.GetAllAsync(query, ct);
-        return lines.ToDictionary(x => x.EmployeeId, x => x.Id);
+        var corrections = await _payrollDocQuery.GetAllAsync(correctionQuery, ct);
+        return new List<long> { targetDoc.Id }.Concat(corrections).ToList();
     }
 
-    private async Task<Dictionary<long, decimal>> GetOutstandingByEmployeeAsync(long periodId, long payrollDocId, List<long> employeeIds, CancellationToken ct)
+    // Per-employee ordered payroll lines with their remaining outstanding across the
+    // covered documents (regular first, then WITH_SALARY corrections).
+    private async Task<Dictionary<long, IReadOnlyList<PayrollPaymentAllocationTarget>>> GetOutstandingLinesAsync(
+        List<long> docIds,
+        long primaryDocId,
+        List<long> employeeIds,
+        CancellationToken ct)
     {
-        var payrollQuery = _queryBuilder.For<PayPayrollLine>()
-            .Where(x =>
-                employeeIds.Contains(x.EmployeeId) &&
-                x.PayrollDocId == payrollDocId &&
-                x.PayrollDoc.PeriodId == periodId &&
-                x.PayrollDoc.StateId == StateIdConst.ACTIVE &&
-                x.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED)
-            .As(x => new { x.EmployeeId, x.PayableAmount })
+        var lineQuery = _queryBuilder.For<PayPayrollLine>()
+            .Where(x => docIds.Contains(x.PayrollDocId) && employeeIds.Contains(x.EmployeeId))
+            .As(x => new { x.Id, x.EmployeeId, x.PayrollDocId, x.PayableAmount })
             .Build();
-        var payrollLines = await _payrollLineQuery.GetAllAsync(payrollQuery, ct);
-        var payable = payrollLines.GroupBy(x => x.EmployeeId).ToDictionary(x => x.Key, x => x.Sum(y => y.PayableAmount));
+        var lines = await _payrollLineQuery.GetAllAsync(lineQuery, ct);
 
+        var lineIds = lines.Select(x => x.Id).ToList();
+        var paidByLine = await GetPaidByLineAsync(lineIds, ct);
+
+        return lines
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<PayrollPaymentAllocationTarget>)g
+                    .OrderByDescending(l => l.PayrollDocId == primaryDocId)
+                    .ThenBy(l => l.PayrollDocId)
+                    .Select(l => new PayrollPaymentAllocationTarget(
+                        l.Id,
+                        Math.Max(0m, decimal.Round(l.PayableAmount - paidByLine.GetValueOrDefault(l.Id), 2, MidpointRounding.AwayFromZero))))
+                    .ToList());
+    }
+
+    private async Task<Dictionary<long, decimal>> GetOutstandingByLineAsync(List<long> lineIds, CancellationToken ct)
+    {
+        if (lineIds.Count == 0)
+            return new Dictionary<long, decimal>();
+
+        var payableQuery = _queryBuilder.For<PayPayrollLine>()
+            .Where(x => lineIds.Contains(x.Id))
+            .As(x => new { x.Id, x.PayableAmount })
+            .Build();
+        var payable = (await _payrollLineQuery.GetAllAsync(payableQuery, ct))
+            .ToDictionary(x => x.Id, x => x.PayableAmount);
+        var paidByLine = await GetPaidByLineAsync(lineIds, ct);
+
+        return lineIds.ToDictionary(
+            id => id,
+            id => Math.Max(0m, decimal.Round(payable.GetValueOrDefault(id) - paidByLine.GetValueOrDefault(id), 2, MidpointRounding.AwayFromZero)));
+    }
+
+    private async Task<Dictionary<long, decimal>> GetPaidByLineAsync(List<long> lineIds, CancellationToken ct)
+    {
+        if (lineIds.Count == 0)
+            return new Dictionary<long, decimal>();
+
+        // Any posted payment that targets a specific payroll line settles it — a final
+        // payment, or an advance that settles a WITH_ADVANCE correction. Prepayment
+        // advances carry a null PayrollLineId and are excluded here by construction.
         var paymentQuery = _queryBuilder.For<PayPaymentLine>()
             .Where(x =>
-                employeeIds.Contains(x.EmployeeId) &&
-                x.PaymentBatch.PeriodId == periodId &&
-                // A final payment is allocated to exactly one posted payroll
-                // document.  Do not let payments for a separate correction (or
-                // another regular run) reduce this document's outstanding.
-                x.PaymentBatch.PayrollDocId == payrollDocId &&
-                x.PaymentBatch.PaymentKind == PayrollPaymentKindConst.Final &&
+                x.PayrollLineId != null &&
+                lineIds.Contains(x.PayrollLineId.Value) &&
                 x.PaymentBatch.StateId == StateIdConst.ACTIVE &&
                 x.PaymentBatch.StatusId == DocumentStatusIdConst.POSTED)
-            .As(x => new { x.EmployeeId, x.Amount })
+            .As(x => new { LineId = x.PayrollLineId!.Value, x.Amount })
             .Build();
-        var paymentLines = await _paymentLineQuery.GetAllAsync(paymentQuery, ct);
-        var paid = paymentLines.GroupBy(x => x.EmployeeId).ToDictionary(x => x.Key, x => x.Sum(y => y.Amount));
-
-        return employeeIds.ToDictionary(
-            employeeId => employeeId,
-            employeeId => Math.Max(0m, payable.GetValueOrDefault(employeeId) - paid.GetValueOrDefault(employeeId)));
+        var rows = await _paymentLineQuery.GetAllAsync(paymentQuery, ct);
+        return rows.GroupBy(x => x.LineId).ToDictionary(g => g.Key, g => g.Sum(y => y.Amount));
     }
 
     private async Task<PayPaymentBatch?> GetAggregateAsync(long id, CancellationToken ct)

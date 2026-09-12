@@ -36,6 +36,14 @@ public sealed class PayrollPaymentController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("advance-suggestion")]
+    [ModuleAuthorize(PermissionCodeConst.PayrollPaymentView)]
+    public async Task<IResult> GetAdvanceSuggestionAsync([FromQuery] long periodId, CancellationToken ct = default)
+    {
+        var result = await _service.GetAdvanceSuggestionAsync(periodId, ct);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost]
     [ModuleAuthorize(PermissionCodeConst.PayrollPaymentCreate)]
     public async Task<IResult> CreateAsync([FromBody] PayrollPaymentCreateDto dto, CancellationToken ct = default)

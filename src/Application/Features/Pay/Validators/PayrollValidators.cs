@@ -1,5 +1,6 @@
 using Application.Features.Pay.Components;
 using Application.Features.Pay.Employees;
+using Application.Features.Pay.HrOrders;
 using Application.Features.Pay.Payments;
 using Application.Features.Pay.PayrollDocuments;
 using Application.Features.Pay.Periods;
@@ -44,6 +45,10 @@ public sealed class PayrollEmploymentSaveDtoValidator : AbstractValidator<Payrol
         RuleFor(x => x.EmploymentRate).GreaterThan(0).LessThanOrEqualTo(2);
         RuleFor(x => x.WeeklyHours).GreaterThan(0).LessThanOrEqualTo(168);
         RuleFor(x => x.CurrencyId).GreaterThan((short)0);
+        RuleFor(x => x.AdvanceMethod).Must(x => PayrollAdvanceMethodConst.All.Contains(x));
+        RuleFor(x => x.AdvanceValue).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.AdvanceValue).LessThanOrEqualTo(100)
+            .When(x => x.AdvanceMethod == PayrollAdvanceMethodConst.Percent);
     }
 }
 
@@ -179,13 +184,18 @@ public sealed class PayrollCalculateDtoValidator : AbstractValidator<PayrollCalc
             .When(x => x.DocumentKind == PayrollDocumentKindConst.Regular);
         RuleFor(x => x.CorrectionPayoutMode)
             .Must(x => x is null || PayrollCorrectionPayoutModeConst.All.Contains(x.Trim().ToUpperInvariant()));
-        RuleFor(x => x.SalaryExpenseAccountId).GreaterThan(0);
-        RuleFor(x => x.SalaryPayableAccountId).GreaterThan(0);
+        // Optional: when omitted the organization's default payroll accounts are used.
+        RuleFor(x => x.SalaryExpenseAccountId).GreaterThan(0).When(x => x.SalaryExpenseAccountId.HasValue);
+        RuleFor(x => x.SalaryPayableAccountId).GreaterThan(0).When(x => x.SalaryPayableAccountId.HasValue);
         RuleForEach(x => x.Adjustments).ChildRules(adjustment =>
         {
             adjustment.RuleFor(x => x.EmployeeId).GreaterThan(0);
             adjustment.RuleFor(x => x.ComponentId).GreaterThan(0);
             adjustment.RuleFor(x => x.Note).MaximumLength(500);
+            // Exactly one of Amount (raw delta) or TargetAmount (new absolute value).
+            adjustment.RuleFor(x => x)
+                .Must(x => x.Amount.HasValue ^ x.TargetAmount.HasValue)
+                .WithMessage("Provide exactly one of Amount or TargetAmount.");
         });
     }
 }
@@ -206,5 +216,27 @@ public sealed class PayrollPaymentCreateDtoValidator : AbstractValidator<Payroll
             line.RuleFor(x => x.EmployeeId).GreaterThan(0);
             line.RuleFor(x => x.Amount).GreaterThan(0);
         });
+    }
+}
+
+public sealed class PayrollHrOrderSaveDtoValidator : AbstractValidator<PayrollHrOrderSaveDto>
+{
+    public PayrollHrOrderSaveDtoValidator()
+    {
+        RuleFor(x => x.OrderType).Must(x => PayrollHrOrderTypeConst.All.Contains(x?.Trim().ToUpperInvariant()))
+            .WithMessage("Order type must be HIRE, TRANSFER, PAY_CHANGE or DISMISSAL.");
+        RuleFor(x => x.EmployeeId).GreaterThan(0);
+        RuleFor(x => x.OrderDate).NotEmpty();
+        RuleFor(x => x.EffectiveDate).NotEmpty();
+        RuleFor(x => x.MonthlySalary).GreaterThanOrEqualTo(0).When(x => x.MonthlySalary.HasValue);
+        RuleFor(x => x.EmploymentRate).GreaterThan(0).LessThanOrEqualTo(2).When(x => x.EmploymentRate.HasValue);
+        RuleFor(x => x.Basis).MaximumLength(500);
+        RuleFor(x => x.Note).MaximumLength(500);
+
+        // PAY_CHANGE uchun yangi oklad majburiy.
+        RuleFor(x => x.MonthlySalary)
+            .NotNull()
+            .When(x => string.Equals(x.OrderType?.Trim(), PayrollHrOrderTypeConst.PayChange, System.StringComparison.OrdinalIgnoreCase))
+            .WithMessage("PAY_CHANGE requires MonthlySalary.");
     }
 }

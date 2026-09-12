@@ -484,7 +484,8 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
             .Where(x =>
                 employeeIds.Contains(x.Id) &&
                 x.OrganizationId == organizationId &&
-                x.StateId == StateIdConst.ACTIVE &&
+                // Employment-interval overlap, not employee state, so a mid-period
+                // dismissal (employee PASSIVE, employment still open) stays valid.
                 x.Employments.Any(e =>
                     e.StateId == StateIdConst.ACTIVE &&
                     e.StartDate <= period.EndDate &&
@@ -751,10 +752,14 @@ public sealed class PayrollTimesheetService : BaseService, IPayrollTimesheetServ
         PayPeriod period,
         CancellationToken ct)
     {
+        // Employees are selected by an employment interval that overlaps the period,
+        // not by the employee-level state. This keeps a mid-period dismissal (employee
+        // set to PASSIVE, but the employment interval still open through the last
+        // working day) on the timesheet so the final month is still paid. A fully
+        // removed employee is excluded because DeleteAsync deactivates its employments.
         var query = _queryBuilder.For<PayEmployee>()
             .Where(x =>
                 x.OrganizationId == organizationId &&
-                x.StateId == StateIdConst.ACTIVE &&
                 x.Employments.Any(employment =>
                     employment.StateId == StateIdConst.ACTIVE &&
                     employment.StartDate <= period.EndDate &&

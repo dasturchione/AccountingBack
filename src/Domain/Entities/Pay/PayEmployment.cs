@@ -30,6 +30,18 @@ public partial class PayEmployment
     [StringLength(30)]
     public string EmploymentType { get; set; } = null!;
 
+    /// <summary>
+    /// Personnel action that produced this interval: HIRE / TRANSFER / PAY_CHANGE
+    /// / DISMISSAL. See <see cref="SharedKernel.Constants.PayrollEmploymentActionConst"/>.
+    /// </summary>
+    [Column("action_type")]
+    [StringLength(20)]
+    public string ActionType { get; set; } = null!;
+
+    [Column("note")]
+    [StringLength(500)]
+    public string? Note { get; set; }
+
     [Column("start_date", TypeName = "date")]
     public DateOnly StartDate { get; set; }
 
@@ -48,6 +60,15 @@ public partial class PayEmployment
     [Precision(6, 2)]
     public decimal WeeklyHours { get; set; }
 
+    /// <summary>Avans usuli: PERCENT (oklad foizi) yoki FIXED (qat'iy summa).</summary>
+    [Column("advance_method")]
+    [StringLength(10)]
+    public string AdvanceMethod { get; set; } = null!;
+
+    [Column("advance_value")]
+    [Precision(18, 2)]
+    public decimal AdvanceValue { get; set; }
+
     [Column("currency_id")]
     public short CurrencyId { get; set; }
 
@@ -62,6 +83,12 @@ public partial class PayEmployment
 
     [Column("updated_date", TypeName = "timestamp without time zone")]
     public DateTime? UpdatedDate { get; set; }
+
+    [Column("created_by_user_id")]
+    public int? CreatedByUserId { get; set; }
+
+    [Column("updated_by_user_id")]
+    public int? UpdatedByUserId { get; set; }
 
     [ForeignKey(nameof(OrganizationId))]
     public virtual Organization Organization { get; set; } = null!;
@@ -83,6 +110,12 @@ public partial class PayEmployment
 
     [ForeignKey(nameof(StateId))]
     public virtual State State { get; set; } = null!;
+
+    [ForeignKey(nameof(CreatedByUserId))]
+    public virtual User? CreatedByUser { get; set; }
+
+    [ForeignKey(nameof(UpdatedByUserId))]
+    public virtual User? UpdatedByUser { get; set; }
 
     public virtual ICollection<PayPayrollLine> PayrollLines { get; set; } = new List<PayPayrollLine>();
     public virtual ICollection<PayPayrollLineSegment> PayrollLineSegments { get; set; } = new List<PayPayrollLineSegment>();

@@ -7,6 +7,9 @@ public class FaReceiptBaseDto
     public short CurrencyId { get; set; }
     public short ReceiptTypeId { get; set; }
     public int SupplierAccountId { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public List<FaReceiptLineWriteDto> Lines { get; set; } = new();
 }
 

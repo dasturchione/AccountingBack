@@ -442,37 +442,9 @@ public sealed class CurrencyRevaluationService : BaseService, ICurrencyRevaluati
         if (entries.Count == 0)
             return Result.Failure(CurrencyRevaluationErrors.MissingAccountingRegisterEntries(entity.Id, _userContext.LanguageId ?? 0));
 
-        var now = DateTime.Now;
-        var reversals = entries.Select(entry => new AccountingRegisterEntry
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            DebitAccountId = entry.CreditAccountId,
-            CreditAccountId = entry.DebitAccountId,
-            CurrencyId = entry.CurrencyId,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = entry.OperationTypeId,
-            DebitQuantity = entry.CreditQuantity,
-            CreditQuantity = entry.DebitQuantity,
-            Content = $"Reversal: {entry.Content}",
-            JournalNumber = entry.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id,
-            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = subkonto.Side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT :
-                    subkonto.Side == SubkontoSideConst.CREDIT ? SubkontoSideConst.DEBIT : subkonto.Side,
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversals = AccountingRegisterEntryReversalFactory.Create(
+            entries,
+            reversalBatchId);
 
         await _accountingRegisterCommand.CreateAsync(reversals, ct);
         return Result.Success();

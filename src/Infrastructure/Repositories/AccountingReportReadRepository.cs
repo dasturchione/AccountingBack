@@ -128,15 +128,15 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
         if (beforeStart)
         {
             if (boundary.HasValue)
-                query = query.Where(x => x.DocDate < boundary.Value);
+                query = query.Where(x => x.DocDate < RegisterDateRange.InclusiveStart(boundary.Value));
         }
         else
         {
             if (startDate.HasValue)
-                query = query.Where(x => x.DocDate >= startDate.Value);
+                query = query.Where(x => x.DocDate >= RegisterDateRange.InclusiveStart(startDate.Value));
 
             if (boundary.HasValue)
-                query = query.Where(x => x.DocDate <= boundary.Value);
+                query = query.Where(x => x.DocDate < RegisterDateRange.ExclusiveEnd(boundary.Value));
         }
 
         var debit = await query
@@ -177,10 +177,10 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
         CashFlowReadRequest request)
     {
         if (request.DateFrom.HasValue)
-            query = query.Where(x => x.DocDate >= request.DateFrom.Value);
+            query = query.Where(x => x.DocDate >= RegisterDateRange.InclusiveStart(request.DateFrom.Value));
 
         if (request.DateTo.HasValue)
-            query = query.Where(x => x.DocDate <= request.DateTo.Value);
+            query = query.Where(x => x.DocDate < RegisterDateRange.ExclusiveEnd(request.DateTo.Value));
 
         if (request.CurrencyId.HasValue)
             query = query.Where(x => x.CurrencyId == request.CurrencyId.Value);
@@ -193,10 +193,10 @@ public class AccountingReportReadRepository : IAccountingReportReadRepository
         JournalReadRequest request)
     {
         if (request.DateFrom.HasValue)
-            query = query.Where(x => x.DocDate >= request.DateFrom.Value);
+            query = query.Where(x => x.DocDate >= RegisterDateRange.InclusiveStart(request.DateFrom.Value));
 
         if (request.DateTo.HasValue)
-            query = query.Where(x => x.DocDate <= request.DateTo.Value);
+            query = query.Where(x => x.DocDate < RegisterDateRange.ExclusiveEnd(request.DateTo.Value));
 
         if (request.CurrencyId.HasValue)
             query = query.Where(x => x.CurrencyId == request.CurrencyId.Value);

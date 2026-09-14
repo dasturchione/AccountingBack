@@ -292,6 +292,12 @@
 16_pay/1631_add_payroll_line_attendance_totals.sql
 16_pay/1632_add_pay_component_formula_rules.sql
 16_pay/1633_create_pay_migration_history.sql
+16_pay/1634_add_pay_employment_action.sql
+16_pay/1635_add_pay_employment_advance.sql
+16_pay/1636_add_hr_absence_type_benefit_percent.sql
+00_sys/0023_insert_hr_order_permissions.sql
+01_cmn/0183_add_hr_order_document_type.sql
+16_pay/1637_create_pay_hr_order.sql
 17_rtl/1701_create_table_rtl_payment_method.sql
 17_rtl/1702_create_table_rtl_payment_method_translation.sql
 17_rtl/1703_create_rtl_sale_doc.sql
@@ -319,9 +325,7 @@
 02_org/0211_create_org_regulated_obligation_setting.sql
 01_cmn/0182_create_cmn_utility_service.sql
 18_rnt/1806_expand_rental_contract.sql
-16_pay/1634_add_pay_employment_action.sql
-16_pay/1635_add_pay_employment_advance.sql
-16_pay/1636_add_hr_absence_type_benefit_percent.sql
-00_sys/0023_insert_hr_order_permissions.sql
-01_cmn/0183_add_hr_order_document_type.sql
-16_pay/1637_create_pay_hr_order.sql
+09_register/0908_convert_legacy_reversals_to_storno.sql
+01_cmn/0184_round_document_money_to_register_scale.sql
+01_cmn/0185_add_price_includes_vat.sql
+01_cmn/0186_add_fa_receipt_price_includes_vat.sql

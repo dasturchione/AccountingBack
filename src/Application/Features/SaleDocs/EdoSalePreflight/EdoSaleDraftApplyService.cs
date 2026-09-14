@@ -6,6 +6,7 @@ using Application.Features.Inv.WarehouseProducts;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -607,18 +608,23 @@ public sealed class EdoSaleDraftApplyService(
         {
             var providerLine = providerLines[i];
             var line = requestLines[providerLine.Number];
-            foreach (var item in line.Items)
+            // Split the provider's line VAT over the marked items so the parts still add up
+            // to the amount on the ЭСФ.
+            var items = line.Items.ToArray();
+            var itemVatAmounts = DocumentMoney.Distribute(providerLine.VatAmount, items.Length);
+            var unitPrice = DocumentMoney.Round(line.UnitPrice);
+            for (var index = 0; index < items.Length; index++)
             {
-                var perUnitVat = line.Quantity == 0m ? 0m : Math.Round(providerLine.VatAmount / line.Quantity, 8);
+                var perUnitVat = itemVatAmounts[index];
                 tables.Add(new SaleDocTable
                 {
                     OwnerId = saleLines[i].Id,
-                    ProductTableId = item.ProductTableId,
+                    ProductTableId = items[index].ProductTableId,
                     CostPrice = line.CostPrice,
-                    Amount = line.UnitPrice,
+                    Amount = unitPrice,
                     VatRateId = line.VatRateId,
                     VatAmount = perUnitVat,
-                    TotalAmount = line.UnitPrice + perUnitVat
+                    TotalAmount = DocumentMoney.Round(unitPrice + perUnitVat)
                 });
             }
         }

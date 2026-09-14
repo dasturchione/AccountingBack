@@ -33,7 +33,11 @@ public partial class RetailSaleDoc
     [Column("currency_id")]
     public short CurrencyId { get; set; }
 
-    [Column("total_amount")]
+        /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    [Column("price_includes_vat")]
+    public bool PriceIncludesVat { get; set; }
+
+[Column("total_amount")]
     [Precision(24, 8)]
     public decimal TotalAmount { get; set; }
 

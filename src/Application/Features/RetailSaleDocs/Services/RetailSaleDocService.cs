@@ -10,6 +10,7 @@ using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -136,7 +137,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             if (!header.IsSuccess)
                 return Result.Failure<long>(header.Error);
 
-            var detailsResult = await BuildDetailsAsync(organizationId, dto.Lines, dto.Payments, ct);
+            var detailsResult = await BuildDetailsAsync(organizationId, dto.Lines, dto.Payments, dto.PriceIncludesVat, ct);
             if (!detailsResult.IsSuccess)
                 return Result.Failure<long>(detailsResult.Error);
 
@@ -157,6 +158,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 CurrencyId = dto.CurrencyId,
                 ExchangeRate = dto.ExchangeRate,
                 ReceivableAccountId = dto.ReceivableAccountId,
+                PriceIncludesVat = dto.PriceIncludesVat,
                 VatAccountId = dto.VatAccountId,
                 TotalAmount = details.TotalAmount,
                 VatAmount = details.VatAmount,
@@ -196,7 +198,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
             if (!header.IsSuccess)
                 return header;
 
-            var detailsResult = await BuildDetailsAsync(organizationResult.Value, dto.Lines, dto.Payments, ct);
+            var detailsResult = await BuildDetailsAsync(organizationResult.Value, dto.Lines, dto.Payments, dto.PriceIncludesVat, ct);
             if (!detailsResult.IsSuccess)
                 return Result.Failure(detailsResult.Error);
 
@@ -210,6 +212,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
 
             var details = detailsResult.Value;
             document.DocDate = DateTime.SpecifyKind(dto.DocDate, DateTimeKind.Unspecified);
+            document.PriceIncludesVat = dto.PriceIncludesVat;
             document.CounterpartyId = dto.CounterpartyId;
             document.WarehouseId = dto.WarehouseId;
             document.CashRegisterId = dto.CashRegisterId;
@@ -358,7 +361,7 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         return Result.Success();
     }
 
-    private async Task<Result<RetailSaleDetails>> BuildDetailsAsync(int organizationId, IReadOnlyCollection<RetailSaleDocProductCreateDto> dtoLines, IReadOnlyCollection<RetailSaleDocPaymentDto> dtoPayments, CancellationToken ct)
+    private async Task<Result<RetailSaleDetails>> BuildDetailsAsync(int organizationId, IReadOnlyCollection<RetailSaleDocProductCreateDto> dtoLines, IReadOnlyCollection<RetailSaleDocPaymentDto> dtoPayments, bool priceIncludesVat, CancellationToken ct)
     {
         if (dtoLines.Count == 0)
             return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.EmptyLines(_userContext.LanguageId));
@@ -403,9 +406,17 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 return Result.Failure<RetailSaleDetails>(RetailSaleDocErrors.InvalidProductTable(dto.Items.First().ProductTableId, _userContext.LanguageId));
 
             var vatRate = dto.VatRateId.HasValue ? vatMap[dto.VatRateId.Value].Rate : (decimal?)null;
-            var vatAmount = RetailSaleVatCalculator.ResolveTotal(dto.UnitPrice, dto.Quantity, dto.VatAmount, vatRate);
-            var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(vatAmount, dto.Quantity);
-            var amount = dto.Quantity * dto.UnitPrice;
+            var money = RetailSaleVatCalculator.Resolve(
+                dto.UnitPrice,
+                dto.Quantity,
+                dto.VatAmount,
+                vatRate,
+                priceIncludesVat);
+            var vatAmount = money.VatAmount;
+            var itemVatAmounts = RetailSaleVatCalculator.ResolvePerUnit(vatAmount, dto.Items.Count);
+            // Items carry the line's net price per unit so they still add back up to the line.
+            var itemNetAmounts = DocumentMoney.Distribute(money.NetAmount, dto.Items.Count);
+            var amount = money.NetAmount;
             var line = new RetailSaleDocProduct
             {
                 ProductId = dto.ProductId,
@@ -416,19 +427,19 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                 Amount = amount,
                 VatRateId = dto.VatRateId,
                 VatAmount = vatAmount,
-                TotalAmount = amount + vatAmount,
+                TotalAmount = money.GrossAmount,
                 InventoryAccountId = dto.InventoryAccountId,
                 IncomeAccountId = dto.IncomeAccountId,
                 CostAccountId = dto.CostAccountId
             };
-            lines.Add(new RetailSaleLineDraft(line, dto.Items.Select(x => new RetailSaleDocTable
+            lines.Add(new RetailSaleLineDraft(line, dto.Items.Select((x, index) => new RetailSaleDocTable
             {
                 ProductTableId = x.ProductTableId,
                 CostPrice = dto.CostPrice,
-                Amount = dto.UnitPrice,
+                Amount = itemNetAmounts[index],
                 VatRateId = dto.VatRateId,
-                VatAmount = vatPerUnit,
-                TotalAmount = dto.UnitPrice + vatPerUnit
+                VatAmount = itemVatAmounts[index],
+                TotalAmount = DocumentMoney.Round(itemNetAmounts[index] + itemVatAmounts[index])
             }).ToList()));
         }
 
@@ -562,26 +573,33 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
                     return Result.Failure(RetailSaleDocErrors.InvalidLine(0, _userContext.LanguageId));
 
                 var vatRate = line.VatRateId.HasValue ? vatMap[line.VatRateId.Value].Rate : (decimal?)null;
-                var vatAmount = RetailSaleVatCalculator.ResolveTotal(dtoLine.UnitPrice, line.Quantity, dtoLine.VatAmount, vatRate);
-                var vatPerUnit = RetailSaleVatCalculator.ResolvePerUnit(vatAmount, line.Quantity);
+                var money = RetailSaleVatCalculator.Resolve(
+                    dtoLine.UnitPrice,
+                    line.Quantity,
+                    dtoLine.VatAmount,
+                    vatRate,
+                    document.PriceIncludesVat);
                 line.UnitPrice = dtoLine.UnitPrice;
                 line.CostPrice = dtoLine.CostPrice;
                 if (line.Product.IsPieceTracked && !line.Product.IsService)
                 {
-                    foreach (var table in line.RetailSaleDocTables)
+                    var tables = line.RetailSaleDocTables.ToList();
+                    var itemVatAmounts = RetailSaleVatCalculator.ResolvePerUnit(money.VatAmount, tables.Count);
+                    var itemNetAmounts = DocumentMoney.Distribute(money.NetAmount, tables.Count);
+                    for (var index = 0; index < tables.Count; index++)
                     {
-                        table.CostPrice = dtoLine.CostPrice;
-                        table.Amount = dtoLine.UnitPrice;
-                        table.VatAmount = vatPerUnit;
-                        table.TotalAmount = dtoLine.UnitPrice + vatPerUnit;
+                        tables[index].CostPrice = dtoLine.CostPrice;
+                        tables[index].Amount = itemNetAmounts[index];
+                        tables[index].VatAmount = itemVatAmounts[index];
+                        tables[index].TotalAmount = DocumentMoney.Round(itemNetAmounts[index] + itemVatAmounts[index]);
                     }
-                    if (line.RetailSaleDocTables.Count > 0)
+                    if (tables.Count > 0)
                         await _tableCommand.UpdateAsync(line.RetailSaleDocTables, ct);
                 }
 
-                line.Amount = line.Quantity * dtoLine.UnitPrice;
-                line.VatAmount = vatAmount;
-                line.TotalAmount = line.Amount + line.VatAmount;
+                line.Amount = money.NetAmount;
+                line.VatAmount = money.VatAmount;
+                line.TotalAmount = money.GrossAmount;
             }
             await _lineCommand.UpdateAsync(document.RetailSaleDocProducts, ct);
         }
@@ -713,37 +731,9 @@ public class RetailSaleDocService : BaseService, IRetailSaleDocService
         if (entries.Count == 0)
             return Result.Success();
 
-        var now = DateTime.Now;
-        var reversals = entries.Select(entry => new AccountingRegisterEntry
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            DebitAccountId = entry.CreditAccountId,
-            CreditAccountId = entry.DebitAccountId,
-            CurrencyId = entry.CurrencyId,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = entry.OperationTypeId,
-            DebitQuantity = entry.CreditQuantity,
-            CreditQuantity = entry.DebitQuantity,
-            Content = $"Reversal: {entry.Content}",
-            JournalNumber = entry.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id,
-            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = subkonto.Side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT :
-                       subkonto.Side == SubkontoSideConst.CREDIT ? SubkontoSideConst.DEBIT : subkonto.Side,
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversals = AccountingRegisterEntryReversalFactory.Create(
+            entries,
+            reversalBatchId);
         await _entryCommand.CreateAsync(reversals, ct);
         return Result.Success();
     }

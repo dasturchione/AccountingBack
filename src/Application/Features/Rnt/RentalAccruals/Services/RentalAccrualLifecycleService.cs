@@ -273,36 +273,9 @@ public sealed class RentalAccrualLifecycleService : BaseService, IRentalAccrualL
         if (originals.Count == 0)
             return Result.Failure(RentalAccrualErrors.MissingAccountingEntries(id, _userContext.LanguageId));
 
-        var now = DateTime.Now;
-        var reversals = originals.Select(x => new AccountingRegisterEntry
-        {
-            OrganizationId = x.OrganizationId,
-            DocumentTypeId = x.DocumentTypeId,
-            DocumentId = x.DocumentId,
-            DebitAccountId = x.CreditAccountId,
-            CreditAccountId = x.DebitAccountId,
-            CurrencyId = x.CurrencyId,
-            Amount = x.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = x.OperationTypeId,
-            DebitQuantity = x.CreditQuantity,
-            CreditQuantity = x.DebitQuantity,
-            Content = $"Reversal: {x.Content}",
-            JournalNumber = x.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = x.SourceLineId,
-            ReversalEntryId = x.Id,
-            RegisterEntrySubkontos = x.RegisterEntrySubkontos.Select(s => new RegisterEntrySubkonto
-            {
-                Side = s.Side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT : SubkontoSideConst.DEBIT,
-                SubkontoTypeId = s.SubkontoTypeId,
-                SortOrder = s.SortOrder,
-                EntityId = s.EntityId,
-                DisplayValue = s.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversals = AccountingRegisterEntryReversalFactory.Create(
+            originals,
+            reversalBatchId);
         await _entryCommand.CreateAsync(reversals, ct);
         return Result.Success();
     }

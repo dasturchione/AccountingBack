@@ -37,14 +37,14 @@ public class TrialBalanceReadRepository : ITrialBalanceReadRepository
 
         var openingDebit = request.DateFrom.HasValue
             ? await LoadAccountSumsAsync(
-                entryQuery.Where(x => x.DocDate < request.DateFrom.Value && x.DebitAccountId.HasValue),
+                entryQuery.Where(x => x.DocDate < RegisterDateRange.InclusiveStart(request.DateFrom.Value) && x.DebitAccountId.HasValue),
                 x => x.DebitAccountId,
                 ct)
             : new Dictionary<int, decimal>();
 
         var openingCredit = request.DateFrom.HasValue
             ? await LoadAccountSumsAsync(
-                entryQuery.Where(x => x.DocDate < request.DateFrom.Value && x.CreditAccountId.HasValue),
+                entryQuery.Where(x => x.DocDate < RegisterDateRange.InclusiveStart(request.DateFrom.Value) && x.CreditAccountId.HasValue),
                 x => x.CreditAccountId,
                 ct)
             : new Dictionary<int, decimal>();
@@ -97,10 +97,10 @@ public class TrialBalanceReadRepository : ITrialBalanceReadRepository
         TrialBalanceReadRequest request)
     {
         if (request.DateFrom.HasValue)
-            query = query.Where(x => x.DocDate >= request.DateFrom.Value);
+            query = query.Where(x => x.DocDate >= RegisterDateRange.InclusiveStart(request.DateFrom.Value));
 
         if (request.DateTo.HasValue)
-            query = query.Where(x => x.DocDate <= request.DateTo.Value);
+            query = query.Where(x => x.DocDate < RegisterDateRange.ExclusiveEnd(request.DateTo.Value));
 
         return query;
     }

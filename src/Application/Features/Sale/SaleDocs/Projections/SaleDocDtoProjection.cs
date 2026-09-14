@@ -38,6 +38,7 @@ public class SaleDocDtoProjection : IProjectionBuilder<SaleDoc, SaleDocDto>
             StatusId         = x.StatusId,
             StatusName       = x.Status.Name,
             Comment          = x.Comment,
+            PriceIncludesVat = x.PriceIncludesVat,
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,

@@ -37,6 +37,7 @@ public class PurchaseDocDtoProjection : IProjectionBuilder<PurchaseDoc, Purchase
             StatusId         = x.StatusId,
             StatusName       = x.Status.Name,
             Comment          = x.Comment,
+            PriceIncludesVat = x.PriceIncludesVat,
             StateId          = x.StateId,
             StateName        = x.State.FullName,
             CreatedDate      = x.CreatedDate,

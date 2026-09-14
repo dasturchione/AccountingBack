@@ -11,6 +11,9 @@ public class RetailSaleDocCreateDto
     public int? ReceivableAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public RetailSaleProcessingMode ProcessingMode { get; set; } = RetailSaleProcessingMode.Immediate;
     public List<RetailSaleDocProductCreateDto> Lines { get; set; } = new();
     public List<RetailSaleDocPaymentDto> Payments { get; set; } = new();
@@ -27,6 +30,9 @@ public class RetailSaleDocUpdateDto
     public int? ReceivableAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public short StateId { get; set; }
     public List<RetailSaleDocProductCreateDto> Lines { get; set; } = new();
     public List<RetailSaleDocPaymentDto> Payments { get; set; } = new();
@@ -114,6 +120,9 @@ public class RetailSaleDocDto
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public string? Comment { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? PostedAt { get; set; }
     public int? PostedByUserId { get; set; }

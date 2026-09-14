@@ -22,6 +22,9 @@ public class FaReceiptDto
     public int? SupplierAccountId { get; set; }
     public string? SupplierAccountNumber { get; set; }
     public string? SupplierAccountName { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }

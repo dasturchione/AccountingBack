@@ -11,4 +11,7 @@ public class SaleDocBaseDto
     public int? CustomerAccountId { get; set; }
     public int? VatAccountId { get; set; }
     public string? Comment { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
 }

@@ -31,6 +31,9 @@ public class PurchaseDocDto
     public short StatusId { get; set; }
     public string StatusName { get; set; } = null!;
     public string? Comment { get; set; }
+
+    /// <summary>Prices on this document already contain VAT, so it is extracted rather than added on top.</summary>
+    public bool PriceIncludesVat { get; set; }
     public short StateId { get; set; }
     public string StateName { get; set; } = null!;
     public DateTime CreatedDate { get; set; }

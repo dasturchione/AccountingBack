@@ -304,36 +304,9 @@ public sealed class CashCollectionLifecycleService : BaseService, ICashCollectio
         if (originals.Count == 0)
             return Result.Failure(CashCollectionErrors.MissingAccountingEntries(id, _userContext.LanguageId));
 
-        var now = DateTime.Now;
-        var reversals = originals.Select(x => new AccountingRegisterEntry
-        {
-            OrganizationId = x.OrganizationId,
-            DocumentTypeId = x.DocumentTypeId,
-            DocumentId = x.DocumentId,
-            DebitAccountId = x.CreditAccountId,
-            CreditAccountId = x.DebitAccountId,
-            CurrencyId = x.CurrencyId,
-            Amount = x.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = x.OperationTypeId,
-            DebitQuantity = x.CreditQuantity,
-            CreditQuantity = x.DebitQuantity,
-            Content = $"Reversal: {x.Content}",
-            JournalNumber = x.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = x.SourceLineId,
-            ReversalEntryId = x.Id,
-            RegisterEntrySubkontos = x.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = subkonto.Side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT : SubkontoSideConst.DEBIT,
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversals = AccountingRegisterEntryReversalFactory.Create(
+            originals,
+            reversalBatchId);
 
         await _accountingCommand.CreateAsync(reversals, ct);
         return Result.Success();

@@ -12,6 +12,7 @@ using Application.Features.SaleDocTables;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -369,16 +370,19 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             if (productLine.Product.IsService || !productLine.Product.IsPieceTracked)
             {
-                var amount = productLine.Quantity * lineDto.UnitPrice;
-                var vatAmountResult = await CalculateVatAsync(amount, productLine.VatRateId, ct);
-                if (!vatAmountResult.IsSuccess)
-                    return Result.Failure(vatAmountResult.Error);
+                var moneyResult = await ResolveVatAsync(
+                    productLine.Quantity * lineDto.UnitPrice,
+                    productLine.VatRateId,
+                    doc.PriceIncludesVat,
+                    ct);
+                if (!moneyResult.IsSuccess)
+                    return Result.Failure(moneyResult.Error);
 
                 productLine.UnitPrice = lineDto.UnitPrice;
                 productLine.CostPrice = lineDto.CostPrice;
-                productLine.Amount = amount;
-                productLine.VatAmount = vatAmountResult.Value;
-                productLine.TotalAmount = amount + vatAmountResult.Value;
+                productLine.Amount = moneyResult.Value.NetAmount;
+                productLine.VatAmount = moneyResult.Value.VatAmount;
+                productLine.TotalAmount = moneyResult.Value.GrossAmount;
                 await _productLineCommand.UpdateAsync(productLine, ct);
 
                 continue;
@@ -386,29 +390,36 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
 
             foreach (var table in productLine.SaleDocTables)
             {
-                var vatAmountResult = await CalculateVatAsync(lineDto.UnitPrice, table.VatRateId, ct);
-                if (!vatAmountResult.IsSuccess)
-                    return Result.Failure(vatAmountResult.Error);
+                var itemMoneyResult = await ResolveVatAsync(
+                    lineDto.UnitPrice,
+                    table.VatRateId,
+                    doc.PriceIncludesVat,
+                    ct);
+                if (!itemMoneyResult.IsSuccess)
+                    return Result.Failure(itemMoneyResult.Error);
 
                 table.CostPrice = lineDto.CostPrice;
 
-                table.Amount = lineDto.UnitPrice;
-                table.VatAmount = vatAmountResult.Value;
-                table.TotalAmount = table.Amount + table.VatAmount;
+                table.Amount = itemMoneyResult.Value.NetAmount;
+                table.VatAmount = itemMoneyResult.Value.VatAmount;
+                table.TotalAmount = itemMoneyResult.Value.GrossAmount;
             }
 
             await _lineCommand.UpdateAsync(productLine.SaleDocTables, ct);
 
             productLine.UnitPrice = lineDto.UnitPrice;
             productLine.CostPrice = lineDto.CostPrice;
-            var lineAmount = productLine.Quantity * lineDto.UnitPrice;
-            var vatAmountResultForLine = await CalculateVatAsync(lineAmount, productLine.VatRateId, ct);
-            if (!vatAmountResultForLine.IsSuccess)
-                return Result.Failure(vatAmountResultForLine.Error);
+            var lineMoneyResult = await ResolveVatAsync(
+                productLine.Quantity * lineDto.UnitPrice,
+                productLine.VatRateId,
+                doc.PriceIncludesVat,
+                ct);
+            if (!lineMoneyResult.IsSuccess)
+                return Result.Failure(lineMoneyResult.Error);
 
-            productLine.Amount = lineAmount;
-            productLine.VatAmount = vatAmountResultForLine.Value;
-            productLine.TotalAmount = lineAmount + vatAmountResultForLine.Value;
+            productLine.Amount = lineMoneyResult.Value.NetAmount;
+            productLine.VatAmount = lineMoneyResult.Value.VatAmount;
+            productLine.TotalAmount = lineMoneyResult.Value.GrossAmount;
             await _productLineCommand.UpdateAsync(productLine, ct);
         }
 
@@ -418,17 +429,25 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         return Result.Success();
     }
 
-    private async Task<Result<decimal>> CalculateVatAsync(decimal amount, short? vatRateId, CancellationToken ct)
+    /// <summary>
+    /// Splits an entered line amount into net/VAT/gross, reading the amount as VAT-inclusive
+    /// when the document says its prices already contain VAT.
+    /// </summary>
+    private async Task<Result<VatAmounts>> ResolveVatAsync(
+        decimal enteredAmount,
+        short? vatRateId,
+        bool priceIncludesVat,
+        CancellationToken ct)
     {
         if (!vatRateId.HasValue)
-            return Result.Success(0m);
+            return Result.Success(VatCalculator.Resolve(enteredAmount, null, priceIncludesVat));
 
         var vatQuery = _queryBuilder.For<VatRate>().Where(v => v.Id == vatRateId.Value).Build();
         var vatRate = await _vatRateQuery.GetAsync(vatQuery, ct);
 
         return vatRate == null
-            ? Result.Failure<decimal>(SaleDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId))
-            : Result.Success(Math.Round(amount * vatRate.Rate / 100, 8));
+            ? Result.Failure<VatAmounts>(SaleDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId))
+            : Result.Success(VatCalculator.Resolve(enteredAmount, vatRate.Rate, priceIncludesVat));
     }
 
     private Result ValidateForConfirm(SaleDoc doc)
@@ -560,36 +579,9 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
         if (entries.Count == 0)
             return Result.Failure(SaleDocErrors.MissingAccountingRegisterEntries(saleDocId, _userContext.LanguageId));
 
-        var now = DateTime.Now;
-        var reversalEntries = entries.Select(entry => new AccountingRegisterEntry
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            DebitAccountId = entry.CreditAccountId,
-            CreditAccountId = entry.DebitAccountId,
-            CurrencyId = entry.CurrencyId,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = entry.OperationTypeId,
-            DebitQuantity = entry.CreditQuantity,
-            CreditQuantity = entry.DebitQuantity,
-            Content = $"Reversal: {entry.Content}",
-            JournalNumber = entry.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id,
-            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = ReverseSubkontoSide(subkonto.Side),
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversalEntries = AccountingRegisterEntryReversalFactory.Create(
+            entries,
+            reversalBatchId);
 
         await _accountingRegisterCommand.CreateAsync(reversalEntries, ct);
         return Result.Success();
@@ -628,9 +620,4 @@ public class SaleLifecycleService : BaseService, ISaleLifecycleService
                 x.Key.UnitId,
                 x.Sum(i => i.Quantity)))
             .ToList();
-
-    private static string ReverseSubkontoSide(string side) =>
-        side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT :
-        side == SubkontoSideConst.CREDIT ? SubkontoSideConst.DEBIT :
-        side;
 }

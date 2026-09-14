@@ -29,6 +29,7 @@ public class FaReceiptDtoProjection : IProjectionBuilder<FaReceiptDoc, FaReceipt
             SupplierAccountId = receipt.SupplierAccountId,
             SupplierAccountNumber = receipt.SupplierAccount != null ? receipt.SupplierAccount.Number : null,
             SupplierAccountName = receipt.SupplierAccount != null ? receipt.SupplierAccount.Name : null,
+            PriceIncludesVat = receipt.PriceIncludesVat,
             StateId = receipt.StateId,
             StateName = receipt.State.FullName,
             CreatedDate = receipt.CreatedDate,

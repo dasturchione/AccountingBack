@@ -1,4 +1,5 @@
 using Application.Features.Pay;
+using Application.Features.Pay.PayrollDocuments;
 using Domain.Entities;
 using SharedKernel.Constants;
 
@@ -34,18 +35,27 @@ public sealed class PayrollDocumentContextBuilder :
                     calc.Component.Name);
             }
 
+            // A withholding is taken off what this employee is owed, and an employer tax is a
+            // cost of employing them, so both counter-accounts come from this line's own
+            // earnings rather than from the document header.
+            var expenseWeights = PayrollPostingAccountAllocator.ExpenseWeights(line);
+            var payableWeights = PayrollPostingAccountAllocator.PayableWeights(line);
+
             foreach (var tax in line.TaxLines.OrderBy(x => x.TaxDefinition.Code))
             {
-                var debitAccountId = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer
-                    ? document.SalaryExpenseAccountId
-                    : document.SalaryPayableAccountId;
-                if (debitAccountId.HasValue)
+                var isEmployerTax = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer;
+                var shares = PayrollPostingAccountAllocator.Allocate(
+                    isEmployerTax ? expenseWeights : payableWeights,
+                    tax.Amount,
+                    isEmployerTax ? document.SalaryExpenseAccountId : document.SalaryPayableAccountId);
+
+                foreach (var share in shares)
                 {
                     AddSignedEntry(
                         entries,
-                        debitAccountId.Value,
+                        share.AccountId,
                         tax.LiabilityAccountId,
-                        tax.Amount,
+                        share.Amount,
                         tax.Id,
                         $"Tax: {tax.TaxDefinition.Name}");
                 }
@@ -88,16 +98,23 @@ public sealed class PayrollDocumentContextBuilder :
                         PayrollErrors.StoredPostingAccountMissing("creditAccountId", calc.Id)));
             }
 
+            var expenseWeights = PayrollPostingAccountAllocator.ExpenseWeights(line);
+            var payableWeights = PayrollPostingAccountAllocator.PayableWeights(line);
+
             foreach (var tax in line.TaxLines.Where(x => x.Amount != 0m))
             {
                 if (tax.LiabilityAccountId <= 0)
                     return Task.FromResult(SharedKernel.Results.Result.Failure(
                         PayrollErrors.StoredPostingAccountMissing("taxLiabilityAccountId", tax.Id)));
 
-                var debitAccountId = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer
+                // The tax is debited to the accounts this line's earnings used; the document
+                // header is only needed when the line carries no earnings to weigh.
+                var isEmployerTax = tax.TaxDefinition.TaxType == PayrollTaxTypeConst.Employer;
+                var hasWeights = (isEmployerTax ? expenseWeights : payableWeights).Count > 0;
+                var fallbackAccountId = isEmployerTax
                     ? document.SalaryExpenseAccountId
                     : document.SalaryPayableAccountId;
-                if (!debitAccountId.HasValue)
+                if (!hasWeights && !fallbackAccountId.HasValue)
                     return Task.FromResult(SharedKernel.Results.Result.Failure(
                         PayrollErrors.StoredPostingAccountMissing("taxDebitAccountId", tax.Id)));
             }

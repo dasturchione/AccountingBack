@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 
 namespace Application.Features.Register.PostingEngines;
 
@@ -45,7 +46,7 @@ public sealed class RetailSaleDocContextBuilder : IPostingContextBuilder<RetailS
 
             if (!line.Product.IsService)
             {
-                var costAmount = line.CostPrice * line.Quantity;
+                var costAmount = DocumentMoney.Round(line.CostPrice * line.Quantity);
                 if (costAmount != 0m)
                 {
                     entries.Add(new PostingEntryContext

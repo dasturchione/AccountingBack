@@ -47,6 +47,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
     private readonly ICommandRepository<AccountingRegisterEntry> _accountingEntryCommand;
     private readonly IQueryRepository<DocumentAccountSetting> _documentAccountSettingQuery;
     private readonly IQueryRepository<PayPayrollCalcLine> _calcLineQuery;
+    private readonly IQueryRepository<PayPayrollTaxLine> _taxLineQuery;
     private readonly IQueryRepository<HrAbsenceType> _absenceTypeQuery;
     private readonly IQueryRepository<PayPayrollLine> _payrollLineQuery;
     private readonly IUnitOfWork _serviceUnitOfWork;
@@ -78,6 +79,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         ICommandRepository<AccountingRegisterEntry> accountingEntryCommand,
         IQueryRepository<DocumentAccountSetting> documentAccountSettingQuery,
         IQueryRepository<PayPayrollCalcLine> calcLineQuery,
+        IQueryRepository<PayPayrollTaxLine> taxLineQuery,
         IQueryRepository<HrAbsenceType> absenceTypeQuery,
         IQueryRepository<PayPayrollLine> payrollLineQuery,
         ILogger<PayrollDocumentService> logger,
@@ -110,6 +112,7 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         _accountingEntryCommand = accountingEntryCommand;
         _documentAccountSettingQuery = documentAccountSettingQuery;
         _calcLineQuery = calcLineQuery;
+        _taxLineQuery = taxLineQuery;
         _absenceTypeQuery = absenceTypeQuery;
         _payrollLineQuery = payrollLineQuery;
         _serviceUnitOfWork = unitOfWork;
@@ -286,16 +289,16 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     x.CalculationMethod == PayrollCalculationMethodConst.SalaryProrated))
                 return Result.Failure<long>(PayrollErrors.MissingBaseSalaryComponent(_userContext.LanguageId));
 
-            // Manual correction documents use the tax snapshot of their source
-            // and therefore do not invent a fresh statutory tax amount. The
-            // automatic recalculation path below compares source/current tax
-            // lines explicitly.
-            var taxDefinitions = kind == PayrollDocumentKindConst.Regular
-                ? await GetActiveTaxDefinitionsAsync(
-                    organizationId,
-                    DateOnly.FromDateTime(dto.DocDate),
-                    ct)
-                : [];
+            // Corrections are taxed too: a bonus added by hand still carries income tax and
+            // social tax. Because a correction line holds only the difference, the tax is
+            // charged against what the period has already taxed (see priorTaxes below), so the
+            // monthly exemption is not granted twice and the taxable-base limit does not
+            // restart. The automatic recalculation path instead rebuilds the full line and
+            // subtracts the source, so it needs no prior amounts.
+            var taxDefinitions = await GetActiveTaxDefinitionsAsync(
+                organizationId,
+                DateOnly.FromDateTime(dto.DocDate),
+                ct);
             var duplicateTaxDefinition = taxDefinitions
                 .GroupBy(x => x.Code)
                 .FirstOrDefault(x => x.Count() > 1);
@@ -347,6 +350,12 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             var sickBenefitPercentByType = kind == PayrollDocumentKindConst.Regular
                 ? await GetSickBenefitPercentsAsync(ct)
                 : new Dictionary<short, decimal>();
+
+            // What the period has already taxed per employee. A correction only carries the
+            // difference, so its tax has to continue those totals rather than start over.
+            var priorTaxes = kind == PayrollDocumentKindConst.Correction
+                ? await GetPostedTaxTotalsAsync(period.Id, employeeIds, ct)
+                : new Dictionary<long, Dictionary<string, PayrollPriorTax>>();
 
             var payrollLines = new List<PayPayrollLine>();
             foreach (var employeeId in employeeIds)
@@ -412,7 +421,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                     advances.GetValueOrDefault(employeeId),
                     kind,
                     segmentComputations,
-                    benefit);
+                    benefit,
+                    priorTaxes.GetValueOrDefault(employeeId));
                 if (kind == PayrollDocumentKindConst.Regular)
                 {
                     line.Segments = BuildPayrollLineSegments(
@@ -1157,6 +1167,14 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 return Result.Success();
             if (document.Period.Status != PayrollPeriodStatusConst.Open)
                 return Result.Failure(PayrollErrors.PeriodClosed(document.PeriodId, _userContext.LanguageId));
+            // The storno lands on the original DocDate, so that accounting period must
+            // still accept postings — the payroll period being open is not enough.
+            var accountingPeriod = await _accountingPeriodValidator.EnsureOpenAsync(
+                document.OrganizationId,
+                document.DocDate,
+                ct);
+            if (!accountingPeriod.IsSuccess)
+                return accountingPeriod;
             if (await _paymentBatchQuery.AnyAsync(x =>
                     x.PayrollDocId == id &&
                     x.StateId == StateIdConst.ACTIVE &&
@@ -1256,7 +1274,8 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         decimal advance,
         string documentKind,
         IReadOnlyList<PayrollSegmentComputation>? segments = null,
-        PayrollBenefitContext? benefit = null)
+        PayrollBenefitContext? benefit = null,
+        IReadOnlyDictionary<string, PayrollPriorTax>? priorTaxes = null)
     {
         var benefitContext = benefit ?? PayrollBenefitContext.None;
         var employeeId = employment.EmployeeId;
@@ -1326,8 +1345,15 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
                 deductions,
                 calcLines
                     .Where(x => x.Component.ComponentType == PayrollComponentTypeConst.Earning && x.Component.IsTaxable)
-                    .Sum(x => x.Amount)))
-            .Where(line => line.Amount != 0m)
+                    .Sum(x => x.Amount),
+                // Priors are keyed by code, not by definition id, so a tax version that took
+                // effect mid-period still continues the same period-to-date total.
+                priorTaxes?.GetValueOrDefault(definition.Code) ?? PayrollPriorTax.None))
+            // A line whose tax came to zero is still kept when it assessed a base: that base
+            // is what the period-to-date total is built from, and dropping it would let a
+            // later correction claim the monthly exemption a second time. Zero amounts post
+            // nothing, so this only records the assessment.
+            .Where(line => line.Amount != 0m || line.BaseAmount != 0m)
             .ToList();
         deductions = Round(deductions + taxLines
             .Where(line => line.TaxDefinition.TaxType == PayrollTaxTypeConst.Withholding)
@@ -1369,19 +1395,24 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         PayTaxDefinition definition,
         decimal gross,
         decimal deductions,
-        decimal taxableGross)
+        decimal taxableGross,
+        PayrollPriorTax prior)
     {
         var baseAmount = definition.BaseType switch
         {
-            PayrollTaxBaseTypeConst.Net => Math.Max(gross - deductions, 0m),
+            // A correction can hand back more than it adds, so the net base is allowed to go
+            // negative here; PayrollTaxCalculator floors the period-to-date base instead.
+            PayrollTaxBaseTypeConst.Net => gross - deductions,
             PayrollTaxBaseTypeConst.TaxableEarnings => taxableGross,
             _ => gross
         };
-        var calculation = PayrollTaxCalculator.Calculate(new PayrollTaxCalculationInput(
-            baseAmount,
-            definition.Rate,
-            definition.ExemptionAmount ?? 0m,
-            definition.LimitAmount));
+        var calculation = PayrollTaxCalculator.CalculateIncremental(
+            new PayrollTaxCalculationInput(
+                baseAmount,
+                definition.Rate,
+                definition.ExemptionAmount ?? 0m,
+                definition.LimitAmount),
+            prior);
         return new PayPayrollTaxLine
         {
             OrganizationId = organizationId,
@@ -1398,19 +1429,32 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
 
     private static void AssignPostingAccounts(PayPayrollLine line, PayrollCalculateDto accounts)
     {
-        foreach (var calc in line.CalcLines)
+        // Earnings first: a deduction is withheld from what the earnings made payable, so its
+        // debit account has to be resolved against accounts the earnings actually credited.
+        foreach (var calc in line.CalcLines.Where(x =>
+                     x.Component.ComponentType == PayrollComponentTypeConst.Earning))
+        {
+            calc.DebitAccountId = calc.Component.ExpenseAccountId
+                ?? line.Employment.ExpenseAccountId
+                ?? accounts.SalaryExpenseAccountId;
+            calc.CreditAccountId = calc.Component.LiabilityAccountId
+                ?? accounts.SalaryPayableAccountId;
+        }
+
+        // A deduction is one stored row, so it goes on the account carrying most of the
+        // earnings; the accountant can still move it on the draft. Taxes are not stored with
+        // an account and are split across every payable account at posting time instead.
+        var payableAccountId = PayrollPostingAccountAllocator.DominantAccountId(
+            PayrollPostingAccountAllocator.PayableWeights(line))
+            ?? accounts.SalaryPayableAccountId;
+
+        foreach (var calc in line.CalcLines.Where(x =>
+                     x.Component.ComponentType != PayrollComponentTypeConst.Earning))
         {
             (calc.DebitAccountId, calc.CreditAccountId) = calc.Component.ComponentType switch
             {
-                PayrollComponentTypeConst.Earning =>
-                    (calc.Component.ExpenseAccountId
-                         ?? line.Employment.ExpenseAccountId
-                         ?? accounts.SalaryExpenseAccountId,
-                     calc.Component.LiabilityAccountId
-                         ?? accounts.SalaryPayableAccountId),
-
                 PayrollComponentTypeConst.Deduction =>
-                    (accounts.SalaryPayableAccountId,
+                    (payableAccountId,
                      calc.Component.LiabilityAccountId!.Value),
 
                 PayrollComponentTypeConst.EmployerTax =>
@@ -1677,6 +1721,48 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
         return rows
             .GroupBy(x => (x.EmployeeId, x.ComponentId))
             .ToDictionary(g => g.Key, g => g.Sum(y => y.Amount));
+    }
+
+    /// <summary>
+    /// Period-to-date tax totals per employee, keyed by tax code. Every posted payroll
+    /// document of the period counts — the regular run and any correction already made — so a
+    /// new correction charges only what is still missing.
+    /// </summary>
+    private async Task<Dictionary<long, Dictionary<string, PayrollPriorTax>>> GetPostedTaxTotalsAsync(
+        long periodId,
+        List<long> employeeIds,
+        CancellationToken ct)
+    {
+        if (employeeIds.Count == 0)
+            return [];
+
+        var query = _queryBuilder.For<PayPayrollTaxLine>()
+            .Where(x =>
+                employeeIds.Contains(x.PayrollLine.EmployeeId) &&
+                x.PayrollLine.PayrollDoc.PeriodId == periodId &&
+                x.PayrollLine.PayrollDoc.StateId == StateIdConst.ACTIVE &&
+                x.PayrollLine.PayrollDoc.StatusId == DocumentStatusIdConst.POSTED)
+            .As(x => new
+            {
+                x.PayrollLine.EmployeeId,
+                x.TaxDefinition.Code,
+                x.BaseAmount,
+                x.Amount
+            })
+            .Build();
+        var rows = await _taxLineQuery.GetAllAsync(query, ct);
+
+        return rows
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(
+                employee => employee.Key,
+                employee => employee
+                    .GroupBy(x => x.Code)
+                    .ToDictionary(
+                        tax => tax.Key,
+                        tax => new PayrollPriorTax(
+                            tax.Sum(y => y.BaseAmount),
+                            tax.Sum(y => y.Amount))));
     }
 
     private async Task<PayTimesheet?> GetPostedTimesheetAsync(long periodId, CancellationToken ct)
@@ -2061,36 +2147,9 @@ public sealed class PayrollDocumentService : BaseService, IPayrollDocumentServic
             .Build();
         query.AddIncludes(x => x.Include(e => e.RegisterEntrySubkontos));
         var entries = await _accountingEntryQuery.GetAllAsync(query, ct);
-        var now = DateTime.Now;
-        var reversals = entries.Select(entry => new AccountingRegisterEntry
-        {
-            OrganizationId = entry.OrganizationId,
-            DocumentTypeId = entry.DocumentTypeId,
-            DocumentId = entry.DocumentId,
-            DebitAccountId = entry.CreditAccountId,
-            CreditAccountId = entry.DebitAccountId,
-            CurrencyId = entry.CurrencyId,
-            Amount = entry.Amount,
-            DocDate = now,
-            CreatedDate = now,
-            OperationTypeId = entry.OperationTypeId,
-            DebitQuantity = entry.CreditQuantity,
-            CreditQuantity = entry.DebitQuantity,
-            Content = $"Reversal: {entry.Content}",
-            JournalNumber = entry.JournalNumber,
-            PostingBatchId = reversalBatchId,
-            SourceLineId = entry.SourceLineId,
-            ReversalEntryId = entry.Id,
-            RegisterEntrySubkontos = entry.RegisterEntrySubkontos.Select(subkonto => new RegisterEntrySubkonto
-            {
-                Side = subkonto.Side == SubkontoSideConst.DEBIT ? SubkontoSideConst.CREDIT : SubkontoSideConst.DEBIT,
-                SubkontoTypeId = subkonto.SubkontoTypeId,
-                SortOrder = subkonto.SortOrder,
-                EntityId = subkonto.EntityId,
-                DisplayValue = subkonto.DisplayValue,
-                CreatedDate = now
-            }).ToList()
-        }).ToList();
+        var reversals = AccountingRegisterEntryReversalFactory.Create(
+            entries,
+            reversalBatchId);
         if (reversals.Count > 0)
             await _accountingEntryCommand.CreateAsync(reversals, ct);
     }

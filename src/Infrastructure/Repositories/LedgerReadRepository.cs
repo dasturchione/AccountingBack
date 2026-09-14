@@ -33,7 +33,7 @@ public class LedgerReadRepository : ILedgerReadRepository
 
         var openingBalance = request.DateFrom.HasValue
             ? await SumNetAsync(BuildMovementsQuery(request, applyDateRange: false)
-                .Where(x => x.PostingDate < request.DateFrom.Value), ct)
+                .Where(x => x.PostingDate < RegisterDateRange.InclusiveStart(request.DateFrom.Value)), ct)
             : 0m;
 
         var filteredNet = await SumNetAsync(filteredMovements, ct);
@@ -286,10 +286,10 @@ public class LedgerReadRepository : ILedgerReadRepository
         bool applyDateRange)
     {
         if (applyDateRange && request.DateFrom.HasValue)
-            query = query.Where(x => x.DocDate >= request.DateFrom.Value);
+            query = query.Where(x => x.DocDate >= RegisterDateRange.InclusiveStart(request.DateFrom.Value));
 
         if (applyDateRange && request.DateTo.HasValue)
-            query = query.Where(x => x.DocDate <= request.DateTo.Value);
+            query = query.Where(x => x.DocDate < RegisterDateRange.ExclusiveEnd(request.DateTo.Value));
 
         if (request.CurrencyId.HasValue)
             query = query.Where(x => x.CurrencyId == request.CurrencyId.Value);

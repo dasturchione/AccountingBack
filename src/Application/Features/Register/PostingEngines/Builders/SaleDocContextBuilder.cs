@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Domain.Entities;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using System.Text.Json;
 
@@ -69,7 +70,7 @@ namespace Application.Features.Register.PostingEngines
                         .Where(x => productMap.TryGetValue(x.ProductId, out var product) &&
                                     !product.IsService)
                         .ToList();
-                    var costAmount = goodsLines.Sum(x => x.CostPrice * x.Quantity);
+                    var costAmount = DocumentMoney.Round(goodsLines.Sum(x => x.CostPrice * x.Quantity));
                     var goodsQuantity = goodsLines.Sum(x => x.Quantity);
                     var hasGoods = goodsQuantity > 0m;
 

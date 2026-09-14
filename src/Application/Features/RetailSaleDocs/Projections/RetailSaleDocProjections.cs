@@ -38,6 +38,7 @@ public class RetailSaleDocDtoProjection : IProjectionBuilder<RetailSaleDoc, Reta
             StateId = x.StateId,
             StateName = x.State.FullName,
             Comment = x.Comment,
+            PriceIncludesVat = x.PriceIncludesVat,
             CreatedDate = x.CreatedDate,
             PostedAt = x.PostedAt,
             PostedByUserId = x.PostedByUserId,

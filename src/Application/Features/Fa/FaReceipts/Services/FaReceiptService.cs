@@ -7,6 +7,7 @@ using Application.Features.Fa;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -99,7 +100,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             if (!headerValidation.IsSuccess)
                 return Result.Failure<long>(headerValidation.Error);
 
-            var linesResult = await BuildLinesAsync(organizationId, dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(organizationId, dto.Lines, dto.PriceIncludesVat, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure<long>(linesResult.Error);
 
@@ -135,6 +136,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 StatusId = DocumentStatusIdConst.DRAFT,
                 ReceiptTypeId = dto.ReceiptTypeId,
                 SupplierAccountId = dto.SupplierAccountId,
+                PriceIncludesVat = dto.PriceIncludesVat,
                 CreatedDate = now,
                 UpdatedDate = now,
                 Lines = lines
@@ -179,7 +181,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             if (!headerValidation.IsSuccess)
                 return headerValidation;
 
-            var linesResult = await BuildLinesAsync(organizationId, dto.Lines, ct);
+            var linesResult = await BuildLinesAsync(organizationId, dto.Lines, dto.PriceIncludesVat, ct);
             if (!linesResult.IsSuccess)
                 return Result.Failure(linesResult.Error);
 
@@ -208,6 +210,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
             doc.FinalAmount = doc.Lines.Sum(line => line.TotalAmount);
             doc.ReceiptTypeId = dto.ReceiptTypeId;
             doc.SupplierAccountId = dto.SupplierAccountId;
+            doc.PriceIncludesVat = dto.PriceIncludesVat;
             doc.UpdatedDate = DateTime.Now;
 
             await _command.UpdateAsync(doc, ct);
@@ -307,6 +310,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
     private async Task<Result<List<FaReceiptDocLine>>> BuildLinesAsync(
         int organizationId,
         IReadOnlyCollection<FaReceiptLineWriteDto> lineDtos,
+        bool priceIncludesVat,
         CancellationToken ct)
     {
         if (lineDtos.Count == 0)
@@ -379,10 +383,12 @@ public class FaReceiptService : BaseService, IFaReceiptService
                         _userContext.LanguageId));
             }
 
-            var amount = Math.Round(lineDto.Price * lineDto.Quantity, 8);
-            var vatAmount = lineDto.VatRateId.HasValue
-                ? Math.Round(amount * vatRates[lineDto.VatRateId.Value].Rate / 100m, 8)
-                : 0m;
+            var money = VatCalculator.Resolve(
+                lineDto.Price * lineDto.Quantity,
+                lineDto.VatRateId.HasValue ? vatRates[lineDto.VatRateId.Value].Rate : null,
+                priceIncludesVat);
+            var amount = money.NetAmount;
+            var vatAmount = money.VatAmount;
 
             if (vatAmount > 0m && !lineDto.VatAccountId.HasValue)
             {
@@ -448,7 +454,7 @@ public class FaReceiptService : BaseService, IFaReceiptService
                 Amount = amount,
                 VatRateId = lineDto.VatRateId,
                 VatAmount = vatAmount,
-                TotalAmount = amount + vatAmount,
+                TotalAmount = money.GrossAmount,
                 CapitalInvestmentAccountId = lineDto.CapitalInvestmentAccountId,
                 VatAccountId = lineDto.VatAccountId,
                 Assets = assets

@@ -17,6 +17,7 @@ using DocumentFormat.OpenXml.Office2010.Excel;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Query;
 using SharedKernel.Results;
 
@@ -180,7 +181,7 @@ public class SaleDocService : BaseService, ISaleDocService
             if (!shipmentLinkResult.IsSuccess)
                 return Result.Failure<long>(shipmentLinkResult.Error);
 
-            var productsResult = await BuildProductLinesAsync(dto.Lines, ct);
+            var productsResult = await BuildProductLinesAsync(dto.Lines, dto.PriceIncludesVat, ct);
             if (!productsResult.IsSuccess)
                 return Result.Failure<long>(productsResult.Error);
 
@@ -204,6 +205,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 DocNumber = documentNumberResult.Value.DocumentNumber,
                 DocDate = docDate,
                 CurrencyId = dto.CurrencyId,
+                PriceIncludesVat = dto.PriceIncludesVat,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
                 SaleDocProducts = productLines,
                 TotalAmount = productLines.Sum(l => l.Amount),
@@ -342,7 +344,7 @@ public class SaleDocService : BaseService, ISaleDocService
                     await _productLineCommand.DeleteAsync(existing, ct);
 
                 // Yangi liniyalarni yaratish
-                var productsResult = await BuildProductLinesFromUpdateAsync(dto.Lines, ct);
+                var productsResult = await BuildProductLinesFromUpdateAsync(dto.Lines, dto.PriceIncludesVat, ct);
                 if (!productsResult.IsSuccess)
                     return Result.Failure(productsResult.Error);
 
@@ -352,6 +354,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
                 await _productLineCommand.CreateAsync(newProducts, ct);
 
+                doc.PriceIncludesVat = dto.PriceIncludesVat;
                 doc.TotalAmount = newProducts.Sum(p => p.Amount);
                 doc.VatAmount = newProducts.Sum(p => p.VatAmount);
                 doc.FinalAmount = newProducts.Sum(p => p.TotalAmount);
@@ -813,10 +816,17 @@ public class SaleDocService : BaseService, ISaleDocService
             if (hasPreselectedProductTables)
                 continue;
 
-            foreach (var item in matched)
+            // Split the line's VAT over its marked items so the parts still add up to it;
+            // dividing and rounding each item on its own loses cents against the line.
+            var itemVatAmounts = line.VatRateId.HasValue && line.VatAmount > 0m
+                ? DocumentMoney.Distribute(line.VatAmount, matched.Count)
+                : Enumerable.Repeat(0m, matched.Count).ToList();
+
+            for (var index = 0; index < matched.Count; index++)
             {
-                var vat = line.VatRateId.HasValue && line.VatAmount > 0 && line.Quantity > 0 ? Math.Round(line.VatAmount / line.Quantity, 2) : 0m;
-                rows.Add(new SaleDocTable { OwnerId = line.Id, ProductTableId = item.ProductTableId, CostPrice = line.CostPrice, Amount = line.UnitPrice, VatRateId = line.VatRateId, VatAmount = vat, TotalAmount = line.UnitPrice + vat });
+                var vat = itemVatAmounts[index];
+                var unitPrice = DocumentMoney.Round(line.UnitPrice);
+                rows.Add(new SaleDocTable { OwnerId = line.Id, ProductTableId = matched[index].ProductTableId, CostPrice = line.CostPrice, Amount = unitPrice, VatRateId = line.VatRateId, VatAmount = vat, TotalAmount = DocumentMoney.Round(unitPrice + vat) });
             }
         }
 
@@ -889,7 +899,7 @@ public class SaleDocService : BaseService, ISaleDocService
         return Result.Success();
     }
 
-    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesAsync(List<SaleDocCreateProductDto> products, CancellationToken ct)
+    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesAsync(List<SaleDocCreateProductDto> products, bool priceIncludesVat, CancellationToken ct)
     {
         var lines = new List<SaleDocProduct>(products.Count);
         var productIds = products.Select(x => x.ProductId).Distinct().ToList();
@@ -923,16 +933,18 @@ public class SaleDocService : BaseService, ISaleDocService
             if (p.CostPrice < 0)
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.InvalidProductCostPrice(p.ProductId, p.CostPrice, _userContext.LanguageId));
 
-            var vatAmount = 0m;
+            decimal? rate = null;
             if (p.VatRateId.HasValue)
             {
                 if (!vatRateById.TryGetValue(p.VatRateId.Value, out var vatRate))
                     return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
 
-                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 8);
+                rate = vatRate.Rate;
             }
 
-            var amount = p.Quantity * p.UnitPrice;
+            var money = VatCalculator.Resolve(p.Quantity * p.UnitPrice, rate, priceIncludesVat);
+            var amount = money.NetAmount;
+            var vatAmount = money.VatAmount;
             var unitId = p.UnitId > 0 ? p.UnitId : product.UnitId;
 
             lines.Add(new SaleDocProduct
@@ -948,7 +960,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 IncomeAccountId = p.IncomeAccountId,
                 CostAccountId = p.CostAccountId,
                 VatAmount = vatAmount,
-                TotalAmount = amount + vatAmount,
+                TotalAmount = money.GrossAmount,
             });
         }
 
@@ -988,7 +1000,7 @@ public class SaleDocService : BaseService, ISaleDocService
 
         return Result.Success();
     }
-    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesFromUpdateAsync(List<SaleDocUpdateProductDto> products, CancellationToken ct)
+    private async Task<Result<List<SaleDocProduct>>> BuildProductLinesFromUpdateAsync(List<SaleDocUpdateProductDto> products, bool priceIncludesVat, CancellationToken ct)
     {
         var lines = new List<SaleDocProduct>(products.Count);
         var productIds = products.Select(x => x.ProductId).Distinct().ToList();
@@ -1022,16 +1034,18 @@ public class SaleDocService : BaseService, ISaleDocService
             if (p.CostPrice < 0)
                 return Result.Failure<List<SaleDocProduct>>(SaleDocErrors.InvalidProductCostPrice(p.Id ?? p.ProductId, p.CostPrice, _userContext.LanguageId));
 
-            var vatAmount = 0m;
+            decimal? rate = null;
             if (p.VatRateId.HasValue)
             {
                 if (!vatRateById.TryGetValue(p.VatRateId.Value, out var vatRate))
                     return Result.Failure<List<SaleDocProduct>>(SaleDocTableErrors.VatRateNotFound(p.VatRateId.Value, _userContext.LanguageId));
 
-                vatAmount = Math.Round(p.Quantity * p.UnitPrice * vatRate.Rate / 100, 2);
+                rate = vatRate.Rate;
             }
 
-            var amount = p.Quantity * p.UnitPrice;
+            var money = VatCalculator.Resolve(p.Quantity * p.UnitPrice, rate, priceIncludesVat);
+            var amount = money.NetAmount;
+            var vatAmount = money.VatAmount;
             var unitId = p.UnitId > 0 ? p.UnitId : product.UnitId;
 
             lines.Add(new SaleDocProduct
@@ -1047,7 +1061,7 @@ public class SaleDocService : BaseService, ISaleDocService
                 IncomeAccountId = p.IncomeAccountId,
                 CostAccountId = p.CostAccountId,
                 VatAmount = vatAmount,
-                TotalAmount = amount + vatAmount,
+                TotalAmount = money.GrossAmount,
             });
         }
 

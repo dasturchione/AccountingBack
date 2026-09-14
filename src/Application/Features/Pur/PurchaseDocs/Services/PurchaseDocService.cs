@@ -12,6 +12,7 @@ using Application.Features.Warehouses;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Constants;
+using SharedKernel.Money;
 using SharedKernel.Exceptions;
 using SharedKernel.Query;
 using SharedKernel.Results;
@@ -411,7 +412,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             ProcessingMode = PurchaseProcessingMode.StepByStep,
             Lines = purchaseLines
         };
-        var builtLines = await BuildAllLinesAsync(organizationId, purchaseDto.Lines, ct);
+        var builtLines = await BuildAllLinesAsync(organizationId, purchaseDto.Lines, purchaseDto.PriceIncludesVat, ct);
         if (!builtLines.IsSuccess)
             return Result.Failure<PurchaseDocDto>(builtLines.Error);
         ValidateProviderTotals(document, builtLines.Value, errors);
@@ -510,7 +511,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             if (!headerValidation.IsSuccess)
                 return Result.Failure<long>(headerValidation.Error);
 
-            var allLinesResult = await BuildAllLinesAsync(organizationId.Value, dto.Lines, ct);
+            var allLinesResult = await BuildAllLinesAsync(organizationId.Value, dto.Lines, dto.PriceIncludesVat, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure<long>(allLinesResult.Error);
 
@@ -538,6 +539,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                 DocDate = dto.DocDate,
                 CurrencyId = dto.CurrencyId,
                 ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate,
+                PriceIncludesVat = dto.PriceIncludesVat,
                 PurchaseDocProducts = allLines,
                 TotalAmount = allLines.Sum(l => l.Amount),
                 VatAmount = allLines.Sum(l => l.VatAmount),
@@ -596,7 +598,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             if (!headerValidation.IsSuccess)
                 return Result.Failure(headerValidation.Error);
 
-            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, ct);
+            var allLinesResult = await BuildAllLinesAsync(_userContext.OrganizationId.Value, dto.Lines, dto.PriceIncludesVat, ct);
             if (!allLinesResult.IsSuccess)
                 return Result.Failure(allLinesResult.Error);
 
@@ -627,6 +629,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             doc.ExchangeRate = dto.ExchangeRate == 0 ? 1m : dto.ExchangeRate;
             doc.ContractId = dto.ContractId;
             doc.SupplierAccountId = dto.SupplierAccountId;
+            doc.PriceIncludesVat = dto.PriceIncludesVat;
             doc.TotalAmount = newLines.Sum(l => l.Amount);
             doc.VatAmount = newLines.Sum(l => l.VatAmount);
             doc.FinalAmount = newLines.Sum(l => l.TotalAmount);
@@ -1451,13 +1454,14 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
     private async Task<Result<List<PurchaseDocProduct>>> BuildAllLinesAsync(
         int organizationId,
         List<PurchaseDocLineDto> productLineDtos,
+        bool priceIncludesVat,
         CancellationToken ct)
     {
         var allLines = new List<PurchaseDocProduct>();
 
         if (productLineDtos.Count > 0)
         {
-            var productResult = await BuildProductLinesAsync(organizationId, productLineDtos, ct);
+            var productResult = await BuildProductLinesAsync(organizationId, productLineDtos, priceIncludesVat, ct);
             if (!productResult.IsSuccess)
                 return Result.Failure<List<PurchaseDocProduct>>(productResult.Error);
 
@@ -1468,7 +1472,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
     }
 
     private async Task<Result<List<PurchaseDocProduct>>> BuildProductLinesAsync(
-        int organizationId, List<PurchaseDocLineDto> lineDtos, CancellationToken ct)
+        int organizationId, List<PurchaseDocLineDto> lineDtos, bool priceIncludesVat, CancellationToken ct)
     {
         var lines = new List<PurchaseDocProduct>();
         var markingNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1559,16 +1563,11 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
                     return Result.Failure<List<PurchaseDocProduct>>(PurchaseDocTableErrors.VatRateNotFound(vatRateId.Value, _userContext.LanguageId));
             }
 
-            var lineAmounts = ResolveLineAmounts(dto, vatRate?.Rate);
+            var lineAmounts = ResolveLineAmounts(dto, vatRate?.Rate, priceIncludesVat);
 
             var itemVatAmounts = product.IsService || !product.IsPieceTracked
                 ? new List<decimal>()
-                : SplitAmount(
-                        lineAmounts.VatAmount,
-                        decimal.ToInt32(dto.Quantity),
-                        lineAmounts.IsProviderSourced ? 2 : 8)
-                    .Take(dto.Items.Count)
-                    .ToList();
+                : DocumentMoney.Distribute(lineAmounts.VatAmount, dto.Items.Count);
 
             lines.Add(new PurchaseDocProduct
             {
@@ -1604,7 +1603,7 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
         return lines;
     }
 
-    internal static PurchaseDocLineAmounts ResolveLineAmounts(PurchaseDocLineDto dto, decimal? vatRate)
+    internal static PurchaseDocLineAmounts ResolveLineAmounts(PurchaseDocLineDto dto, decimal? vatRate, bool priceIncludesVat)
     {
         if (dto.ProviderVatAmount.HasValue && dto.ProviderTotalAmount.HasValue)
         {
@@ -1617,30 +1616,15 @@ public class PurchaseDocService : BaseService, IPurchaseDocService, IEdoHistoric
             return new PurchaseDocLineAmounts(amount, vatAmount, totalAmount, IsProviderSourced: true);
         }
 
-        var calculatedAmount = dto.UnitPrice * dto.Quantity;
-        var calculatedVatAmount = vatRate.HasValue
-            ? Math.Round(calculatedAmount * vatRate.Value / 100m, 8)
-            : 0m;
+        var money = VatCalculator.Resolve(dto.UnitPrice * dto.Quantity, vatRate, priceIncludesVat);
         return new PurchaseDocLineAmounts(
-            calculatedAmount,
-            calculatedVatAmount,
-            calculatedAmount + calculatedVatAmount,
+            money.NetAmount,
+            money.VatAmount,
+            money.GrossAmount,
             IsProviderSourced: false);
     }
 
-    private static decimal RoundMoney(decimal value) =>
-        Math.Round(value, 2, MidpointRounding.AwayFromZero);
-
-    private static List<decimal> SplitAmount(decimal amount, int count, int precision = 8)
-    {
-        if (count <= 0)
-            return new List<decimal>();
-
-        var split = Math.Round(amount / count, precision, MidpointRounding.AwayFromZero);
-        var result = Enumerable.Repeat(split, count).ToList();
-        result[^1] += amount - result.Sum();
-        return result;
-    }
+    private static decimal RoundMoney(decimal value) => DocumentMoney.Round(value);
 
     private sealed record PurchaseTableLink(long OwnerId, int ProductTableId);
 
